@@ -4,10 +4,17 @@ import {
   advancePhase,
   createBattleSession,
   dispatchBattleEvent,
+  rehydrateBattleSession,
   redoLastAction,
   undoLastAction,
 } from '../domain/battle/engine'
 import type { BattleEventInput, BattleSession, GuidanceLevel } from '../domain/battle/types'
+import {
+  passReaction as passReactionInBattle,
+  requestReactionHold as requestReactionHoldInBattle,
+  useStratagem as useStratagemInBattle,
+} from '../domain/stratagems/battleIntegration'
+import type { ReactionTriggerInput, UseStratagemInput } from '../domain/stratagems/battleIntegration'
 import { getBattle, getLatestActiveBattle, saveBattle } from '../persistence/database'
 
 type BattleStore = {
@@ -18,6 +25,9 @@ type BattleStore = {
   loadBattle: (id: string) => Promise<void>
   resumeLatest: () => Promise<string | null>
   dispatch: (event: BattleEventInput) => void
+  useStratagem: (input: UseStratagemInput) => void
+  requestReactionHold: (playerId: string, input: ReactionTriggerInput) => void
+  passReaction: (reactionWindowId: string, playerId: string) => void
   nextPhase: () => void
   undo: () => void
   redo: () => void
@@ -81,7 +91,8 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
     if (get().session?.setup.gameId === id) return
     set({ loading: true, error: null })
     try {
-      const session = await getBattle(id)
+      const stored = await getBattle(id)
+      const session = stored ? rehydrateBattleSession(stored) : undefined
       set({ session: session ?? null, loading: false, error: session ? null : 'Battle not found.' })
     } catch (error: unknown) {
       set({ loading: false, error: error instanceof Error ? error.message : String(error) })
@@ -91,7 +102,8 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
   async resumeLatest() {
     set({ loading: true, error: null })
     try {
-      const session = await getLatestActiveBattle()
+      const stored = await getLatestActiveBattle()
+      const session = stored ? rehydrateBattleSession(stored) : undefined
       set({ session: session ?? null, loading: false })
       return session?.setup.gameId ?? null
     } catch (error: unknown) {
@@ -105,6 +117,42 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
     if (!current) return
     try {
       const session = dispatchBattleEvent(current, event)
+      set({ session, error: null })
+      queueSave(session)
+    } catch (error: unknown) {
+      set({ error: error instanceof Error ? error.message : String(error) })
+    }
+  },
+
+  useStratagem(input) {
+    const current = get().session
+    if (!current) return
+    try {
+      const session = useStratagemInBattle(current, input)
+      set({ session, error: null })
+      queueSave(session)
+    } catch (error: unknown) {
+      set({ error: error instanceof Error ? error.message : String(error) })
+    }
+  },
+
+  requestReactionHold(playerId, input) {
+    const current = get().session
+    if (!current) return
+    try {
+      const session = requestReactionHoldInBattle(current, playerId, input)
+      set({ session, error: null })
+      queueSave(session)
+    } catch (error: unknown) {
+      set({ error: error instanceof Error ? error.message : String(error) })
+    }
+  },
+
+  passReaction(reactionWindowId, playerId) {
+    const current = get().session
+    if (!current) return
+    try {
+      const session = passReactionInBattle(current, reactionWindowId, playerId)
       set({ session, error: null })
       queueSave(session)
     } catch (error: unknown) {
