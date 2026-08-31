@@ -22,10 +22,11 @@ export default function Home() {
     <div className="page-shell home-page">
       <section className="hero-panel">
         <span className="eyebrow">Offline battle co-pilot</span>
-        <h1>Keep your attention on the table.</h1>
-        <p>Import a roster, guide the battle phase by phase, and let the companion retain casualties, command points, objectives, and the event log.</p>
+        <h1>Command the Cauldron, not the bookkeeping.</h1>
+        <p>Assign three armies, follow Rival rotation and phases, then let the companion retain casualties, objectives, Operational Plans, Primary scoring, and the event log.</p>
         <div className="hero-actions">
           <Link className="button button--gold" to="/army-import">Import New Recruit</Link>
+          {armies.length > 0 && <Link className="button" to="/battle/setup">New Cauldron game</Link>}
           {activeBattle && <Link className="button" to={`/battle/${activeBattle.setup.gameId}`}>Resume battle</Link>}
         </div>
       </section>
@@ -55,7 +56,7 @@ export default function Home() {
               <article className="panel library-card" key={army.id}>
                 <div><h3>{army.faction}</h3><p>{army.name}</p></div>
                 <div className="library-card__facts"><strong>{army.totalPoints}</strong><span>PTS</span><strong>{army.units.length}</strong><span>UNITS</span></div>
-                <Link className="button button--small" to={`/battle/setup?armyId=${encodeURIComponent(army.id)}`}>Use army</Link>
+                <Link className="button button--small" to={`/battle/setup?armyId=${encodeURIComponent(army.id)}`}>Use in Cauldron</Link>
               </article>
             ))}
           </div>

@@ -6,8 +6,9 @@ Current capabilities:
 
 - import real New Recruit JSON into an internal army model;
 - preview and persist imported armies locally;
-- run a generic event-driven three-player guided battle;
-- track phases, turns, rounds, VP, CP, objectives, unit casualties, wounds, abilities, and an event log;
+- configure a Cauldron FFA 3 battle with three saved armies, deployment zones, fixed turn order, and Operational Plans;
+- track automatic Rival rotation, snapshots, phases, turns, rounds, CP, objectives, attributed casualties, wounds, abilities, and an event log;
+- review and automatically commit Cauldron Primary scoring, including all five Operational Plans;
 - undo/redo actions and resume active battles from IndexedDB.
 
 Development commands:

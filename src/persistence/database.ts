@@ -52,11 +52,30 @@ export async function saveBattle(session: BattleSession): Promise<void> {
 }
 
 export async function getBattle(id: string): Promise<BattleSession | undefined> {
-  return (await database.battles.get(id))?.session
+  const session = (await database.battles.get(id))?.session
+  return session ? normalizeLegacySession(session) : undefined
 }
 
 export async function getLatestActiveBattle(): Promise<BattleSession | undefined> {
   const active = await database.battles.where('status').equals('active').toArray()
   active.sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
-  return active[0]?.session
+  return active[0]?.session ? normalizeLegacySession(active[0].session) : undefined
+}
+
+type LegacyPlayerSetup = BattleSession['setup']['players'][number] & { army?: Army }
+
+function normalizeLegacySession(session: BattleSession): BattleSession {
+  const legacySetup = session.setup as Omit<BattleSession['setup'], 'armies' | 'players'> & {
+    armies?: Record<string, Army>
+    players: LegacyPlayerSetup[]
+  }
+  if (legacySetup.armies) return session
+  const armies = Object.fromEntries(legacySetup.players.flatMap((player) => (
+    player.army ? [[player.army.id, player.army] as const] : []
+  )))
+  const players = legacySetup.players.map((player) => {
+    const { army, ...setupPlayer } = player
+    return { ...setupPlayer, armyId: setupPlayer.armyId ?? army?.id }
+  })
+  return { ...session, setup: { ...session.setup, players, armies } }
 }

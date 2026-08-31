@@ -2,23 +2,38 @@ import { create } from 'zustand'
 import type { Army } from '../domain/army/types'
 import {
   advancePhase,
-  createBattleSession,
   dispatchBattleEvent,
   redoLastAction,
   undoLastAction,
 } from '../domain/battle/engine'
 import type { BattleEventInput, BattleSession, GuidanceLevel } from '../domain/battle/types'
 import { getBattle, getLatestActiveBattle, saveBattle } from '../persistence/database'
+import {
+  advanceCauldronPhase,
+  CAULDRON_RULESET_ID,
+  changeOperationalPlan,
+  confirmCauldronEndRound,
+  createCauldronGame,
+  type CauldronPlayerInput,
+  type OperationalPlanId,
+  type PlanConfirmation,
+} from '../rulesets/cauldronFFA3'
 
 type BattleStore = {
   session: BattleSession | null
   loading: boolean
   error: string | null
-  startBattle: (army: Army, rivalNames: string[], guidanceLevel: GuidanceLevel) => Promise<string>
+  startCauldronBattle: (
+    players: CauldronPlayerInput[],
+    armies: Army[],
+    guidanceLevel: GuidanceLevel,
+  ) => Promise<string>
   loadBattle: (id: string) => Promise<void>
   resumeLatest: () => Promise<string | null>
   dispatch: (event: BattleEventInput) => void
   nextPhase: () => void
+  changePlan: (playerId: string, planId: OperationalPlanId) => void
+  confirmRound: (confirmations: Record<string, PlanConfirmation>) => void
   undo: () => void
   redo: () => void
 }
@@ -32,10 +47,19 @@ function queueSave(session: BattleSession): void {
   })
 }
 
-function createId(prefix: string): string {
-  const suffix = globalThis.crypto?.randomUUID?.()
-    ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
-  return `${prefix}-${suffix}`
+function applySessionUpdate(
+  current: BattleSession | null,
+  update: (session: BattleSession) => BattleSession,
+  set: (state: Partial<BattleStore>) => void,
+): void {
+  if (!current) return
+  try {
+    const session = update(current)
+    set({ session, error: null })
+    queueSave(session)
+  } catch (error: unknown) {
+    set({ error: error instanceof Error ? error.message : String(error) })
+  }
 }
 
 export const useBattleStore = create<BattleStore>((set, get) => ({
@@ -43,30 +67,10 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
   loading: false,
   error: null,
 
-  async startBattle(army, rivalNames, guidanceLevel) {
+  async startCauldronBattle(players, armies, guidanceLevel) {
     set({ loading: true, error: null })
     try {
-      const ownerId = createId('player')
-      const rivals = rivalNames.filter((name) => name.trim()).map((name) => ({
-        id: createId('player'),
-        name: name.trim(),
-        faction: name.trim(),
-      }))
-      const players = [{ id: ownerId, name: army.faction, faction: army.faction, army }, ...rivals]
-      const session = createBattleSession({
-        rulesetId: 'generic-ffa',
-        players,
-        guidanceLevel,
-        maxRounds: 5,
-        objectives: [
-          { id: 'A-HOME', name: 'A-HOME', type: 'home' },
-          { id: 'B-HOME', name: 'B-HOME', type: 'home' },
-          { id: 'C-HOME', name: 'C-HOME', type: 'home' },
-          { id: 'N1', name: 'N1', type: 'neutral' },
-          { id: 'N2', name: 'N2', type: 'neutral' },
-          { id: 'N3', name: 'N3', type: 'neutral' },
-        ],
-      })
+      const session = createCauldronGame({ players, armies, guidanceLevel })
       await saveBattle(session)
       set({ session, loading: false })
       return session.setup.gameId
@@ -101,38 +105,28 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
   },
 
   dispatch(event) {
-    const current = get().session
-    if (!current) return
-    try {
-      const session = dispatchBattleEvent(current, event)
-      set({ session, error: null })
-      queueSave(session)
-    } catch (error: unknown) {
-      set({ error: error instanceof Error ? error.message : String(error) })
-    }
+    applySessionUpdate(get().session, (session) => dispatchBattleEvent(session, event), set)
   },
 
   nextPhase() {
-    const current = get().session
-    if (!current) return
-    const session = advancePhase(current)
-    set({ session, error: null })
-    queueSave(session)
+    applySessionUpdate(get().session, (session) => (
+      session.setup.rulesetId === CAULDRON_RULESET_ID ? advanceCauldronPhase(session) : advancePhase(session)
+    ), set)
+  },
+
+  changePlan(playerId, planId) {
+    applySessionUpdate(get().session, (session) => changeOperationalPlan(session, playerId, planId), set)
+  },
+
+  confirmRound(confirmations) {
+    applySessionUpdate(get().session, (session) => confirmCauldronEndRound(session, confirmations), set)
   },
 
   undo() {
-    const current = get().session
-    if (!current) return
-    const session = undoLastAction(current)
-    set({ session, error: null })
-    queueSave(session)
+    applySessionUpdate(get().session, undoLastAction, set)
   },
 
   redo() {
-    const current = get().session
-    if (!current) return
-    const session = redoLastAction(current)
-    set({ session, error: null })
-    queueSave(session)
+    applySessionUpdate(get().session, redoLastAction, set)
   },
 }))

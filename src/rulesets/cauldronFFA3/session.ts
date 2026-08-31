@@ -104,7 +104,9 @@ function shuffle<T>(values: T[]): T[] {
   const result = [...values]
   for (let index = result.length - 1; index > 0; index -= 1) {
     const randomIndex = Math.floor(Math.random() * (index + 1))
-    ;[result[index], result[randomIndex]] = [result[randomIndex], result[index]]
+    const current = result[index]
+    result[index] = result[randomIndex]
+    result[randomIndex] = current
   }
   return result
 }
