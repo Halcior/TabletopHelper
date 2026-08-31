@@ -1,4 +1,5 @@
 import type { Army, UnitState } from '../army/types'
+import type { ReactionWindow, TimingState } from '../stratagems/types'
 
 export const BATTLE_PHASES = [
   'COMMAND',
@@ -108,6 +109,21 @@ export type BattleEvent = BattleEventMetadata & (
   | { type: 'ABILITY_USED'; payload: { playerId: string; unitId: string; abilityName: string; used: boolean } }
   | { type: 'OBJECTIVE_OC_CHANGED'; payload: { objectiveId: string; playerId: string; oc: number } }
   | { type: 'OBJECTIVE_CONTROL_CHANGED'; payload: { objectiveId: string; controllerPlayerId: string | null } }
+  | { type: 'REACTION_WINDOW_OPENED'; payload: { window: ReactionWindow } }
+  | { type: 'REACTION_HOLD_REQUESTED'; payload: { window: ReactionWindow } }
+  | { type: 'REACTION_PASSED'; payload: { reactionWindowId: string; playerId: string } }
+  | {
+    type: 'STRATAGEM_USED'
+    payload: {
+      playerId: string
+      stratagemId: string
+      stratagemName: string
+      cpCost: number
+      reactionWindowId?: string
+    }
+  }
+  | { type: 'REACTION_WINDOW_RESOLVED'; payload: { reactionWindowId: string } }
+  | { type: 'REACTION_WINDOW_CANCELLED'; payload: { reactionWindowId: string } }
   | { type: 'RULESET_EVENT'; payload: { rulesetId: string; action: string; data: unknown } }
 )
 
@@ -133,6 +149,7 @@ export type GameState = {
     roundStart: ObjectiveControlSnapshot[]
     turnStart: ObjectiveControlSnapshot[]
   }
+  timing: TimingState
   events: BattleEvent[]
   createdAt: string
   updatedAt: string
