@@ -1,5 +1,6 @@
 import { totalScore } from '../../domain/battle/selectors'
 import type { BattleEventInput, BattleSession } from '../../domain/battle/types'
+import { CAULDRON_RULESET_ID } from '../../rulesets/cauldronFFA3'
 
 type ScoreboardProps = {
   session: BattleSession
@@ -7,6 +8,7 @@ type ScoreboardProps = {
 }
 
 export function Scoreboard({ session, dispatch }: ScoreboardProps) {
+  const cauldron = session.setup.rulesetId === CAULDRON_RULESET_ID
   return (
     <section className="scoreboard" aria-label="Player scores and command points">
       {session.state.turnOrder.map((playerId) => {
@@ -19,15 +21,15 @@ export function Scoreboard({ session, dispatch }: ScoreboardProps) {
               <div><strong>{totalScore(player)}</strong><span>VP</span></div>
               <div><strong>{player.cp}</strong><span>CP</span></div>
             </div>
-            <div className="compact-controls">
-              <button
+            <div className={`compact-controls${cauldron ? ' compact-controls--cp' : ''}`}>
+              {!cauldron && <button
                 aria-label={`Remove 1 VP from ${player.name}`}
                 onClick={() => dispatch({ type: 'SCORE_ADJUSTED', payload: { playerId, category: 'adjustment', delta: -1 } })}
-              >−VP</button>
-              <button
+              >−VP</button>}
+              {!cauldron && <button
                 aria-label={`Add 1 VP to ${player.name}`}
                 onClick={() => dispatch({ type: 'SCORE_ADJUSTED', payload: { playerId, category: 'adjustment', delta: 1 } })}
-              >+VP</button>
+              >+VP</button>}
               <button
                 aria-label={`Spend 1 CP for ${player.name}`}
                 onClick={() => dispatch({ type: 'CP_SPENT', payload: { playerId, amount: 1 } })}

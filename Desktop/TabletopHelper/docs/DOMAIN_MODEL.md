@@ -10,4 +10,6 @@
 - a projected `GameState` containing the current phase, scores, unit/objective state, snapshots, and event history;
 - grouped redo actions.
 
+Cauldron configuration is persisted as typed ruleset configuration. Initial plans live in configuration; plan changes, automatic snapshots, and Primary commits are ruleset events. Current plan state and Wyniszczenie progress are derived from that immutable setup plus retained events.
+
 All mutations are expressed as `BattleEvent` values. State is replayed from setup plus the retained event history, which makes undo/redo deterministic and keeps the battle log authoritative.

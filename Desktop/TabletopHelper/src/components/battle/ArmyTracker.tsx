@@ -170,25 +170,37 @@ export function ArmyTracker({ session, dispatch }: ArmyTrackerProps) {
     const army = player.armyId ? session.setup.armies[player.armyId] : undefined
     return army ? [{ player, army }] : []
   })
-  if (armyPlayers.length === 0) return <section className="empty-state"><h2>No army roster attached</h2></section>
   const players = session.state.turnOrder.map((id) => session.state.players[id])
-  return <div className="army-trackers">{armyPlayers.map(({ player, army }) => {
-    const playerState = session.state.players[player.id]
-    return <section key={player.id} className="army-tracker-section">
+  const activeHasArmy = armyPlayers.some(({ player }) => player.id === session.state.activePlayerId)
+  const preferredPlayerId = activeHasArmy ? session.state.activePlayerId : armyPlayers[0]?.player.id ?? ''
+  const [selectedPlayerId, setSelectedPlayerId] = useState(preferredPlayerId)
+  useEffect(() => setSelectedPlayerId(preferredPlayerId), [preferredPlayerId])
+  if (armyPlayers.length === 0) return <section className="empty-state"><h2>No army roster attached</h2></section>
+  const selected = armyPlayers.find(({ player }) => player.id === selectedPlayerId) ?? armyPlayers[0]
+  const playerState = session.state.players[selected.player.id]
+  return <div className="army-trackers">
+    <nav className="army-player-tabs" aria-label="Choose player army">
+      {armyPlayers.map(({ player, army }) => <button
+        className={player.id === selected.player.id ? 'selected' : ''}
+        key={player.id}
+        onClick={() => setSelectedPlayerId(player.id)}
+      ><span>{player.name}</span><small>{army.faction}</small></button>)}
+    </nav>
+    <section key={selected.player.id} className="army-tracker-section">
       <div className="army-heading">
-        <div><span className="eyebrow">{player.name} · Zone {player.deploymentZone ?? '—'}</span><h2>{army.faction}</h2></div>
-        <strong>{army.totalPoints} pts</strong>
+        <div><span className="eyebrow">{selected.player.name} · Zone {selected.player.deploymentZone ?? '—'}</span><h2>{selected.army.faction}</h2></div>
+        <strong>{selected.army.totalPoints} pts</strong>
       </div>
-      <div className="unit-grid">{army.units.map((unit) => <UnitCard
+      <div className="unit-grid">{selected.army.units.map((unit) => <UnitCard
         key={unit.id}
         unit={unit}
         state={playerState.units[unit.id]}
-        army={army}
-        ownerId={player.id}
+        army={selected.army}
+        ownerId={selected.player.id}
         activePlayerId={session.state.activePlayerId}
         players={players}
         dispatch={dispatch}
       />)}</div>
     </section>
-  })}</div>
+  </div>
 }

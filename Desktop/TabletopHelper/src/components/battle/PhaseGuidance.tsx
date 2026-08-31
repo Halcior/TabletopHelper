@@ -1,5 +1,6 @@
 import type { BattleEventInput, BattleSession } from '../../domain/battle/types'
 import { getPhaseGuidance } from '../../rulesets/generic/guidance'
+import { CAULDRON_RULESET_ID, getCauldronReminders } from '../../rulesets/cauldronFFA3'
 
 type PhaseGuidanceProps = {
   session: BattleSession
@@ -8,7 +9,9 @@ type PhaseGuidanceProps = {
 
 export function PhaseGuidance({ session, dispatch }: PhaseGuidanceProps) {
   const activePlayer = session.state.players[session.state.activePlayerId]
-  const reminders = getPhaseGuidance(session.state.phase, session.setup.guidanceLevel)
+  const reminders = session.setup.rulesetId === CAULDRON_RULESET_ID
+    ? getCauldronReminders(session)
+    : getPhaseGuidance(session.state.phase, session.setup.guidanceLevel)
   return (
     <section className="panel guidance-panel">
       <div className="section-heading">
