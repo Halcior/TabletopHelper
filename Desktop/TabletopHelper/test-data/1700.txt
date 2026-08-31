@@ -1,0 +1,40 @@
++++++++++++++++++++++++++++++++++++++++++++++++
++ FACTION KEYWORD: Imperium - Adeptus Custodes
++ DETACHMENT: Might of the Moritoi, Shield Host (March of the Honoured Dead)
++ FORCE DISPOSITION: Purge the Foe
++ TOTAL ARMY POINTS: 1700pts
++
++ WARLORD: Char1: Trajann Valoris
++ ENHANCEMENT: Auric Mantle (on Char2: Blade Champion)
+& Interred Expertise (on Vehi2: Telemon Heavy Dreadnought)
++ NUMBER OF UNITS: 11
++ SECONDARY: - Bring It Down: (2x2) - Assassination: 3 Characters
++++++++++++++++++++++++++++++++++++++++++++++++
+
+Char2: 1x Blade Champion (125 pts): Vaultswords
+Enhancement: Auric Mantle (+15 pts)
+Leading Custodian Wardens
+Char1: 1x Trajann Valoris (135 pts): Warlord, Eagle's Scream, Watcher's Axe
+
+4x Custodian Guard (170 pts): 4 with Guardian Spear
+  Attached to Inquisitor Draxus
+
+3x Allarus Custodians (165 pts): 3 with Balistus grenade launcher, Guardian Spear
+1x Caladius Grav-tank (225 pts): Armoured hull, Twin lastrum bolt cannon, Twin arachnus heavy blaze cannon
+4x Custodian Wardens (200 pts)
+• 2x Custodian Warden (Castellan axe): 2 with Castellan Axe
+• 2x Custodian Warden (Guardian Spear): 2 with Guardian Spear
+  Attached to Blade Champion
+Char3: 1x Inquisitor Draxus (110 pts): Dirgesinger, Power fist, Psychic Tempest
+Leading Custodian Guard
+5x Prosecutors (50 pts)
+• 1x Prosecutor Sister Superior: Boltgun, Close combat weapon
+• 4x Prosecutor: 4 with Boltgun, Close combat weapon
+1x Telemon Heavy Dreadnought (250 pts): Armoured feet, Spiculus bolt launcher, Iliastus accelerator culverin, Telemon caestus, Twin plasma projector
+Enhancement: Interred Expertise (+25 pts)
+3x Vertus Praetors (215 pts): 3 with Interceptor lance, Salvo launcher
+5x Witchseekers (55 pts)
+• 1x Witchseeker Sister Superior: Close combat weapon, Witchseeker flamer
+• 4x Witchseeker: 4 with Close combat weapon, Witchseeker flamer
+
+Created with newrecruit.eu v35.76
