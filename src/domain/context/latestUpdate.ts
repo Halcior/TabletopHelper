@@ -41,14 +41,14 @@ function isMeaningfulPhysicalEvent(event: BattleEvent): boolean {
   ].includes(event.type)
 }
 
-function describeCause(session: BattleSession, event: BattleEvent): { title: string; detail: string; scoringPlayerId?: string } | null {
+function describeCause(session: BattleSession, event: BattleEvent): { title: string; detail: string; casualtyScoringPlayerId?: string } | null {
   switch (event.type) {
     case 'UNIT_DESTROYED': {
       const name = unitName(session, event.payload.playerId, event.payload.unitId)
       return {
         title: `${name} destroyed`,
         detail: 'Army state updated.',
-        scoringPlayerId: event.payload.destroyedByPlayerId ?? undefined,
+        casualtyScoringPlayerId: event.payload.destroyedByPlayerId ?? undefined,
       }
     }
     case 'UNIT_MODEL_DESTROYED': {
@@ -56,7 +56,7 @@ function describeCause(session: BattleSession, event: BattleEvent): { title: str
       return {
         title: `${name} · casualty recorded`,
         detail: `${event.payload.amount} model${event.payload.amount === 1 ? '' : 's'} removed.`,
-        scoringPlayerId: event.payload.destroyedByPlayerId ?? undefined,
+        casualtyScoringPlayerId: event.payload.destroyedByPlayerId ?? undefined,
       }
     }
     case 'UNIT_MODEL_RESTORED': {
@@ -71,7 +71,7 @@ function describeCause(session: BattleSession, event: BattleEvent): { title: str
       return {
         title: `${name} · ${event.payload.woundsRemaining} W remaining`,
         detail: 'Wounds updated.',
-        scoringPlayerId: event.payload.destroyedByPlayerId ?? undefined,
+        casualtyScoringPlayerId: event.payload.destroyedByPlayerId ?? undefined,
       }
     }
     case 'OBJECTIVE_CONTROL_CHANGED': {
@@ -81,21 +81,18 @@ function describeCause(session: BattleSession, event: BattleEvent): { title: str
       return {
         title: `${objectiveName(session, event.payload.objectiveId)} → ${controller}`,
         detail: 'Objective control updated.',
-        scoringPlayerId: event.payload.controllerPlayerId ?? undefined,
       }
     }
     case 'MISSION_ACTION_STARTED':
       return {
         title: `${event.payload.action.name} started`,
         detail: 'Mission Action is now active.',
-        scoringPlayerId: event.payload.action.playerId,
       }
     case 'MISSION_ACTION_COMPLETED': {
       const action = session.state.missionActions[event.payload.actionId]
       return {
         title: `${action?.name ?? 'Mission Action'} completed`,
         detail: 'Mission Action result recorded.',
-        scoringPlayerId: action?.playerId,
       }
     }
     case 'MISSION_ACTION_FAILED': {
@@ -103,14 +100,12 @@ function describeCause(session: BattleSession, event: BattleEvent): { title: str
       return {
         title: `${action?.name ?? 'Mission Action'} failed`,
         detail: event.payload.reason,
-        scoringPlayerId: action?.playerId,
       }
     }
     case 'STRATAGEM_USED':
       return {
         title: `${event.payload.stratagemName} used`,
         detail: `${event.payload.cpCost} CP spent.`,
-        scoringPlayerId: event.payload.playerId,
       }
     default:
       return null
@@ -148,16 +143,16 @@ export function buildLatestBattleUpdate(session: BattleSession): LatestBattleUpd
     if (card) consequences.push(`${card.name} +${data.pointsAwarded} VP`)
   }
 
-  if (session.setup.rulesetId === CAULDRON_RULESET_ID && described.scoringPlayerId) {
+  if (session.setup.rulesetId === CAULDRON_RULESET_ID && described.casualtyScoringPlayerId) {
     try {
-      const planState = getOperationalPlanState(session, described.scoringPlayerId)
-      const evaluation = evaluateOperationalPlan(session, described.scoringPlayerId)
+      const planState = getOperationalPlanState(session, described.casualtyScoringPlayerId)
+      const evaluation = evaluateOperationalPlan(session, described.casualtyScoringPlayerId)
       if (planState.planId === 'WYNISZCZENIE' && evaluation.progress) {
         consequences.push(`Wyniszczenie ${evaluation.progress.current}/${evaluation.progress.target} ${evaluation.progress.unit}`)
       }
     } catch {
-      // The summary must never make the battle screen fail when optional ruleset
-      // configuration is missing or belongs to another game type.
+      // Presentation feedback must never make the battle screen fail when optional
+      // ruleset configuration is missing or belongs to another game type.
     }
   }
 
