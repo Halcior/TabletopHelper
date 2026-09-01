@@ -60,6 +60,35 @@ function sourceLabel(item: ContextItem): string {
   return item.source.replaceAll('_', ' ').toLocaleLowerCase()
 }
 
+function phaseLabel(phase: BattleContext['phase']): string {
+  return phase.replaceAll('_', ' ').toLocaleLowerCase().replace(/^./, (letter) => letter.toLocaleUpperCase())
+}
+
+function stratagemContextCopy(options: RelevantStratagem[]): { title: string; description: string } {
+  const availableNow = options.filter((option) => !option.manualConfirmationRequired && option.availability.canUse).length
+  const unverified = options.filter((option) => option.manualConfirmationRequired && option.availability.canUse).length
+  if (availableNow > 0 && unverified > 0) return {
+    title: `${availableNow} available now · ${unverified} timing to confirm`,
+    description: 'Confirmed timing is shown separately from phase-only matches.',
+  }
+  if (availableNow > 0) return {
+    title: `${availableNow} Stratagem${availableNow === 1 ? '' : 's'} available now`,
+    description: 'Structured timing matches the current game context.',
+  }
+  if (unverified > 0) return {
+    title: `${unverified} Stratagem${unverified === 1 ? '' : 's'} with timing to confirm`,
+    description: 'These match the phase, but the exact trigger is not structured.',
+  }
+  return {
+    title: 'Stratagem references',
+    description: 'No listed Stratagem is currently confirmed as usable.',
+  }
+}
+
+function hideQuietReaction(item: ContextItem): boolean {
+  return item.type === 'REACTION_STATUS' && item.status === 'INFO' && item.actions.length === 0
+}
+
 export function ContextCommandCentre({
   context,
   session,
@@ -89,8 +118,12 @@ export function ContextCommandCentre({
   const priorityCandidates = getPriorityTargetCandidates(session, playerId).filter((candidate) => candidate.eligible)
   const visibleSections = useMemo(() => context.sections.map((section) => ({
     ...section,
-    items: section.items.filter((item) => !dismissed.has(item.id)),
+    items: section.items.filter((item) => !dismissed.has(item.id) && !hideQuietReaction(item)),
   })).filter((section) => section.items.length > 0), [context.sections, dismissed])
+  const stratagemOptions = useMemo(() => [...context.relevantStratagems].sort((left, right) => (
+    Number(left.manualConfirmationRequired) - Number(right.manualConfirmationRequired)
+  )), [context.relevantStratagems])
+  const stratagemCopy = stratagemContextCopy(context.relevantStratagems)
 
   useEffect(() => {
     setDismissed(new Set())
@@ -150,7 +183,7 @@ export function ContextCommandCentre({
 
   return <section className={`context-centre context-centre--${context.guidanceLevel}`}>
     <div className="context-centre__heading">
-      <div><span className="eyebrow">What matters now</span><h2>{context.phase.replaceAll('_', ' ')} context</h2></div>
+      <div><span className="eyebrow">What matters now</span><h2>{phaseLabel(context.phase)} priorities</h2></div>
       {context.blockingItems.length > 0
         ? <span className="context-blocker-count">{context.blockingItems.length} to resolve</span>
         : <span className="context-clear">Safe to advance</span>}
@@ -158,25 +191,28 @@ export function ContextCommandCentre({
 
     {visibleSections.map((section) => <section className={`context-section context-section--${section.id}`} key={section.id}>
       <h3>{section.title}</h3>
-      <div className="context-item-list">{section.items.map((item) => <article
-        className={`context-item context-item--${item.severity.toLowerCase()} context-item--${item.status.toLowerCase()}`}
-        id={`context-${item.id}`}
-        key={item.id}
-        tabIndex={-1}
-      >
-        <div className="context-item__top"><span>{sourceLabel(item)}</span><strong>{statusLabel(item)}</strong></div>
-        <h4>{item.title}</h4>
-        <p>{item.shortDescription}</p>
-        {item.details && item.details.length > 0 && <ul>{item.details.map((detail) => <li key={detail}>{detail}</li>)}</ul>}
-        {item.actions.length > 0 && <div className="context-item__actions">{item.actions.map((itemAction) => <button
-          className={item.status === 'BLOCKING' && itemAction.type !== 'DISMISS' ? 'button--gold' : ''}
-          key={itemAction.id}
-          onClick={() => handleAction(item, itemAction)}
-        >{itemAction.label}</button>)}</div>}
-      </article>)}</div>
+      <div className="context-item-list">{section.items.map((item) => {
+        const isStratagemSummary = item.type === 'AVAILABLE_STRATAGEMS'
+        return <article
+          className={`context-item context-item--${item.severity.toLowerCase()} context-item--${item.status.toLowerCase()}`}
+          id={`context-${item.id}`}
+          key={item.id}
+          tabIndex={-1}
+        >
+          <div className="context-item__top"><span>{sourceLabel(item)}</span><strong>{statusLabel(item)}</strong></div>
+          <h4>{isStratagemSummary ? stratagemCopy.title : item.title}</h4>
+          <p>{isStratagemSummary ? stratagemCopy.description : item.shortDescription}</p>
+          {item.details && item.details.length > 0 && <ul>{item.details.map((detail) => <li key={detail}>{detail.replace('confirm timing', 'timing unverified')}</li>)}</ul>}
+          {item.actions.length > 0 && <div className="context-item__actions">{item.actions.map((itemAction) => <button
+            className={item.status === 'BLOCKING' && itemAction.type !== 'DISMISS' ? 'button--gold' : ''}
+            key={itemAction.id}
+            onClick={() => handleAction(item, itemAction)}
+          >{itemAction.label}</button>)}</div>}
+        </article>
+      })}</div>
     </section>)}
 
-    {visibleSections.length === 0 && <p className="context-empty">No action requires attention in this phase.</p>}
+    {visibleSections.length === 0 && <p className="context-empty">Nothing requires attention in this phase.</p>}
 
     {panel?.type === 'army' && <ArmyQuickPanel
       session={session}
@@ -208,13 +244,14 @@ export function ContextCommandCentre({
           <button className="button--gold button--wide" disabled={candidateIds.length !== 2} onClick={() => onSelectPriorityCandidates(playerId, candidateIds)}>Confirm two targets</button>
         </> : <><p>The current Rival chooses one target.</p><div className="context-choice-list">{priorityCandidates.filter((candidate) => selectedPriorityCandidates.includes(candidate.unitId)).map((candidate) => <button key={candidate.unitId} onClick={() => { onChoosePriorityTarget(playerId, candidate.unitId); setPanel(null) }}>{candidate.name}<span>{candidate.points} pts</span></button>)}</div></>}
     </ContextOverlay>}
-    {panel?.type === 'stratagems' && <ContextOverlay title="Potential Stratagems" eyebrow={`${context.phase.replaceAll('_', ' ')} phase`} onClose={() => setPanel(null)}>
-      <div className="context-stratagem-list">{context.relevantStratagems.map((option) => <article key={option.definition.id}>
+    {panel?.type === 'stratagems' && <ContextOverlay title="Stratagems in this phase" eyebrow={`${phaseLabel(context.phase)} phase`} onClose={() => setPanel(null)}>
+      <div className="context-stratagem-list">{stratagemOptions.map((option) => <article className={option.manualConfirmationRequired ? 'context-stratagem context-stratagem--unverified' : 'context-stratagem'} key={option.definition.id}>
         <div><strong>{option.definition.name}</strong><span>{option.definition.cpCost} CP · {option.classification.toLocaleLowerCase()}</span></div>
+        <span className={`stratagem-confidence ${option.manualConfirmationRequired ? 'stratagem-confidence--unverified' : 'stratagem-confidence--exact'}`}>{option.manualConfirmationRequired ? 'Timing unverified' : 'Available timing matched'}</span>
         <p>{option.definition.description || (option.manualConfirmationRequired ? 'Timing requires player confirmation.' : 'Structured timing available.')}</p>
-        {option.manualConfirmationRequired && <small>Exact trigger is not structured. Confirm the timing against your rules source.</small>}
+        {option.manualConfirmationRequired && <small>Phase matches, but the exact trigger is not structured. Confirm the timing at the table before spending CP.</small>}
         {!option.availability.canUse && <small>{option.availability.reasons.join(' ')}</small>}
-        <div><button className="button--gold" disabled={!option.availability.canUse} onClick={() => useContextStratagem(option)}>{option.manualConfirmationRequired ? 'Trigger applies' : 'Use Stratagem'}</button>{option.manualConfirmationRequired && <button onClick={() => { setDismissed((current) => new Set(current).add(`stratagems-${playerId}-${context.phase}`)); setPanel(null) }}>Not now</button>}</div>
+        <div><button className="button--gold" disabled={!option.availability.canUse} onClick={() => useContextStratagem(option)}>{option.manualConfirmationRequired ? 'Confirm timing & use' : 'Use Stratagem'}</button>{option.manualConfirmationRequired && <button onClick={() => { setDismissed((current) => new Set(current).add(`stratagems-${playerId}-${context.phase}`)); setPanel(null) }}>Not now</button>}</div>
       </article>)}</div>
     </ContextOverlay>}
     {panel?.type === 'plan' && <ContextOverlay title="Operational Plan" eyebrow="Command option" onClose={() => setPanel(null)}><CauldronPlanPanel session={session} onChangePlan={(ownerId, planId) => { onChangePlan(ownerId, planId); setPanel(null) }} /></ContextOverlay>}
