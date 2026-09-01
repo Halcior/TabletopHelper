@@ -1,0 +1,159 @@
+.score-card.is-viewer {
+  border-color: var(--gold-bright);
+  background: #1a1c19;
+}
+
+.score-card:not(:has(.compact-controls)) {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.shared-session-page {
+  width: min(960px, 100%);
+  padding-top: clamp(18px, 4vw, 34px);
+}
+
+.shared-session-intro {
+  margin-bottom: 18px;
+}
+
+.shared-session-intro h1 {
+  margin-bottom: 6px;
+  font: 850 clamp(1.8rem, 5vw, 2.7rem)/1 Inter, ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: -.035em;
+}
+
+.shared-session-intro p {
+  max-width: 620px;
+  margin-bottom: 0;
+}
+
+.shared-session-grid--simple {
+  grid-template-columns: minmax(0, 1.15fr) minmax(280px, .85fr);
+}
+
+.shared-session-card--join {
+  border-color: var(--line-gold);
+}
+
+.shared-host-summary {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.shared-host-summary span {
+  color: var(--muted);
+  font-size: .75rem;
+  text-transform: capitalize;
+}
+
+.shared-room-focus {
+  max-width: 760px;
+  margin: 10vh auto 0;
+  padding: clamp(18px, 4vw, 28px);
+  display: grid;
+  gap: 16px;
+}
+
+.shared-room-focus__code {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.shared-room-focus__code span,
+.shared-room-focus__status span {
+  color: var(--muted);
+  font-size: .65rem;
+  font-weight: 850;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+
+.shared-room-focus__code strong {
+  color: var(--gold-bright);
+  font: 900 clamp(2.4rem, 10vw, 4rem)/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: .13em;
+}
+
+.shared-room-focus__status {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+}
+
+.shared-room-focus__status > div {
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid var(--line);
+  display: grid;
+  gap: 3px;
+  text-align: center;
+}
+
+.shared-room-focus__status strong {
+  overflow: hidden;
+  color: var(--paper);
+  font-size: .78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shared-room-focus__queue {
+  margin: 0;
+}
+
+.shared-room-focus__actions {
+  display: grid;
+  grid-template-columns: 1.4fr repeat(3, 1fr);
+  gap: 7px;
+}
+
+@media (max-width: 820px) {
+  .shared-session-page {
+    padding-top: 16px;
+  }
+
+  .shared-session-grid--simple {
+    grid-template-columns: 1fr;
+  }
+
+  .shared-session-card--join {
+    order: -1;
+  }
+
+  .shared-room-focus {
+    margin-top: 4vh;
+    padding: 14px;
+  }
+
+  .shared-room-focus__status {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .shared-room-focus__status > div:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .shared-room-focus__actions {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .shared-room-focus__actions .button--gold {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 520px) {
+  .shared-room-focus__code strong {
+    font-size: 2.2rem;
+  }
+
+  .score-card.is-viewer {
+    min-width: 84vw;
+  }
+}
