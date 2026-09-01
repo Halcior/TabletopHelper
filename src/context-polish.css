@@ -1,0 +1,76 @@
+.stratagem-confidence {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 9px;
+  padding: 4px 7px;
+  border: 1px solid var(--line);
+  font-size: .64rem;
+  font-weight: 800;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+
+.stratagem-confidence--exact {
+  border-color: rgb(92 132 91 / 70%);
+  color: #b7d7bb;
+  background: rgb(30 69 41 / 25%);
+}
+
+.stratagem-confidence--unverified {
+  border-color: var(--line-gold);
+  color: var(--gold-bright);
+  background: rgb(73 59 28 / 28%);
+}
+
+.context-stratagem--unverified {
+  border-style: dashed !important;
+}
+
+.context-stratagem--unverified > p {
+  color: var(--paper) !important;
+}
+
+.discard-choice > div {
+  display: grid;
+  gap: 4px;
+}
+
+.discard-choice small {
+  color: var(--muted);
+  font-size: .72rem;
+  font-weight: 500;
+}
+
+.discard-choice--discarding {
+  background: rgb(82 32 30 / 20%);
+}
+
+.review-commit-note {
+  margin: 12px 0 0;
+  padding: 11px 13px;
+  border-left: 3px solid var(--gold);
+  background: rgb(73 59 28 / 20%);
+  color: var(--paper);
+  font-size: .82rem;
+  line-height: 1.45;
+}
+
+.review-actions--final {
+  grid-template-columns: minmax(220px, 1fr) !important;
+}
+
+.review-actions--final .button--gold {
+  width: 100%;
+}
+
+@media (max-width: 560px) {
+  .discard-choice {
+    align-items: stretch;
+    flex-direction: column;
+    padding: 10px 0;
+  }
+
+  .discard-choice button {
+    width: 100%;
+  }
+}
