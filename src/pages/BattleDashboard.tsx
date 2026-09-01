@@ -98,6 +98,13 @@ export default function BattleDashboard() {
     return () => { active = false }
   }, [])
 
+  useEffect(() => {
+    if (!session || session.state.status !== 'active') return
+    setTab('overview')
+    setContextFocusItemId(null)
+    setArmySecondaryFilter(null)
+  }, [session?.state.activePlayerId, session?.state.phase, session?.state.round, session?.state.status])
+
   if (loading && session?.setup.gameId !== battleId) return <div className="page-shell"><div className="loading-state">Restoring battle…</div></div>
   if (!session || session.setup.gameId !== battleId) return <div className="page-shell"><div className="empty-state"><h1>Battle unavailable</h1><p>{error ?? 'The local battle could not be found.'}</p><Link className="button" to="/">Return home</Link></div></div>
 
