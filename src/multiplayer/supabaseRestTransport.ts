@@ -67,12 +67,23 @@ function mapParticipant(row: SupabaseParticipantRow): SharedParticipant {
 export class SupabaseRestSharedSessionTransport implements SharedSessionTransport {
   private readonly url = env('VITE_SUPABASE_URL')?.replace(/\/$/, '')
   private readonly anonKey = env('VITE_SUPABASE_ANON_KEY')
+  private readonly roomCodes = new Map<string, string>()
 
   get configured(): boolean {
     return Boolean(this.url && this.anonKey)
   }
 
-  private async request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  private rememberRoom(room: SharedRoom): void {
+    this.roomCodes.set(room.id, room.code)
+  }
+
+  private roomCode(roomId: string): string {
+    const code = this.roomCodes.get(roomId)
+    if (!code) throw new Error('Shared room capability is unavailable. Re-open the room before retrying sync.')
+    return code
+  }
+
+  private async request<T>(path: string, init: RequestInit = {}, roomCode?: string): Promise<T> {
     if (!this.url || !this.anonKey) throw new Error('Shared sessions are not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.')
     const response = await fetch(`${this.url}/rest/v1/${path}`, {
       ...init,
@@ -80,6 +91,7 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
         apikey: this.anonKey,
         Authorization: `Bearer ${this.anonKey}`,
         'Content-Type': 'application/json',
+        ...(roomCode ? { 'x-room-code': normalizeRoomCode(roomCode) } : {}),
         ...init.headers,
       },
     })
@@ -99,18 +111,19 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
     let room: SharedRoom | null = null
     let lastError: unknown
     for (let attempt = 0; attempt < 5 && !room; attempt += 1) {
+      const code = createRoomCode()
       try {
         const rows = await this.request<SupabaseRoomRow[]>('shared_rooms', {
           method: 'POST',
           headers: { Prefer: 'return=representation' },
           body: JSON.stringify({
             id: crypto.randomUUID(),
-            code: createRoomCode(),
+            code,
             battle_id: session.setup.gameId,
             status: session.state.status,
             session_snapshot: session,
           }),
-        })
+        }, code)
         room = rows[0] ? mapRoom(rows[0]) : null
       } catch (error) {
         lastError = error
@@ -118,22 +131,25 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
     }
     if (!room) throw lastError instanceof Error ? lastError : new Error('Could not create a unique shared room code.')
 
+    this.rememberRoom(room)
     const participant = await this.upsertParticipant(room, hostPlayerId, clientId, true)
     return { room, participants: [participant] }
   }
 
   async inspectRoom(code: string): Promise<SharedRoomInspection | null> {
     const normalized = normalizeRoomCode(code)
-    const rows = await this.request<SupabaseRoomRow[]>(`shared_rooms?code=eq.${encodeURIComponent(normalized)}&select=*&limit=1`)
+    const rows = await this.request<SupabaseRoomRow[]>(`shared_rooms?code=eq.${encodeURIComponent(normalized)}&select=*&limit=1`, {}, normalized)
     const row = rows[0]
     if (!row) return null
     const room = mapRoom(row)
+    this.rememberRoom(room)
     return { room, participants: await this.listParticipants(room.id) }
   }
 
   async joinRoom(room: SharedRoom, playerId: string, clientId: string): Promise<SharedParticipant> {
     const player = room.sessionSnapshot.state.players[playerId]
     if (!player) throw new Error('That player seat does not exist in this battle.')
+    this.rememberRoom(room)
     return this.upsertParticipant(room, playerId, clientId, false)
   }
 
@@ -152,7 +168,7 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
         is_host: isHost,
         last_seen_at: new Date().toISOString(),
       }),
-    })
+    }, room.code)
     const row = rows[0]
     if (!row) throw new Error('Could not claim the player seat.')
     return mapParticipant(row)
@@ -170,11 +186,11 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
         actor_player_id: event.actorPlayerId ?? submittedByPlayerId ?? null,
         event_payload: event,
       }))),
-    })
+    }, this.roomCode(roomId))
   }
 
   async listEvents(roomId: string, afterSequence: number): Promise<SharedEventEnvelope[]> {
-    const rows = await this.request<SupabaseEventRow[]>(`shared_events?room_id=eq.${encodeURIComponent(roomId)}&sequence=gt.${afterSequence}&select=sequence,room_id,event_payload,created_at&order=sequence.asc`)
+    const rows = await this.request<SupabaseEventRow[]>(`shared_events?room_id=eq.${encodeURIComponent(roomId)}&sequence=gt.${afterSequence}&select=sequence,room_id,event_payload,created_at&order=sequence.asc`, {}, this.roomCode(roomId))
     return rows.map((row) => ({
       sequence: Number(row.sequence),
       roomId: row.room_id,
@@ -184,7 +200,7 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
   }
 
   async listParticipants(roomId: string): Promise<SharedParticipant[]> {
-    const rows = await this.request<SupabaseParticipantRow[]>(`shared_participants?room_id=eq.${encodeURIComponent(roomId)}&select=*&order=is_host.desc,display_name.asc`)
+    const rows = await this.request<SupabaseParticipantRow[]>(`shared_participants?room_id=eq.${encodeURIComponent(roomId)}&select=*&order=is_host.desc,display_name.asc`, {}, this.roomCode(roomId))
     return rows.map(mapParticipant)
   }
 
@@ -193,7 +209,7 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
       method: 'PATCH',
       headers: { Prefer: 'return=minimal' },
       body: JSON.stringify({ last_seen_at: new Date().toISOString() }),
-    })
+    }, this.roomCode(roomId))
   }
 
   async updateRoomStatus(roomId: string, status: BattleLifecycleStatus): Promise<void> {
@@ -201,7 +217,7 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
       method: 'PATCH',
       headers: { Prefer: 'return=minimal' },
       body: JSON.stringify({ status, updated_at: new Date().toISOString() }),
-    })
+    }, this.roomCode(roomId))
   }
 }
 
