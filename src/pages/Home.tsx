@@ -9,6 +9,7 @@ import {
   type StoredArmy,
   type StoredBattle,
 } from '../persistence/database'
+import { CAULDRON_RULESET_ID } from '../rulesets/cauldronFFA3'
 
 function statusLabel(status: StoredBattle['status']): string {
   if (status === 'completed') return 'Completed'
@@ -66,7 +67,7 @@ export default function Home() {
           {recentBattles.map((entry) => <article className={`panel recent-battle-card recent-battle-card--${entry.status}`} key={entry.id}>
             <div className="recent-battle-card__heading">
               <div><span className="eyebrow">{statusLabel(entry.status)}</span><h3>Battle Round {entry.session.state.round}</h3></div>
-              <span>{entry.session.setup.rulesetId === 'cauldron-ffa3' ? 'Cauldron FFA 3' : entry.session.setup.rulesetId}</span>
+              <span>{entry.session.setup.rulesetId === CAULDRON_RULESET_ID ? 'Cauldron FFA 3' : entry.session.setup.rulesetId}</span>
             </div>
             <div className="recent-battle-card__scores">
               {entry.session.state.turnOrder.map((id) => {
