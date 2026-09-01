@@ -129,6 +129,7 @@ function baseState(setup: BattleSetup): GameState {
     objectives,
     snapshots: { roundStart: [], turnStart: [] },
     timing: createEmptyTimingState(),
+    missionActions: {},
     events: [],
     createdAt: setup.createdAt,
     updatedAt: setup.createdAt,
@@ -269,6 +270,40 @@ function applyEvent(state: GameState, event: BattleEvent, setup: BattleSetup): v
     case 'OBJECTIVE_CONTROL_CHANGED': {
       if (event.payload.controllerPlayerId !== null) requirePlayer(state, event.payload.controllerPlayerId)
       requireObjective(state, event.payload.objectiveId).controllerPlayerId = event.payload.controllerPlayerId
+      return
+    }
+    case 'MISSION_ACTION_STARTED': {
+      const action = event.payload.action
+      requirePlayer(state, action.playerId)
+      requireUnit(state, action.playerId, action.unitId)
+      if (state.missionActions[action.id]) throw new Error(`Mission Action already exists: ${action.id}`)
+      state.missionActions[action.id] = structuredClone(action)
+      return
+    }
+    case 'MISSION_ACTION_COMPLETED': {
+      const action = state.missionActions[event.payload.actionId]
+      if (!action) throw new Error(`Unknown Mission Action: ${event.payload.actionId}`)
+      action.status = 'COMPLETED'
+      action.endedRound = event.payload.endedRound
+      action.endedTurn = event.payload.endedTurn
+      return
+    }
+    case 'MISSION_ACTION_FAILED': {
+      const action = state.missionActions[event.payload.actionId]
+      if (!action) throw new Error(`Unknown Mission Action: ${event.payload.actionId}`)
+      action.status = 'FAILED'
+      action.endedRound = event.payload.endedRound
+      action.endedTurn = event.payload.endedTurn
+      action.failureReason = event.payload.reason
+      return
+    }
+    case 'MISSION_ACTION_CANCELLED': {
+      const action = state.missionActions[event.payload.actionId]
+      if (!action) throw new Error(`Unknown Mission Action: ${event.payload.actionId}`)
+      action.status = 'CANCELLED'
+      action.endedRound = event.payload.endedRound
+      action.endedTurn = event.payload.endedTurn
+      action.failureReason = event.payload.reason
       return
     }
     case 'REACTION_WINDOW_OPENED':

@@ -73,6 +73,27 @@ export type ObjectiveControlSnapshot = {
   capturedAt: string
 }
 
+export type MissionActionStatus = 'ACTIVE' | 'COMPLETED' | 'FAILED' | 'CANCELLED'
+export type MissionActionType = 'SECURE_DATA' | 'SCAN_SIGNAL' | 'SABOTAGE' | 'CUSTOM'
+export type MissionActionLocationType = 'NEUTRAL_OBJECTIVE' | 'BATTLEFIELD_CENTRE' | 'CUSTOM'
+
+export type MissionActionState = {
+  id: string
+  playerId: string
+  unitId: string
+  type: MissionActionType
+  name: string
+  targetObjectiveId?: string
+  locationType?: MissionActionLocationType
+  startedRound: number
+  startedTurn: number
+  status: MissionActionStatus
+  linkedSecondaryCardId?: string
+  endedRound?: number
+  endedTurn?: number
+  failureReason?: string
+}
+
 type BattleEventMetadata = {
   id: string
   actionId: string
@@ -109,6 +130,19 @@ export type BattleEvent = BattleEventMetadata & (
   | { type: 'ABILITY_USED'; payload: { playerId: string; unitId: string; abilityName: string; used: boolean } }
   | { type: 'OBJECTIVE_OC_CHANGED'; payload: { objectiveId: string; playerId: string; oc: number } }
   | { type: 'OBJECTIVE_CONTROL_CHANGED'; payload: { objectiveId: string; controllerPlayerId: string | null } }
+  | { type: 'MISSION_ACTION_STARTED'; payload: { action: MissionActionState } }
+  | {
+    type: 'MISSION_ACTION_COMPLETED'
+    payload: { actionId: string; endedRound: number; endedTurn: number }
+  }
+  | {
+    type: 'MISSION_ACTION_FAILED'
+    payload: { actionId: string; endedRound: number; endedTurn: number; reason: string }
+  }
+  | {
+    type: 'MISSION_ACTION_CANCELLED'
+    payload: { actionId: string; endedRound: number; endedTurn: number; reason?: string }
+  }
   | { type: 'REACTION_WINDOW_OPENED'; payload: { window: ReactionWindow } }
   | { type: 'REACTION_HOLD_REQUESTED'; payload: { window: ReactionWindow } }
   | { type: 'REACTION_PASSED'; payload: { reactionWindowId: string; playerId: string } }
@@ -150,6 +184,7 @@ export type GameState = {
     turnStart: ObjectiveControlSnapshot[]
   }
   timing: TimingState
+  missionActions: Record<string, MissionActionState>
   events: BattleEvent[]
   createdAt: string
   updatedAt: string

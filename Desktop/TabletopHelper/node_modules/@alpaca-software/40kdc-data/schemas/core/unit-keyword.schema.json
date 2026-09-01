@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://40kdc.dev/schemas/core/unit-keyword.schema.json",
+  "title": "Unit Keyword",
+  "description": "Catalog entry for a universal unit ability (a 'Core ability' in the rulebook: Deep Strike, Scouts X\", Feel No Pain X+, Deadly Demise X, etc.). These are the unit-side counterpart of weapon-keyword.schema.json — community-authored mechanic labels, not reproduced rules text. A unit references a parameterised instance from its `ability_ids` (e.g. `scouts-6`); this catalog records the value-agnostic definition keyed by base id (e.g. `scouts`). The optional `effect` describes the mechanic in the Ability DSL; null when the behaviour is modelled per-faction in enrichment data rather than here.",
+  "type": "object",
+  "properties": {
+    "id": { "$ref": "../defs/common.schema.json#/$defs/entity-id" },
+    "name": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "required_parameters": {
+      "type": "array",
+      "description": "Parameter keys that must be supplied at each reference site (e.g. Scouts 6\" → ['value']). Empty for abilities that take no number (Deep Strike, Infiltrators, Stealth).",
+      "items": {
+        "type": "string",
+        "enum": ["value"]
+      },
+      "uniqueItems": true,
+      "maxItems": 1
+    },
+    "effect": {
+      "oneOf": [
+        { "$ref": "../enrichment/ability-dsl/effect.schema.json" },
+        { "type": "null" }
+      ],
+      "description": "Mechanical effect of this ability. Null when the behaviour is authored per-faction in the enrichment Ability DSL rather than centrally here — engines resolve the per-faction record."
+    },
+    "game_version": { "$ref": "../defs/game-version-ref.schema.json" }
+  },
+  "required": ["id", "name", "required_parameters", "effect", "game_version"],
+  "additionalProperties": false
+}

@@ -2,6 +2,7 @@ import type { Army, UnitDefinition } from '../../domain/army/types'
 import type { BattleSession } from '../../domain/battle/types'
 import { createCauldronGame } from './session'
 import type { OperationalPlanId } from './types'
+import type { SecondaryId } from './secondaryTypes'
 
 function unit(id: string, name: string, points: number, startingModels: number, wounds: number): UnitDefinition {
   return {
@@ -11,7 +12,7 @@ function unit(id: string, name: string, points: number, startingModels: number, 
     startingModels,
     modelGroups: [],
     stats: { wounds, objectiveControl: 2 },
-    categories: [],
+    categories: id === 'tank' ? ['VEHICLE'] : id === 'remainder' ? ['CHARACTER'] : [],
     keywords: [],
     rangedWeapons: [],
     meleeWeapons: [],
@@ -42,6 +43,7 @@ export function testArmy(id: string, totalPoints = 1400): Army {
 export function testCauldronGame(options: {
   points?: [number, number, number]
   plans?: [OperationalPlanId, OperationalPlanId, OperationalPlanId]
+  secondaryDeckOrders?: Partial<Record<string, readonly SecondaryId[]>>
 } = {}): BattleSession {
   const points = options.points ?? [1400, 1400, 1400]
   const plans = options.plans ?? ['WYNISZCZENIE', 'WYNISZCZENIE', 'WYNISZCZENIE']
@@ -50,6 +52,7 @@ export function testCauldronGame(options: {
     gameId: 'cauldron-test',
     createdAt: '2026-08-31T10:00:00.000Z',
     guidanceLevel: 'guided',
+    secondaryDeckOrders: options.secondaryDeckOrders,
     armies,
     players: [
       { id: 'p-a', name: 'Alpha', armyId: armies[0].id, deploymentZone: 'A', turnPosition: 1, operationalPlanId: plans[0] },

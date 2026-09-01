@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://40kdc.dev/schemas/core/game-mode.schema.json",
+  "title": "Game Mode",
+  "description": "A 40k game mode — one axis of army-construction scope, parallel to the game_version edition axis. Army-construction entities carry an optional `game_modes` array of these ids; an absent array means the entity belongs to matched-play only. `is_competitive` marks which modes count toward the dataset's headline competitive-coverage metric.",
+  "type": "object",
+  "properties": {
+    "id": {
+      "$ref": "../defs/common.schema.json#/$defs/game-mode-id",
+      "description": "One of the confirmed game modes."
+    },
+    "name": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Community-authored summary of the mode (original prose only — no reproduced rules text)."
+    },
+    "is_competitive": {
+      "type": "boolean",
+      "description": "Whether this mode counts toward the dataset's headline competitive-coverage metric. Only matched-play is competitive; non-competitive modes are tracked on their own coverage dimension."
+    },
+    "game_version": { "$ref": "../defs/game-version-ref.schema.json" }
+  },
+  "required": ["id", "name", "is_competitive", "game_version"],
+  "additionalProperties": false
+}

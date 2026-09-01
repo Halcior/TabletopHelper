@@ -1,5 +1,6 @@
 import type { Army } from '../../domain/army/types'
 import type { ObjectiveState } from '../../domain/battle/types'
+import type { SecondaryId } from './secondaryTypes'
 
 export type DeploymentZone = 'A' | 'B' | 'C'
 export type TurnPosition = 1 | 2 | 3
@@ -27,6 +28,8 @@ export type CauldronGameInput = {
   guidanceLevel: 'guided' | 'fast'
   gameId?: string
   createdAt?: string
+  /** Optional deterministic order for tests/dev tools. Normal games shuffle every player's complete deck. */
+  secondaryDeckOrders?: Partial<Record<string, readonly SecondaryId[]>>
 }
 
 export type CauldronPlayerConfig = {
