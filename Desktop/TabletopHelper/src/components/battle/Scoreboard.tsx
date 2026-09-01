@@ -4,19 +4,25 @@ import { CAULDRON_RULESET_ID } from '../../rulesets/cauldronFFA3'
 
 type ScoreboardProps = {
   session: BattleSession
+  rivalPlayerId?: string | null
   dispatch: (event: BattleEventInput) => void
 }
 
-export function Scoreboard({ session, dispatch }: ScoreboardProps) {
+export function Scoreboard({ session, rivalPlayerId, dispatch }: ScoreboardProps) {
   const cauldron = session.setup.rulesetId === CAULDRON_RULESET_ID
   return (
     <section className="scoreboard" aria-label="Player scores and command points">
       {session.state.turnOrder.map((playerId) => {
         const player = session.state.players[playerId]
         const active = playerId === session.state.activePlayerId
+        const rival = playerId === rivalPlayerId
         return (
-          <article className={`score-card${active ? ' is-active' : ''}`} key={playerId}>
-            <div className="score-card__name">{player.name}</div>
+          <article className={`score-card${active ? ' is-active' : ''}${rival ? ' is-rival' : ''}`} key={playerId}>
+            <div className="score-card__identity">
+              <div className="score-card__name">{player.name}</div>
+              {player.faction && <small>{player.faction}</small>}
+              <span>{active ? 'Active player' : rival ? 'Current Rival' : 'Opponent'}</span>
+            </div>
             <div className="score-card__numbers">
               <div><strong>{totalScore(player)}</strong><span>VP</span></div>
               <div><strong>{player.cp}</strong><span>CP</span></div>

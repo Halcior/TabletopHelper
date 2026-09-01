@@ -36,6 +36,7 @@ export default function ArmyImport() {
   }
 
   const unitNames = new Map(preview?.army.units.map((unit) => [unit.id, unit.name]) ?? [])
+  const attachedUnitName = (id: string) => unitNames.get(id) ?? 'Unknown attached unit'
   return (
     <div className="page-shell narrow-page">
       <section className="page-intro">
@@ -66,8 +67,8 @@ export default function ArmyImport() {
             {preview.army.units.map((unit) => (
               <article key={unit.id}>
                 <div><strong>{unit.name}</strong><span>{unit.startingModels} {unit.startingModels === 1 ? 'model' : 'models'}{unit.isWarlord ? ' · Warlord' : ''}</span>
-                  {unit.leaderOfUnitId && <span>Leads: {unitNames.get(unit.leaderOfUnitId) ?? unit.leaderOfUnitId}</span>}
-                  {unit.ledByUnitIds.length > 0 && <span>Led by: {unit.ledByUnitIds.map((id) => unitNames.get(id) ?? id).join(', ')}</span>}
+                  {unit.leaderOfUnitId && <span>Leads: {attachedUnitName(unit.leaderOfUnitId)}</span>}
+                  {unit.ledByUnitIds.length > 0 && <span>Led by: {unit.ledByUnitIds.map(attachedUnitName).join(', ')}</span>}
                 </div>
                 <strong>{unit.points} pts</strong>
               </article>

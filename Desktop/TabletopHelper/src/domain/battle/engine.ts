@@ -1,5 +1,13 @@
 import { z } from 'zod'
 import type { UnitDefinition, UnitState } from '../army/types'
+import { isReactionWindowBlocking, withReactionResponse } from '../stratagems/reactionEngine'
+import {
+  createEmptyTimingState,
+  recordUsage,
+  resetBattleRoundUsage,
+  resetPhaseUsage,
+  resetTurnUsage,
+} from '../stratagems/usage'
 import { resolveObjectiveController } from './objectives'
 import {
   BATTLE_PHASES,
@@ -120,6 +128,7 @@ function baseState(setup: BattleSetup): GameState {
     players,
     objectives,
     snapshots: { roundStart: [], turnStart: [] },
+    timing: createEmptyTimingState(),
     events: [],
     createdAt: setup.createdAt,
     updatedAt: setup.createdAt,
@@ -177,6 +186,7 @@ function applyEvent(state: GameState, event: BattleEvent, setup: BattleSetup): v
       return
     case 'ROUND_STARTED':
       state.round = event.payload.round
+      state.timing.stratagemUsage = resetBattleRoundUsage(state.timing.stratagemUsage)
       state.snapshots.roundStart.push(objectiveSnapshot(state, event.timestamp))
       return
     case 'ROUND_ENDED':
@@ -185,12 +195,14 @@ function applyEvent(state: GameState, event: BattleEvent, setup: BattleSetup): v
       requirePlayer(state, event.payload.playerId)
       state.activePlayerId = event.payload.playerId
       state.phase = 'COMMAND'
+      state.timing.stratagemUsage = resetTurnUsage(state.timing.stratagemUsage)
       state.snapshots.turnStart.push(objectiveSnapshot(state, event.timestamp, event.payload.playerId))
       return
     case 'TURN_ENDED':
       return
     case 'PHASE_CHANGED':
       state.phase = event.payload.phase
+      state.timing.stratagemUsage = resetPhaseUsage(state.timing.stratagemUsage)
       return
     case 'CP_GAINED': {
       const player = requirePlayer(state, event.payload.playerId)
@@ -259,6 +271,61 @@ function applyEvent(state: GameState, event: BattleEvent, setup: BattleSetup): v
       requireObjective(state, event.payload.objectiveId).controllerPlayerId = event.payload.controllerPlayerId
       return
     }
+    case 'REACTION_WINDOW_OPENED':
+    case 'REACTION_HOLD_REQUESTED':
+      state.timing.reactionWindows[event.payload.window.id] = structuredClone(event.payload.window)
+      state.timing.activeReactionWindowId = event.payload.window.id
+      return
+    case 'REACTION_PASSED': {
+      const window = state.timing.reactionWindows[event.payload.reactionWindowId]
+      if (!window) throw new Error(`Unknown reaction window: ${event.payload.reactionWindowId}`)
+      state.timing.reactionWindows[window.id] = withReactionResponse(
+        window,
+        event.payload.playerId,
+        'PASS',
+        event.timestamp,
+      )
+      return
+    }
+    case 'STRATAGEM_USED': {
+      requirePlayer(state, event.payload.playerId)
+      state.timing.stratagemUsage = recordUsage(
+        state.timing.stratagemUsage,
+        event.payload.playerId,
+        event.payload.stratagemId,
+        state.round,
+        state.activePlayerId,
+        state.phase,
+      )
+      if (event.payload.reactionWindowId) {
+        const window = state.timing.reactionWindows[event.payload.reactionWindowId]
+        if (!window) throw new Error(`Unknown reaction window: ${event.payload.reactionWindowId}`)
+        state.timing.reactionWindows[window.id] = withReactionResponse(
+          window,
+          event.payload.playerId,
+          'USED_REACTION',
+          event.timestamp,
+          event.payload.stratagemId,
+        )
+      }
+      return
+    }
+    case 'REACTION_WINDOW_RESOLVED': {
+      const window = state.timing.reactionWindows[event.payload.reactionWindowId]
+      if (!window) throw new Error(`Unknown reaction window: ${event.payload.reactionWindowId}`)
+      window.status = 'RESOLVED'
+      window.resolvedAt = event.timestamp
+      if (state.timing.activeReactionWindowId === window.id) state.timing.activeReactionWindowId = null
+      return
+    }
+    case 'REACTION_WINDOW_CANCELLED': {
+      const window = state.timing.reactionWindows[event.payload.reactionWindowId]
+      if (!window) throw new Error(`Unknown reaction window: ${event.payload.reactionWindowId}`)
+      window.status = 'CANCELLED'
+      window.resolvedAt = event.timestamp
+      if (state.timing.activeReactionWindowId === window.id) state.timing.activeReactionWindowId = null
+      return
+    }
     case 'RULESET_EVENT':
       return
   }
@@ -316,6 +383,8 @@ export function dispatchBattleEvent(
 
 export function getPhaseTransitionEvents(session: BattleSession): BattleEventInput[] {
   if (session.state.status === 'completed') return []
+  const activeWindow = session.state.timing.reactionWindows[session.state.timing.activeReactionWindowId ?? '']
+  if (isReactionWindowBlocking(activeWindow)) return []
   const phaseIndex = BATTLE_PHASES.indexOf(session.state.phase)
   if (phaseIndex < BATTLE_PHASES.length - 1) {
     return [
@@ -381,7 +450,17 @@ export function serializeBattleSession(session: BattleSession): string {
   return JSON.stringify(session)
 }
 
+/** Replays persisted events so sessions saved by older compatible builds gain new projected state. */
+export function rehydrateBattleSession(session: BattleSession): BattleSession {
+  return {
+    setup: session.setup,
+    state: projectState(session.setup, session.state.events as BattleEvent[]),
+    redoActions: session.redoActions,
+  }
+}
+
 export function deserializeBattleSession(serialized: string): BattleSession {
   const parsed: unknown = JSON.parse(serialized)
-  return StoredSessionSchema.parse(parsed) as unknown as BattleSession
+  const session = StoredSessionSchema.parse(parsed) as unknown as BattleSession
+  return rehydrateBattleSession(session)
 }
