@@ -8,6 +8,7 @@ import './contextPolish.css'
 import './sharedSessions.css'
 import './uiSimplify.css'
 import './uiFocus.css'
+import './mobileBattle.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
