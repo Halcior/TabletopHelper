@@ -1,0 +1,39 @@
+.context-navigation-note {
+  display: none;
+}
+
+.context-section--reactions .context-item--quiet {
+  padding: 8px 12px;
+  border-style: dashed;
+  background: transparent;
+  opacity: .68;
+}
+
+.context-section--reactions .context-item--quiet .context-item__top,
+.context-section--reactions .context-item--quiet p {
+  display: none;
+}
+
+.context-section--reactions .context-item--quiet h4 {
+  margin: 0;
+  color: var(--muted);
+  font-family: Inter, sans-serif;
+  font-size: .78rem;
+  font-weight: 600;
+}
+
+.context-stratagem-list article > div:first-child span {
+  color: var(--muted);
+  font-size: .8rem;
+  white-space: nowrap;
+}
+
+.context-stratagem-list article p {
+  max-width: 72ch;
+}
+
+@media (max-width: 820px) {
+  .context-section--reactions .context-item--quiet {
+    padding: 7px 10px;
+  }
+}
