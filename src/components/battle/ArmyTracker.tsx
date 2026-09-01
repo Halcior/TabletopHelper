@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { Army, UnitDefinition, UnitState, WeaponProfile } from '../../domain/army/types'
 import type { BattleEventInput, BattleSession } from '../../domain/battle/types'
+import { CAULDRON_RULESET_ID, getCurrentRivalPlayerId } from '../../rulesets/cauldronFFA3'
 
 type ArmyTrackerProps = {
   session: BattleSession
@@ -42,9 +43,12 @@ function UnitReference({
   dispatch: (event: BattleEventInput) => void
 }) {
   const stats = unit.stats
-  const leaders = unit.ledByUnitIds.map((id) => army.units.find((candidate) => candidate.id === id)?.name ?? id)
+  const leaders = unit.ledByUnitIds.flatMap((id) => {
+    const name = army.units.find((candidate) => candidate.id === id)?.name
+    return name ? [name] : []
+  })
   const bodyguard = unit.leaderOfUnitId
-    ? army.units.find((candidate) => candidate.id === unit.leaderOfUnitId)?.name ?? unit.leaderOfUnitId
+    ? army.units.find((candidate) => candidate.id === unit.leaderOfUnitId)?.name ?? null
     : null
   return (
     <div className="unit-reference">
@@ -59,7 +63,7 @@ function UnitReference({
       </ul></section>}
       <Weapons title="Ranged weapons" weapons={unit.rangedWeapons} />
       <Weapons title="Melee weapons" weapons={unit.meleeWeapons} />
-      {unit.abilities.length > 0 && <section className="reference-section"><h4>Abilities & manual usage</h4><ul className="ability-list">
+      {unit.abilities.length > 0 && <details className="reference-details"><summary>Abilities</summary><ul className="ability-list">
         {unit.abilities.map((ability) => {
           const used = state.oncePerBattleAbilities[ability.name] ?? false
           return <li key={`${ability.name}-${ability.description ?? ''}`}>
@@ -69,7 +73,7 @@ function UnitReference({
             })}>{used ? 'Used · restore' : 'Mark used'}</button>
           </li>
         })}
-      </ul></section>}
+      </ul></details>}
       {unit.enhancements.length > 0 && <section className="reference-section"><h4>Enhancements</h4><ul className="plain-list">
         {unit.enhancements.map((enhancement) => <li key={enhancement.name}><strong>{enhancement.name} · {enhancement.points} pts</strong>{enhancement.description && <span>{enhancement.description}</span>}</li>)}
       </ul></section>}
@@ -123,7 +127,7 @@ function UnitCard({
       </select></label>
       {multiModel ? <>
         <div className="model-pips" aria-label={`${state.modelsAlive} of ${unit.startingModels} models alive`}>
-          {Array.from({ length: unit.startingModels }, (_, index) => <span className={index < state.modelsAlive ? 'alive' : ''} key={index} />)}
+          {Array.from({ length: unit.startingModels }, (_, index) => <span aria-hidden="true" className={index < state.modelsAlive ? 'alive' : ''} key={index} />)}
         </div>
         <div className="unit-vital"><strong>{state.modelsAlive} / {unit.startingModels}</strong><span>models alive</span></div>
         <div className="unit-actions">
@@ -171,8 +175,14 @@ export function ArmyTracker({ session, dispatch }: ArmyTrackerProps) {
     return army ? [{ player, army }] : []
   })
   const players = session.state.turnOrder.map((id) => session.state.players[id])
+  const rivalPlayerId = session.setup.rulesetId === CAULDRON_RULESET_ID
+    ? getCurrentRivalPlayerId(session, session.state.activePlayerId)
+    : null
+  const rivalHasArmy = armyPlayers.some(({ player }) => player.id === rivalPlayerId)
   const activeHasArmy = armyPlayers.some(({ player }) => player.id === session.state.activePlayerId)
-  const preferredPlayerId = activeHasArmy ? session.state.activePlayerId : armyPlayers[0]?.player.id ?? ''
+  const preferredPlayerId = rivalHasArmy
+    ? rivalPlayerId ?? ''
+    : activeHasArmy ? session.state.activePlayerId : armyPlayers[0]?.player.id ?? ''
   const [selectedPlayerId, setSelectedPlayerId] = useState(preferredPlayerId)
   useEffect(() => setSelectedPlayerId(preferredPlayerId), [preferredPlayerId])
   if (armyPlayers.length === 0) return <section className="empty-state"><h2>No army roster attached</h2></section>
@@ -182,9 +192,12 @@ export function ArmyTracker({ session, dispatch }: ArmyTrackerProps) {
     <nav className="army-player-tabs" aria-label="Choose player army">
       {armyPlayers.map(({ player, army }) => <button
         className={player.id === selected.player.id ? 'selected' : ''}
+        aria-pressed={player.id === selected.player.id}
         key={player.id}
         onClick={() => setSelectedPlayerId(player.id)}
-      ><span>{player.name}</span><small>{army.faction}</small></button>)}
+      ><span>{player.name}</span><small>{player.id === session.state.activePlayerId
+        ? 'Active player'
+        : player.id === rivalPlayerId ? 'Rival' : 'Opponent'} · {army.faction}</small></button>)}
     </nav>
     <section key={selected.player.id} className="army-tracker-section">
       <div className="army-heading">

@@ -29,6 +29,12 @@ export function describeBattleEvent(event: BattleEvent, setup: BattleSetup): str
     case 'ABILITY_USED': return `${unitName(setup, event.payload.playerId, event.payload.unitId)}: ${event.payload.abilityName} ${event.payload.used ? 'used' : 'restored'}`
     case 'OBJECTIVE_OC_CHANGED': return `${event.payload.objectiveId}: ${playerName(setup, event.payload.playerId)} OC ${event.payload.oc}`
     case 'OBJECTIVE_CONTROL_CHANGED': return `${event.payload.objectiveId}: ${event.payload.controllerPlayerId ? playerName(setup, event.payload.controllerPlayerId) : 'uncontrolled'}`
+    case 'REACTION_WINDOW_OPENED': return `Reaction window opened: ${event.payload.window.trigger.replaceAll('_', ' ').toLowerCase()}`
+    case 'REACTION_HOLD_REQUESTED': return `${playerName(setup, event.payload.window.requestedByPlayerId ?? '')} requested a reaction hold`
+    case 'REACTION_PASSED': return `${playerName(setup, event.payload.playerId)} passed the reaction window`
+    case 'STRATAGEM_USED': return `${playerName(setup, event.payload.playerId)} used "${event.payload.stratagemName}" (${event.payload.cpCost} CP)`
+    case 'REACTION_WINDOW_RESOLVED': return 'Reaction window resolved'
+    case 'REACTION_WINDOW_CANCELLED': return 'Reaction window cancelled'
     case 'RULESET_EVENT': return `${event.payload.rulesetId}: ${event.payload.action.replaceAll('_', ' ').toLowerCase()}`
   }
 }

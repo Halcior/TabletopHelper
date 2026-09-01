@@ -144,7 +144,7 @@ export function evaluateOperationalPlan(
   }
 
   if (confirmation.sabotageMissionActionCompleted === undefined) {
-    return result(planId, 'REQUIRES_CONFIRMATION', 'Mission Action automation is not implemented yet.', {
+    return result(planId, 'REQUIRES_CONFIRMATION', 'Confirm the physical Mission Action during round review.', {
       confirmation: {
         key: 'sabotageMissionActionCompleted',
         prompt: 'Did you complete a Mission Action this Battle Round on a neutral objective that you did not control at the beginning of your turn?',

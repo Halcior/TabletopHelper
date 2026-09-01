@@ -7,12 +7,16 @@ type ObjectivesPanelProps = {
 
 export function ObjectivesPanel({ session, dispatch }: ObjectivesPanelProps) {
   const players = session.state.turnOrder.map((id) => session.state.players[id])
+  const objectives = Object.values(session.state.objectives)
+    .sort((left, right) => Number(left.type === 'home') - Number(right.type === 'home'))
   return (
-    <section className="objective-grid" aria-label="Objectives">
-      {Object.values(session.state.objectives).map((objective) => {
+    <div className="objectives-panel">
+      <div className="objective-page-heading"><div><span className="eyebrow">Battlefield</span><h2>Objective control</h2></div><p>Tap a player to change control. Use OC mode only when needed.</p></div>
+      <section className="objective-grid" aria-label="Objectives">
+      {objectives.map((objective) => {
         const controller = objective.controllerPlayerId
           ? session.state.players[objective.controllerPlayerId]?.name
-          : 'Uncontrolled'
+          : 'None'
         return (
           <article className="panel objective-card" key={objective.id}>
             <div className="objective-card__header">
@@ -22,6 +26,7 @@ export function ObjectivesPanel({ session, dispatch }: ObjectivesPanelProps) {
             <div className="control-choices" role="group" aria-label={`Quick control for ${objective.name}`}>
               <button
                 className={objective.controllerPlayerId === null ? 'selected' : ''}
+                aria-pressed={objective.controllerPlayerId === null}
                 onClick={() => dispatch({
                   type: 'OBJECTIVE_CONTROL_CHANGED', payload: { objectiveId: objective.id, controllerPlayerId: null },
                 })}
@@ -29,6 +34,7 @@ export function ObjectivesPanel({ session, dispatch }: ObjectivesPanelProps) {
               {players.map((player) => (
                 <button
                   className={objective.controllerPlayerId === player.id ? 'selected' : ''}
+                  aria-pressed={objective.controllerPlayerId === player.id}
                   key={player.id}
                   onClick={() => dispatch({
                     type: 'OBJECTIVE_CONTROL_CHANGED',
@@ -62,6 +68,7 @@ export function ObjectivesPanel({ session, dispatch }: ObjectivesPanelProps) {
           </article>
         )
       })}
-    </section>
+      </section>
+    </div>
   )
 }
