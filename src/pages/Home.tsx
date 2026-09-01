@@ -2,18 +2,32 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { totalScore } from '../domain/battle/selectors'
 import type { BattleSession } from '../domain/battle/types'
-import { getLatestActiveBattle, listArmies, type StoredArmy } from '../persistence/database'
+import {
+  getLatestActiveBattle,
+  listArmies,
+  listRecentBattles,
+  type StoredArmy,
+  type StoredBattle,
+} from '../persistence/database'
+
+function statusLabel(status: StoredBattle['status']): string {
+  if (status === 'completed') return 'Completed'
+  if (status === 'abandoned') return 'Abandoned'
+  return 'Active'
+}
 
 export default function Home() {
   const [armies, setArmies] = useState<StoredArmy[]>([])
   const [activeBattle, setActiveBattle] = useState<BattleSession | null>(null)
+  const [recentBattles, setRecentBattles] = useState<StoredBattle[]>([])
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    void Promise.all([listArmies(), getLatestActiveBattle()])
-      .then(([storedArmies, battle]) => {
+    void Promise.all([listArmies(), getLatestActiveBattle(), listRecentBattles(8)])
+      .then(([storedArmies, battle, recent]) => {
         setArmies(storedArmies)
         setActiveBattle(battle ?? null)
+        setRecentBattles(recent.filter((entry) => entry.status !== 'active').slice(0, 5))
       })
       .catch((reason: unknown) => setError(reason instanceof Error ? reason.message : String(reason)))
   }, [])
@@ -45,6 +59,25 @@ export default function Home() {
           <Link className="button button--gold" to={`/battle/${activeBattle.setup.gameId}`}>Resume</Link>
         </section>
       )}
+
+      {recentBattles.length > 0 && <section className="section-block recent-battles">
+        <div className="section-heading"><div><span className="eyebrow">Battle history</span><h2>Recent sessions</h2></div></div>
+        <div className="recent-battle-list">
+          {recentBattles.map((entry) => <article className={`panel recent-battle-card recent-battle-card--${entry.status}`} key={entry.id}>
+            <div className="recent-battle-card__heading">
+              <div><span className="eyebrow">{statusLabel(entry.status)}</span><h3>Battle Round {entry.session.state.round}</h3></div>
+              <span>{entry.session.setup.rulesetId === 'cauldron-ffa3' ? 'Cauldron FFA 3' : entry.session.setup.rulesetId}</span>
+            </div>
+            <div className="recent-battle-card__scores">
+              {entry.session.state.turnOrder.map((id) => {
+                const player = entry.session.state.players[id]
+                return <span key={id}>{player.name}<strong>{totalScore(player)} VP</strong></span>
+              })}
+            </div>
+            <Link className="button button--small" to={`/battle/${entry.id}`}>View session</Link>
+          </article>)}
+        </div>
+      </section>}
 
       <section className="section-block">
         <div className="section-heading"><div><span className="eyebrow">Local library</span><h2>Imported armies</h2></div><Link to="/army-import">Add army</Link></div>
