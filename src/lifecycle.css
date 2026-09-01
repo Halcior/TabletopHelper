@@ -172,6 +172,311 @@
   margin-top: 16px;
 }
 
+.context-centre {
+  display: grid;
+  gap: 18px;
+}
+
+.context-centre__heading {
+  padding: 18px 20px;
+  border: 1px solid var(--line-gold);
+  background: linear-gradient(135deg, rgb(57 48 29 / 38%), rgb(15 18 19 / 84%));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.context-centre__heading h2,
+.quick-panel__heading h2 {
+  margin: 3px 0 0;
+  font-size: clamp(1.35rem, 3vw, 1.9rem);
+  text-transform: capitalize;
+}
+
+.context-blocker-count,
+.context-clear {
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  font-size: .7rem;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.context-blocker-count {
+  border-color: rgb(151 69 62 / 70%);
+  color: #efb1aa;
+  background: rgb(83 25 22 / 42%);
+}
+
+.context-clear {
+  color: #b7d7bb;
+  background: rgb(30 69 41 / 28%);
+}
+
+.context-section {
+  display: grid;
+  gap: 9px;
+}
+
+.context-section > h3 {
+  margin: 0;
+  color: var(--muted);
+  font-size: .72rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.context-item-list {
+  display: grid;
+  gap: 9px;
+}
+
+.context-item {
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  background: rgb(12 15 16 / 64%);
+  outline: none;
+}
+
+.context-item:focus {
+  border-color: var(--gold-bright);
+  box-shadow: 0 0 0 2px rgb(199 163 78 / 20%);
+}
+
+.context-item--critical {
+  border-color: rgb(145 65 58 / 76%);
+  background: linear-gradient(90deg, rgb(83 25 22 / 32%), rgb(12 15 16 / 70%));
+}
+
+.context-item--attention {
+  border-color: rgb(173 136 67 / 62%);
+}
+
+.context-item--quiet {
+  opacity: .78;
+}
+
+.context-item__top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
+  font-size: .66rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.context-item__top strong {
+  color: var(--gold);
+}
+
+.context-item h4 {
+  margin: 7px 0 5px;
+  font-size: 1.04rem;
+}
+
+.context-item p,
+.context-item ul {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.context-item ul {
+  margin-top: 8px;
+  padding-left: 18px;
+  font-size: .78rem;
+}
+
+.context-item__actions {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.context-item__actions button {
+  min-height: 42px;
+}
+
+.context-empty,
+.context-note,
+.context-navigation-note {
+  color: var(--muted);
+}
+
+.context-navigation-note {
+  padding: 15px;
+  border: 1px dashed var(--line);
+  line-height: 1.45;
+}
+
+.context-navigation-note p {
+  margin: 7px 0 0;
+}
+
+.quick-panel-layer {
+  position: fixed;
+  z-index: 110;
+  inset: 0;
+  padding: 18px;
+  background: rgb(0 0 0 / 68%);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: flex-end;
+  align-items: stretch;
+}
+
+.quick-panel {
+  width: min(560px, 100%);
+  height: 100%;
+  overflow: auto;
+  padding: 20px;
+  border: 1px solid var(--line-gold);
+  background: #121617;
+  box-shadow: var(--shadow);
+}
+
+.quick-panel--army {
+  width: min(680px, 100%);
+}
+
+.quick-panel__heading {
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.quick-unit-list,
+.context-choice-list,
+.context-stratagem-list,
+.priority-target-list {
+  display: grid;
+  gap: 10px;
+}
+
+.quick-unit {
+  padding: 14px;
+  border: 1px solid var(--line);
+  background: rgb(7 10 11 / 44%);
+}
+
+.quick-unit.is-destroyed {
+  opacity: .58;
+}
+
+.quick-unit__heading,
+.quick-unit__vital {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.quick-unit__heading > div {
+  display: grid;
+  gap: 4px;
+}
+
+.quick-unit__heading small,
+.quick-unit__vital span {
+  color: var(--muted);
+}
+
+.quick-unit__vital {
+  margin-top: 12px;
+  padding-top: 11px;
+  border-top: 1px solid var(--line);
+}
+
+.quick-unit__actions {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.quick-unit__actions--three {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.quick-unit__details {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.context-choice-list button {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  text-align: left;
+}
+
+.context-choice-list button span {
+  color: var(--muted);
+}
+
+.context-stratagem-list article {
+  padding: 14px;
+  border: 1px solid var(--line);
+}
+
+.context-stratagem-list article > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.context-stratagem-list article p {
+  margin: 10px 0 5px;
+  color: var(--text);
+  line-height: 1.45;
+}
+
+.context-stratagem-list article small {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+}
+
+.context-stratagem-list article > div:last-child {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+}
+
+.priority-target-list label {
+  padding: 11px;
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.priority-target-list label span {
+  display: grid;
+  gap: 2px;
+}
+
+.priority-target-list small {
+  color: var(--muted);
+}
+
+.tactical-dashboard--context {
+  align-items: start;
+}
+
+.tactical-column--context-aside {
+  position: sticky;
+  top: 12px;
+}
+
 @media (max-width: 820px) {
   .battle-menu__popover {
     position: fixed;
@@ -191,6 +496,24 @@
     justify-content: flex-start;
     padding-top: 9px;
     border-top: 1px solid var(--line);
+  }
+
+  .quick-panel-layer {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .quick-panel,
+  .quick-panel--army {
+    width: 100%;
+    height: min(82vh, 760px);
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 0;
+  }
+
+  .tactical-column--context-aside {
+    position: static;
   }
 }
 
@@ -213,5 +536,30 @@
 
   .battle-summary__player > span {
     grid-column: 1 / -1;
+  }
+
+  .context-centre__heading,
+  .quick-panel__heading {
+    align-items: flex-start;
+  }
+
+  .context-centre__heading {
+    display: grid;
+  }
+
+  .context-item__actions,
+  .context-stratagem-list article > div:last-child {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .context-item__actions button,
+  .context-stratagem-list article > div:last-child button {
+    width: 100%;
+  }
+
+  .quick-unit__actions,
+  .quick-unit__actions--three {
+    grid-template-columns: 1fr;
   }
 }
