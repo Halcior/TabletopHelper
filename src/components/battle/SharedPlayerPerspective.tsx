@@ -42,61 +42,57 @@ export function SharedPlayerPerspective({
   const missionActions = selectActiveMissionActions(session, viewerPlayerId)
   const plan = showCards ? evaluateOperationalPlan(session, viewerPlayerId) : null
   const planProgress = plan?.progress
-    ? `${plan.progress.current} / ${plan.progress.target} ${plan.progress.unit}`
+    ? `${plan.progress.current}/${plan.progress.target} ${plan.progress.unit}`
     : plan?.status === 'COMPLETED'
-      ? 'Completed this round'
+      ? 'Completed'
       : plan?.status === 'REQUIRES_CONFIRMATION'
-        ? 'Confirmation needed at scoring'
+        ? 'Confirm at scoring'
         : 'In progress'
 
   const role = ownTurn
     ? 'Your turn'
     : currentRival
-      ? 'You are the current Rival'
-      : `${active.name}'s turn`
-  const instruction = reactionPending
-    ? 'A reaction window is waiting for your response on this device.'
+      ? 'You are Rival'
+      : `Watching ${active.name}`
+  const urgentTitle = reactionPending
+    ? 'Reaction required'
     : ownTurn && requiredActionCount > 0
-      ? `${requiredActionCount} required item${requiredActionCount === 1 ? '' : 's'} must be resolved before advancing.`
-      : ownTurn
-        ? 'You own phase progression and your turn decisions.'
-        : currentRival
-          ? 'Watch for Rival scoring decisions and reaction windows on this device.'
-          : 'Your army, CP and reaction responses remain available while you watch the active turn.'
+      ? `${requiredActionCount} item${requiredActionCount === 1 ? '' : 's'} to resolve`
+      : null
+  const urgentCopy = reactionPending
+    ? 'Respond USE or PASS before the battle can continue.'
+    : urgentTitle
+      ? 'Resolve the highlighted item before advancing the phase.'
+      : null
 
   return <section className={`panel shared-perspective${ownTurn ? ' shared-perspective--active' : currentRival ? ' shared-perspective--rival' : ''}${reactionPending ? ' shared-perspective--reaction' : ''}`}>
     <div className="shared-perspective__heading">
-      <div><span className="eyebrow">Your commander</span><h3>{viewer.name}</h3><small>{viewer.faction ?? 'Army'}</small></div>
+      <div><span className="eyebrow">You</span><h3>{viewer.name}</h3><small>{viewer.faction ?? 'Army'}</small></div>
       <span className="shared-perspective__role">{role}</span>
     </div>
 
-    {reactionPending && <div className="shared-perspective__alert"><strong>Reaction required</strong><span>USE or PASS before this window can close.</span></div>}
+    {urgentTitle && <div className="shared-perspective__alert"><strong>{urgentTitle}</strong><span>{urgentCopy}</span></div>}
 
     <div className="shared-perspective__numbers">
       <div><strong>{totalScore(viewer)}</strong><span>VP</span></div>
       <div><strong>{viewer.cp}</strong><span>CP</span></div>
+      <div><strong>{viewerRival?.name ?? '—'}</strong><span>Rival</span></div>
     </div>
 
-    <div className="shared-perspective__brief">
-      {viewerRival && <div><span>Your Rival</span><strong>{viewerRival.name}</strong></div>}
-      {plan && <div><span>Operational Plan</span><strong>{plan.name}</strong><small>{planProgress}</small></div>}
-      {missionActions.length > 0 && <div><span>Mission Action</span><strong>{missionActions.length} active</strong><small>{missionActions.map((item) => item.name).join(' · ')}</small></div>}
-    </div>
+    {plan && <div className="player-focus-line"><span>Plan</span><strong>{plan.name} · {planProgress}</strong></div>}
+    {missionActions.length > 0 && <div className="player-focus-line"><span>Action</span><strong>{missionActions.map((item) => item.name).join(' · ')}</strong></div>}
 
-    {showCards && <div className="shared-perspective__secondaries">
-      <span>My Secondaries</span>
+    {showCards && <div className="player-focus-secondary-list" aria-label="My active Secondary missions">
       {activeSecondaries.length === 0
-        ? <small>No active Secondary cards.</small>
-        : activeSecondaries.map((card) => <div key={card.cardId}>
-          <strong>{card.name}</strong>
-          <small>{card.progress} · {card.vp} VP</small>
+        ? <div className="player-focus-line"><span>Secondaries</span><strong>None active</strong></div>
+        : activeSecondaries.map((card) => <div className="player-focus-secondary" key={card.cardId}>
+          <strong>{card.name}</strong><span>{card.vp} VP</span><small>{card.progress}</small>
         </div>)}
     </div>}
 
-    <p>{instruction}</p>
     <div className="shared-perspective__actions">
-      <button onClick={onOpenArmy}>My army</button>
-      {showCards && <button onClick={onOpenCards}>My Secondaries</button>}
+      <button onClick={onOpenArmy}>Army</button>
+      {showCards && <button onClick={onOpenCards}>Secondaries</button>}
       {onOpenObjectives && <button onClick={onOpenObjectives}>Objectives</button>}
     </div>
   </section>
