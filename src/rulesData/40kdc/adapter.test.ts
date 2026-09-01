@@ -63,9 +63,24 @@ const source: FortyKdcSource = {
     },
   ],
   abilities: [
-    { id: 'advance-ability', behavior: 'activated', triggers: [{ event: 'start-of-phase', hasStructuredGuard: false }] },
-    { id: 'unknown-ability', behavior: 'activated', triggers: [] },
-    { id: 'reaction-ability', behavior: 'reactive', triggers: [{ event: 'selected-to-shoot', hasStructuredGuard: false }] },
+    {
+      id: 'advance-ability',
+      behavior: 'activated',
+      triggers: [{ event: 'start-of-phase', hasStructuredGuard: false }],
+      description: 'The selected unit can move more aggressively this phase.',
+    },
+    {
+      id: 'unknown-ability',
+      behavior: 'activated',
+      triggers: [],
+      description: 'Resolve the structured effect for the selected unit.',
+    },
+    {
+      id: 'reaction-ability',
+      behavior: 'reactive',
+      triggers: [{ event: 'selected-to-shoot', hasStructuredGuard: false }],
+      description: 'The reacting unit gains the structured defensive effect.',
+    },
   ],
 }
 
@@ -106,7 +121,7 @@ describe('40kdc adapter', () => {
     expect(both.definitions.map((definition) => definition.name)).toContain('Return Fire')
   })
 
-  it('maps CP, phases, and usage limits into StratagemDefinition', () => {
+  it('maps CP, phases, usage limits, and generated DSL descriptions into StratagemDefinition', () => {
     const definition = provider.resolveArmyStratagems(army()).definitions[0]
     expect(definition).toMatchObject({
       cpCost: 2,
@@ -114,6 +129,7 @@ describe('40kdc adapter', () => {
       triggers: ['PHASE_START'],
       ownerScope: 'ACTIVE_PLAYER',
       usageLimits: ['ONCE_PER_PHASE'],
+      description: 'The selected unit can move more aggressively this phase.',
     })
   })
 
