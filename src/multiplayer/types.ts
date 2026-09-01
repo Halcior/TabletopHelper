@@ -1,6 +1,6 @@
 import type { BattleEvent, BattleLifecycleStatus, BattleSession } from '../domain/battle/types'
 
-export type SharedConnectionStatus = 'idle' | 'connecting' | 'connected' | 'reconnecting' | 'error'
+export type SharedConnectionStatus = 'idle' | 'connecting' | 'connected' | 'reconnecting' | 'offline' | 'error'
 
 export type SharedParticipant = {
   id: string
@@ -52,5 +52,6 @@ export interface SharedSessionTransport {
   listEvents(roomId: string, afterSequence: number): Promise<SharedEventEnvelope[]>
   listParticipants(roomId: string): Promise<SharedParticipant[]>
   touchParticipant(roomId: string, clientId: string): Promise<void>
+  releaseParticipant(roomId: string, clientId: string): Promise<void>
   updateRoomStatus(roomId: string, status: BattleLifecycleStatus): Promise<void>
 }
