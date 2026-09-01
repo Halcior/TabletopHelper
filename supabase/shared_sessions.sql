@@ -1,11 +1,11 @@
 -- Tabletop Companion shared-session MVP
 --
--- This schema is intentionally optimized for private tabletop testing: the room
--- code + unguessable UUID act as capability-style identifiers and the browser
--- uses the public anon key. The RLS policies below allow anonymous read/write
--- access to these three dedicated tables. Do NOT reuse these policies for a
--- public production deployment. Before public launch, move mutations behind
--- authenticated users or an Edge Function/RPC that validates a room secret.
+-- The public Supabase key is safe to ship in the browser, but it must not grant
+-- global access to every tabletop room. Each request therefore carries the
+-- six-character room code in the x-room-code header. RLS limits reads/writes to
+-- rows belonging to that room. This is a capability-style private-play guard,
+-- not full user authentication; public production should additionally validate
+-- authenticated player identity or a stronger room secret server-side.
 
 create table if not exists public.shared_rooms (
   id uuid primary key,
@@ -48,24 +48,79 @@ alter table public.shared_rooms enable row level security;
 alter table public.shared_participants enable row level security;
 alter table public.shared_events enable row level security;
 
+create or replace function public.request_shared_room_code()
+returns text
+language sql
+stable
+as $$
+  select upper(coalesce(
+    nullif(current_setting('request.headers', true), '')::jsonb ->> 'x-room-code',
+    ''
+  ));
+$$;
+
+grant execute on function public.request_shared_room_code() to anon;
+
 drop policy if exists "shared rooms read" on public.shared_rooms;
 drop policy if exists "shared rooms create" on public.shared_rooms;
 drop policy if exists "shared rooms update" on public.shared_rooms;
-create policy "shared rooms read" on public.shared_rooms for select to anon using (true);
-create policy "shared rooms create" on public.shared_rooms for insert to anon with check (true);
-create policy "shared rooms update" on public.shared_rooms for update to anon using (true) with check (true);
+create policy "shared rooms read" on public.shared_rooms
+  for select to anon
+  using (code = public.request_shared_room_code());
+create policy "shared rooms create" on public.shared_rooms
+  for insert to anon
+  with check (code = public.request_shared_room_code());
+create policy "shared rooms update" on public.shared_rooms
+  for update to anon
+  using (code = public.request_shared_room_code())
+  with check (code = public.request_shared_room_code());
 
 drop policy if exists "shared participants read" on public.shared_participants;
 drop policy if exists "shared participants create" on public.shared_participants;
 drop policy if exists "shared participants update" on public.shared_participants;
-create policy "shared participants read" on public.shared_participants for select to anon using (true);
-create policy "shared participants create" on public.shared_participants for insert to anon with check (true);
-create policy "shared participants update" on public.shared_participants for update to anon using (true) with check (true);
+create policy "shared participants read" on public.shared_participants
+  for select to anon
+  using (exists (
+    select 1 from public.shared_rooms room
+    where room.id = shared_participants.room_id
+      and room.code = public.request_shared_room_code()
+  ));
+create policy "shared participants create" on public.shared_participants
+  for insert to anon
+  with check (exists (
+    select 1 from public.shared_rooms room
+    where room.id = shared_participants.room_id
+      and room.code = public.request_shared_room_code()
+  ));
+create policy "shared participants update" on public.shared_participants
+  for update to anon
+  using (exists (
+    select 1 from public.shared_rooms room
+    where room.id = shared_participants.room_id
+      and room.code = public.request_shared_room_code()
+  ))
+  with check (exists (
+    select 1 from public.shared_rooms room
+    where room.id = shared_participants.room_id
+      and room.code = public.request_shared_room_code()
+  ));
 
 drop policy if exists "shared events read" on public.shared_events;
 drop policy if exists "shared events create" on public.shared_events;
-create policy "shared events read" on public.shared_events for select to anon using (true);
-create policy "shared events create" on public.shared_events for insert to anon with check (true);
+create policy "shared events read" on public.shared_events
+  for select to anon
+  using (exists (
+    select 1 from public.shared_rooms room
+    where room.id = shared_events.room_id
+      and room.code = public.request_shared_room_code()
+  ));
+create policy "shared events create" on public.shared_events
+  for insert to anon
+  with check (exists (
+    select 1 from public.shared_rooms room
+    where room.id = shared_events.room_id
+      and room.code = public.request_shared_room_code()
+  ));
 
 grant select, insert, update on public.shared_rooms to anon;
 grant select, insert, update on public.shared_participants to anon;
