@@ -63,6 +63,7 @@ export function BattleMenu({
         <button type="button" role="menuitem" disabled={!canEndBattle} onClick={requestEndBattle}>End battle</button>
         {!canEndBattle && endBlockedReason && <small className="battle-menu__hint">{endBlockedReason}</small>}
         <button type="button" role="menuitem" className="danger-action" onClick={requestAbandonBattle}>Abandon battle</button>
+        <small className="battle-menu__hint">Build {import.meta.env.VITE_BUILD_SHA}</small>
       </div>}
     </div>
 
