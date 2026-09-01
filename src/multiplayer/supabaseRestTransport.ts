@@ -158,7 +158,7 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
     return mapParticipant(row)
   }
 
-  async publishEvents(roomId: string, events: BattleEvent[]): Promise<void> {
+  async publishEvents(roomId: string, events: BattleEvent[], submittedByPlayerId?: string): Promise<void> {
     if (events.length === 0) return
     await this.request<unknown>('shared_events?on_conflict=room_id,event_id', {
       method: 'POST',
@@ -167,7 +167,7 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
         room_id: roomId,
         event_id: event.id,
         action_id: event.actionId,
-        actor_player_id: event.actorPlayerId ?? null,
+        actor_player_id: event.actorPlayerId ?? submittedByPlayerId ?? null,
         event_payload: event,
       }))),
     })
