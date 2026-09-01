@@ -2,11 +2,12 @@ import { describe, expect, it } from 'vitest'
 import { advanceCauldronPhase, dispatchCauldronBattleEvent } from '../../rulesets/cauldronFFA3'
 import { testCauldronGame } from '../../rulesets/cauldronFFA3/cauldronTestUtils'
 import { CAULDRON_SECONDARY_IDS } from '../../rulesets/cauldronFFA3/secondaryDefinitions'
+import type { SecondaryId } from '../../rulesets/cauldronFFA3/secondaryTypes'
 import { buildLatestAutomaticConsequence } from './automaticConsequences'
 import { buildBattleContext } from './contextEngine'
 
 function gameWithFirepowerFirst() {
-  const deck = ['SILA_OGNIA', ...CAULDRON_SECONDARY_IDS.filter((id) => id !== 'SILA_OGNIA')]
+  const deck: SecondaryId[] = ['SILA_OGNIA', ...CAULDRON_SECONDARY_IDS.filter((id) => id !== 'SILA_OGNIA')]
   return testCauldronGame({ secondaryDeckOrders: { 'p-a': deck } })
 }
 
