@@ -152,11 +152,12 @@ export function SecondaryPanel({
   )
 }
 
-export function SecondaryDetailPanel({ session }: { session: BattleSession }) {
-  const playerId = session.state.activePlayerId
+export function SecondaryDetailPanel({ session, playerId = session.state.activePlayerId }: { session: BattleSession; playerId?: string }) {
   const state = getSecondaryState(session)[playerId]
+  const player = session.state.players[playerId]
+  if (!state || !player) return <section className="panel secondary-detail-panel"><p className="context-note">Secondary data is unavailable for this player.</p></section>
   return <section className="panel secondary-detail-panel">
-    <div className="section-heading"><div><span className="eyebrow">Deck & history</span><h2>{session.state.players[playerId].name} Secondaries</h2></div><div className="secondary-score"><strong>{getGameSecondaryVp(session, playerId)} / 45</strong><span>game VP</span></div></div>
+    <div className="section-heading"><div><span className="eyebrow">Deck & history</span><h2>{player.name} Secondaries</h2></div><div className="secondary-score"><strong>{getGameSecondaryVp(session, playerId)} / 45</strong><span>game VP</span></div></div>
     <div className="secondary-deck-counts">
       <div><strong>{state.active.length}</strong><span>Active</span></div>
       <div><strong>{state.deck.length}</strong><span>Deck</span></div>
