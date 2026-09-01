@@ -13,6 +13,7 @@ export function describeBattleEvent(event: BattleEvent, setup: BattleSetup): str
   switch (event.type) {
     case 'GAME_STARTED': return 'Battle started'
     case 'GAME_ENDED': return 'Battle ended'
+    case 'GAME_ABANDONED': return 'Battle abandoned'
     case 'ROUND_STARTED': return `Round ${event.payload.round} started`
     case 'ROUND_ENDED': return `Round ${event.payload.round} ended`
     case 'TURN_STARTED': return `${playerName(setup, event.payload.playerId)} turn started`
@@ -30,7 +31,7 @@ export function describeBattleEvent(event: BattleEvent, setup: BattleSetup): str
     case 'OBJECTIVE_OC_CHANGED': return `${event.payload.objectiveId}: ${playerName(setup, event.payload.playerId)} OC ${event.payload.oc}`
     case 'OBJECTIVE_CONTROL_CHANGED': return `${event.payload.objectiveId}: ${event.payload.controllerPlayerId ? playerName(setup, event.payload.controllerPlayerId) : 'uncontrolled'}`
     case 'MISSION_ACTION_STARTED': return `${unitName(setup, event.payload.action.playerId, event.payload.action.unitId)} started ${event.payload.action.name}`
-    case 'MISSION_ACTION_COMPLETED': return `Mission Action completed`
+    case 'MISSION_ACTION_COMPLETED': return 'Mission Action completed'
     case 'MISSION_ACTION_FAILED': return `Mission Action failed: ${event.payload.reason}`
     case 'MISSION_ACTION_CANCELLED': return event.payload.reason ? `Mission Action cancelled: ${event.payload.reason}` : 'Mission Action cancelled'
     case 'REACTION_WINDOW_OPENED': return `Reaction window opened: ${event.payload.window.trigger.replaceAll('_', ' ').toLowerCase()}`
