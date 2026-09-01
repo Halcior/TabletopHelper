@@ -13,6 +13,7 @@ import {
   getSecondaryState,
   isMulliganAvailable,
 } from '../../rulesets/cauldronFFA3/secondary'
+import { buildLatestAutomaticConsequence } from './automaticConsequences'
 import {
   selectActiveMissionActions,
   selectActivePlayer,
@@ -111,13 +112,20 @@ function commandItems(session: BattleSession): ContextItem[] {
   if (session.state.phase !== 'COMMAND') return []
   const playerId = session.state.activePlayerId
   const cpRecorded = selectCommandPointRecordedThisTurn(session)
+  const guidedCpPending = session.setup.guidanceLevel === 'guided' && !cpRecorded
   const items: ContextItem[] = [{
     id: `command-cp-${playerId}`,
     type: 'COMMAND_POINT',
-    title: cpRecorded ? '+1 Command Point recorded' : 'Gain 1 Command Point',
-    shortDescription: cpRecorded ? 'The Command phase gain is already in the battle log.' : 'Record the Command phase CP gain.',
-    status: cpRecorded ? 'DONE' : 'AVAILABLE',
-    severity: cpRecorded ? 'QUIET' : 'ATTENTION',
+    title: cpRecorded
+      ? '+1 Command Point recorded'
+      : guidedCpPending ? 'Gain 1 Command Point before advancing' : 'Gain 1 Command Point',
+    shortDescription: cpRecorded
+      ? 'The Command phase gain is already in the battle log.'
+      : guidedCpPending
+        ? 'Guided Mode requires the Command phase CP gain to be recorded before leaving this phase.'
+        : 'Record the Command phase CP gain.',
+    status: cpRecorded ? 'DONE' : guidedCpPending ? 'BLOCKING' : 'AVAILABLE',
+    severity: cpRecorded ? 'QUIET' : guidedCpPending ? 'CRITICAL' : 'ATTENTION',
     source: 'SYSTEM',
     phase: 'COMMAND',
     relatedPlayerId: playerId,
@@ -286,19 +294,23 @@ function reactionItems(input: BuildBattleContextInput, players: BattleContext['r
 function automaticItems(session: BattleSession): ContextItem[] {
   if (session.setup.guidanceLevel === 'fast' || session.setup.rulesetId !== CAULDRON_RULESET_ID) return []
   const playerId = session.state.activePlayerId
-  return selectCompletedSecondariesThisTurn(session, playerId).map((card) => ({
-    id: `completed-secondary-${card.cardId}-${card.completedTurn}`,
-    type: 'AUTOMATIC_SECONDARY_RESULT',
-    title: `${CAULDRON_SECONDARY_BY_ID[card.cardId].name} completed`,
-    shortDescription: `+${card.pointsAwarded} VP · ${getRoundSecondaryVp(session, playerId)} / 10 this Battle Round`,
-    status: 'DONE',
-    severity: 'INFO',
-    source: 'SECONDARY',
-    phase: session.state.phase,
-    relatedPlayerId: playerId,
-    relatedSecondaryId: card.cardId,
-    actions: [],
-  }))
+  const consequence = buildLatestAutomaticConsequence(session)
+  const completed = selectCompletedSecondariesThisTurn(session, playerId)
+    .filter((card) => card.cardId !== consequence?.relatedSecondaryId)
+    .map((card) => ({
+      id: `completed-secondary-${card.cardId}-${card.completedTurn}`,
+      type: 'AUTOMATIC_SECONDARY_RESULT',
+      title: `${CAULDRON_SECONDARY_BY_ID[card.cardId].name} completed`,
+      shortDescription: `+${card.pointsAwarded} VP · ${getRoundSecondaryVp(session, playerId)} / 10 this Battle Round`,
+      status: 'DONE' as const,
+      severity: 'INFO' as const,
+      source: 'SECONDARY' as const,
+      phase: session.state.phase,
+      relatedPlayerId: playerId,
+      relatedSecondaryId: card.cardId,
+      actions: [],
+    }))
+  return consequence ? [consequence, ...completed] : completed
 }
 
 function explicitBlockerItems(session: BattleSession): ContextItem[] {
@@ -359,7 +371,7 @@ export function buildBattleContext(input: BuildBattleContextInput): BattleContex
   const sections = [
     section('attention', 'Requires attention', blockingItems),
     section('goals', 'Active goals', secondaries),
-    section('now', 'What matters now', [...commands, ...missions, ...plans, ...automaticEvents]),
+    section('now', 'What matters now', [...commands.filter((item) => item.status !== 'BLOCKING'), ...missions, ...plans, ...automaticEvents]),
     section('stratagems', 'Stratagems', stratagems),
     section('reactions', 'Reactions', reactions),
   ].filter((value): value is ContextSection => Boolean(value))
