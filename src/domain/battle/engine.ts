@@ -183,7 +183,11 @@ function applyEvent(state: GameState, event: BattleEvent, setup: BattleSetup): v
       state.status = 'active'
       return
     case 'GAME_ENDED':
+    case 'BATTLE_COMPLETED':
       state.status = 'completed'
+      return
+    case 'BATTLE_ABANDONED':
+      state.status = 'abandoned'
       return
     case 'ROUND_STARTED':
       state.round = event.payload.round
@@ -385,6 +389,7 @@ function materializeEvent(input: BattleEventInput, options: Required<Pick<EventO
 }
 
 export function dispatchBattleEvents(session: BattleSession, inputs: BattleEventInput[], options: EventOptions = {}): BattleSession {
+  if (session.state.status !== 'active') throw new Error(`The battle is ${session.state.status} and can no longer be changed.`)
   const actionId = options.actionId ?? createId('action')
   const timestamp = options.timestamp ?? new Date().toISOString()
   const events = inputs.map((input) => materializeEvent(input, {
@@ -412,12 +417,32 @@ export function dispatchBattleEvent(
   input: BattleEventInput,
   options: EventOptions = {},
 ): BattleSession {
-  if (session.state.status === 'completed') throw new Error('The battle is already complete.')
   return dispatchBattleEvents(session, [input], options)
 }
 
+export function isBattleReadyForCompletion(session: BattleSession): boolean {
+  return session.state.round >= session.state.maxRounds && session.state.events.some((event) => (
+    event.type === 'ROUND_ENDED' && event.payload.round === session.state.maxRounds
+  ))
+}
+
+export function completeBattle(session: BattleSession, mandatoryBlockers: readonly string[] = []): BattleSession {
+  if (mandatoryBlockers.length > 0) {
+    throw new Error(`Resolve mandatory battle items first: ${mandatoryBlockers.join(' ')}`)
+  }
+  return dispatchBattleEvent(session, { type: 'BATTLE_COMPLETED', payload: {} }, {
+    actorPlayerId: session.state.activePlayerId,
+  })
+}
+
+export function abandonBattle(session: BattleSession): BattleSession {
+  return dispatchBattleEvent(session, { type: 'BATTLE_ABANDONED', payload: {} }, {
+    actorPlayerId: session.state.activePlayerId,
+  })
+}
+
 export function getPhaseTransitionEvents(session: BattleSession): BattleEventInput[] {
-  if (session.state.status === 'completed') return []
+  if (session.state.status !== 'active' || isBattleReadyForCompletion(session)) return []
   const activeWindow = session.state.timing.reactionWindows[session.state.timing.activeReactionWindowId ?? '']
   if (isReactionWindowBlocking(activeWindow)) return []
   const phaseIndex = BATTLE_PHASES.indexOf(session.state.phase)
@@ -435,9 +460,7 @@ export function getPhaseTransitionEvents(session: BattleSession): BattleEventInp
     inputs.push({ type: 'TURN_STARTED', payload: { playerId: session.state.turnOrder[activeIndex + 1] } })
   } else {
     inputs.push({ type: 'ROUND_ENDED', payload: { round: session.state.round } })
-    if (session.state.round >= session.state.maxRounds) {
-      inputs.push({ type: 'GAME_ENDED', payload: {} })
-    } else {
+    if (session.state.round < session.state.maxRounds) {
       inputs.push({ type: 'ROUND_STARTED', payload: { round: session.state.round + 1 } })
       inputs.push({ type: 'TURN_STARTED', payload: { playerId: session.state.turnOrder[0] } })
     }

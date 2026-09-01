@@ -58,8 +58,14 @@ export async function getBattle(id: string): Promise<BattleSession | undefined> 
 
 export async function getLatestActiveBattle(): Promise<BattleSession | undefined> {
   const active = await database.battles.where('status').equals('active').toArray()
-  active.sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
-  return active[0]?.session ? normalizeLegacySession(active[0].session) : undefined
+  const latest = selectLatestActiveBattle(active)
+  return latest?.session ? normalizeLegacySession(latest.session) : undefined
+}
+
+export function selectLatestActiveBattle(records: readonly StoredBattle[]): StoredBattle | undefined {
+  return [...records]
+    .filter((record) => record.status === 'active')
+    .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))[0]
 }
 
 type LegacyPlayerSetup = BattleSession['setup']['players'][number] & { army?: Army }

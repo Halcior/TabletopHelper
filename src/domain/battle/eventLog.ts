@@ -13,6 +13,8 @@ export function describeBattleEvent(event: BattleEvent, setup: BattleSetup): str
   switch (event.type) {
     case 'GAME_STARTED': return 'Battle started'
     case 'GAME_ENDED': return 'Battle ended'
+    case 'BATTLE_COMPLETED': return 'Battle completed'
+    case 'BATTLE_ABANDONED': return 'Battle abandoned'
     case 'ROUND_STARTED': return `Round ${event.payload.round} started`
     case 'ROUND_ENDED': return `Round ${event.payload.round} ended`
     case 'TURN_STARTED': return `${playerName(setup, event.payload.playerId)} turn started`

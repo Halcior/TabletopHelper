@@ -7,6 +7,7 @@ import {
   redoLastAction,
   undoLastAction,
 } from '../domain/battle/engine'
+import { abandonBattle as abandonBattleInEngine, completeGenericBattle } from '../domain/battle/lifecycle'
 import type { BattleEventInput, BattleSession, GuidanceLevel } from '../domain/battle/types'
 import {
   cancelMissionAction as cancelMissionActionInBattle,
@@ -24,6 +25,7 @@ import { getBattle, getLatestActiveBattle, saveBattle } from '../persistence/dat
 import {
   advanceCauldronPhase,
   CAULDRON_RULESET_ID,
+  completeCauldronBattle,
   changeOperationalPlan,
   confirmCauldronEndRound,
   createCauldronGame,
@@ -70,6 +72,8 @@ type BattleStore = {
   confirmRound: (confirmations: Record<string, PlanConfirmation>) => void
   undo: () => void
   redo: () => void
+  endBattle: () => void
+  abandonBattle: () => void
 }
 
 let persistenceQueue = Promise.resolve()
@@ -230,6 +234,18 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
     applySessionUpdate(get().session, (session) => (
       session.setup.rulesetId === CAULDRON_RULESET_ID ? advanceCauldronPhase(session) : advancePhase(session)
     ), set)
+  },
+
+  endBattle() {
+    applySessionUpdate(get().session, (session) => (
+      session.setup.rulesetId === CAULDRON_RULESET_ID
+        ? completeCauldronBattle(session)
+        : completeGenericBattle(session)
+    ), set)
+  },
+
+  abandonBattle() {
+    applySessionUpdate(get().session, abandonBattleInEngine, set)
   },
 
   changePlan(playerId, planId) {

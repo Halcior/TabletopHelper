@@ -105,6 +105,8 @@ type BattleEventMetadata = {
 export type BattleEvent = BattleEventMetadata & (
   | { type: 'GAME_STARTED'; payload: Record<string, never> }
   | { type: 'GAME_ENDED'; payload: Record<string, never> }
+  | { type: 'BATTLE_COMPLETED'; payload: Record<string, never> }
+  | { type: 'BATTLE_ABANDONED'; payload: Record<string, never> }
   | { type: 'ROUND_STARTED'; payload: { round: number } }
   | { type: 'ROUND_ENDED'; payload: { round: number } }
   | { type: 'TURN_STARTED'; payload: { playerId: string } }
@@ -171,7 +173,7 @@ export type BattleEventInput = BattleEvent extends infer Event
 export type GameState = {
   gameId: string
   rulesetId: string
-  status: 'active' | 'completed'
+  status: 'active' | 'completed' | 'abandoned'
   round: number
   activePlayerId: string
   phase: BattlePhase
