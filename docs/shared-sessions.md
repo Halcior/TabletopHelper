@@ -9,9 +9,12 @@ The first shared-session milestone keeps the existing event-driven Battle Engine
 - A six-character room code is generated.
 - Two other devices can find the room and claim the remaining player seats.
 - New battle events are uploaded to the shared room and polled by every connected client.
-- Remote clients rebuild the local BattleSession from the host snapshot plus server-ordered events.
+- Remote clients rebuild the local BattleSession from the creation snapshot plus server-ordered events.
 - Presence heartbeats show roughly how many commanders are connected.
-- The host owns phase progression and battle lifecycle controls.
+- Phase progression follows the active player seat: each commander advances their own turn from their own device.
+- The host retains battle lifecycle administration (end / abandon) but cannot drive another player's normal phase flow.
+- Each commander manages their own CP controls in shared mode.
+- Reaction-window USE / PASS controls belong to the responding player's device; the other devices show a waiting state.
 - Local IndexedDB persistence remains active on every device.
 - If polling temporarily fails, local changes remain visible and publishing/polling retries.
 
@@ -58,23 +61,28 @@ Windows Firewall may ask to allow Node/Vite on private networks.
 4. Give the room code to the other two players.
 5. Each guest opens **Shared**, enters the code, chooses an available player seat, and joins.
 6. Open the battle on all devices.
-7. Test CP changes, objective control, casualties and Stratagem use.
-8. Advance the phase on the host device and verify all guests follow within roughly one second.
+7. On Player A's turn, verify only Player A has the active `Next phase` control.
+8. Finish Player A's turn and verify phase ownership moves to Player B's phone, then Player C's.
+9. Verify each player can change only their own CP from the scoreboard.
+10. Open a reaction window and verify only the responding player gets USE / PASS controls.
+11. Test objective control, casualties, Secondary progress and Stratagem use across all devices.
 
 ## Current multiplayer constraints
 
-- Host is the only device allowed to advance phases, end the battle or abandon it.
+- The active player owns normal phase progression; host-only administration is limited to ending or abandoning the shared battle.
 - Undo/redo is disabled in shared sessions because event deletion is not yet represented as a synchronized compensating event.
-- Player permissions are currently cooperative: clients can still edit shared battle state where the normal UI allows it. Server-side authorization comes later.
-- Seat claims are persisted in the backend; stale-seat takeover/explicit server-side leave is a follow-up task.
+- CP and reaction controls now have client-side ownership, but the rest of the battle-state permissions are still cooperative. Server-side authorization comes later.
+- Objectives remain intentionally shared-edit state for now.
+- Army casualty/wound ownership is not yet enforced; the UI still allows cooperative corrections where the existing tracker exposes them.
+- Seat claims are persisted in the backend and stale seats can be reclaimed after disconnect.
 - The room stores a creation snapshot plus all later materialized Battle Events. Long-running room snapshot compaction is a later optimization.
 
 ## Next multiplayer milestones
 
-1. Replace polling with realtime push while keeping the same transport contract.
-2. Add synchronized compensating undo.
-3. Add explicit permissions: own army/CP, reaction ownership, host/admin override.
-4. Improve presence and stale-seat reclaim.
-5. Add QR join links.
-6. Add reconnect diagnostics and conflict telemetry.
+1. Make each phone open its own army/personal status by default while still showing shared battle context.
+2. Add own-army state ownership with an explicit host/admin correction path.
+3. Replace polling with realtime push while keeping the same transport contract.
+4. Add synchronized compensating undo.
+5. Delegate special decisions such as Rival target selection directly to the responsible player's phone.
+6. Add QR/deep-link room joining.
 7. Harden backend policies before any public deployment.
