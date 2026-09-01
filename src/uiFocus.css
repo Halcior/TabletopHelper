@@ -7,6 +7,49 @@
   grid-template-columns: minmax(0, 1fr) auto;
 }
 
+.battle-quick-stack {
+  display: grid;
+  gap: 8px;
+}
+
+.battle-update-pulse {
+  padding: 12px 14px;
+  border-color: #4d654f;
+  background: linear-gradient(145deg, rgb(31 50 35 / 84%), rgb(20 29 23 / 92%));
+  box-shadow: none;
+  display: grid;
+  gap: 4px;
+}
+
+.battle-update-pulse .eyebrow {
+  margin-bottom: 1px;
+  color: #9fc294;
+}
+
+.battle-update-pulse > strong {
+  font-size: .88rem;
+}
+
+.battle-update-pulse > small {
+  color: var(--muted);
+  font-size: .7rem;
+}
+
+.battle-update-pulse__effects {
+  margin-top: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.battle-update-pulse__effects span {
+  padding: 4px 6px;
+  border: 1px solid #4d654f;
+  color: #c5dabd;
+  font-size: .65rem;
+  font-weight: 750;
+}
+
 .shared-session-page {
   width: min(960px, 100%);
   padding-top: clamp(18px, 4vw, 34px);
@@ -145,6 +188,20 @@
 
   .shared-room-focus__actions .button--gold {
     grid-column: 1 / -1;
+  }
+
+  /* In local/single-device play the command centre stays first. In a shared
+     room, the player's personal brief moves above it. */
+  .tactical-column--context-aside {
+    order: 0;
+  }
+
+  .tactical-dashboard:has(.shared-perspective) .tactical-column--context-aside {
+    order: -1;
+  }
+
+  .battle-update-pulse {
+    padding: 9px 10px;
   }
 }
 
