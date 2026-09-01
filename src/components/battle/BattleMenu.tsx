@@ -4,6 +4,7 @@ type Confirmation = 'end' | 'abandon' | null
 
 type BattleMenuProps = {
   canEndBattle: boolean
+  canManageBattle?: boolean
   endBlockedReason?: string
   onOpenLog: () => void
   onEndBattle: () => void
@@ -12,6 +13,7 @@ type BattleMenuProps = {
 
 export function BattleMenu({
   canEndBattle,
+  canManageBattle = true,
   endBlockedReason,
   onOpenLog,
   onEndBattle,
@@ -38,12 +40,13 @@ export function BattleMenu({
   }, [open])
 
   function requestEndBattle() {
-    if (!canEndBattle) return
+    if (!canEndBattle || !canManageBattle) return
     setOpen(false)
     setConfirmation('end')
   }
 
   function requestAbandonBattle() {
+    if (!canManageBattle) return
     setOpen(false)
     setConfirmation('abandon')
   }
@@ -60,9 +63,10 @@ export function BattleMenu({
       {open && <div className="battle-menu__popover" role="menu">
         <strong>Battle</strong>
         <button type="button" role="menuitem" onClick={() => { setOpen(false); onOpenLog() }}>View battle log</button>
-        <button type="button" role="menuitem" disabled={!canEndBattle} onClick={requestEndBattle}>End battle</button>
-        {!canEndBattle && endBlockedReason && <small className="battle-menu__hint">{endBlockedReason}</small>}
-        <button type="button" role="menuitem" className="danger-action" onClick={requestAbandonBattle}>Abandon battle</button>
+        <button type="button" role="menuitem" disabled={!canEndBattle || !canManageBattle} onClick={requestEndBattle}>End battle</button>
+        {!canManageBattle && <small className="battle-menu__hint">Only the shared-session host can end or abandon the battle.</small>}
+        {canManageBattle && !canEndBattle && endBlockedReason && <small className="battle-menu__hint">{endBlockedReason}</small>}
+        <button type="button" role="menuitem" className="danger-action" disabled={!canManageBattle} onClick={requestAbandonBattle}>Abandon battle</button>
       </div>}
     </div>
 
