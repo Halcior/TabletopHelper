@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import type { BattleSession } from '../domain/battle/types'
-import type { SharedParticipant } from '../multiplayer/types'
-import { useSharedSessionStore } from '../multiplayer/sharedSessionStore'
 import { normalizeRoomCode } from '../multiplayer/roomCode'
+import { buildSharedInviteUrl, roomCodeFromSearch } from '../multiplayer/sharedInvite'
+import { useSharedSessionStore } from '../multiplayer/sharedSessionStore'
+import type { SharedParticipant } from '../multiplayer/types'
 import { getLatestActiveBattle } from '../persistence/database'
 import { useBattleStore } from '../stores/battleStore'
 
@@ -15,11 +16,13 @@ function participantIsActive(participant: SharedParticipant): boolean {
 
 export default function SharedSessions() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [latestBattle, setLatestBattle] = useState<BattleSession | null>(null)
   const [hostPlayerId, setHostPlayerId] = useState('')
   const [roomCode, setRoomCode] = useState('')
   const [joinPlayerId, setJoinPlayerId] = useState('')
   const [working, setWorking] = useState(false)
+  const [inviteStatus, setInviteStatus] = useState<'idle' | 'copied'>('idle')
   const loadBattle = useBattleStore((state) => state.loadBattle)
   const {
     configured,
@@ -42,6 +45,15 @@ export default function SharedSessions() {
   }, [])
 
   useEffect(() => {
+    if (!configured) return
+    const code = roomCodeFromSearch(location.search)
+    if (!code) return
+    setRoomCode(code)
+    if (membership?.roomCode === code || inspection?.room.code === code) return
+    void inspectRoom(code)
+  }, [configured, inspectRoom, inspection?.room.code, location.search, membership?.roomCode])
+
+  useEffect(() => {
     if (!inspection) return
     const occupied = new Set(inspection.participants.filter(participantIsActive).map((participant) => participant.playerId))
     const firstFree = inspection.room.sessionSnapshot.state.turnOrder.find((playerId) => !occupied.has(playerId))
@@ -56,7 +68,8 @@ export default function SharedSessions() {
     setWorking(true)
     try {
       await loadBattle(latestBattle.setup.gameId)
-      await hostCurrentBattle(hostPlayerId)
+      const created = await hostCurrentBattle(hostPlayerId)
+      navigate(`/shared?room=${created.roomCode}`, { replace: true })
     } finally {
       setWorking(false)
     }
@@ -66,7 +79,8 @@ export default function SharedSessions() {
     if (!roomCode) return
     setWorking(true)
     try {
-      await inspectRoom(roomCode)
+      const found = await inspectRoom(roomCode)
+      if (found) navigate(`/shared?room=${found.room.code}`, { replace: true })
     } finally {
       setWorking(false)
     }
@@ -83,12 +97,32 @@ export default function SharedSessions() {
     }
   }
 
+  async function shareInvite() {
+    if (!membership) return
+    const localOnly = ['localhost', '127.0.0.1'].includes(window.location.hostname)
+    const url = buildSharedInviteUrl(window.location.origin, membership.roomCode)
+    const text = localOnly
+      ? `Tabletop Companion room code: ${membership.roomCode}`
+      : `Join my Tabletop Companion battle: ${membership.roomCode}`
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'Tabletop Companion shared battle', text, ...(localOnly ? {} : { url }) })
+        return
+      }
+      await navigator.clipboard.writeText(localOnly ? membership.roomCode : url)
+      setInviteStatus('copied')
+      window.setTimeout(() => setInviteStatus('idle'), 1800)
+    } catch {
+      // Cancelling native sharing should leave the room untouched.
+    }
+  }
+
   if (!configured) return <div className="page-shell shared-session-page">
     <section className="hero-panel">
       <span className="eyebrow">Shared battle · preview</span>
       <h1>Three phones, one battle state.</h1>
       <p>The client-side sync layer is installed, but this build needs a Supabase project before it can create rooms.</p>
-      <div className="alert">Add <strong>VITE_SUPABASE_URL</strong> and <strong>VITE_SUPABASE_ANON_KEY</strong>, then apply <code>supabase/shared_sessions.sql</code>.</div>
+      <div className="alert">Add <strong>VITE_SUPABASE_URL</strong> and <strong>VITE_SUPABASE_PUBLISHABLE_KEY</strong> (or the legacy <strong>VITE_SUPABASE_ANON_KEY</strong>), then apply <code>supabase/shared_sessions.sql</code>.</div>
       <Link className="button" to="/">Return home</Link>
     </section>
   </div>
@@ -102,6 +136,7 @@ export default function SharedSessions() {
         <div><span>Room</span><strong>{membership.roomCode}</strong></div>
         <div><span>Sync</span><strong>{connectionStatus}</strong></div>
         <div><span>Connected</span><strong>{activeParticipants.length || participants.length}</strong></div>
+        <button onClick={() => void shareInvite()}>{inviteStatus === 'copied' ? 'Invite copied' : 'Share invite'}</button>
         <button onClick={() => disconnect(true)}>Leave shared room</button>
         {joinedBattle && <Link className="button button--gold" to={`/battle/${membership.battleId}`}>Open battle</Link>}
       </div>}
