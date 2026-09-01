@@ -213,6 +213,14 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
     }, this.roomCode(roomId))
   }
 
+  async releaseParticipant(roomId: string, clientId: string): Promise<void> {
+    await this.request<void>(`shared_participants?room_id=eq.${encodeURIComponent(roomId)}&client_id=eq.${encodeURIComponent(clientId)}`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ last_seen_at: '1970-01-01T00:00:00.000Z' }),
+    }, this.roomCode(roomId))
+  }
+
   async updateRoomStatus(roomId: string, status: BattleLifecycleStatus): Promise<void> {
     await this.request<void>(`shared_rooms?id=eq.${encodeURIComponent(roomId)}`, {
       method: 'PATCH',
