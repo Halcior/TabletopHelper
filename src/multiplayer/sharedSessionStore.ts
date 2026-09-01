@@ -40,11 +40,16 @@ function browserOnline(): boolean {
   return typeof navigator === 'undefined' || navigator.onLine !== false
 }
 
+function createClientId(): string {
+  return globalThis.crypto?.randomUUID?.()
+    ?? `client-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`
+}
+
 function clientId(): string {
   const target = storage()
   const stored = target?.getItem(CLIENT_KEY)
   if (stored) return stored
-  const created = crypto.randomUUID()
+  const created = createClientId()
   target?.setItem(CLIENT_KEY, created)
   return created
 }
