@@ -16,6 +16,12 @@ import {
 } from './constants'
 import { cauldronEvent } from './events'
 import { addSnapshotEvents, captureRoundSnapshot, captureTurnSnapshot } from './snapshots'
+import {
+  addSecondaryRefillEvents,
+  createEndTurnSecondaryEvents,
+  createSecondaryInitializationEvents,
+  getSecondaryState,
+} from './secondary'
 import type { CauldronConfig, CauldronGameInput, DeploymentZone, TurnPosition } from './types'
 
 function validateCauldronInput(input: CauldronGameInput): void {
@@ -73,6 +79,7 @@ export function createCauldronGame(input: CauldronGameInput): BattleSession {
   session = dispatchBattleEvents(session, [
     cauldronEvent('ROUND_SNAPSHOT_CAPTURED', captureRoundSnapshot(session, 1)),
     cauldronEvent('TURN_SNAPSHOT_CAPTURED', captureTurnSnapshot(session, turnOrder[0], 1)),
+    ...createSecondaryInitializationEvents(session, input.secondaryDeckOrders),
   ], { undoable: false, timestamp: session.setup.createdAt })
   return session
 }
@@ -84,10 +91,23 @@ export function isCauldronEndOfRound(session: BattleSession): boolean {
 
 export function advanceCauldronPhase(session: BattleSession): BattleSession {
   if (isCauldronEndOfRound(session)) throw new Error('Review and confirm Cauldron Primary before ending the Battle Round.')
+  const secondaryState = getSecondaryState(session)[session.state.activePlayerId]
+  if (secondaryState?.pendingEliminationChoice) {
+    throw new Error('Resolve the pending Secondary scoring choice before continuing.')
+  }
+  let secondaryEvents: ReturnType<typeof createEndTurnSecondaryEvents> = []
+  if (session.state.phase === 'END_TURN') {
+    if (Object.values(session.state.missionActions).some((action) => (
+      action.playerId === session.state.activePlayerId && action.status === 'ACTIVE'
+    ))) throw new Error('Resolve active Mission Actions before ending the turn.')
+    secondaryEvents = createEndTurnSecondaryEvents(session, session.state.activePlayerId)
+  }
   const transitions = getPhaseTransitionEvents(session)
+  const withSnapshots = addSnapshotEvents(session, transitions)
+  const events = [...secondaryEvents, ...addSecondaryRefillEvents(session, withSnapshots)]
   return transitions.length === 0
     ? session
-    : dispatchBattleEvents(session, addSnapshotEvents(session, transitions), {
+    : dispatchBattleEvents(session, events, {
       actorPlayerId: session.state.activePlayerId,
     })
 }

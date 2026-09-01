@@ -1,11 +1,23 @@
 import { useEffect, useState } from 'react'
 import type { Army, UnitDefinition, UnitState, WeaponProfile } from '../../domain/army/types'
+import { getActiveMissionActionForUnit } from '../../domain/battle/missionActions'
 import type { BattleEventInput, BattleSession } from '../../domain/battle/types'
 import { CAULDRON_RULESET_ID, getCurrentRivalPlayerId } from '../../rulesets/cauldronFFA3'
+import { CAULDRON_SECONDARY_BY_ID } from '../../rulesets/cauldronFFA3/secondaryDefinitions'
+import type { SecondaryId } from '../../rulesets/cauldronFFA3/secondaryTypes'
 
 type ArmyTrackerProps = {
   session: BattleSession
   dispatch: (event: BattleEventInput) => void
+  secondaryTargetFilter?: SecondaryId | null
+  onClearSecondaryTargetFilter?: () => void
+}
+
+function matchesSecondaryTarget(unit: UnitDefinition, cardId: SecondaryId): boolean {
+  const traits = [...unit.categories, ...unit.keywords].map((value) => value.toLocaleUpperCase())
+  if (cardId === 'ZNISZCZ_KOLOSA') return traits.includes('VEHICLE') || traits.includes('MONSTER')
+  if (cardId === 'ELIMINACJA_DOWODCY') return traits.includes('CHARACTER')
+  return true
 }
 
 function Weapons({ title, weapons }: { title: string; weapons: WeaponProfile[] }) {
@@ -94,6 +106,7 @@ function UnitCard({
   ownerId,
   activePlayerId,
   players,
+  missionActionName,
   dispatch,
 }: {
   unit: UnitDefinition
@@ -102,6 +115,7 @@ function UnitCard({
   ownerId: string
   activePlayerId: string
   players: Array<{ id: string; name: string }>
+  missionActionName?: string
   dispatch: (event: BattleEventInput) => void
 }) {
   const inferredAttacker = activePlayerId === ownerId ? 'other' : activePlayerId
@@ -121,6 +135,7 @@ function UnitCard({
         <div><h3>{unit.name}</h3><p>{unit.points} pts{unit.isWarlord ? ' · Warlord' : ''}</p></div>
         {state.battleShocked && <span className="status-badge status-badge--danger">Battle-shocked</span>}
       </div>
+      {missionActionName && <div className="unit-mission-action"><span>Mission Action</span><strong>{missionActionName}</strong><small>Cannot Shoot or declare a charge this turn.</small></div>}
       <label className="casualty-attribution"><span>Destroyed by</span><select value={attacker} onChange={(event) => setAttacker(event.target.value)}>
         {players.map((player) => <option key={player.id} value={player.id}>{player.name}{player.id === activePlayerId ? ' · current' : ''}</option>)}
         <option value="other">Other / environment</option>
@@ -169,7 +184,7 @@ function UnitCard({
   )
 }
 
-export function ArmyTracker({ session, dispatch }: ArmyTrackerProps) {
+export function ArmyTracker({ session, dispatch, secondaryTargetFilter, onClearSecondaryTargetFilter }: ArmyTrackerProps) {
   const armyPlayers = session.setup.players.flatMap((player) => {
     const army = player.armyId ? session.setup.armies[player.armyId] : undefined
     return army ? [{ player, army }] : []
@@ -188,6 +203,12 @@ export function ArmyTracker({ session, dispatch }: ArmyTrackerProps) {
   if (armyPlayers.length === 0) return <section className="empty-state"><h2>No army roster attached</h2></section>
   const selected = armyPlayers.find(({ player }) => player.id === selectedPlayerId) ?? armyPlayers[0]
   const playerState = session.state.players[selected.player.id]
+  const filterRivalTargets = Boolean(secondaryTargetFilter && selected.player.id === rivalPlayerId)
+  const visibleUnits = filterRivalTargets && secondaryTargetFilter
+    ? selected.army.units.filter((unit) => (
+      !playerState.units[unit.id].destroyed && matchesSecondaryTarget(unit, secondaryTargetFilter)
+    ))
+    : selected.army.units
   return <div className="army-trackers">
     <nav className="army-player-tabs" aria-label="Choose player army">
       {armyPlayers.map(({ player, army }) => <button
@@ -204,7 +225,11 @@ export function ArmyTracker({ session, dispatch }: ArmyTrackerProps) {
         <div><span className="eyebrow">{selected.player.name} · Zone {selected.player.deploymentZone ?? '—'}</span><h2>{selected.army.faction}</h2></div>
         <strong>{selected.army.totalPoints} pts</strong>
       </div>
-      <div className="unit-grid">{selected.army.units.map((unit) => <UnitCard
+      {filterRivalTargets && secondaryTargetFilter && <div className="army-target-filter" role="status">
+        <span><strong>Targets for {CAULDRON_SECONDARY_BY_ID[secondaryTargetFilter].name}</strong><small>{visibleUnits.length} eligible Rival unit{visibleUnits.length === 1 ? '' : 's'} remaining.</small></span>
+        <button onClick={onClearSecondaryTargetFilter}>Show all units</button>
+      </div>}
+      <div className="unit-grid">{visibleUnits.map((unit) => <UnitCard
         key={unit.id}
         unit={unit}
         state={playerState.units[unit.id]}
@@ -212,8 +237,10 @@ export function ArmyTracker({ session, dispatch }: ArmyTrackerProps) {
         ownerId={selected.player.id}
         activePlayerId={session.state.activePlayerId}
         players={players}
+        missionActionName={getActiveMissionActionForUnit(session, selected.player.id, unit.id)?.name}
         dispatch={dispatch}
       />)}</div>
+      {filterRivalTargets && visibleUnits.length === 0 && <p className="context-note">No eligible Rival targets remain.</p>}
     </section>
   </div>
 }

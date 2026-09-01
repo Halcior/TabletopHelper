@@ -29,6 +29,10 @@ export function describeBattleEvent(event: BattleEvent, setup: BattleSetup): str
     case 'ABILITY_USED': return `${unitName(setup, event.payload.playerId, event.payload.unitId)}: ${event.payload.abilityName} ${event.payload.used ? 'used' : 'restored'}`
     case 'OBJECTIVE_OC_CHANGED': return `${event.payload.objectiveId}: ${playerName(setup, event.payload.playerId)} OC ${event.payload.oc}`
     case 'OBJECTIVE_CONTROL_CHANGED': return `${event.payload.objectiveId}: ${event.payload.controllerPlayerId ? playerName(setup, event.payload.controllerPlayerId) : 'uncontrolled'}`
+    case 'MISSION_ACTION_STARTED': return `${unitName(setup, event.payload.action.playerId, event.payload.action.unitId)} started ${event.payload.action.name}`
+    case 'MISSION_ACTION_COMPLETED': return `Mission Action completed`
+    case 'MISSION_ACTION_FAILED': return `Mission Action failed: ${event.payload.reason}`
+    case 'MISSION_ACTION_CANCELLED': return event.payload.reason ? `Mission Action cancelled: ${event.payload.reason}` : 'Mission Action cancelled'
     case 'REACTION_WINDOW_OPENED': return `Reaction window opened: ${event.payload.window.trigger.replaceAll('_', ' ').toLowerCase()}`
     case 'REACTION_HOLD_REQUESTED': return `${playerName(setup, event.payload.window.requestedByPlayerId ?? '')} requested a reaction hold`
     case 'REACTION_PASSED': return `${playerName(setup, event.payload.playerId)} passed the reaction window`

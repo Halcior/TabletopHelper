@@ -9,9 +9,23 @@ type PhaseGuidanceProps = {
 
 export function PhaseGuidance({ session, dispatch }: PhaseGuidanceProps) {
   const activePlayer = session.state.players[session.state.activePlayerId]
-  const reminders = session.setup.rulesetId === CAULDRON_RULESET_ID
+  const baseReminders = session.setup.rulesetId === CAULDRON_RULESET_ID
     ? getCauldronReminders(session)
     : getPhaseGuidance(session.state.phase, session.setup.guidanceLevel)
+  const actionReminders = (session.state.phase === 'SHOOTING' || session.state.phase === 'CHARGE')
+    ? Object.values(session.state.missionActions)
+      .filter((action) => action.playerId === activePlayer.id && action.status === 'ACTIVE')
+      .map((action) => ({
+        id: `mission-action-${action.id}`,
+        title: `${action.name} is in progress`,
+        detail: session.state.phase === 'SHOOTING'
+          ? 'The acting unit cannot Shoot.'
+          : 'The acting unit cannot declare a charge.',
+        state: 'attention' as const,
+        status: 'Restriction',
+      }))
+    : []
+  const reminders = [...actionReminders, ...baseReminders]
   return (
     <section className="panel guidance-panel">
       <div className="section-heading">

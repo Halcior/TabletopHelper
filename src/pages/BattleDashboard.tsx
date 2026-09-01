@@ -9,11 +9,13 @@ import { ObjectivesPanel } from '../components/battle/ObjectivesPanel'
 import { PhaseGuidance } from '../components/battle/PhaseGuidance'
 import { humanizePhase, PhaseStepper } from '../components/battle/PhaseStepper'
 import { Scoreboard } from '../components/battle/Scoreboard'
+import { SecondaryEndTurnReview } from '../components/battle/SecondaryEndTurnReview'
+import { SecondaryDetailPanel, SecondaryPanel } from '../components/battle/SecondaryPanel'
+import type { Army } from '../domain/army/types'
 import { canUndo } from '../domain/battle/selectors'
 import { BATTLE_PHASES } from '../domain/battle/types'
 import { getCurrentReactionWindow, isBattleFlowPaused } from '../domain/stratagems/battleIntegration'
 import { getReactionOpportunity } from '../domain/stratagems/reactionEngine'
-import { SAMPLE_STRATAGEMS, sampleStratagemsByPlayer } from '../domain/stratagems/sampleData'
 import { getAvailableStratagems } from '../domain/stratagems/timingEngine'
 import type { StratagemAvailability } from '../domain/stratagems/types'
 import {
@@ -21,19 +23,36 @@ import {
   ReactionStatusPanel,
   ReactionWindowPanel,
 } from '../features/stratagems'
+import type { RulesDataProvider, RulesDataResolution } from '../rulesData/types'
 import {
   CAULDRON_RULESET_ID,
   getCurrentRivalPlayerId,
   isCauldronEndOfRound,
 } from '../rulesets/cauldronFFA3'
+import type { SecondaryId } from '../rulesets/cauldronFFA3/secondaryTypes'
 import { useBattleStore } from '../stores/battleStore'
 
-type DashboardTab = 'overview' | 'army' | 'objectives' | 'log'
+type DashboardTab = 'overview' | 'army' | 'objectives' | 'cards' | 'log'
+
+const rulesDataCache = new WeakMap<Army, RulesDataResolution>()
+
+function resolveArmyRules(provider: RulesDataProvider, army: Army): RulesDataResolution {
+  const cached = rulesDataCache.get(army)
+  if (cached) return cached
+  const resolution = provider.resolveArmyStratagems(army)
+  rulesDataCache.set(army, resolution)
+  return resolution
+}
 
 export default function BattleDashboard() {
   const { battleId } = useParams()
   const [tab, setTab] = useState<DashboardTab>('overview')
   const [reviewOpen, setReviewOpen] = useState(false)
+  const [turnReviewOpen, setTurnReviewOpen] = useState(false)
+  const [rulesDataProvider, setRulesDataProvider] = useState<RulesDataProvider | null>(null)
+  const [rulesDataAttribution, setRulesDataAttribution] = useState<{ label: string; url: string } | null>(null)
+  const [rulesDataError, setRulesDataError] = useState<string | null>(null)
+  const [armySecondaryFilter, setArmySecondaryFilter] = useState<SecondaryId | null>(null)
   const {
     session,
     loading,
@@ -43,6 +62,14 @@ export default function BattleDashboard() {
     useStratagem,
     requestReactionHold,
     passReaction,
+    startMissionAction,
+    completeMissionAction,
+    mulliganSecondary,
+    discardSecondaryCards,
+    evaluateEndTurnSecondaries,
+    resolveEliminationChoice,
+    selectPriorityTargetCandidates,
+    choosePriorityTarget,
     nextPhase,
     changePlan,
     confirmRound,
@@ -54,24 +81,65 @@ export default function BattleDashboard() {
     if (battleId) void loadBattle(battleId)
   }, [battleId, loadBattle])
 
+  useEffect(() => {
+    let active = true
+    void import('../rulesData/40kdc')
+      .then(({ create40kdcRulesDataProvider, FORTY_KDC_ATTRIBUTION }) => {
+        if (active) {
+          setRulesDataProvider(create40kdcRulesDataProvider())
+          setRulesDataAttribution(FORTY_KDC_ATTRIBUTION)
+        }
+      })
+      .catch(() => {
+        if (active) setRulesDataError('Stratagem metadata could not be loaded.')
+      })
+    return () => { active = false }
+  }, [])
+
   if (loading && session?.setup.gameId !== battleId) return <div className="page-shell"><div className="loading-state">Restoring battle…</div></div>
   if (!session || session.setup.gameId !== battleId) return <div className="page-shell"><div className="empty-state"><h1>Battle unavailable</h1><p>{error ?? 'The local battle could not be found.'}</p><Link className="button" to="/">Return home</Link></div></div>
 
   const active = session.state.players[session.state.activePlayerId]
   const cauldron = session.setup.rulesetId === CAULDRON_RULESET_ID
+  const dashboardTabs: DashboardTab[] = cauldron
+    ? ['overview', 'army', 'objectives', 'cards', 'log']
+    : ['overview', 'army', 'objectives', 'log']
   const endOfRound = cauldron && isCauldronEndOfRound(session)
   const rivalId = cauldron ? getCurrentRivalPlayerId(session, active.id) : null
   const rival = rivalId ? session.state.players[rivalId] : null
   const playerIds = Object.keys(session.state.players)
   const playerNames = Object.fromEntries(Object.values(session.state.players).map((player) => [player.id, player.name]))
-  const definitionsByPlayer = sampleStratagemsByPlayer(playerIds)
+  const rulesDataByPlayer = Object.fromEntries(playerIds.map((playerId) => {
+    const armyId = session.state.players[playerId].armyId
+    const army = armyId ? session.setup.armies[armyId] : undefined
+    return [playerId, army && rulesDataProvider ? resolveArmyRules(rulesDataProvider, army) : null]
+  }))
+  const definitionsByPlayer = Object.fromEntries(playerIds.map((playerId) => [
+    playerId,
+    rulesDataByPlayer[playerId]?.definitions ?? [],
+  ]))
   const currentWindow = getCurrentReactionWindow(session)
-  const activeStratagems = getAvailableStratagems({
+  const activeDefinitions = definitionsByPlayer[active.id] ?? []
+  const activeUsageDefinitionIds = new Set(
+    (rulesDataByPlayer[active.id]?.stratagems ?? [])
+      .filter(({ classification }) => classification !== 'REACTION')
+      .map(({ definition }) => definition.id),
+  )
+  const phaseStartStratagems = getAvailableStratagems({
     playerId: active.id,
     gameState: session.state,
     trigger: 'PHASE_START',
-    definitions: SAMPLE_STRATAGEMS,
-  }).filter(({ definition }) => !definition.reaction)
+    definitions: activeDefinitions,
+  })
+  const manualStratagems = getAvailableStratagems({
+    playerId: active.id,
+    gameState: session.state,
+    trigger: 'CUSTOM_CONFIRMATION',
+    definitions: activeDefinitions,
+  })
+  const activeStratagems = [...new Map([...phaseStartStratagems, ...manualStratagems]
+    .filter(({ definition }) => activeUsageDefinitionIds.has(definition.id))
+    .map((availability) => [availability.definition.id, availability])).values()]
   const reactionOpportunity = getReactionOpportunity({
     gameState: session.state,
     trigger: 'PHASE_START',
@@ -89,6 +157,7 @@ export default function BattleDashboard() {
     }).filter(({ definition }) => response.availableOptionIds.includes(definition.id))]))
     : {}
   const flowPaused = isBattleFlowPaused(session)
+  const cauldronTurnReview = cauldron && session.state.phase === 'END_TURN'
   const phaseLabel = humanizePhase(session.state.phase)
   const phaseIndex = BATTLE_PHASES.indexOf(session.state.phase)
   const activePlayerIndex = session.state.turnOrder.indexOf(active.id)
@@ -100,11 +169,11 @@ export default function BattleDashboard() {
       ? 'Battle complete'
       : `Round ${session.state.round + 1} · ${nextPlayer.name}`
     : `${nextPlayer.name} · Command`
-  const nextLabel = endOfRound ? 'Review round' : session.state.phase === 'END_TURN' ? 'End turn' : 'Next phase'
+  const nextLabel = cauldronTurnReview ? 'Review turn' : session.state.phase === 'END_TURN' ? 'End turn' : 'Next phase'
   const nextDestination = flowPaused
     ? 'Resolve reaction to continue'
-    : endOfRound
-      ? 'Confirm scores'
+    : cauldronTurnReview
+      ? 'Secondaries & Mission Actions'
       : phaseIndex < BATTLE_PHASES.length - 1
         ? humanizePhase(BATTLE_PHASES[phaseIndex + 1])
         : nextTurnDestination
@@ -128,9 +197,20 @@ export default function BattleDashboard() {
         session={session}
         onCancel={() => setReviewOpen(false)}
         onConfirm={(confirmations) => { confirmRound(confirmations); setReviewOpen(false) }}
+      /> : turnReviewOpen && cauldron ? <SecondaryEndTurnReview
+        session={session}
+        onCompleteMissionAction={completeMissionAction}
+        onEvaluate={evaluateEndTurnSecondaries}
+        onDiscard={discardSecondaryCards}
+        onCancel={() => setTurnReviewOpen(false)}
+        onFinish={() => {
+          setTurnReviewOpen(false)
+          if (endOfRound) setReviewOpen(true)
+          else nextPhase()
+        }}
       /> : <>
         <nav className="battle-tabs" aria-label="Battle panels">
-          {(['overview', 'army', 'objectives', 'log'] as DashboardTab[]).map((item) => (
+          {dashboardTabs.map((item) => (
             <button className={tab === item ? 'selected' : ''} key={item} onClick={() => setTab(item)}>{item}</button>
           ))}
         </nav>
@@ -152,6 +232,17 @@ export default function BattleDashboard() {
           {tab === 'overview' && <>
             <div className="tactical-dashboard">
               <div className="tactical-column tactical-column--primary">
+                {cauldron && <SecondaryPanel
+                  session={session}
+                  dispatch={dispatch}
+                  onMulligan={mulliganSecondary}
+                  onOpenRivalArmy={(cardId) => { setArmySecondaryFilter(cardId); setTab('army') }}
+                  onStartMissionAction={startMissionAction}
+                  onCheckCondition={() => setTurnReviewOpen(true)}
+                  onResolveEliminationChoice={resolveEliminationChoice}
+                  onSelectPriorityCandidates={selectPriorityTargetCandidates}
+                  onChoosePriorityTarget={choosePriorityTarget}
+                />}
                 <PhaseGuidance session={session} dispatch={dispatch} />
                 {cauldron && <CauldronPlanPanel session={session} onChangePlan={changePlan} />}
                 <AvailableStratagemPanel
@@ -160,9 +251,16 @@ export default function BattleDashboard() {
                   onUse={(availability) => useStratagem({
                     playerId: active.id,
                     definition: availability.definition,
-                    trigger: 'PHASE_START',
+                    trigger: availability.definition.triggers.includes('PHASE_START')
+                      ? 'PHASE_START'
+                      : 'CUSTOM_CONFIRMATION',
                   })}
                 />
+                {rulesDataProvider && rulesDataAttribution
+                  ? <a className="rules-data-attribution" href={rulesDataAttribution.url} target="_blank" rel="noreferrer">{rulesDataAttribution.label}</a>
+                  : rulesDataError
+                    ? <span className="rules-data-attribution rules-data-attribution--error">{rulesDataError}</span>
+                    : <span className="rules-data-attribution">Loading Stratagem metadata…</span>}
               </div>
               <aside className="tactical-column">
                 {!currentWindow && <ReactionStatusPanel
@@ -179,8 +277,14 @@ export default function BattleDashboard() {
               </aside>
             </div>
           </>}
-          {tab === 'army' && <ArmyTracker session={session} dispatch={dispatch} />}
+          {tab === 'army' && <ArmyTracker
+            session={session}
+            dispatch={dispatch}
+            secondaryTargetFilter={armySecondaryFilter}
+            onClearSecondaryTargetFilter={() => setArmySecondaryFilter(null)}
+          />}
           {tab === 'objectives' && <ObjectivesPanel session={session} dispatch={dispatch} />}
+          {tab === 'cards' && cauldron && <SecondaryDetailPanel session={session} />}
           {tab === 'log' && <BattleLog session={session} />}
         </main>
 
@@ -191,7 +295,7 @@ export default function BattleDashboard() {
             ? <button
               className="button--gold next-phase"
               disabled={flowPaused}
-              onClick={() => endOfRound ? setReviewOpen(true) : nextPhase()}
+              onClick={() => cauldronTurnReview ? setTurnReviewOpen(true) : nextPhase()}
             >{flowPaused ? 'Reaction pending' : nextLabel}<span>{nextDestination}</span></button>
             : <Link className="button button--gold next-phase" to="/">Battle complete</Link>}
         </footer>

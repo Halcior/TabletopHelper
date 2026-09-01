@@ -3,6 +3,7 @@ import type { BattleEventInput, BattleSession } from '../../domain/battle/types'
 import { cauldronEvent, getCauldronEventData } from './events'
 import { buildPrimaryReview } from './primary'
 import { addSnapshotEvents } from './snapshots'
+import { addSecondaryRefillEvents, createEndTurnSecondaryEvents, getSecondaryState } from './secondary'
 import { isCauldronEndOfRound } from './session'
 import type { PlanConfirmation, PrimaryRoundResult } from './types'
 
@@ -23,6 +24,13 @@ export function confirmCauldronEndRound(
 ): BattleSession {
   if (!isCauldronEndOfRound(session)) throw new Error('Cauldron round review is only available after the final player turn.')
   if (isPrimaryCommitted(session, session.state.round)) throw new Error('Primary has already been committed for this Battle Round.')
+  if (Object.values(session.state.missionActions).some((action) => (
+    action.playerId === session.state.activePlayerId && action.status === 'ACTIVE'
+  ))) throw new Error('Resolve active Mission Actions before ending the turn.')
+  if (getSecondaryState(session)[session.state.activePlayerId]?.pendingEliminationChoice) {
+    throw new Error('Resolve the pending Secondary scoring choice before ending the turn.')
+  }
+  const secondaryEvents = createEndTurnSecondaryEvents(session, session.state.activePlayerId)
   const reviews = buildPrimaryReview(session, confirmations)
   if (session.state.round >= 2 && reviews.some((review) => review.planEvaluation.status === 'REQUIRES_CONFIRMATION')) {
     throw new Error('Answer all required Operational Plan confirmations before ending the round.')
@@ -38,12 +46,13 @@ export function confirmCauldronEndRound(
   ))
   const transitions = getPhaseTransitionEvents(session)
   return dispatchBattleEvents(session, [
+    ...secondaryEvents,
     ...scoringEvents,
     cauldronEvent('PRIMARY_COMMITTED', {
       round: session.state.round,
       reviews,
       confirmations,
     } satisfies PrimaryCommit),
-    ...addSnapshotEvents(session, transitions),
+    ...addSecondaryRefillEvents(session, addSnapshotEvents(session, transitions)),
   ], { actorPlayerId: session.state.activePlayerId })
 }

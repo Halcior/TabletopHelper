@@ -9,6 +9,12 @@ import {
 } from '../domain/battle/engine'
 import type { BattleEventInput, BattleSession, GuidanceLevel } from '../domain/battle/types'
 import {
+  cancelMissionAction as cancelMissionActionInBattle,
+  completeMissionAction as completeMissionActionInBattle,
+  startMissionAction as startMissionActionInBattle,
+  type StartMissionActionInput,
+} from '../domain/battle/missionActions'
+import {
   passReaction as passReactionInBattle,
   requestReactionHold as requestReactionHoldInBattle,
   useStratagem as useStratagemInBattle,
@@ -21,9 +27,18 @@ import {
   changeOperationalPlan,
   confirmCauldronEndRound,
   createCauldronGame,
+  choosePriorityTarget as choosePriorityTargetInBattle,
+  discardSecondaryCards as discardSecondaryCardsInBattle,
+  dispatchCauldronBattleEvent,
+  evaluateEndTurnSecondaries as evaluateEndTurnSecondariesInBattle,
+  mulliganSecondary as mulliganSecondaryInBattle,
+  resolveEliminationChoice as resolveEliminationChoiceInBattle,
+  selectPriorityTargetCandidates as selectPriorityTargetCandidatesInBattle,
   type CauldronPlayerInput,
+  type EndTurnSecondaryConfirmations,
   type OperationalPlanId,
   type PlanConfirmation,
+  type SecondaryId,
 } from '../rulesets/cauldronFFA3'
 
 type BattleStore = {
@@ -41,6 +56,15 @@ type BattleStore = {
   useStratagem: (input: UseStratagemInput) => void
   requestReactionHold: (playerId: string, input: ReactionTriggerInput) => void
   passReaction: (reactionWindowId: string, playerId: string) => void
+  startMissionAction: (input: StartMissionActionInput) => void
+  completeMissionAction: (actionId: string, positionConfirmed: boolean) => void
+  cancelMissionAction: (actionId: string, reason?: string) => void
+  mulliganSecondary: (playerId: string, cardId: SecondaryId) => void
+  discardSecondaryCards: (playerId: string, cardIds: SecondaryId[]) => void
+  evaluateEndTurnSecondaries: (playerId: string, confirmations?: EndTurnSecondaryConfirmations) => void
+  resolveEliminationChoice: (playerId: string, cardId: SecondaryId) => void
+  selectPriorityTargetCandidates: (playerId: string, unitIds: string[]) => void
+  choosePriorityTarget: (playerId: string, unitId: string) => void
   nextPhase: () => void
   changePlan: (playerId: string, planId: OperationalPlanId) => void
   confirmRound: (confirmations: Record<string, PlanConfirmation>) => void
@@ -117,7 +141,11 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
   },
 
   dispatch(event) {
-    applySessionUpdate(get().session, (session) => dispatchBattleEvent(session, event), set)
+    applySessionUpdate(get().session, (session) => (
+      session.setup.rulesetId === CAULDRON_RULESET_ID
+        ? dispatchCauldronBattleEvent(session, event)
+        : dispatchBattleEvent(session, event)
+    ), set)
   },
 
   useStratagem(input) {
@@ -154,6 +182,48 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
     } catch (error: unknown) {
       set({ error: error instanceof Error ? error.message : String(error) })
     }
+  },
+
+  startMissionAction(input) {
+    applySessionUpdate(get().session, (session) => startMissionActionInBattle(session, input), set)
+  },
+
+  completeMissionAction(actionId, positionConfirmed) {
+    applySessionUpdate(get().session, (session) => (
+      completeMissionActionInBattle(session, actionId, positionConfirmed)
+    ), set)
+  },
+
+  cancelMissionAction(actionId, reason) {
+    applySessionUpdate(get().session, (session) => cancelMissionActionInBattle(session, actionId, reason), set)
+  },
+
+  mulliganSecondary(playerId, cardId) {
+    applySessionUpdate(get().session, (session) => mulliganSecondaryInBattle(session, playerId, cardId), set)
+  },
+
+  discardSecondaryCards(playerId, cardIds) {
+    applySessionUpdate(get().session, (session) => discardSecondaryCardsInBattle(session, playerId, cardIds), set)
+  },
+
+  evaluateEndTurnSecondaries(playerId, confirmations = {}) {
+    applySessionUpdate(get().session, (session) => (
+      evaluateEndTurnSecondariesInBattle(session, playerId, confirmations)
+    ), set)
+  },
+
+  resolveEliminationChoice(playerId, cardId) {
+    applySessionUpdate(get().session, (session) => resolveEliminationChoiceInBattle(session, playerId, cardId), set)
+  },
+
+  selectPriorityTargetCandidates(playerId, unitIds) {
+    applySessionUpdate(get().session, (session) => (
+      selectPriorityTargetCandidatesInBattle(session, playerId, unitIds)
+    ), set)
+  },
+
+  choosePriorityTarget(playerId, unitId) {
+    applySessionUpdate(get().session, (session) => choosePriorityTargetInBattle(session, playerId, unitId), set)
   },
 
   nextPhase() {
