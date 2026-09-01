@@ -19,7 +19,7 @@ describe('latest battle update summary', () => {
     })
 
     const update = buildLatestBattleUpdate(session)
-    expect(update?.title).toMatch(/Player I/i)
+    expect(update?.title).toMatch(/N1 → Alpha/i)
     expect(update?.detail).toBe('Objective control updated.')
     expect(update?.consequences).toEqual([])
   })
