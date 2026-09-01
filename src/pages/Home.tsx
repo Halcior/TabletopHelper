@@ -36,12 +36,13 @@ export default function Home() {
   return (
     <div className="page-shell home-page">
       <section className="hero-panel">
-        <span className="eyebrow">Offline battle co-pilot</span>
+        <span className="eyebrow">Offline-first battle co-pilot</span>
         <h1>Command the Cauldron, not the bookkeeping.</h1>
-        <p>Assign three armies, follow Rival rotation and phases, then let the companion retain casualties, objectives, Operational Plans, Primary scoring, and the event log.</p>
+        <p>Run the battle locally or connect all three commanders to one shared session while the same event-driven engine keeps casualties, objectives, scoring, Stratagems and the battle log aligned.</p>
         <div className="hero-actions">
           <Link className="button button--gold" to="/army-import">Import New Recruit</Link>
           {armies.length > 0 && <Link className="button" to="/battle/setup">New Cauldron game</Link>}
+          <Link className="button" to="/shared">Shared battle</Link>
           {activeBattle && <Link className="button" to={`/battle/${activeBattle.setup.gameId}`}>Resume battle</Link>}
         </div>
       </section>
