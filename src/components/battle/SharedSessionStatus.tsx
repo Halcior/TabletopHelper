@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
+import { participantIsOnline } from '../../multiplayer/presence'
 import { useSharedSessionStore } from '../../multiplayer/sharedSessionStore'
 
 export function SharedSessionStatus({ battleId }: { battleId: string }) {
@@ -8,6 +9,7 @@ export function SharedSessionStatus({ battleId }: { battleId: string }) {
     membership,
     participants,
     connectionStatus,
+    pendingEventCount,
     error,
     restoreForBattle,
   } = useSharedSessionStore()
@@ -16,17 +18,22 @@ export function SharedSessionStatus({ battleId }: { battleId: string }) {
     if (configured) void restoreForBattle(battleId)
   }, [battleId, configured, restoreForBattle])
 
-  const activeCount = useMemo(() => {
-    const cutoff = Date.now() - 20_000
-    return participants.filter((participant) => Date.parse(participant.lastSeenAt) >= cutoff).length
-  }, [participants])
+  const activeCount = useMemo(() => (
+    participants.filter((participant) => participantIsOnline(participant)).length
+  ), [participants])
 
   if (!membership || membership.battleId !== battleId) return configured
     ? <Link className="shared-status shared-status--idle" to="/shared"><span>Shared</span><strong>Offline</strong></Link>
     : null
 
-  return <Link className={`shared-status shared-status--${connectionStatus}`} to="/shared" title={error ?? undefined}>
+  const statusText = connectionStatus === 'connected'
+    ? `${activeCount || participants.length}/3 online`
+    : pendingEventCount > 0
+      ? `${connectionStatus} · ${pendingEventCount} queued`
+      : connectionStatus
+
+  return <Link className={`shared-status shared-status--${connectionStatus}`} to={`/shared?room=${membership.roomCode}`} title={error ?? undefined}>
     <span>Room {membership.roomCode}</span>
-    <strong>{connectionStatus === 'connected' ? `${activeCount || participants.length}/3 online` : connectionStatus}</strong>
+    <strong>{statusText}</strong>
   </Link>
 }
