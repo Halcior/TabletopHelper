@@ -12,6 +12,7 @@ import { humanizePhase, PhaseStepper } from '../components/battle/PhaseStepper'
 import { Scoreboard } from '../components/battle/Scoreboard'
 import { SecondaryEndTurnReview } from '../components/battle/SecondaryEndTurnReview'
 import { SecondaryDetailPanel } from '../components/battle/SecondaryPanel'
+import { SharedPlayerPerspective } from '../components/battle/SharedPlayerPerspective'
 import { SharedSessionStatus } from '../components/battle/SharedSessionStatus'
 import type { Army } from '../domain/army/types'
 import { canUndo } from '../domain/battle/selectors'
@@ -352,6 +353,18 @@ export default function BattleDashboard() {
                     : <span className="rules-data-attribution">Loading Stratagem metadata…</span>}
               </div>
               <aside className="tactical-column tactical-column--context-aside">
+                {sharedBattle && viewerPlayerId && <SharedPlayerPerspective
+                  session={session}
+                  viewerPlayerId={viewerPlayerId}
+                  currentRivalPlayerId={rivalId}
+                  showCards={cauldron}
+                  onOpenArmy={() => {
+                    setArmyPreferredPlayerId(viewerPlayerId)
+                    setArmySecondaryFilter(null)
+                    setTab('army')
+                  }}
+                  onOpenCards={() => setTab('cards')}
+                />}
                 <BattleQuickStatus session={session} onOpenObjectives={() => setTab('objectives')} />
               </aside>
             </div>}
@@ -365,7 +378,7 @@ export default function BattleDashboard() {
               onClearSecondaryTargetFilter={() => setArmySecondaryFilter(null)}
             />}
             {tab === 'objectives' && <ObjectivesPanel session={session} dispatch={dispatch} />}
-            {tab === 'cards' && cauldron && <SecondaryDetailPanel session={session} />}
+            {tab === 'cards' && cauldron && <SecondaryDetailPanel session={session} playerId={sharedBattle ? viewerPlayerId ?? active.id : active.id} />}
             {tab === 'log' && <BattleLog session={session} />}
           </main>
 
