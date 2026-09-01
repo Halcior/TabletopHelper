@@ -79,7 +79,7 @@ export function buildLatestAutomaticConsequence(session: BattleSession): Context
     return {
       id: `automatic-consequence-${actionId}`,
       type: 'AUTOMATIC_CONSEQUENCE_CHAIN',
-      title: `${destroyedName} destroyed → scoring updated`,
+      title: `${destroyedName} destroyed → ${secondary.name} +${data.pointsAwarded} VP`,
       shortDescription: 'Army state and automatic scoring were resolved from the same battle action.',
       status: 'DONE',
       severity: 'INFO',
