@@ -12,6 +12,7 @@ import { humanizePhase, PhaseStepper } from '../components/battle/PhaseStepper'
 import { Scoreboard } from '../components/battle/Scoreboard'
 import { SecondaryEndTurnReview } from '../components/battle/SecondaryEndTurnReview'
 import { SecondaryDetailPanel } from '../components/battle/SecondaryPanel'
+import { SharedSessionStatus } from '../components/battle/SharedSessionStatus'
 import type { Army } from '../domain/army/types'
 import { canUndo } from '../domain/battle/selectors'
 import { BATTLE_PHASES } from '../domain/battle/types'
@@ -20,6 +21,7 @@ import { getCurrentReactionWindow, isBattleFlowPaused } from '../domain/stratage
 import { getAvailableStratagems } from '../domain/stratagems/timingEngine'
 import type { StratagemAvailability } from '../domain/stratagems/types'
 import { ReactionWindowPanel } from '../features/stratagems'
+import { useSharedSessionStore } from '../multiplayer/sharedSessionStore'
 import type { RulesDataProvider, RulesDataResolution } from '../rulesData/types'
 import {
   CAULDRON_RULESET_ID,
@@ -53,6 +55,8 @@ export default function BattleDashboard() {
   const [rulesDataAttribution, setRulesDataAttribution] = useState<{ label: string; url: string } | null>(null)
   const [rulesDataError, setRulesDataError] = useState<string | null>(null)
   const [armySecondaryFilter, setArmySecondaryFilter] = useState<SecondaryId | null>(null)
+  const sharedMembership = useSharedSessionStore((state) => state.membership)
+  const sharedConnectionStatus = useSharedSessionStore((state) => state.connectionStatus)
   const {
     session,
     loading,
@@ -110,6 +114,8 @@ export default function BattleDashboard() {
 
   const active = session.state.players[session.state.activePlayerId]
   const battleActive = session.state.status === 'active'
+  const sharedBattle = sharedMembership?.battleId === session.setup.gameId
+  const sharedFlowOwner = !sharedBattle || sharedMembership?.isHost === true
   const cauldron = session.setup.rulesetId === CAULDRON_RULESET_ID
   const dashboardTabs: DashboardTab[] = cauldron
     ? ['overview', 'army', 'objectives', 'cards', 'log']
@@ -153,7 +159,7 @@ export default function BattleDashboard() {
       : activeMissionActions.length > 0
         ? 'Resolve active Mission Actions before ending the battle.'
         : undefined
-  const canEndBattle = battleActive && !endBlocker
+  const canEndBattle = battleActive && !endBlocker && sharedFlowOwner
   const cauldronTurnReview = battleActive && cauldron && session.state.phase === 'END_TURN'
   const phaseLabel = humanizePhase(session.state.phase)
   const phaseIndex = BATTLE_PHASES.indexOf(session.state.phase)
@@ -201,6 +207,7 @@ export default function BattleDashboard() {
   }
 
   function handleNextAction() {
+    if (!sharedFlowOwner) return
     if (progressionBlockers.length > 0) {
       setTab('overview')
       setContextFocusItemId(progressionBlockers[0].id)
@@ -220,8 +227,10 @@ export default function BattleDashboard() {
           {battleActive && rival && <div className="rival-callout"><span>Current Rival</span><strong>{rival.name}</strong></div>}
           {battleActive && <span className={`mode-badge mode-badge--${session.setup.guidanceLevel}`}>{session.setup.guidanceLevel} mode</span>}
           {cauldron && <span className="ruleset-label">Cauldron FFA 3</span>}
+          <SharedSessionStatus battleId={session.setup.gameId} />
           {battleActive && <BattleMenu
             canEndBattle={canEndBattle}
+            canManageBattle={sharedFlowOwner}
             endBlockedReason={endBlocker}
             onOpenLog={() => setTab('log')}
             onEndBattle={endBattle}
@@ -242,12 +251,14 @@ export default function BattleDashboard() {
       </main> : <>
         <Scoreboard session={session} rivalPlayerId={rivalId} dispatch={dispatch} />
         <PhaseStepper phase={session.state.phase} />
+        {sharedBattle && sharedConnectionStatus !== 'connected' && <div className="alert battle-alert">Shared sync: {sharedConnectionStatus}. Local changes are retained and will retry.</div>}
+        {sharedBattle && !sharedFlowOwner && <div className="shared-flow-notice">You are connected as {session.state.players[sharedMembership.playerId]?.name ?? 'player'}. The host advances phases; your battle-state actions still sync to everyone.</div>}
         {error && <div className="alert alert--danger battle-alert">{error}</div>}
 
         {reviewOpen ? <EndRoundReview
           session={session}
           onCancel={() => setReviewOpen(false)}
-          onConfirm={(confirmations) => { confirmRound(confirmations); setReviewOpen(false) }}
+          onConfirm={(confirmations) => { if (sharedFlowOwner) confirmRound(confirmations); setReviewOpen(false) }}
         /> : turnReviewOpen && cauldron ? <SecondaryEndTurnReview
           session={session}
           onCompleteMissionAction={completeMissionAction}
@@ -256,6 +267,7 @@ export default function BattleDashboard() {
           onCancel={() => setTurnReviewOpen(false)}
           onFinish={() => {
             setTurnReviewOpen(false)
+            if (!sharedFlowOwner) return
             if (endOfRound) setReviewOpen(true)
             else nextPhase()
           }}
@@ -325,12 +337,13 @@ export default function BattleDashboard() {
           </main>
 
           <footer className="battle-actions">
-            <button disabled={!canUndo(session.state)} onClick={undo}>Undo</button>
-            <button disabled={session.redoActions.length === 0} onClick={redo}>Redo</button>
+            <button disabled={sharedBattle || !canUndo(session.state)} title={sharedBattle ? 'Shared-session undo will be added as a synchronized compensating action.' : undefined} onClick={undo}>Undo</button>
+            <button disabled={sharedBattle || session.redoActions.length === 0} title={sharedBattle ? 'Redo is disabled while the battle is shared.' : undefined} onClick={redo}>Redo</button>
             <button
               className="button--gold next-phase"
+              disabled={!sharedFlowOwner}
               onClick={handleNextAction}
-            >{flowPaused && progressionBlockers.length === 0 ? 'Reaction pending' : nextLabel}<span>{flowPaused && progressionBlockers.length === 0 ? 'Resolve reaction to continue' : nextDestination}</span></button>
+            >{!sharedFlowOwner ? 'Waiting for host' : flowPaused && progressionBlockers.length === 0 ? 'Reaction pending' : nextLabel}<span>{!sharedFlowOwner ? `Room ${sharedMembership?.roomCode ?? ''}` : flowPaused && progressionBlockers.length === 0 ? 'Resolve reaction to continue' : nextDestination}</span></button>
           </footer>
         </>}
       </>}
