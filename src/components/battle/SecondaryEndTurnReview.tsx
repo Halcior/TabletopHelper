@@ -69,7 +69,7 @@ export function SecondaryEndTurnReview({
   }
 
   return <main className="battle-content secondary-turn-review">
-    <div className="round-review__intro"><span className="eyebrow">{player.name}</span><h1>End Turn Review</h1><p>Resolve Mission Actions and Secondary scoring in one place.</p></div>
+    <div className="round-review__intro"><span className="eyebrow">{player.name}</span><h1>End Turn Review</h1><p>Resolve Mission Actions and Secondary scoring before advancing to the next player.</p></div>
 
     {!evaluated && <>
       {activeActions.length > 0 && <section className="panel turn-review-section">
@@ -95,12 +95,12 @@ export function SecondaryEndTurnReview({
         {activeIds.has('UTRZYMAJ_BAZE') && <ConfirmationRow label="No enemy unit is inside your deployment zone." checked={confirmations.noEnemyInOwnDeployment ?? false} onChange={(value) => setConfirmation('noEnemyInOwnDeployment', value)} />}
         {activeIds.has('ODCIECIE_ODWROTU') && <>
           <ConfirmationRow label="You control a qualifying neutral objective closest to the Rival deployment zone." checked={confirmations.controlsClosestNeutralObjective ?? false} onChange={(value) => setConfirmation('controlsClosestNeutralObjective', value)} />
-          <ConfirmationRow label="An OC>0 unit is within 9″ of the Rival deployment zone." checked={confirmations.unitNearRivalDeployment ?? false} onChange={(value) => setConfirmation('unitNearRivalDeployment', value)} />}
+          <ConfirmationRow label="An OC>0 unit is within 9″ of the Rival deployment zone." checked={confirmations.unitNearRivalDeployment ?? false} onChange={(value) => setConfirmation('unitNearRivalDeployment', value)} />
         </>}
         {!['DOMINACJA_CENTRUM', 'ZA_LINIAMI_WROGA', 'SZEROKI_FRONT', 'UTRZYMAJ_BAZE', 'ODCIECIE_ODWROTU'].some((id) => activeIds.has(id as SecondaryId)) && <p className="context-note">No additional physical-state confirmation is required.</p>}
       </section>
 
-      <div className="review-actions"><button onClick={onCancel}>Back</button><button className="button--gold" onClick={evaluate}>Evaluate scoring</button></div>
+      <div className="review-actions"><button onClick={onCancel}>Back to turn</button><button className="button--gold" onClick={evaluate}>Apply scoring</button></div>
     </>}
 
     {evaluated && <>
@@ -116,12 +116,23 @@ export function SecondaryEndTurnReview({
         {newScores.length === 0 && <p className="context-note">No new Secondary completed during this review.</p>}
       </section>
       <section className="panel turn-review-section">
-        <div className="section-heading"><div><span className="eyebrow">Incomplete cards</span><h2>Keep or discard</h2></div></div>
+        <div className="section-heading"><div><span className="eyebrow">Incomplete cards</span><h2>Choose what carries over</h2></div></div>
         {review.incompleteCards.length === 0
           ? <p className="context-note">No incomplete cards remain.</p>
-          : review.incompleteCards.map((card) => <div className="discard-choice" key={card.cardId}><strong>{card.name}</strong><button className={discardIds.includes(card.cardId) ? 'button--danger' : ''} onClick={() => toggleDiscard(card.cardId)}>{discardIds.includes(card.cardId) ? 'Discard' : 'Keep'}</button></div>)}
+          : review.incompleteCards.map((card) => {
+            const discarding = discardIds.includes(card.cardId)
+            return <div className={`discard-choice${discarding ? ' discard-choice--discarding' : ''}`} key={card.cardId}>
+              <div><strong>{card.name}</strong><small>{discarding ? 'Will be discarded at the end of this review.' : 'Will remain active for your next turn.'}</small></div>
+              <button
+                aria-pressed={discarding}
+                className={discarding ? 'button--danger' : ''}
+                onClick={() => toggleDiscard(card.cardId)}
+              >{discarding ? 'Keep card' : 'Discard card'}</button>
+            </div>
+          })}
       </section>
-      <div className="review-actions"><button onClick={() => setEvaluated(false)}>Review inputs</button><button className="button--gold" onClick={finish}>Finish review & end turn</button></div>
+      <p className="review-commit-note">Scoring has been applied. Finish the review to advance the game.</p>
+      <div className="review-actions review-actions--final"><button className="button--gold" onClick={finish}>Finish review & end turn</button></div>
     </>}
   </main>
 }
