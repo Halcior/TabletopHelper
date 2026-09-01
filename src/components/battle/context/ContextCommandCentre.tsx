@@ -32,6 +32,8 @@ type Props = {
   session: BattleSession
   dispatch: (event: BattleEventInput) => void
   focusItemId?: string | null
+  sharedMode?: boolean
+  viewerPlayerId?: string | null
   onStartMissionAction: (input: StartMissionActionInput) => void
   onMulligan: (playerId: string, cardId: SecondaryId) => void
   onOpenEndTurn: () => void
@@ -89,11 +91,35 @@ function hideQuietReaction(item: ContextItem): boolean {
   return item.type === 'REACTION_STATUS' && item.status === 'INFO' && item.actions.length === 0
 }
 
+function canViewerUseAction(
+  itemAction: ContextAction,
+  activePlayerId: string,
+  sharedMode: boolean,
+  viewerPlayerId: string | null,
+): boolean {
+  if (!sharedMode) return true
+  switch (itemAction.type) {
+    case 'OPEN_RIVAL_ARMY':
+    case 'OPEN_UNIT':
+    case 'CHANGE_OBJECTIVE_CONTROL':
+    case 'OPEN_STRATAGEMS':
+    case 'DISMISS':
+      return true
+    case 'HOLD_REACTION':
+    case 'PASS_REACTION':
+      return Boolean(viewerPlayerId && itemAction.playerId === viewerPlayerId)
+    default:
+      return viewerPlayerId === activePlayerId
+  }
+}
+
 export function ContextCommandCentre({
   context,
   session,
   dispatch,
   focusItemId,
+  sharedMode = false,
+  viewerPlayerId = null,
   onStartMissionAction,
   onMulligan,
   onOpenEndTurn,
@@ -110,6 +136,7 @@ export function ContextCommandCentre({
   const [dismissed, setDismissed] = useState<Set<string>>(() => new Set())
   const [candidateIds, setCandidateIds] = useState<string[]>([])
   const playerId = session.state.activePlayerId
+  const viewerControlsTurn = !sharedMode || viewerPlayerId === playerId
   const secondary = getSecondaryState(session)[playerId]
   const pendingChoice = getPendingEliminationChoice(session, playerId)
   const priorityCard = secondary?.active.find((card) => card.cardId === 'CEL_PRIORYTETOWY')
@@ -145,6 +172,7 @@ export function ContextCommandCentre({
   }
 
   function handleAction(item: ContextItem, itemAction: ContextAction) {
+    if (!canViewerUseAction(itemAction, playerId, sharedMode, viewerPlayerId)) return
     switch (itemAction.type) {
       case 'GAIN_COMMAND_POINT':
         dispatch({ type: 'CP_GAINED', payload: { playerId, amount: 1 } })
@@ -177,6 +205,7 @@ export function ContextCommandCentre({
   }
 
   function useContextStratagem(option: RelevantStratagem) {
+    if (!viewerControlsTurn) return
     onUseStratagem(option.availability)
     if (option.availability.canUse) setPanel(null)
   }
@@ -184,9 +213,11 @@ export function ContextCommandCentre({
   return <section className={`context-centre context-centre--${context.guidanceLevel}`}>
     <div className="context-centre__heading">
       <div><span className="eyebrow">What matters now</span><h2>{phaseLabel(context.phase)} priorities</h2></div>
-      {context.blockingItems.length > 0
-        ? <span className="context-blocker-count">{context.blockingItems.length} to resolve</span>
-        : <span className="context-clear">Safe to advance</span>}
+      {sharedMode && !viewerControlsTurn
+        ? <span className="context-clear">Watching {session.state.players[playerId]?.name ?? 'active player'}</span>
+        : context.blockingItems.length > 0
+          ? <span className="context-blocker-count">{context.blockingItems.length} to resolve</span>
+          : <span className="context-clear">Safe to advance</span>}
     </div>
 
     {visibleSections.map((section) => <section className={`context-section context-section--${section.id}`} key={section.id}>
@@ -203,11 +234,16 @@ export function ContextCommandCentre({
           <h4>{isStratagemSummary ? stratagemCopy.title : item.title}</h4>
           <p>{isStratagemSummary ? stratagemCopy.description : item.shortDescription}</p>
           {item.details && item.details.length > 0 && <ul>{item.details.map((detail) => <li key={detail}>{detail.replace('confirm timing', 'timing unverified')}</li>)}</ul>}
-          {item.actions.length > 0 && <div className="context-item__actions">{item.actions.map((itemAction) => <button
-            className={item.status === 'BLOCKING' && itemAction.type !== 'DISMISS' ? 'button--gold' : ''}
-            key={itemAction.id}
-            onClick={() => handleAction(item, itemAction)}
-          >{itemAction.label}</button>)}</div>}
+          {item.actions.length > 0 && <div className="context-item__actions">{item.actions.map((itemAction) => {
+            const allowed = canViewerUseAction(itemAction, playerId, sharedMode, viewerPlayerId)
+            return <button
+              className={item.status === 'BLOCKING' && itemAction.type !== 'DISMISS' ? 'button--gold' : ''}
+              disabled={!allowed}
+              title={!allowed ? `This action belongs to ${session.state.players[playerId]?.name ?? 'the active player'} or another responding player.` : undefined}
+              key={itemAction.id}
+              onClick={() => handleAction(item, itemAction)}
+            >{itemAction.label}</button>
+          })}</div>}
         </article>
       })}</div>
     </section>)}
@@ -245,13 +281,14 @@ export function ContextCommandCentre({
         </> : <><p>The current Rival chooses one target.</p><div className="context-choice-list">{priorityCandidates.filter((candidate) => selectedPriorityCandidates.includes(candidate.unitId)).map((candidate) => <button key={candidate.unitId} onClick={() => { onChoosePriorityTarget(playerId, candidate.unitId); setPanel(null) }}>{candidate.name}<span>{candidate.points} pts</span></button>)}</div></>}
     </ContextOverlay>}
     {panel?.type === 'stratagems' && <ContextOverlay title="Stratagems in this phase" eyebrow={`${phaseLabel(context.phase)} phase`} onClose={() => setPanel(null)}>
+      {!viewerControlsTurn && <p className="context-note">You can review these Stratagems, but only {session.state.players[playerId]?.name ?? 'the active player'} can spend CP on their turn.</p>}
       <div className="context-stratagem-list">{stratagemOptions.map((option) => <article className={option.manualConfirmationRequired ? 'context-stratagem context-stratagem--unverified' : 'context-stratagem'} key={option.definition.id}>
         <div><strong>{option.definition.name}</strong><span>{option.definition.cpCost} CP · {option.classification.toLocaleLowerCase()}</span></div>
         <span className={`stratagem-confidence ${option.manualConfirmationRequired ? 'stratagem-confidence--unverified' : 'stratagem-confidence--exact'}`}>{option.manualConfirmationRequired ? 'Timing unverified' : 'Available timing matched'}</span>
         <p>{option.definition.description || (option.manualConfirmationRequired ? 'Timing requires player confirmation.' : 'Structured timing available.')}</p>
         {option.manualConfirmationRequired && <small>Phase matches, but the exact trigger is not structured. Confirm the timing at the table before spending CP.</small>}
         {!option.availability.canUse && <small>{option.availability.reasons.join(' ')}</small>}
-        <div><button className="button--gold" disabled={!option.availability.canUse} onClick={() => useContextStratagem(option)}>{option.manualConfirmationRequired ? 'Confirm timing & use' : 'Use Stratagem'}</button>{option.manualConfirmationRequired && <button onClick={() => { setDismissed((current) => new Set(current).add(`stratagems-${playerId}-${context.phase}`)); setPanel(null) }}>Not now</button>}</div>
+        <div><button className="button--gold" disabled={!option.availability.canUse || !viewerControlsTurn} onClick={() => useContextStratagem(option)}>{!viewerControlsTurn ? 'Active player only' : option.manualConfirmationRequired ? 'Confirm timing & use' : 'Use Stratagem'}</button>{option.manualConfirmationRequired && <button onClick={() => { setDismissed((current) => new Set(current).add(`stratagems-${playerId}-${context.phase}`)); setPanel(null) }}>Not now</button>}</div>
       </article>)}</div>
     </ContextOverlay>}
     {panel?.type === 'plan' && <ContextOverlay title="Operational Plan" eyebrow="Command option" onClose={() => setPanel(null)}><CauldronPlanPanel session={session} onChangePlan={(ownerId, planId) => { onChangePlan(ownerId, planId); setPanel(null) }} /></ContextOverlay>}
