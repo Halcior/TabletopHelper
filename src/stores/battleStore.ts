@@ -1,7 +1,9 @@
 import { create } from 'zustand'
 import type { Army } from '../domain/army/types'
 import {
+  abandonBattle as abandonBattleInEngine,
   advancePhase,
+  completeBattle as completeBattleInEngine,
   dispatchBattleEvent,
   rehydrateBattleSession,
   redoLastAction,
@@ -68,6 +70,8 @@ type BattleStore = {
   nextPhase: () => void
   changePlan: (playerId: string, planId: OperationalPlanId) => void
   confirmRound: (confirmations: Record<string, PlanConfirmation>) => void
+  endBattle: () => void
+  abandonBattle: () => void
   undo: () => void
   redo: () => void
 }
@@ -238,6 +242,14 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
 
   confirmRound(confirmations) {
     applySessionUpdate(get().session, (session) => confirmCauldronEndRound(session, confirmations), set)
+  },
+
+  endBattle() {
+    applySessionUpdate(get().session, completeBattleInEngine, set)
+  },
+
+  abandonBattle() {
+    applySessionUpdate(get().session, abandonBattleInEngine, set)
   },
 
   undo() {
