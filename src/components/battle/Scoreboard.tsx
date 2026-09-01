@@ -6,9 +6,17 @@ type ScoreboardProps = {
   session: BattleSession
   rivalPlayerId?: string | null
   dispatch: (event: BattleEventInput) => void
+  sharedMode?: boolean
+  viewerPlayerId?: string | null
 }
 
-export function Scoreboard({ session, rivalPlayerId, dispatch }: ScoreboardProps) {
+export function Scoreboard({
+  session,
+  rivalPlayerId,
+  dispatch,
+  sharedMode = false,
+  viewerPlayerId = null,
+}: ScoreboardProps) {
   const cauldron = session.setup.rulesetId === CAULDRON_RULESET_ID
   return (
     <section className="scoreboard" aria-label="Player scores and command points">
@@ -16,6 +24,8 @@ export function Scoreboard({ session, rivalPlayerId, dispatch }: ScoreboardProps
         const player = session.state.players[playerId]
         const active = playerId === session.state.activePlayerId
         const rival = playerId === rivalPlayerId
+        const canEditCp = !sharedMode || playerId === viewerPlayerId
+        const sharedTitle = canEditCp ? undefined : `${player.name} manages their own CP on their device.`
         return (
           <article className={`score-card${active ? ' is-active' : ''}${rival ? ' is-rival' : ''}`} key={playerId}>
             <div className="score-card__identity">
@@ -38,10 +48,14 @@ export function Scoreboard({ session, rivalPlayerId, dispatch }: ScoreboardProps
               >+VP</button>}
               <button
                 aria-label={`Spend 1 CP for ${player.name}`}
+                disabled={!canEditCp}
+                title={sharedTitle}
                 onClick={() => dispatch({ type: 'CP_SPENT', payload: { playerId, amount: 1 } })}
               >−CP</button>
               <button
                 aria-label={`Gain 1 CP for ${player.name}`}
+                disabled={!canEditCp}
+                title={sharedTitle}
                 onClick={() => dispatch({ type: 'CP_GAINED', payload: { playerId, amount: 1 } })}
               >+CP</button>
             </div>
