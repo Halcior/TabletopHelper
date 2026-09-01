@@ -111,13 +111,20 @@ function commandItems(session: BattleSession): ContextItem[] {
   if (session.state.phase !== 'COMMAND') return []
   const playerId = session.state.activePlayerId
   const cpRecorded = selectCommandPointRecordedThisTurn(session)
+  const guidedCpPending = session.setup.guidanceLevel === 'guided' && !cpRecorded
   const items: ContextItem[] = [{
     id: `command-cp-${playerId}`,
     type: 'COMMAND_POINT',
-    title: cpRecorded ? '+1 Command Point recorded' : 'Gain 1 Command Point',
-    shortDescription: cpRecorded ? 'The Command phase gain is already in the battle log.' : 'Record the Command phase CP gain.',
-    status: cpRecorded ? 'DONE' : 'AVAILABLE',
-    severity: cpRecorded ? 'QUIET' : 'ATTENTION',
+    title: cpRecorded
+      ? '+1 Command Point recorded'
+      : guidedCpPending ? 'Gain 1 Command Point before advancing' : 'Gain 1 Command Point',
+    shortDescription: cpRecorded
+      ? 'The Command phase gain is already in the battle log.'
+      : guidedCpPending
+        ? 'Guided Mode requires the Command phase CP gain to be recorded before leaving this phase.'
+        : 'Record the Command phase CP gain.',
+    status: cpRecorded ? 'DONE' : guidedCpPending ? 'BLOCKING' : 'AVAILABLE',
+    severity: cpRecorded ? 'QUIET' : guidedCpPending ? 'CRITICAL' : 'ATTENTION',
     source: 'SYSTEM',
     phase: 'COMMAND',
     relatedPlayerId: playerId,
@@ -359,7 +366,7 @@ export function buildBattleContext(input: BuildBattleContextInput): BattleContex
   const sections = [
     section('attention', 'Requires attention', blockingItems),
     section('goals', 'Active goals', secondaries),
-    section('now', 'What matters now', [...commands, ...missions, ...plans, ...automaticEvents]),
+    section('now', 'What matters now', [...commands.filter((item) => item.status !== 'BLOCKING'), ...missions, ...plans, ...automaticEvents]),
     section('stratagems', 'Stratagems', stratagems),
     section('reactions', 'Reactions', reactions),
   ].filter((value): value is ContextSection => Boolean(value))
