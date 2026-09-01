@@ -66,11 +66,11 @@ function mapParticipant(row: SupabaseParticipantRow): SharedParticipant {
 
 export class SupabaseRestSharedSessionTransport implements SharedSessionTransport {
   private readonly url = env('VITE_SUPABASE_URL')?.replace(/\/$/, '')
-  private readonly anonKey = env('VITE_SUPABASE_ANON_KEY')
+  private readonly apiKey = env('VITE_SUPABASE_PUBLISHABLE_KEY') ?? env('VITE_SUPABASE_ANON_KEY')
   private readonly roomCodes = new Map<string, string>()
 
   get configured(): boolean {
-    return Boolean(this.url && this.anonKey)
+    return Boolean(this.url && this.apiKey)
   }
 
   private rememberRoom(room: SharedRoom): void {
@@ -84,12 +84,13 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
   }
 
   private async request<T>(path: string, init: RequestInit = {}, roomCode?: string): Promise<T> {
-    if (!this.url || !this.anonKey) throw new Error('Shared sessions are not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.')
+    if (!this.url || !this.apiKey) throw new Error('Shared sessions are not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY.')
+    const legacyJwt = !this.apiKey.startsWith('sb_publishable_')
     const response = await fetch(`${this.url}/rest/v1/${path}`, {
       ...init,
       headers: {
-        apikey: this.anonKey,
-        Authorization: `Bearer ${this.anonKey}`,
+        apikey: this.apiKey,
+        ...(legacyJwt ? { Authorization: `Bearer ${this.apiKey}` } : {}),
         'Content-Type': 'application/json',
         ...(roomCode ? { 'x-room-code': normalizeRoomCode(roomCode) } : {}),
         ...init.headers,
