@@ -169,11 +169,12 @@ function adaptStratagem(input: {
   ]
   const classification = mapClassification(stratagem.playerTurn, ability)
   const restrictions = targetRestrictions ? [targetRestriction(targetRestrictions)] : []
+  const description = ability?.description?.trim()
   const definition: StratagemDefinition = {
     id: `40kdc:${stratagem.id}`,
     kind: 'STRATAGEM',
     name: stratagem.name,
-    description: 'Imported structured metadata. Confirm unresolved rule details at the table.',
+    description: description || 'Detailed effect text is not available in the structured rules data.',
     ownerScope: mapOwnerScope(stratagem.playerTurn),
     timing: sourceEvents.length > 0
       ? `Structured source event: ${sourceEvents.join(', ')}`
