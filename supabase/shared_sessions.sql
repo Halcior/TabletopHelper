@@ -52,6 +52,7 @@ create or replace function public.request_shared_room_code()
 returns text
 language sql
 stable
+set search_path = ''
 as $$
   select upper(coalesce(
     nullif(current_setting('request.headers', true), '')::jsonb ->> 'x-room-code',
