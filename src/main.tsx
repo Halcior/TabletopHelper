@@ -6,6 +6,7 @@ import './styles.css'
 import './lifecycle.css'
 import './contextPolish.css'
 import './sharedSessions.css'
+import './uiSimplify.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
