@@ -1,10 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import type { BattleSession } from '../domain/battle/types'
+import type { SharedParticipant } from '../multiplayer/types'
 import { useSharedSessionStore } from '../multiplayer/sharedSessionStore'
 import { normalizeRoomCode } from '../multiplayer/roomCode'
 import { getLatestActiveBattle } from '../persistence/database'
 import { useBattleStore } from '../stores/battleStore'
+
+const ACTIVE_SEAT_MS = 30_000
+
+function participantIsActive(participant: SharedParticipant): boolean {
+  return Date.now() - Date.parse(participant.lastSeenAt) < ACTIVE_SEAT_MS
+}
 
 export default function SharedSessions() {
   const navigate = useNavigate()
@@ -36,16 +43,13 @@ export default function SharedSessions() {
 
   useEffect(() => {
     if (!inspection) return
-    const occupied = new Set(inspection.participants.map((participant) => participant.playerId))
+    const occupied = new Set(inspection.participants.filter(participantIsActive).map((participant) => participant.playerId))
     const firstFree = inspection.room.sessionSnapshot.state.turnOrder.find((playerId) => !occupied.has(playerId))
-    setJoinPlayerId(firstFree ?? inspection.room.sessionSnapshot.state.turnOrder[0] ?? '')
+    setJoinPlayerId(firstFree ?? '')
   }, [inspection])
 
   const joinedBattle = membership && latestBattle?.setup.gameId === membership.battleId
-  const activeParticipants = useMemo(() => {
-    const cutoff = Date.now() - 20_000
-    return participants.filter((participant) => Date.parse(participant.lastSeenAt) >= cutoff)
-  }, [participants])
+  const activeParticipants = useMemo(() => participants.filter(participantIsActive), [participants])
 
   async function host() {
     if (!latestBattle || !hostPlayerId) return
@@ -141,9 +145,14 @@ export default function SharedSessions() {
           {inspection.room.sessionSnapshot.state.turnOrder.map((playerId) => {
             const player = inspection.room.sessionSnapshot.state.players[playerId]
             const occupant = inspection.participants.find((participant) => participant.playerId === playerId)
-            return <label className={occupant ? 'is-occupied' : ''} key={playerId}>
-              <input type="radio" name="shared-seat" value={playerId} checked={joinPlayerId === playerId} disabled={Boolean(occupant)} onChange={() => setJoinPlayerId(playerId)} />
-              <span><strong>{player.name}</strong><small>{occupant ? `Claimed · ${occupant.displayName}` : player.faction ?? 'Available'}</small></span>
+            const occupiedNow = occupant ? participantIsActive(occupant) : false
+            return <label className={occupiedNow ? 'is-occupied' : ''} key={playerId}>
+              <input type="radio" name="shared-seat" value={playerId} checked={joinPlayerId === playerId} disabled={occupiedNow} onChange={() => setJoinPlayerId(playerId)} />
+              <span><strong>{player.name}</strong><small>{occupiedNow
+                ? `Active · ${occupant?.displayName}`
+                : occupant
+                  ? 'Disconnected seat · available to reclaim'
+                  : player.faction ?? 'Available'}</small></span>
             </label>
           })}
           <button className="button button--gold button--wide" disabled={working || !joinPlayerId} onClick={join}>{working ? 'Joining…' : 'Join battle'}</button>
