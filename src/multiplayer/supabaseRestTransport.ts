@@ -40,6 +40,11 @@ function env(name: string): string | undefined {
   return values?.[name]?.trim() || undefined
 }
 
+function createUuid(): string {
+  return globalThis.crypto?.randomUUID?.()
+    ?? `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}-${Math.random().toString(36).slice(2, 12)}`
+}
+
 function mapRoom(row: SupabaseRoomRow): SharedRoom {
   return {
     id: row.id,
@@ -118,7 +123,7 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
           method: 'POST',
           headers: { Prefer: 'return=representation' },
           body: JSON.stringify({
-            id: crypto.randomUUID(),
+            id: createUuid(),
             code,
             battle_id: session.setup.gameId,
             status: session.state.status,
@@ -161,7 +166,7 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
       method: 'POST',
       headers: { Prefer: 'resolution=merge-duplicates,return=representation' },
       body: JSON.stringify({
-        id: crypto.randomUUID(),
+        id: createUuid(),
         room_id: room.id,
         client_id: clientId,
         player_id: playerId,
