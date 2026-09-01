@@ -67,6 +67,7 @@ export function BattleMenu({
         {!canManageBattle && <small className="battle-menu__hint">Only the shared-session host can end or abandon the battle.</small>}
         {canManageBattle && !canEndBattle && endBlockedReason && <small className="battle-menu__hint">{endBlockedReason}</small>}
         <button type="button" role="menuitem" className="danger-action" disabled={!canManageBattle} onClick={requestAbandonBattle}>Abandon battle</button>
+        <small className="battle-menu__hint">Build {import.meta.env.VITE_BUILD_SHA}</small>
       </div>}
     </div>
 
