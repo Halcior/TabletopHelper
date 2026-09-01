@@ -7,6 +7,7 @@ import type {
   SharedRoomInspection,
   SharedSessionTransport,
 } from './types'
+import { createPortableUuid } from './uuid'
 
 type SupabaseRoomRow = {
   id: string
@@ -38,11 +39,6 @@ type SupabaseEventRow = {
 function env(name: string): string | undefined {
   const values = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env
   return values?.[name]?.trim() || undefined
-}
-
-function createUuid(): string {
-  return globalThis.crypto?.randomUUID?.()
-    ?? `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}-${Math.random().toString(36).slice(2, 12)}`
 }
 
 function mapRoom(row: SupabaseRoomRow): SharedRoom {
@@ -123,7 +119,7 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
           method: 'POST',
           headers: { Prefer: 'return=representation' },
           body: JSON.stringify({
-            id: createUuid(),
+            id: createPortableUuid(),
             code,
             battle_id: session.setup.gameId,
             status: session.state.status,
@@ -166,7 +162,7 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
       method: 'POST',
       headers: { Prefer: 'resolution=merge-duplicates,return=representation' },
       body: JSON.stringify({
-        id: createUuid(),
+        id: createPortableUuid(),
         room_id: room.id,
         client_id: clientId,
         player_id: playerId,
