@@ -29,6 +29,8 @@ export type FortyKdcAbilityRecord = {
   id: string
   behavior?: 'passive' | 'activated' | 'reactive' | 'aura'
   triggers: readonly FortyKdcTriggerRecord[]
+  /** Community-authored plain-English approximation rendered from Ability DSL. */
+  description?: string
 }
 
 export type FortyKdcStratagemRecord = {
