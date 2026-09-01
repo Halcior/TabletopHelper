@@ -5,26 +5,21 @@ import { BattleQuickStatus } from '../components/battle/BattleQuickStatus'
 import { BattleLog } from '../components/battle/BattleLog'
 import { BattleMenu } from '../components/battle/BattleMenu'
 import { BattleSummary } from '../components/battle/BattleSummary'
-import { CauldronPlanPanel } from '../components/battle/CauldronPlanPanel'
+import { ContextCommandCentre } from '../components/battle/context/ContextCommandCentre'
 import { EndRoundReview } from '../components/battle/EndRoundReview'
 import { ObjectivesPanel } from '../components/battle/ObjectivesPanel'
-import { PhaseGuidance } from '../components/battle/PhaseGuidance'
 import { humanizePhase, PhaseStepper } from '../components/battle/PhaseStepper'
 import { Scoreboard } from '../components/battle/Scoreboard'
 import { SecondaryEndTurnReview } from '../components/battle/SecondaryEndTurnReview'
-import { SecondaryDetailPanel, SecondaryPanel } from '../components/battle/SecondaryPanel'
+import { SecondaryDetailPanel } from '../components/battle/SecondaryPanel'
 import type { Army } from '../domain/army/types'
 import { canUndo } from '../domain/battle/selectors'
 import { BATTLE_PHASES } from '../domain/battle/types'
+import { buildBattleContext } from '../domain/context'
 import { getCurrentReactionWindow, isBattleFlowPaused } from '../domain/stratagems/battleIntegration'
-import { getReactionOpportunity } from '../domain/stratagems/reactionEngine'
 import { getAvailableStratagems } from '../domain/stratagems/timingEngine'
 import type { StratagemAvailability } from '../domain/stratagems/types'
-import {
-  AvailableStratagemPanel,
-  ReactionStatusPanel,
-  ReactionWindowPanel,
-} from '../features/stratagems'
+import { ReactionWindowPanel } from '../features/stratagems'
 import type { RulesDataProvider, RulesDataResolution } from '../rulesData/types'
 import {
   CAULDRON_RULESET_ID,
@@ -53,6 +48,7 @@ export default function BattleDashboard() {
   const [reviewOpen, setReviewOpen] = useState(false)
   const [turnReviewOpen, setTurnReviewOpen] = useState(false)
   const [terminalLogOpen, setTerminalLogOpen] = useState(false)
+  const [contextFocusItemId, setContextFocusItemId] = useState<string | null>(null)
   const [rulesDataProvider, setRulesDataProvider] = useState<RulesDataProvider | null>(null)
   const [rulesDataAttribution, setRulesDataAttribution] = useState<{ label: string; url: string } | null>(null)
   const [rulesDataError, setRulesDataError] = useState<string | null>(null)
@@ -125,33 +121,8 @@ export default function BattleDashboard() {
     playerId,
     rulesDataByPlayer[playerId]?.definitions ?? [],
   ]))
+  const battleContext = battleActive ? buildBattleContext({ session, rulesDataByPlayer }) : null
   const currentWindow = battleActive ? getCurrentReactionWindow(session) : null
-  const activeDefinitions = definitionsByPlayer[active.id] ?? []
-  const activeUsageDefinitionIds = new Set(
-    (rulesDataByPlayer[active.id]?.stratagems ?? [])
-      .filter(({ classification }) => classification !== 'REACTION')
-      .map(({ definition }) => definition.id),
-  )
-  const phaseStartStratagems = battleActive ? getAvailableStratagems({
-    playerId: active.id,
-    gameState: session.state,
-    trigger: 'PHASE_START',
-    definitions: activeDefinitions,
-  }) : []
-  const manualStratagems = battleActive ? getAvailableStratagems({
-    playerId: active.id,
-    gameState: session.state,
-    trigger: 'CUSTOM_CONFIRMATION',
-    definitions: activeDefinitions,
-  }) : []
-  const activeStratagems = [...new Map([...phaseStartStratagems, ...manualStratagems]
-    .filter(({ definition }) => activeUsageDefinitionIds.has(definition.id))
-    .map((availability) => [availability.definition.id, availability])).values()]
-  const reactionOpportunity = battleActive ? getReactionOpportunity({
-    gameState: session.state,
-    trigger: 'PHASE_START',
-    definitionsByPlayer,
-  }) : null
   const windowOptionsByPlayer = currentWindow
     ? Object.fromEntries(Object.values(currentWindow.responses).map((response) => [response.playerId, getAvailableStratagems({
       playerId: response.playerId,
@@ -188,9 +159,16 @@ export default function BattleDashboard() {
       ? 'Battle complete'
       : `Round ${session.state.round + 1} · ${nextPlayer.name}`
     : `${nextPlayer.name} · Command`
-  const nextLabel = cauldronTurnReview ? 'Review turn' : session.state.phase === 'END_TURN' ? 'End turn' : 'Next phase'
-  const nextDestination = flowPaused
-    ? 'Resolve reaction to continue'
+  const progressionBlockers = battleContext?.blockingItems.filter((item) => item.type !== 'END_TURN_REVIEW') ?? []
+  const nextLabel = progressionBlockers.length > 0
+    ? `Resolve ${progressionBlockers.length} item${progressionBlockers.length === 1 ? '' : 's'}`
+    : cauldronTurnReview
+      ? 'Review turn'
+      : session.state.phase === 'END_TURN'
+        ? 'End turn'
+        : 'Next phase'
+  const nextDestination = progressionBlockers.length > 0
+    ? progressionBlockers[0].title
     : cauldronTurnReview
       ? 'Secondaries & Mission Actions'
       : phaseIndex < BATTLE_PHASES.length - 1
@@ -201,6 +179,30 @@ export default function BattleDashboard() {
     : session.state.status === 'completed'
       ? 'Battle complete'
       : 'Battle abandoned'
+
+  function handleContextStratagem(availability: StratagemAvailability) {
+    const trigger = availability.definition.triggers.includes('PHASE_START')
+      ? 'PHASE_START'
+      : availability.definition.triggers.includes('CUSTOM_CONFIRMATION')
+        ? 'CUSTOM_CONFIRMATION'
+        : availability.definition.triggers[0] ?? 'CUSTOM_CONFIRMATION'
+    useStratagem({
+      playerId: active.id,
+      definition: availability.definition,
+      trigger,
+    })
+  }
+
+  function handleNextAction() {
+    if (progressionBlockers.length > 0) {
+      setTab('overview')
+      setContextFocusItemId(progressionBlockers[0].id)
+      return
+    }
+    setContextFocusItemId(null)
+    if (cauldronTurnReview) setTurnReviewOpen(true)
+    else nextPhase()
+  }
 
   return (
     <div className="battle-page">
@@ -271,54 +273,43 @@ export default function BattleDashboard() {
               })}
               onPass={(playerId: string) => passReaction(currentWindow.id, playerId)}
             />}
-            {tab === 'overview' && <>
-              <div className="tactical-dashboard">
-                <div className="tactical-column tactical-column--primary">
-                  {cauldron && <SecondaryPanel
-                    session={session}
-                    dispatch={dispatch}
-                    onMulligan={mulliganSecondary}
-                    onOpenRivalArmy={(cardId) => { setArmySecondaryFilter(cardId); setTab('army') }}
-                    onStartMissionAction={startMissionAction}
-                    onCheckCondition={() => setTurnReviewOpen(true)}
-                    onResolveEliminationChoice={resolveEliminationChoice}
-                    onSelectPriorityCandidates={selectPriorityTargetCandidates}
-                    onChoosePriorityTarget={choosePriorityTarget}
-                  />}
-                  <PhaseGuidance session={session} dispatch={dispatch} />
-                  {cauldron && <CauldronPlanPanel session={session} onChangePlan={changePlan} />}
-                  <AvailableStratagemPanel
-                    playerName={active.name}
-                    stratagems={activeStratagems}
-                    onUse={(availability) => useStratagem({
-                      playerId: active.id,
-                      definition: availability.definition,
-                      trigger: availability.definition.triggers.includes('PHASE_START')
-                        ? 'PHASE_START'
-                        : 'CUSTOM_CONFIRMATION',
-                    })}
-                  />
-                  {rulesDataProvider && rulesDataAttribution
-                    ? <a className="rules-data-attribution" href={rulesDataAttribution.url} target="_blank" rel="noreferrer">{rulesDataAttribution.label}</a>
-                    : rulesDataError
-                      ? <span className="rules-data-attribution rules-data-attribution--error">{rulesDataError}</span>
-                      : <span className="rules-data-attribution">Loading Stratagem metadata…</span>}
-                </div>
-                <aside className="tactical-column">
-                  {!currentWindow && reactionOpportunity && <ReactionStatusPanel
-                    opportunity={reactionOpportunity}
-                    playerNames={playerNames}
-                    mode={session.setup.guidanceLevel}
-                    onHold={(playerId) => requestReactionHold(playerId, {
-                      trigger: 'CUSTOM_CONFIRMATION',
-                      context: { actingPlayerId: active.id },
-                      definitionsByPlayer,
-                    })}
-                  />}
-                  <BattleQuickStatus session={session} onOpenObjectives={() => setTab('objectives')} />
-                </aside>
+            {tab === 'overview' && battleContext && <div className="tactical-dashboard tactical-dashboard--context">
+              <div className="tactical-column tactical-column--primary">
+                <ContextCommandCentre
+                  context={battleContext}
+                  session={session}
+                  dispatch={dispatch}
+                  focusItemId={contextFocusItemId}
+                  onStartMissionAction={startMissionAction}
+                  onMulligan={mulliganSecondary}
+                  onOpenEndTurn={() => setTurnReviewOpen(true)}
+                  onUseStratagem={handleContextStratagem}
+                  onHoldReaction={(playerId) => requestReactionHold(playerId, {
+                    trigger: 'CUSTOM_CONFIRMATION',
+                    context: { actingPlayerId: active.id },
+                    definitionsByPlayer,
+                  })}
+                  onPassReaction={passReaction}
+                  onChangePlan={changePlan}
+                  onResolveEliminationChoice={resolveEliminationChoice}
+                  onSelectPriorityCandidates={selectPriorityTargetCandidates}
+                  onChoosePriorityTarget={choosePriorityTarget}
+                  onOpenArmyDetails={() => { setArmySecondaryFilter(null); setTab('army') }}
+                />
+                {rulesDataProvider && rulesDataAttribution
+                  ? <a className="rules-data-attribution" href={rulesDataAttribution.url} target="_blank" rel="noreferrer">{rulesDataAttribution.label}</a>
+                  : rulesDataError
+                    ? <span className="rules-data-attribution rules-data-attribution--error">{rulesDataError}</span>
+                    : <span className="rules-data-attribution">Loading Stratagem metadata…</span>}
               </div>
-            </>}
+              <aside className="tactical-column tactical-column--context-aside">
+                <BattleQuickStatus session={session} onOpenObjectives={() => setTab('objectives')} />
+                <div className="context-navigation-note">
+                  <span className="eyebrow">Detail screens</span>
+                  <p>Overview now drives the turn. Army, Objectives and Cards remain available when you need the full detail view.</p>
+                </div>
+              </aside>
+            </div>}
             {tab === 'army' && <ArmyTracker
               session={session}
               dispatch={dispatch}
@@ -335,9 +326,8 @@ export default function BattleDashboard() {
             <button disabled={session.redoActions.length === 0} onClick={redo}>Redo</button>
             <button
               className="button--gold next-phase"
-              disabled={flowPaused}
-              onClick={() => cauldronTurnReview ? setTurnReviewOpen(true) : nextPhase()}
-            >{flowPaused ? 'Reaction pending' : nextLabel}<span>{nextDestination}</span></button>
+              onClick={handleNextAction}
+            >{flowPaused && progressionBlockers.length === 0 ? 'Reaction pending' : nextLabel}<span>{flowPaused && progressionBlockers.length === 0 ? 'Resolve reaction to continue' : nextDestination}</span></button>
           </footer>
         </>}
       </>}
