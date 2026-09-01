@@ -9,6 +9,7 @@ import type { SecondaryId } from '../../rulesets/cauldronFFA3/secondaryTypes'
 type ArmyTrackerProps = {
   session: BattleSession
   dispatch: (event: BattleEventInput) => void
+  preferredPlayerId?: string | null
   secondaryTargetFilter?: SecondaryId | null
   onClearSecondaryTargetFilter?: () => void
 }
@@ -184,7 +185,13 @@ function UnitCard({
   )
 }
 
-export function ArmyTracker({ session, dispatch, secondaryTargetFilter, onClearSecondaryTargetFilter }: ArmyTrackerProps) {
+export function ArmyTracker({
+  session,
+  dispatch,
+  preferredPlayerId,
+  secondaryTargetFilter,
+  onClearSecondaryTargetFilter,
+}: ArmyTrackerProps) {
   const armyPlayers = session.setup.players.flatMap((player) => {
     const army = player.armyId ? session.setup.armies[player.armyId] : undefined
     return army ? [{ player, army }] : []
@@ -193,13 +200,16 @@ export function ArmyTracker({ session, dispatch, secondaryTargetFilter, onClearS
   const rivalPlayerId = session.setup.rulesetId === CAULDRON_RULESET_ID
     ? getCurrentRivalPlayerId(session, session.state.activePlayerId)
     : null
+  const requestedHasArmy = Boolean(preferredPlayerId && armyPlayers.some(({ player }) => player.id === preferredPlayerId))
   const rivalHasArmy = armyPlayers.some(({ player }) => player.id === rivalPlayerId)
   const activeHasArmy = armyPlayers.some(({ player }) => player.id === session.state.activePlayerId)
-  const preferredPlayerId = rivalHasArmy
-    ? rivalPlayerId ?? ''
-    : activeHasArmy ? session.state.activePlayerId : armyPlayers[0]?.player.id ?? ''
-  const [selectedPlayerId, setSelectedPlayerId] = useState(preferredPlayerId)
-  useEffect(() => setSelectedPlayerId(preferredPlayerId), [preferredPlayerId])
+  const defaultPlayerId = requestedHasArmy
+    ? preferredPlayerId ?? ''
+    : rivalHasArmy
+      ? rivalPlayerId ?? ''
+      : activeHasArmy ? session.state.activePlayerId : armyPlayers[0]?.player.id ?? ''
+  const [selectedPlayerId, setSelectedPlayerId] = useState(defaultPlayerId)
+  useEffect(() => setSelectedPlayerId(defaultPlayerId), [defaultPlayerId])
   if (armyPlayers.length === 0) return <section className="empty-state"><h2>No army roster attached</h2></section>
   const selected = armyPlayers.find(({ player }) => player.id === selectedPlayerId) ?? armyPlayers[0]
   const playerState = session.state.players[selected.player.id]
