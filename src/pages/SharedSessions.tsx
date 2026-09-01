@@ -10,8 +10,8 @@ import { getLatestActiveBattle } from '../persistence/database'
 import { useBattleStore } from '../stores/battleStore'
 
 function syncTime(value: string | null): string {
-  if (!value) return 'Waiting for first sync'
-  return `Last sync ${new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`
+  if (!value) return 'Waiting for sync'
+  return new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 }
 
 export default function SharedSessions() {
@@ -71,13 +71,12 @@ export default function SharedSessions() {
   }, [inspection])
 
   useEffect(() => {
-    if (!inspection) return
+    if (!inspection && !membership) return
     const timer = window.setInterval(() => setClock(Date.now()), 1000)
     return () => window.clearInterval(timer)
-  }, [inspection])
+  }, [inspection, membership])
 
-  const joinedBattle = Boolean(membership)
-  const activeParticipants = useMemo(() => participants.filter((participant) => participantIsActive(participant)), [participants, clock])
+  const activeParticipants = useMemo(() => participants.filter((participant) => participantIsActive(participant, clock)), [participants, clock])
 
   async function host() {
     if (!latestBattle || !hostPlayerId) return
@@ -129,62 +128,52 @@ export default function SharedSessions() {
       setInviteStatus('copied')
       window.setTimeout(() => setInviteStatus('idle'), 1800)
     } catch {
-      // Cancelling native sharing should leave the room untouched.
+      // Native share cancellation leaves the room untouched.
     }
   }
 
   if (!configured) return <div className="page-shell shared-session-page">
-    <section className="hero-panel">
-      <span className="eyebrow">Shared battle · preview</span>
-      <h1>Three phones, one battle state.</h1>
-      <p>The client-side sync layer is installed, but this build needs a Supabase project before it can create rooms.</p>
-      <div className="alert">Add <strong>VITE_SUPABASE_URL</strong> and <strong>VITE_SUPABASE_PUBLISHABLE_KEY</strong> (or the legacy <strong>VITE_SUPABASE_ANON_KEY</strong>), then apply <code>supabase/shared_sessions.sql</code>.</div>
+    <section className="hero-panel shared-session-hero">
+      <span className="eyebrow">Shared battle</span>
+      <h1>Multiplayer needs backend configuration.</h1>
+      <p>Add the Supabase environment values for this build, then reload the app.</p>
       <Link className="button" to="/">Return home</Link>
     </section>
   </div>
 
-  return <div className="page-shell shared-session-page">
-    <section className="hero-panel shared-session-hero">
-      <span className="eyebrow">Shared battle</span>
-      <h1>Bring all three commanders into one session.</h1>
-      <p>One device creates the room. Each commander claims a player seat and controls phase progression during their own turn.</p>
-      {membership && <div className="shared-room-banner">
-        <div><span>Room</span><strong>{membership.roomCode}</strong></div>
+  if (membership) return <div className="page-shell shared-session-page">
+    <section className="panel shared-room-focus">
+      <div className="shared-room-focus__code"><span>Room</span><strong>{membership.roomCode}</strong></div>
+      <div className="shared-room-focus__status">
         <div><span>Sync</span><strong>{connectionStatus}</strong></div>
-        <div><span>Connected</span><strong>{activeParticipants.length || participants.length}/3</strong></div>
+        <div><span>Online</span><strong>{activeParticipants.length || participants.length}/3</strong></div>
+        <div><span>Last</span><strong>{syncTime(lastSyncedAt)}</strong></div>
+      </div>
+      {pendingEventCount > 0 && <div className="alert alert--warning shared-room-focus__queue">{pendingEventCount} local change{pendingEventCount === 1 ? '' : 's'} waiting to sync.</div>}
+      {error && <div className="alert alert--danger shared-room-focus__queue">{error}</div>}
+      <div className="shared-room-focus__actions">
+        <Link className="button button--gold" to={`/battle/${membership.battleId}`}>Open battle</Link>
         <button onClick={() => void shareInvite()}>{inviteStatus === 'copied' ? 'Invite copied' : 'Share invite'}</button>
         <button onClick={() => void forceSync()}>Sync now</button>
-        <button onClick={() => void leaveSharedRoom()}>Leave shared room</button>
-        {joinedBattle && <Link className="button button--gold" to={`/battle/${membership.battleId}`}>Open battle</Link>}
-        <div className="shared-room-banner__health">
-          <small>{syncTime(lastSyncedAt)}</small>
-          {pendingEventCount > 0 && <small>{pendingEventCount} local change{pendingEventCount === 1 ? '' : 's'} waiting to sync</small>}
-        </div>
-      </div>}
+        <button onClick={() => void leaveSharedRoom()}>Leave</button>
+      </div>
+    </section>
+  </div>
+
+  return <div className="page-shell shared-session-page">
+    <section className="shared-session-intro">
+      <span className="eyebrow">Shared battle</span>
+      <h1>Host or join.</h1>
+      <p>Each commander uses one player seat. The current player controls phase progression.</p>
     </section>
 
     {error && <div className="alert alert--danger">{error}</div>}
 
-    <div className="shared-session-grid">
-      <section className="panel shared-session-card">
-        <span className="eyebrow">Host</span>
-        <h2>Share your active battle</h2>
-        {!latestBattle ? <><p>No active local battle is available.</p><Link className="button button--gold" to="/battle/setup">Create battle</Link></> : <>
-          <p>Round {latestBattle.state.round} · {latestBattle.state.phase.replaceAll('_', ' ')}</p>
-          <label>Which player are you?
-            <select value={hostPlayerId} onChange={(event) => setHostPlayerId(event.target.value)}>
-              {latestBattle.state.turnOrder.map((playerId) => <option key={playerId} value={playerId}>{latestBattle.state.players[playerId].name}</option>)}
-            </select>
-          </label>
-          <button className="button button--gold button--wide" disabled={working || Boolean(membership)} onClick={host}>{working ? 'Creating room…' : 'Create shared room'}</button>
-          <small>The host keeps session administration. Normal phase flow belongs to whichever player is currently taking their turn.</small>
-        </>}
-      </section>
-
-      <section className="panel shared-session-card">
+    <div className="shared-session-grid shared-session-grid--simple">
+      <section className="panel shared-session-card shared-session-card--join">
         <span className="eyebrow">Join</span>
-        <h2>Enter room code</h2>
-        <div className="shared-code-entry">
+        <h2>{inspection ? 'Choose your commander' : 'Enter room code'}</h2>
+        {!inspection && <div className="shared-code-entry">
           <input
             aria-label="Shared room code"
             autoCapitalize="characters"
@@ -194,10 +183,9 @@ export default function SharedSessions() {
             value={roomCode}
             onChange={(event) => setRoomCode(normalizeRoomCode(event.target.value))}
           />
-          <button disabled={working || roomCode.length !== 6} onClick={findRoom}>Find room</button>
-        </div>
+          <button className="button--gold" disabled={working || roomCode.length !== 6} onClick={findRoom}>{working ? 'Finding…' : 'Continue'}</button>
+        </div>}
         {inspection && <div className="shared-seat-picker">
-          <p><strong>Battle found.</strong> Choose your seat:</p>
           {inspection.room.sessionSnapshot.state.turnOrder.map((playerId) => {
             const player = inspection.room.sessionSnapshot.state.players[playerId]
             const occupant = inspection.participants.find((participant) => participant.playerId === playerId)
@@ -206,14 +194,29 @@ export default function SharedSessions() {
             return <label className={occupiedNow ? 'is-occupied' : ''} key={playerId}>
               <input type="radio" name="shared-seat" value={playerId} checked={joinPlayerId === playerId} disabled={occupiedNow} onChange={() => setJoinPlayerId(playerId)} />
               <span><strong>{player.name}</strong><small>{occupiedNow
-                ? `Active · ${occupant?.displayName}${reclaimSeconds > 0 ? ` · reclaim in ${reclaimSeconds}s if disconnected` : ''}`
+                ? `In use${reclaimSeconds > 0 ? ` · reclaim in ${reclaimSeconds}s if disconnected` : ''}`
                 : occupant
-                  ? 'Disconnected seat · available to reclaim'
+                  ? 'Available to reclaim'
                   : player.faction ?? 'Available'}</small></span>
             </label>
           })}
           <button className="button button--gold button--wide" disabled={working || !joinPlayerId} onClick={join}>{working ? 'Joining…' : 'Join battle'}</button>
+          <button onClick={() => { setRoomCode(''); navigate('/shared', { replace: true }) }}>Use another code</button>
         </div>}
+      </section>
+
+      <section className="panel shared-session-card shared-session-card--host">
+        <span className="eyebrow">Host</span>
+        <h2>Share an active battle</h2>
+        {!latestBattle ? <><p>Create a battle first, then return here to share it.</p><Link className="button" to="/battle/setup">Create battle</Link></> : <>
+          <div className="shared-host-summary"><strong>Round {latestBattle.state.round}</strong><span>{latestBattle.state.phase.replaceAll('_', ' ')}</span></div>
+          <label>You are
+            <select value={hostPlayerId} onChange={(event) => setHostPlayerId(event.target.value)}>
+              {latestBattle.state.turnOrder.map((playerId) => <option key={playerId} value={playerId}>{latestBattle.state.players[playerId].name}</option>)}
+            </select>
+          </label>
+          <button className="button button--gold button--wide" disabled={working} onClick={host}>{working ? 'Creating…' : 'Create room'}</button>
+        </>}
       </section>
     </div>
   </div>
