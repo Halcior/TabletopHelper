@@ -65,10 +65,12 @@ export function loadEmbedded40kdcSource(): FortyKdcSource {
       const rawTriggers = ability.raw.trigger
         ? Array.isArray(ability.raw.trigger) ? ability.raw.trigger : [ability.raw.trigger]
         : []
+      const description = ability.describe().trim()
       return {
         id: ability.id,
         behavior: ability.raw.behavior,
         triggers: rawTriggers.map(mapTrigger),
+        description: description || undefined,
       }
     }),
   }
