@@ -2,17 +2,17 @@ import { totalScore } from '../../domain/battle/selectors'
 import type { BattleSession } from '../../domain/battle/types'
 import { getCurrentReactionWindow } from '../../domain/stratagems/battleIntegration'
 import { selectActiveMissionActions, selectActiveSecondaries } from '../../domain/context/selectors'
+import { CAULDRON_RULESET_ID, getCurrentRivalPlayerId } from '../../rulesets/cauldronFFA3'
 import { evaluateOperationalPlan } from '../../rulesets/cauldronFFA3/operationalPlans'
 
 type SharedPlayerPerspectiveProps = {
   session: BattleSession
   viewerPlayerId: string
   currentRivalPlayerId?: string | null
-  viewerRivalPlayerId?: string | null
   requiredActionCount?: number
   onOpenArmy: () => void
   onOpenCards: () => void
-  onOpenObjectives: () => void
+  onOpenObjectives?: () => void
   showCards: boolean
 }
 
@@ -20,7 +20,6 @@ export function SharedPlayerPerspective({
   session,
   viewerPlayerId,
   currentRivalPlayerId,
-  viewerRivalPlayerId,
   requiredActionCount = 0,
   onOpenArmy,
   onOpenCards,
@@ -33,7 +32,10 @@ export function SharedPlayerPerspective({
 
   const ownTurn = viewerPlayerId === active.id
   const currentRival = viewerPlayerId === currentRivalPlayerId
-  const viewerRival = viewerRivalPlayerId ? session.state.players[viewerRivalPlayerId] : null
+  const viewerRivalId = session.setup.rulesetId === CAULDRON_RULESET_ID
+    ? getCurrentRivalPlayerId(session, viewerPlayerId)
+    : null
+  const viewerRival = viewerRivalId ? session.state.players[viewerRivalId] : null
   const reactionWindow = getCurrentReactionWindow(session)
   const reactionPending = reactionWindow?.responses[viewerPlayerId]?.status === 'PENDING'
   const activeSecondaries = showCards ? selectActiveSecondaries(session, viewerPlayerId) : []
@@ -95,7 +97,7 @@ export function SharedPlayerPerspective({
     <div className="shared-perspective__actions">
       <button onClick={onOpenArmy}>My army</button>
       {showCards && <button onClick={onOpenCards}>My Secondaries</button>}
-      <button onClick={onOpenObjectives}>Objectives</button>
+      {onOpenObjectives && <button onClick={onOpenObjectives}>Objectives</button>}
     </div>
   </section>
 }
