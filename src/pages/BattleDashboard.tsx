@@ -56,6 +56,7 @@ export default function BattleDashboard() {
   const [rulesDataAttribution, setRulesDataAttribution] = useState<{ label: string; url: string } | null>(null)
   const [rulesDataError, setRulesDataError] = useState<string | null>(null)
   const [armySecondaryFilter, setArmySecondaryFilter] = useState<SecondaryId | null>(null)
+  const [armyPreferredPlayerId, setArmyPreferredPlayerId] = useState<string | null>(null)
   const sharedMembership = useSharedSessionStore((state) => state.membership)
   const sharedConnectionStatus = useSharedSessionStore((state) => state.connectionStatus)
   const {
@@ -108,6 +109,7 @@ export default function BattleDashboard() {
     setTab('overview')
     setContextFocusItemId(null)
     setArmySecondaryFilter(null)
+    setArmyPreferredPlayerId(null)
   }, [session?.state.activePlayerId, session?.state.phase, session?.state.round, session?.state.status])
 
   if (loading && session?.setup.gameId !== battleId) return <div className="page-shell"><div className="loading-state">Restoring battle…</div></div>
@@ -224,6 +226,11 @@ export default function BattleDashboard() {
     else nextPhase()
   }
 
+  function selectDashboardTab(item: DashboardTab) {
+    if (item === 'army') setArmyPreferredPlayerId(null)
+    setTab(item)
+  }
+
   return (
     <div className="battle-page">
       <header className="battle-status">
@@ -267,7 +274,7 @@ export default function BattleDashboard() {
         <PhaseStepper phase={session.state.phase} />
         {sharedBattle && sharedConnectionStatus !== 'connected' && <div className="alert battle-alert">Shared sync: {sharedConnectionStatus}. Local changes are retained and will retry.</div>}
         {sharedBattle && canControlTurn && <div className="shared-flow-notice shared-flow-notice--active">Your turn as {viewer?.name ?? active.name}. You control phase progression and end-turn review on this device.</div>}
-        {sharedBattle && !canControlTurn && <div className="shared-flow-notice">Connected as {viewer?.name ?? 'player'}. Waiting for {sharedPermissions.waitingForPlayerName ?? active.name} to advance their turn. Your own CP and reaction responses remain yours.</div>}
+        {sharedBattle && !canControlTurn && <div className="shared-flow-notice">Connected as {viewer?.name ?? 'player'}. Waiting for {sharedPermissions.waitingForPlayerName ?? active.name} to advance their turn. Your own CP, army state and reaction responses remain yours.</div>}
         {error && <div className="alert alert--danger battle-alert">{error}</div>}
 
         {reviewOpen ? <EndRoundReview
@@ -289,7 +296,7 @@ export default function BattleDashboard() {
         /> : <>
           <nav className="battle-tabs" aria-label="Battle panels">
             {dashboardTabs.map((item) => (
-              <button className={tab === item ? 'selected' : ''} key={item} onClick={() => setTab(item)}>{item}</button>
+              <button className={tab === item ? 'selected' : ''} key={item} onClick={() => selectDashboardTab(item)}>{item}</button>
             ))}
           </nav>
 
@@ -332,7 +339,11 @@ export default function BattleDashboard() {
                   onResolveEliminationChoice={resolveEliminationChoice}
                   onSelectPriorityCandidates={selectPriorityTargetCandidates}
                   onChoosePriorityTarget={choosePriorityTarget}
-                  onOpenArmyDetails={() => { setArmySecondaryFilter(null); setTab('army') }}
+                  onOpenArmyDetails={(ownerId) => {
+                    setArmySecondaryFilter(null)
+                    setArmyPreferredPlayerId(ownerId)
+                    setTab('army')
+                  }}
                 />
                 {rulesDataProvider && rulesDataAttribution
                   ? <a className="rules-data-attribution" href={rulesDataAttribution.url} target="_blank" rel="noreferrer">{rulesDataAttribution.label}</a>
@@ -347,6 +358,9 @@ export default function BattleDashboard() {
             {tab === 'army' && <ArmyTracker
               session={session}
               dispatch={dispatch}
+              preferredPlayerId={armyPreferredPlayerId ?? (sharedBattle ? viewerPlayerId : undefined)}
+              sharedMode={sharedBattle}
+              viewerPlayerId={viewerPlayerId}
               secondaryTargetFilter={armySecondaryFilter}
               onClearSecondaryTargetFilter={() => setArmySecondaryFilter(null)}
             />}
