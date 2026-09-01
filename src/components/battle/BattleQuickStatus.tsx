@@ -18,10 +18,10 @@ export function BattleQuickStatus({
   return (
     <section className="panel quick-status-panel">
       <div className="section-heading">
-        <div><span className="eyebrow">Tactical state</span><h2>Objectives</h2></div>
+        <div><span className="eyebrow">Board</span><h2>Objectives</h2></div>
         <div className="quick-status-actions">
-          <button className={quickEditOpen ? 'button button--small selected' : 'button button--small'} aria-expanded={quickEditOpen} onClick={() => setQuickEditOpen((open) => !open)}>{quickEditOpen ? 'Done' : 'Quick edit'}</button>
-          <button className="button button--small" onClick={onOpenObjectives}>Full view</button>
+          <button className={quickEditOpen ? 'button button--small selected' : 'button button--small'} aria-expanded={quickEditOpen} onClick={() => setQuickEditOpen((open) => !open)}>{quickEditOpen ? 'Done' : 'Edit'}</button>
+          <button className="button button--small" onClick={onOpenObjectives}>Details</button>
         </div>
       </div>
       {quickEditOpen
@@ -29,8 +29,8 @@ export function BattleQuickStatus({
         : <ul className="quick-objective-list">
           {objectives.map((objective) => {
             const controller = objective.controllerPlayerId
-              ? session.state.players[objective.controllerPlayerId]?.name ?? 'Unknown player'
-              : 'None'
+              ? session.state.players[objective.controllerPlayerId]?.name ?? 'Unknown'
+              : 'Uncontrolled'
             return <li key={objective.id}><strong>{objective.name}</strong><span>{controller}</span></li>
           })}
         </ul>}
