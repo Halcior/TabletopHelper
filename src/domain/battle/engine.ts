@@ -185,6 +185,9 @@ function applyEvent(state: GameState, event: BattleEvent, setup: BattleSetup): v
     case 'GAME_ENDED':
       state.status = 'completed'
       return
+    case 'GAME_ABANDONED':
+      state.status = 'abandoned'
+      return
     case 'ROUND_STARTED':
       state.round = event.payload.round
       state.timing.stratagemUsage = resetBattleRoundUsage(state.timing.stratagemUsage)
@@ -373,7 +376,10 @@ function projectState(setup: BattleSetup, events: BattleEvent[]): GameState {
   return state
 }
 
-function materializeEvent(input: BattleEventInput, options: Required<Pick<EventOptions, 'actionId' | 'timestamp' | 'undoable'>> & Pick<EventOptions, 'actorPlayerId'>): BattleEvent {
+function materializeEvent(
+  input: BattleEventInput,
+  options: Required<Pick<EventOptions, 'actionId' | 'timestamp' | 'undoable'>> & Pick<EventOptions, 'actorPlayerId'>,
+): BattleEvent {
   return {
     ...input,
     id: createId('event'),
@@ -385,6 +391,9 @@ function materializeEvent(input: BattleEventInput, options: Required<Pick<EventO
 }
 
 export function dispatchBattleEvents(session: BattleSession, inputs: BattleEventInput[], options: EventOptions = {}): BattleSession {
+  if (session.state.status !== 'active' && inputs.length > 0) {
+    throw new Error(`The battle is ${session.state.status} and can no longer be changed.`)
+  }
   const actionId = options.actionId ?? createId('action')
   const timestamp = options.timestamp ?? new Date().toISOString()
   const events = inputs.map((input) => materializeEvent(input, {
@@ -412,12 +421,34 @@ export function dispatchBattleEvent(
   input: BattleEventInput,
   options: EventOptions = {},
 ): BattleSession {
-  if (session.state.status === 'completed') throw new Error('The battle is already complete.')
+  if (session.state.status !== 'active') {
+    throw new Error(`The battle is ${session.state.status} and can no longer be changed.`)
+  }
   return dispatchBattleEvents(session, [input], options)
 }
 
+export function completeBattle(session: BattleSession, timestamp?: string): BattleSession {
+  if (session.state.status !== 'active') return session
+  return dispatchBattleEvents(session, [
+    { type: 'GAME_ENDED', payload: {} },
+  ], {
+    actorPlayerId: session.state.activePlayerId,
+    timestamp,
+  })
+}
+
+export function abandonBattle(session: BattleSession, timestamp?: string): BattleSession {
+  if (session.state.status !== 'active') return session
+  return dispatchBattleEvents(session, [
+    { type: 'GAME_ABANDONED', payload: {} },
+  ], {
+    actorPlayerId: session.state.activePlayerId,
+    timestamp,
+  })
+}
+
 export function getPhaseTransitionEvents(session: BattleSession): BattleEventInput[] {
-  if (session.state.status === 'completed') return []
+  if (session.state.status !== 'active') return []
   const activeWindow = session.state.timing.reactionWindows[session.state.timing.activeReactionWindowId ?? '']
   if (isReactionWindowBlocking(activeWindow)) return []
   const phaseIndex = BATTLE_PHASES.indexOf(session.state.phase)
