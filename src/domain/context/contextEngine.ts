@@ -13,6 +13,7 @@ import {
   getSecondaryState,
   isMulliganAvailable,
 } from '../../rulesets/cauldronFFA3/secondary'
+import { buildLatestAutomaticConsequence } from './automaticConsequences'
 import {
   selectActiveMissionActions,
   selectActivePlayer,
@@ -293,19 +294,23 @@ function reactionItems(input: BuildBattleContextInput, players: BattleContext['r
 function automaticItems(session: BattleSession): ContextItem[] {
   if (session.setup.guidanceLevel === 'fast' || session.setup.rulesetId !== CAULDRON_RULESET_ID) return []
   const playerId = session.state.activePlayerId
-  return selectCompletedSecondariesThisTurn(session, playerId).map((card) => ({
-    id: `completed-secondary-${card.cardId}-${card.completedTurn}`,
-    type: 'AUTOMATIC_SECONDARY_RESULT',
-    title: `${CAULDRON_SECONDARY_BY_ID[card.cardId].name} completed`,
-    shortDescription: `+${card.pointsAwarded} VP · ${getRoundSecondaryVp(session, playerId)} / 10 this Battle Round`,
-    status: 'DONE',
-    severity: 'INFO',
-    source: 'SECONDARY',
-    phase: session.state.phase,
-    relatedPlayerId: playerId,
-    relatedSecondaryId: card.cardId,
-    actions: [],
-  }))
+  const consequence = buildLatestAutomaticConsequence(session)
+  const completed = selectCompletedSecondariesThisTurn(session, playerId)
+    .filter((card) => card.cardId !== consequence?.relatedSecondaryId)
+    .map((card) => ({
+      id: `completed-secondary-${card.cardId}-${card.completedTurn}`,
+      type: 'AUTOMATIC_SECONDARY_RESULT',
+      title: `${CAULDRON_SECONDARY_BY_ID[card.cardId].name} completed`,
+      shortDescription: `+${card.pointsAwarded} VP · ${getRoundSecondaryVp(session, playerId)} / 10 this Battle Round`,
+      status: 'DONE' as const,
+      severity: 'INFO' as const,
+      source: 'SECONDARY' as const,
+      phase: session.state.phase,
+      relatedPlayerId: playerId,
+      relatedSecondaryId: card.cardId,
+      actions: [],
+    }))
+  return consequence ? [consequence, ...completed] : completed
 }
 
 function explicitBlockerItems(session: BattleSession): ContextItem[] {
