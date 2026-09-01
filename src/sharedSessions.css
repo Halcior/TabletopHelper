@@ -156,6 +156,36 @@
   color: var(--paper);
 }
 
+.shared-army-readonly {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 14px;
+  margin-bottom: 12px;
+  padding: 9px 12px;
+  border: 1px dashed var(--line);
+  color: var(--muted);
+  font-size: .76rem;
+}
+
+.shared-army-readonly strong {
+  color: var(--paper);
+}
+
+.shared-readonly-note {
+  margin: 6px 0 10px;
+  color: var(--muted);
+  font-size: .72rem;
+  font-style: italic;
+}
+
+.unit-card--readonly .unit-actions,
+.unit-card--readonly .unit-status-actions,
+.unit-card--readonly .casualty-attribution {
+  opacity: .58;
+}
+
 .reaction-response--mine {
   border-color: var(--line-gold);
 }
@@ -199,5 +229,10 @@
   .shared-room-banner > button,
   .shared-room-banner > .button {
     grid-column: 1 / -1;
+  }
+
+  .shared-army-readonly {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
