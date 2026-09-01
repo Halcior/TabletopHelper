@@ -21,6 +21,7 @@ import { getCurrentReactionWindow, isBattleFlowPaused } from '../domain/stratage
 import { getAvailableStratagems } from '../domain/stratagems/timingEngine'
 import type { StratagemAvailability } from '../domain/stratagems/types'
 import { ReactionWindowPanel } from '../features/stratagems'
+import { getSharedSessionPermissions } from '../multiplayer/permissions'
 import { useSharedSessionStore } from '../multiplayer/sharedSessionStore'
 import type { RulesDataProvider, RulesDataResolution } from '../rulesData/types'
 import {
@@ -114,8 +115,12 @@ export default function BattleDashboard() {
 
   const active = session.state.players[session.state.activePlayerId]
   const battleActive = session.state.status === 'active'
-  const sharedBattle = sharedMembership?.battleId === session.setup.gameId
-  const sharedFlowOwner = !sharedBattle || sharedMembership?.isHost === true
+  const sharedPermissions = getSharedSessionPermissions(session, sharedMembership)
+  const sharedBattle = sharedPermissions.shared
+  const canControlTurn = sharedPermissions.canControlTurn
+  const canManageLifecycle = sharedPermissions.canManageLifecycle
+  const viewerPlayerId = sharedPermissions.viewerPlayerId
+  const viewer = viewerPlayerId ? session.state.players[viewerPlayerId] : null
   const cauldron = session.setup.rulesetId === CAULDRON_RULESET_ID
   const dashboardTabs: DashboardTab[] = cauldron
     ? ['overview', 'army', 'objectives', 'cards', 'log']
@@ -159,7 +164,7 @@ export default function BattleDashboard() {
       : activeMissionActions.length > 0
         ? 'Resolve active Mission Actions before ending the battle.'
         : undefined
-  const canEndBattle = battleActive && !endBlocker && sharedFlowOwner
+  const canEndBattle = battleActive && !endBlocker && canManageLifecycle
   const cauldronTurnReview = battleActive && cauldron && session.state.phase === 'END_TURN'
   const phaseLabel = humanizePhase(session.state.phase)
   const phaseIndex = BATTLE_PHASES.indexOf(session.state.phase)
@@ -194,6 +199,7 @@ export default function BattleDashboard() {
       : 'Battle abandoned'
 
   function handleContextStratagem(availability: StratagemAvailability) {
+    if (!canControlTurn) return
     const trigger = availability.definition.triggers.includes('PHASE_START')
       ? 'PHASE_START'
       : availability.definition.triggers.includes('CUSTOM_CONFIRMATION')
@@ -207,7 +213,7 @@ export default function BattleDashboard() {
   }
 
   function handleNextAction() {
-    if (!sharedFlowOwner) return
+    if (!canControlTurn) return
     if (progressionBlockers.length > 0) {
       setTab('overview')
       setContextFocusItemId(progressionBlockers[0].id)
@@ -230,7 +236,7 @@ export default function BattleDashboard() {
           <SharedSessionStatus battleId={session.setup.gameId} />
           {battleActive && <BattleMenu
             canEndBattle={canEndBattle}
-            canManageBattle={sharedFlowOwner}
+            canManageBattle={canManageLifecycle}
             endBlockedReason={endBlocker}
             onOpenLog={() => setTab('log')}
             onEndBattle={endBattle}
@@ -244,21 +250,30 @@ export default function BattleDashboard() {
         <BattleSummary
           session={session}
           logOpen={terminalLogOpen}
+          canRestoreSession={!sharedBattle}
+          restoreDisabledReason={sharedBattle ? 'Shared-session undo is disabled until synchronized undo is implemented.' : undefined}
           onToggleLog={() => setTerminalLogOpen((current) => !current)}
           onRestoreSession={() => { setTerminalLogOpen(false); undo() }}
         />
         {terminalLogOpen && <div className="battle-terminal-log"><BattleLog session={session} /></div>}
       </main> : <>
-        <Scoreboard session={session} rivalPlayerId={rivalId} dispatch={dispatch} />
+        <Scoreboard
+          session={session}
+          rivalPlayerId={rivalId}
+          dispatch={dispatch}
+          sharedMode={sharedBattle}
+          viewerPlayerId={viewerPlayerId}
+        />
         <PhaseStepper phase={session.state.phase} />
         {sharedBattle && sharedConnectionStatus !== 'connected' && <div className="alert battle-alert">Shared sync: {sharedConnectionStatus}. Local changes are retained and will retry.</div>}
-        {sharedBattle && !sharedFlowOwner && <div className="shared-flow-notice">You are connected as {session.state.players[sharedMembership.playerId]?.name ?? 'player'}. The host advances phases; your battle-state actions still sync to everyone.</div>}
+        {sharedBattle && canControlTurn && <div className="shared-flow-notice shared-flow-notice--active">Your turn as {viewer?.name ?? active.name}. You control phase progression and end-turn review on this device.</div>}
+        {sharedBattle && !canControlTurn && <div className="shared-flow-notice">Connected as {viewer?.name ?? 'player'}. Waiting for {sharedPermissions.waitingForPlayerName ?? active.name} to advance their turn. Your own CP and reaction responses remain yours.</div>}
         {error && <div className="alert alert--danger battle-alert">{error}</div>}
 
         {reviewOpen ? <EndRoundReview
           session={session}
           onCancel={() => setReviewOpen(false)}
-          onConfirm={(confirmations) => { if (sharedFlowOwner) confirmRound(confirmations); setReviewOpen(false) }}
+          onConfirm={(confirmations) => { if (canControlTurn) confirmRound(confirmations); setReviewOpen(false) }}
         /> : turnReviewOpen && cauldron ? <SecondaryEndTurnReview
           session={session}
           onCompleteMissionAction={completeMissionAction}
@@ -267,7 +282,7 @@ export default function BattleDashboard() {
           onCancel={() => setTurnReviewOpen(false)}
           onFinish={() => {
             setTurnReviewOpen(false)
-            if (!sharedFlowOwner) return
+            if (!canControlTurn) return
             if (endOfRound) setReviewOpen(true)
             else nextPhase()
           }}
@@ -283,6 +298,8 @@ export default function BattleDashboard() {
               window={currentWindow}
               playerNames={playerNames}
               optionsByPlayer={windowOptionsByPlayer}
+              sharedMode={sharedBattle}
+              viewerPlayerId={viewerPlayerId}
               onUse={(playerId: string, availability: StratagemAvailability) => useStratagem({
                 playerId,
                 definition: availability.definition,
@@ -299,9 +316,11 @@ export default function BattleDashboard() {
                   session={session}
                   dispatch={dispatch}
                   focusItemId={contextFocusItemId}
+                  sharedMode={sharedBattle}
+                  viewerPlayerId={viewerPlayerId}
                   onStartMissionAction={startMissionAction}
                   onMulligan={mulliganSecondary}
-                  onOpenEndTurn={() => setTurnReviewOpen(true)}
+                  onOpenEndTurn={() => { if (canControlTurn) setTurnReviewOpen(true) }}
                   onUseStratagem={handleContextStratagem}
                   onHoldReaction={(playerId) => requestReactionHold(playerId, {
                     trigger: 'CUSTOM_CONFIRMATION',
@@ -341,9 +360,9 @@ export default function BattleDashboard() {
             <button disabled={sharedBattle || session.redoActions.length === 0} title={sharedBattle ? 'Redo is disabled while the battle is shared.' : undefined} onClick={redo}>Redo</button>
             <button
               className="button--gold next-phase"
-              disabled={!sharedFlowOwner}
+              disabled={!canControlTurn}
               onClick={handleNextAction}
-            >{!sharedFlowOwner ? 'Waiting for host' : flowPaused && progressionBlockers.length === 0 ? 'Reaction pending' : nextLabel}<span>{!sharedFlowOwner ? `Room ${sharedMembership?.roomCode ?? ''}` : flowPaused && progressionBlockers.length === 0 ? 'Resolve reaction to continue' : nextDestination}</span></button>
+            >{!canControlTurn ? `Waiting for ${active.name}` : flowPaused && progressionBlockers.length === 0 ? 'Reaction pending' : nextLabel}<span>{!canControlTurn ? `Room ${sharedMembership?.roomCode ?? ''}` : flowPaused && progressionBlockers.length === 0 ? 'Resolve reaction to continue' : nextDestination}</span></button>
           </footer>
         </>}
       </>}
