@@ -64,6 +64,27 @@
   color: var(--paper) !important;
 }
 
+.quick-status-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.quick-status-panel .secondary-quick-objectives {
+  margin-top: 2px;
+}
+
+.quick-status-panel .secondary-objective-row {
+  padding-block: 8px;
+}
+
+.quick-status-panel .secondary-objective-choices button {
+  min-height: 38px;
+  padding-inline: 8px;
+  font-size: .72rem;
+}
+
 .discard-choice > div {
   display: grid;
   gap: 4px;
@@ -101,6 +122,10 @@
   .context-section--reactions .context-item--quiet {
     padding: 7px 10px;
   }
+
+  .quick-status-actions {
+    justify-content: flex-start;
+  }
 }
 
 @media (max-width: 560px) {
@@ -112,5 +137,13 @@
 
   .discard-choice button {
     width: 100%;
+  }
+
+  .quick-status-actions {
+    width: 100%;
+  }
+
+  .quick-status-actions button {
+    flex: 1;
   }
 }
