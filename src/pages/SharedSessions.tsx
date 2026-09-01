@@ -97,7 +97,7 @@ export default function SharedSessions() {
     <section className="hero-panel shared-session-hero">
       <span className="eyebrow">Shared battle</span>
       <h1>Bring all three commanders into one session.</h1>
-      <p>One device hosts the battle. The other players join with a six-character code and claim their player seat.</p>
+      <p>One device creates the room. Each commander claims a player seat and controls phase progression during their own turn.</p>
       {membership && <div className="shared-room-banner">
         <div><span>Room</span><strong>{membership.roomCode}</strong></div>
         <div><span>Sync</span><strong>{connectionStatus}</strong></div>
@@ -121,7 +121,7 @@ export default function SharedSessions() {
             </select>
           </label>
           <button className="button button--gold button--wide" disabled={working || Boolean(membership)} onClick={host}>{working ? 'Creating room…' : 'Create shared room'}</button>
-          <small>The host controls phase progression and battle lifecycle in the first multiplayer milestone.</small>
+          <small>The host keeps session administration. Normal phase flow belongs to whichever player is currently taking their turn.</small>
         </>}
       </section>
 
