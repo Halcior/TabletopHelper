@@ -12,6 +12,8 @@ type ReactionWindowPanelProps = {
   optionsByPlayer: Record<string, StratagemAvailability[]>
   onUse: (playerId: string, availability: StratagemAvailability) => void
   onPass: (playerId: string) => void
+  sharedMode?: boolean
+  viewerPlayerId?: string | null
 }
 
 export function ReactionWindowPanel({
@@ -20,6 +22,8 @@ export function ReactionWindowPanel({
   optionsByPlayer,
   onUse,
   onPass,
+  sharedMode = false,
+  viewerPlayerId = null,
 }: ReactionWindowPanelProps) {
   const priorityPlayerId = getReactionPriorityPlayerId(window)
   const playerName = (playerId: string) => playerNames[playerId] ?? 'Unknown player'
@@ -43,14 +47,15 @@ export function ReactionWindowPanel({
       <div className="reaction-response-list">
         {Object.values(window.responses).map((response) => {
           const options = optionsByPlayer[response.playerId] ?? []
+          const viewerOwnsResponse = !sharedMode || response.playerId === viewerPlayerId
           return (
-            <section key={response.playerId} className="reaction-response">
+            <section key={response.playerId} className={`reaction-response${viewerOwnsResponse ? ' reaction-response--mine' : ''}`}>
               <ReactionPlayerStatus
                 playerName={playerName(response.playerId)}
                 response={response}
                 priority={response.playerId === priorityPlayerId}
               />
-              {response.status === 'PENDING' && <>
+              {response.status === 'PENDING' && viewerOwnsResponse && <>
                 {options.length > 0
                   ? <details className="reaction-options">
                     <summary>Show {options.length} reaction{options.length === 1 ? '' : 's'}</summary>
@@ -63,9 +68,10 @@ export function ReactionWindowPanel({
                       />
                     ))}</div>
                   </details>
-                  : <p>No legal reaction is registered for this moment. The hold remains until this player passes.</p>}
+                  : <p>No legal reaction is registered for this moment. The hold remains until you pass.</p>}
                 <button className="reaction-pass" onClick={() => onPass(response.playerId)}>Pass</button>
               </>}
+              {response.status === 'PENDING' && !viewerOwnsResponse && <p className="reaction-waiting">Waiting for {playerName(response.playerId)} to respond on their device.</p>}
             </section>
           )
         })}
