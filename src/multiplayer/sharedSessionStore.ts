@@ -101,7 +101,7 @@ async function publishLocalEvents(events: BattleEvent[]): Promise<void> {
   if (!membership || events.length === 0) return
   events.forEach((event) => pendingLocalEvents.set(event.id, event))
   try {
-    await sharedSessionTransport.publishEvents(membership.roomId, events)
+    await sharedSessionTransport.publishEvents(membership.roomId, events, membership.playerId)
     useSharedSessionStore.setState({ connectionStatus: 'connected', error: null })
   } catch (error) {
     useSharedSessionStore.setState({ connectionStatus: 'reconnecting', error: message(error) })
@@ -114,7 +114,7 @@ async function pollRoom(): Promise<void> {
   if (!membership) return
   try {
     if (pendingLocalEvents.size > 0) {
-      await sharedSessionTransport.publishEvents(membership.roomId, [...pendingLocalEvents.values()])
+      await sharedSessionTransport.publishEvents(membership.roomId, [...pendingLocalEvents.values()], membership.playerId)
     }
 
     const afterSequence = canonicalEvents.at(-1)?.sequence ?? 0
