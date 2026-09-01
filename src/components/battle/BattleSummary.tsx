@@ -6,9 +6,10 @@ type BattleSummaryProps = {
   session: BattleSession
   logOpen: boolean
   onToggleLog: () => void
+  onRestoreSession: () => void
 }
 
-export function BattleSummary({ session, logOpen, onToggleLog }: BattleSummaryProps) {
+export function BattleSummary({ session, logOpen, onToggleLog, onRestoreSession }: BattleSummaryProps) {
   const players = Object.values(session.state.players)
     .map((player) => ({ player, total: totalScore(player) }))
     .sort((left, right) => right.total - left.total)
@@ -45,6 +46,7 @@ export function BattleSummary({ session, logOpen, onToggleLog }: BattleSummaryPr
     </div>
 
     <div className="battle-summary__actions">
+      <button type="button" onClick={onRestoreSession}>{completed ? 'Undo end battle' : 'Restore active session'}</button>
       <button type="button" onClick={onToggleLog}>{logOpen ? 'Hide battle log' : 'View battle log'}</button>
       <Link className="button button--gold" to="/">Return home</Link>
     </div>
