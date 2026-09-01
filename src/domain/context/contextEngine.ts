@@ -52,12 +52,19 @@ function isSecondaryRelevant(cardId: SecondaryId, phase: BattlePhase): boolean {
   return cardId === 'CEL_PRIORYTETOWY'
 }
 
-function secondaryAction(card: ActiveSecondaryView, playerId: string, rivalId?: string): ContextAction | null {
+function secondaryAction(
+  card: ActiveSecondaryView,
+  playerId: string,
+  phase: BattlePhase,
+  rivalId?: string,
+): ContextAction | null {
   switch (card.action) {
     case 'OPEN_RIVAL_ARMY': return action(`secondary-${card.cardId}-army`, 'OPEN_RIVAL_ARMY', 'Open Rival army', { playerId: rivalId, secondaryId: card.cardId })
     case 'QUICK_OBJECTIVES': return action(`secondary-${card.cardId}-objectives`, 'CHANGE_OBJECTIVE_CONTROL', 'Quick objectives', { playerId, secondaryId: card.cardId })
     case 'START_MISSION_ACTION': return action(`secondary-${card.cardId}-mission`, 'START_MISSION_ACTION', 'Start action', { playerId, secondaryId: card.cardId })
-    case 'CHECK_CONDITION': return action(`secondary-${card.cardId}-check`, 'CHECK_SECONDARY_CONDITION', 'Check condition', { playerId, secondaryId: card.cardId })
+    case 'CHECK_CONDITION': return phase === 'END_TURN'
+      ? action(`secondary-${card.cardId}-check`, 'CHECK_SECONDARY_CONDITION', 'Review scoring', { playerId, secondaryId: card.cardId })
+      : null
     case 'SELECT_TARGET': return action(`secondary-${card.cardId}-target`, 'SELECT_PRIORITY_TARGET', 'Select target', { playerId, secondaryId: card.cardId })
     default: return null
   }
@@ -71,7 +78,10 @@ function secondaryItems(session: BattleSession): ContextItem[] {
   return selectActiveSecondaries(session, playerId).flatMap((card) => {
     const blocking = blockerIds.has(card.cardId)
     if (!blocking && !isSecondaryRelevant(card.cardId, session.state.phase)) return []
-    const cardAction = secondaryAction(card, playerId, rival?.id)
+    const cardAction = secondaryAction(card, playerId, session.state.phase, rival?.id)
+    const deferredEndTurnCheck = !blocking
+      && card.action === 'CHECK_CONDITION'
+      && session.state.phase !== 'END_TURN'
     const dismissible = session.setup.guidanceLevel === 'guided'
       && session.state.phase === 'MOVEMENT'
       && card.action === 'START_MISSION_ACTION'
@@ -81,8 +91,8 @@ function secondaryItems(session: BattleSession): ContextItem[] {
       type: 'SECONDARY_GOAL',
       title: card.name,
       shortDescription: card.progress,
-      status: blocking ? 'BLOCKING' : 'AVAILABLE',
-      severity: blocking ? 'CRITICAL' : 'ATTENTION',
+      status: blocking ? 'BLOCKING' : deferredEndTurnCheck ? 'INFO' : 'AVAILABLE',
+      severity: blocking ? 'CRITICAL' : deferredEndTurnCheck ? 'QUIET' : 'ATTENTION',
       source: 'SECONDARY',
       phase: session.state.phase,
       relatedPlayerId: rival?.id,
