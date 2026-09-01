@@ -14,7 +14,7 @@ function session(activePlayerId = 'p1'): BattleSession {
         p3: { name: 'Player Three' },
       },
     },
-  } as BattleSession
+  } as unknown as BattleSession
 }
 
 function membership(playerId: string, isHost = false): SharedMembership {
