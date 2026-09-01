@@ -22,6 +22,8 @@ export default function Home() {
   const [activeBattle, setActiveBattle] = useState<BattleSession | null>(null)
   const [recentBattles, setRecentBattles] = useState<StoredBattle[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [hosted, setHosted] = useState(false)
+  const [shareStatus, setShareStatus] = useState<'idle' | 'copied'>('idle')
 
   useEffect(() => {
     void Promise.all([listArmies(), getLatestActiveBattle(), listRecentBattles(8)])
@@ -33,6 +35,26 @@ export default function Home() {
       .catch((reason: unknown) => setError(reason instanceof Error ? reason.message : String(reason)))
   }, [])
 
+  useEffect(() => {
+    setHosted(!['localhost', '127.0.0.1'].includes(window.location.hostname))
+  }, [])
+
+  async function shareTestLink() {
+    const url = window.location.origin
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'Tabletop Companion playtest', url })
+        return
+      }
+      await navigator.clipboard.writeText(url)
+      setShareStatus('copied')
+      window.setTimeout(() => setShareStatus('idle'), 1800)
+    } catch {
+      // Native share cancellation should not interrupt the app. Clipboard can
+      // still be copied manually from the browser address bar as a fallback.
+    }
+  }
+
   return (
     <div className="page-shell home-page">
       <section className="hero-panel">
@@ -43,7 +65,9 @@ export default function Home() {
           <Link className="button button--gold" to="/army-import">Import New Recruit</Link>
           {armies.length > 0 && <Link className="button" to="/battle/setup">New Cauldron game</Link>}
           {activeBattle && <Link className="button" to={`/battle/${activeBattle.setup.gameId}`}>Resume battle</Link>}
+          {hosted && <button className="button" type="button" onClick={() => void shareTestLink()}>{shareStatus === 'copied' ? 'Test link copied' : 'Share test link'}</button>}
         </div>
+        {hosted && <small className="hero-playtest-note">The shared link opens a fresh local workspace on the tester’s device; armies and battles are not transferred with the URL.</small>}
       </section>
 
       {error && <div className="alert alert--danger">Local storage error: {error}</div>}
