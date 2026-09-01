@@ -48,7 +48,7 @@ export interface SharedSessionTransport {
   createRoom(session: BattleSession, hostPlayerId: string, clientId: string): Promise<SharedRoomInspection>
   inspectRoom(code: string): Promise<SharedRoomInspection | null>
   joinRoom(room: SharedRoom, playerId: string, clientId: string): Promise<SharedParticipant>
-  publishEvents(roomId: string, events: BattleEvent[]): Promise<void>
+  publishEvents(roomId: string, events: BattleEvent[], submittedByPlayerId?: string): Promise<void>
   listEvents(roomId: string, afterSequence: number): Promise<SharedEventEnvelope[]>
   listParticipants(roomId: string): Promise<SharedParticipant[]>
   touchParticipant(roomId: string, clientId: string): Promise<void>
