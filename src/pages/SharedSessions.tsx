@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import type { BattleSession } from '../domain/battle/types'
+import { participantIsActive, secondsUntilSeatReclaim } from '../multiplayer/presence'
 import { normalizeRoomCode } from '../multiplayer/roomCode'
 import { buildSharedInviteUrl, roomCodeFromSearch } from '../multiplayer/sharedInvite'
 import { useSharedSessionStore } from '../multiplayer/sharedSessionStore'
@@ -8,10 +9,9 @@ import type { SharedParticipant } from '../multiplayer/types'
 import { getLatestActiveBattle } from '../persistence/database'
 import { useBattleStore } from '../stores/battleStore'
 
-const ACTIVE_SEAT_MS = 30_000
-
-function participantIsActive(participant: SharedParticipant): boolean {
-  return Date.now() - Date.parse(participant.lastSeenAt) < ACTIVE_SEAT_MS
+function syncTime(value: string | null): string {
+  if (!value) return 'Waiting for first sync'
+  return `Last sync ${new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`
 }
 
 export default function SharedSessions() {
@@ -23,6 +23,7 @@ export default function SharedSessions() {
   const [joinPlayerId, setJoinPlayerId] = useState('')
   const [working, setWorking] = useState(false)
   const [inviteStatus, setInviteStatus] = useState<'idle' | 'copied'>('idle')
+  const [clock, setClock] = useState(() => Date.now())
   const loadBattle = useBattleStore((state) => state.loadBattle)
   const {
     configured,
@@ -31,10 +32,14 @@ export default function SharedSessions() {
     participants,
     inspection,
     error,
+    lastSyncedAt,
+    pendingEventCount,
     inspectRoom,
     hostCurrentBattle,
     joinInspectedRoom,
-    disconnect,
+    restoreForBattle,
+    forceSync,
+    leaveSharedRoom,
   } = useSharedSessionStore()
 
   useEffect(() => {
@@ -43,6 +48,11 @@ export default function SharedSessions() {
       setHostPlayerId((current) => current || battle?.state.activePlayerId || battle?.state.turnOrder[0] || '')
     })
   }, [])
+
+  useEffect(() => {
+    if (!configured || !membership) return
+    void restoreForBattle(membership.battleId)
+  }, [configured, membership?.battleId, restoreForBattle])
 
   useEffect(() => {
     if (!configured) return
@@ -55,13 +65,19 @@ export default function SharedSessions() {
 
   useEffect(() => {
     if (!inspection) return
-    const occupied = new Set(inspection.participants.filter(participantIsActive).map((participant) => participant.playerId))
+    const occupied = new Set(inspection.participants.filter((participant) => participantIsActive(participant)).map((participant) => participant.playerId))
     const firstFree = inspection.room.sessionSnapshot.state.turnOrder.find((playerId) => !occupied.has(playerId))
     setJoinPlayerId(firstFree ?? '')
   }, [inspection])
 
-  const joinedBattle = membership && latestBattle?.setup.gameId === membership.battleId
-  const activeParticipants = useMemo(() => participants.filter(participantIsActive), [participants])
+  useEffect(() => {
+    if (!inspection) return
+    const timer = window.setInterval(() => setClock(Date.now()), 1000)
+    return () => window.clearInterval(timer)
+  }, [inspection])
+
+  const joinedBattle = Boolean(membership)
+  const activeParticipants = useMemo(() => participants.filter((participant) => participantIsActive(participant)), [participants, clock])
 
   async function host() {
     if (!latestBattle || !hostPlayerId) return
@@ -135,10 +151,15 @@ export default function SharedSessions() {
       {membership && <div className="shared-room-banner">
         <div><span>Room</span><strong>{membership.roomCode}</strong></div>
         <div><span>Sync</span><strong>{connectionStatus}</strong></div>
-        <div><span>Connected</span><strong>{activeParticipants.length || participants.length}</strong></div>
+        <div><span>Connected</span><strong>{activeParticipants.length || participants.length}/3</strong></div>
         <button onClick={() => void shareInvite()}>{inviteStatus === 'copied' ? 'Invite copied' : 'Share invite'}</button>
-        <button onClick={() => disconnect(true)}>Leave shared room</button>
+        <button onClick={() => void forceSync()}>Sync now</button>
+        <button onClick={() => void leaveSharedRoom()}>Leave shared room</button>
         {joinedBattle && <Link className="button button--gold" to={`/battle/${membership.battleId}`}>Open battle</Link>}
+        <div className="shared-room-banner__health">
+          <small>{syncTime(lastSyncedAt)}</small>
+          {pendingEventCount > 0 && <small>{pendingEventCount} local change{pendingEventCount === 1 ? '' : 's'} waiting to sync</small>}
+        </div>
       </div>}
     </section>
 
@@ -180,11 +201,12 @@ export default function SharedSessions() {
           {inspection.room.sessionSnapshot.state.turnOrder.map((playerId) => {
             const player = inspection.room.sessionSnapshot.state.players[playerId]
             const occupant = inspection.participants.find((participant) => participant.playerId === playerId)
-            const occupiedNow = occupant ? participantIsActive(occupant) : false
+            const occupiedNow = occupant ? participantIsActive(occupant, clock) : false
+            const reclaimSeconds = occupant ? secondsUntilSeatReclaim(occupant, clock) : 0
             return <label className={occupiedNow ? 'is-occupied' : ''} key={playerId}>
               <input type="radio" name="shared-seat" value={playerId} checked={joinPlayerId === playerId} disabled={occupiedNow} onChange={() => setJoinPlayerId(playerId)} />
               <span><strong>{player.name}</strong><small>{occupiedNow
-                ? `Active · ${occupant?.displayName}`
+                ? `Active · ${occupant?.displayName}${reclaimSeconds > 0 ? ` · reclaim in ${reclaimSeconds}s if disconnected` : ''}`
                 : occupant
                   ? 'Disconnected seat · available to reclaim'
                   : player.faction ?? 'Available'}</small></span>
