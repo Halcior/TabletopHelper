@@ -16,6 +16,7 @@ const MEMBERSHIP_KEY = 'tabletop-companion.shared-membership'
 const CLIENT_KEY = 'tabletop-companion.client-id'
 const POLL_MS = 900
 const PRESENCE_EVERY_POLLS = 5
+const ACTIVE_SEAT_MS = 30_000
 
 let pollTimer: ReturnType<typeof setInterval> | null = null
 let unsubscribeBattle: (() => void) | null = null
@@ -29,22 +30,29 @@ function message(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
 
+function storage(): Storage | null {
+  return typeof window === 'undefined' ? null : window.localStorage
+}
+
 function clientId(): string {
-  const stored = localStorage.getItem(CLIENT_KEY)
+  const target = storage()
+  const stored = target?.getItem(CLIENT_KEY)
   if (stored) return stored
   const created = crypto.randomUUID()
-  localStorage.setItem(CLIENT_KEY, created)
+  target?.setItem(CLIENT_KEY, created)
   return created
 }
 
 function saveMembership(membership: SharedMembership | null): void {
-  if (!membership) localStorage.removeItem(MEMBERSHIP_KEY)
-  else localStorage.setItem(MEMBERSHIP_KEY, JSON.stringify(membership))
+  const target = storage()
+  if (!target) return
+  if (!membership) target.removeItem(MEMBERSHIP_KEY)
+  else target.setItem(MEMBERSHIP_KEY, JSON.stringify(membership))
 }
 
 function readMembership(): SharedMembership | null {
   try {
-    const raw = localStorage.getItem(MEMBERSHIP_KEY)
+    const raw = storage()?.getItem(MEMBERSHIP_KEY)
     return raw ? JSON.parse(raw) as SharedMembership : null
   } catch {
     return null
@@ -105,6 +113,10 @@ async function pollRoom(): Promise<void> {
   const membership = store.membership
   if (!membership) return
   try {
+    if (pendingLocalEvents.size > 0) {
+      await sharedSessionTransport.publishEvents(membership.roomId, [...pendingLocalEvents.values()])
+    }
+
     const afterSequence = canonicalEvents.at(-1)?.sequence ?? 0
     const incoming = await sharedSessionTransport.listEvents(membership.roomId, afterSequence)
     if (incoming.length > 0) {
@@ -115,12 +127,14 @@ async function pollRoom(): Promise<void> {
       canonicalEvents.sort((left, right) => left.sequence - right.sequence)
       rebuildFromCanonical()
     }
+
     pollCounter += 1
     if (pollCounter % PRESENCE_EVERY_POLLS === 0) {
       await sharedSessionTransport.touchParticipant(membership.roomId, membership.clientId)
       const participants = await sharedSessionTransport.listParticipants(membership.roomId)
       useSharedSessionStore.setState({ participants })
     }
+
     const session = useBattleStore.getState().session
     if (membership.isHost && session && session.state.status !== store.roomStatus) {
       await sharedSessionTransport.updateRoomStatus(membership.roomId, session.state.status)
@@ -233,7 +247,8 @@ export const useSharedSessionStore = create<SharedSessionStore>((set, get) => ({
     if (!inspection) throw new Error('Find a shared room first.')
     const occupied = inspection.participants.find((participant) => participant.playerId === playerId)
     const id = clientId()
-    if (occupied && occupied.clientId !== id) throw new Error(`${occupied.displayName} is already claimed on another device.`)
+    const occupiedRecently = occupied && Date.now() - Date.parse(occupied.lastSeenAt) < ACTIVE_SEAT_MS
+    if (occupiedRecently && occupied?.clientId !== id) throw new Error(`${occupied.displayName} is already active on another device.`)
     set({ connectionStatus: 'connecting', error: null })
     try {
       await sharedSessionTransport.joinRoom(inspection.room, playerId, id)
