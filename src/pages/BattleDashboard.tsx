@@ -227,6 +227,7 @@ export default function BattleDashboard() {
           session={session}
           logOpen={terminalLogOpen}
           onToggleLog={() => setTerminalLogOpen((current) => !current)}
+          onRestoreSession={() => { setTerminalLogOpen(false); undo() }}
         />
         {terminalLogOpen && <div className="battle-terminal-log"><BattleLog session={session} /></div>}
       </main> : <>
