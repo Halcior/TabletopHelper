@@ -7,6 +7,7 @@ import './lifecycle.css'
 import './contextPolish.css'
 import './sharedSessions.css'
 import './uiSimplify.css'
+import './uiFocus.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
