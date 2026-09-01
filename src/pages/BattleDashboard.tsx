@@ -163,14 +163,14 @@ export default function BattleDashboard() {
   const nextLabel = progressionBlockers.length > 0
     ? `Resolve ${progressionBlockers.length} item${progressionBlockers.length === 1 ? '' : 's'}`
     : cauldronTurnReview
-      ? 'Review turn'
+      ? 'End-turn review'
       : session.state.phase === 'END_TURN'
         ? 'End turn'
         : 'Next phase'
   const nextDestination = progressionBlockers.length > 0
     ? progressionBlockers[0].title
     : cauldronTurnReview
-      ? 'Secondaries & Mission Actions'
+      ? 'Scoring & Mission Actions'
       : phaseIndex < BATTLE_PHASES.length - 1
         ? humanizePhase(BATTLE_PHASES[phaseIndex + 1])
         : nextTurnDestination
@@ -304,10 +304,6 @@ export default function BattleDashboard() {
               </div>
               <aside className="tactical-column tactical-column--context-aside">
                 <BattleQuickStatus session={session} onOpenObjectives={() => setTab('objectives')} />
-                <div className="context-navigation-note">
-                  <span className="eyebrow">Detail screens</span>
-                  <p>Overview now drives the turn. Army, Objectives and Cards remain available when you need the full detail view.</p>
-                </div>
               </aside>
             </div>}
             {tab === 'army' && <ArmyTracker
