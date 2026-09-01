@@ -22,6 +22,8 @@ export default function Home() {
   const [activeBattle, setActiveBattle] = useState<BattleSession | null>(null)
   const [recentBattles, setRecentBattles] = useState<StoredBattle[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [hosted, setHosted] = useState(false)
+  const [shareStatus, setShareStatus] = useState<'idle' | 'copied'>('idle')
 
   useEffect(() => {
     void Promise.all([listArmies(), getLatestActiveBattle(), listRecentBattles(8)])
@@ -32,6 +34,25 @@ export default function Home() {
       })
       .catch((reason: unknown) => setError(reason instanceof Error ? reason.message : String(reason)))
   }, [])
+
+  useEffect(() => {
+    setHosted(!['localhost', '127.0.0.1'].includes(window.location.hostname))
+  }, [])
+
+  async function shareTestLink() {
+    const url = window.location.origin
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'Tabletop Companion playtest', url })
+        return
+      }
+      await navigator.clipboard.writeText(url)
+      setShareStatus('copied')
+      window.setTimeout(() => setShareStatus('idle'), 1800)
+    } catch {
+      // Native share cancellation should not interrupt the app.
+    }
+  }
 
   return (
     <div className="page-shell home-page">
@@ -44,7 +65,9 @@ export default function Home() {
           {armies.length > 0 && <Link className="button" to="/battle/setup">New Cauldron game</Link>}
           <Link className="button" to="/shared">Shared battle</Link>
           {activeBattle && <Link className="button" to={`/battle/${activeBattle.setup.gameId}`}>Resume battle</Link>}
+          {hosted && <button className="button" type="button" onClick={() => void shareTestLink()}>{shareStatus === 'copied' ? 'Test link copied' : 'Share test link'}</button>}
         </div>
+        {hosted && <small className="hero-playtest-note">Share test link opens the app itself. To share one live battle state between devices, use Shared battle and its six-character room code.</small>}
       </section>
 
       {error && <div className="alert alert--danger">Local storage error: {error}</div>}
