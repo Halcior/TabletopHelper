@@ -311,6 +311,7 @@ function applyEvent(state: GameState, event: BattleEvent, setup: BattleSetup): v
     }
     case 'REACTION_WINDOW_OPENED':
     case 'REACTION_HOLD_REQUESTED':
+    case 'REACTION_HOLD_REFINED':
       state.timing.reactionWindows[event.payload.window.id] = structuredClone(event.payload.window)
       state.timing.activeReactionWindowId = event.payload.window.id
       return
