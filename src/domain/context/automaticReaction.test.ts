@@ -70,4 +70,24 @@ describe('automatic Guided reaction prompt', () => {
     }
     expect(selectAutomaticReactionPrompt(battle(), rules, deny)).toBeNull()
   })
+
+  it('never auto-pauses for a timing that still requires table confirmation', () => {
+    const manualRules: ContextRulesByPlayer = {
+      p1: { stratagems: [] },
+      p2: {
+        stratagems: [{
+          definition: {
+            ...reaction,
+            timingConfidence: 'REQUIRES_CONFIRMATION',
+            timingConfidenceReasons: ['Source condition still needs confirmation.'],
+          },
+          classification: 'REACTION',
+          manualConfirmationRequired: true,
+          fullyAutomatedTiming: false,
+        }],
+      },
+    }
+
+    expect(selectAutomaticReactionPrompt(battle(), manualRules)).toBeNull()
+  })
 })
