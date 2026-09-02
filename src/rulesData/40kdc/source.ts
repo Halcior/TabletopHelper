@@ -6,20 +6,21 @@ import {
   type Trigger,
 } from '@alpaca-software/40kdc-data'
 import type {
+  FortyKdcMoveType,
   FortyKdcSource,
   FortyKdcTargetRestrictions,
   FortyKdcTriggerRecord,
+  FortyKdcTriggerSubject,
 } from './sourceTypes'
 
 function mapTrigger(trigger: Trigger): FortyKdcTriggerRecord {
   return {
     event: trigger.event,
-    hasStructuredGuard: Boolean(
-      trigger.condition
-      || trigger.proximity
-      || trigger.move_types?.length
-      || trigger.window,
-    ),
+    subject: trigger.subject as FortyKdcTriggerSubject | undefined,
+    moveTypes: (trigger.move_types ?? []) as FortyKdcMoveType[],
+    hasCondition: Boolean(trigger.condition),
+    hasProximity: Boolean(trigger.proximity),
+    hasWindow: Boolean(trigger.window),
   }
 }
 
@@ -65,10 +66,12 @@ export function loadEmbedded40kdcSource(): FortyKdcSource {
       const rawTriggers = ability.raw.trigger
         ? Array.isArray(ability.raw.trigger) ? ability.raw.trigger : [ability.raw.trigger]
         : []
+      const description = ability.describe().trim()
       return {
         id: ability.id,
         behavior: ability.raw.behavior,
         triggers: rawTriggers.map(mapTrigger),
+        description: description || undefined,
       }
     }),
   }

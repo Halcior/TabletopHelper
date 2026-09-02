@@ -1,7 +1,9 @@
 import { create } from 'zustand'
 import type { Army } from '../domain/army/types'
 import {
+  abandonBattle as abandonBattleInEngine,
   advancePhase,
+  completeBattle as completeBattleInEngine,
   dispatchBattleEvent,
   rehydrateBattleSession,
   redoLastAction,
@@ -14,12 +16,17 @@ import {
   startMissionAction as startMissionActionInBattle,
   type StartMissionActionInput,
 } from '../domain/battle/missionActions'
+import { selectCurrentTimingCheckpoint } from '../domain/context/timingContext'
 import {
+  cancelReactionWindow as cancelReactionWindowInBattle,
   passReaction as passReactionInBattle,
+  processReactionTrigger as processReactionTriggerInBattle,
+  refineReactionHold as refineReactionHoldInBattle,
   requestReactionHold as requestReactionHoldInBattle,
   useStratagem as useStratagemInBattle,
 } from '../domain/stratagems/battleIntegration'
 import type { ReactionTriggerInput, UseStratagemInput } from '../domain/stratagems/battleIntegration'
+import { assertSharedMutationAllowed } from '../multiplayer/sharedRuntime'
 import { getBattle, getLatestActiveBattle, saveBattle } from '../persistence/database'
 import {
   advanceCauldronPhase,
@@ -54,7 +61,10 @@ type BattleStore = {
   resumeLatest: () => Promise<string | null>
   dispatch: (event: BattleEventInput) => void
   useStratagem: (input: UseStratagemInput) => void
+  processReactionTrigger: (input: ReactionTriggerInput) => void
   requestReactionHold: (playerId: string, input: ReactionTriggerInput) => void
+  refineReactionHold: (reactionWindowId: string, playerId: string, input: ReactionTriggerInput) => void
+  cancelReactionWindow: (reactionWindowId: string) => void
   passReaction: (reactionWindowId: string, playerId: string) => void
   startMissionAction: (input: StartMissionActionInput) => void
   completeMissionAction: (actionId: string, positionConfirmed: boolean) => void
@@ -68,6 +78,8 @@ type BattleStore = {
   nextPhase: () => void
   changePlan: (playerId: string, planId: OperationalPlanId) => void
   confirmRound: (confirmations: Record<string, PlanConfirmation>) => void
+  endBattle: () => void
+  abandonBattle: () => void
   undo: () => void
   redo: () => void
 }
@@ -89,10 +101,24 @@ function applySessionUpdate(
   if (!current) return
   try {
     const session = update(current)
+    assertSharedMutationAllowed(current, session)
     set({ session, error: null })
     queueSave(session)
   } catch (error: unknown) {
     set({ error: error instanceof Error ? error.message : String(error) })
+  }
+}
+
+function withRecordedTimingContext(session: BattleSession, input: UseStratagemInput): UseStratagemInput {
+  if (input.reactionWindowId || input.trigger === 'CUSTOM_CONFIRMATION') return input
+  const checkpoint = selectCurrentTimingCheckpoint(session)
+  if (!checkpoint) return input
+  const matchingTrigger = checkpoint.triggers.find((trigger) => input.definition.triggers.includes(trigger))
+  if (!matchingTrigger) return input
+  return {
+    ...input,
+    trigger: matchingTrigger,
+    context: input.context ?? checkpoint.context,
   }
 }
 
@@ -152,9 +178,27 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
     const current = get().session
     if (!current) return
     try {
-      const session = useStratagemInBattle(current, input)
+      const session = useStratagemInBattle(current, withRecordedTimingContext(current, input))
+      assertSharedMutationAllowed(current, session)
       set({ session, error: null })
       queueSave(session)
+    } catch (error: unknown) {
+      set({ error: error instanceof Error ? error.message : String(error) })
+    }
+  },
+
+  processReactionTrigger(input) {
+    const current = get().session
+    if (!current) return
+    try {
+      const result = processReactionTriggerInBattle(current, input)
+      if (result.session === current) {
+        set({ error: null })
+        return
+      }
+      assertSharedMutationAllowed(current, result.session)
+      set({ session: result.session, error: null })
+      queueSave(result.session)
     } catch (error: unknown) {
       set({ error: error instanceof Error ? error.message : String(error) })
     }
@@ -165,6 +209,7 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
     if (!current) return
     try {
       const session = requestReactionHoldInBattle(current, playerId, input)
+      assertSharedMutationAllowed(current, session)
       set({ session, error: null })
       queueSave(session)
     } catch (error: unknown) {
@@ -172,11 +217,24 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
     }
   },
 
+  refineReactionHold(reactionWindowId, playerId, input) {
+    applySessionUpdate(get().session, (session) => (
+      refineReactionHoldInBattle(session, reactionWindowId, playerId, input)
+    ), set)
+  },
+
+  cancelReactionWindow(reactionWindowId) {
+    applySessionUpdate(get().session, (session) => (
+      cancelReactionWindowInBattle(session, reactionWindowId)
+    ), set)
+  },
+
   passReaction(reactionWindowId, playerId) {
     const current = get().session
     if (!current) return
     try {
       const session = passReactionInBattle(current, reactionWindowId, playerId)
+      assertSharedMutationAllowed(current, session)
       set({ session, error: null })
       queueSave(session)
     } catch (error: unknown) {
@@ -238,6 +296,14 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
 
   confirmRound(confirmations) {
     applySessionUpdate(get().session, (session) => confirmCauldronEndRound(session, confirmations), set)
+  },
+
+  endBattle() {
+    applySessionUpdate(get().session, completeBattleInEngine, set)
+  },
+
+  abandonBattle() {
+    applySessionUpdate(get().session, abandonBattleInEngine, set)
   },
 
   undo() {

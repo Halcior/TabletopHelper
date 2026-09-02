@@ -15,7 +15,9 @@ export const TIMING_TRIGGERS = [
   'UNIT_SELECTED_TO_FIGHT',
   'MELEE_TARGET_SELECTED',
   'FIGHT_RESOLVED',
+  'MODEL_DESTROYED',
   'UNIT_DESTROYED',
+  'BATTLESHOCK_RESOLVED',
   'BATTLESHOCK_FAILED',
   'BATTLESHOCK_PASSED',
   'OBJECTIVE_CONTROL_CHANGED',
@@ -34,12 +36,18 @@ export type TimingPhase = BattlePhase | 'ANY'
 export type OwnerScope = 'ACTIVE_PLAYER' | 'OPPONENT' | 'ANY_PLAYER'
 export type StandardUsageLimit = typeof STANDARD_USAGE_LIMITS[number]
 export type TimedOptionKind = 'STRATAGEM' | 'ABILITY' | (string & {})
+export type TimingConfidence = 'VERIFIED' | 'REQUIRES_CONFIRMATION'
+export type ReactionMoveType = 'normal' | 'advance' | 'fall-back' | 'charge'
 
 export type ReactionContext = {
   actingPlayerId?: string
   sourceUnitId?: string
+  triggerSubjectPlayerId?: string
+  triggerSubjectUnitId?: string
+  moveType?: ReactionMoveType
   targetUnitId?: string
   targetPlayerId?: string
+  targetKeywords?: readonly string[]
   objectiveId?: string
   eventId?: string
   [key: string]: unknown
@@ -86,6 +94,12 @@ export type TimedOptionDefinition = {
   description: string
   ownerScope: OwnerScope
   timing?: string
+  /**
+   * Presentation metadata describing how much of the timing/guard logic the
+   * structured source can prove. It never overrides Timing Engine legality.
+   */
+  timingConfidence?: TimingConfidence
+  timingConfidenceReasons?: readonly string[]
   phases: readonly TimingPhase[]
   triggers: readonly TimingTrigger[]
   reaction: boolean

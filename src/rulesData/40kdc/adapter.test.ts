@@ -16,7 +16,7 @@ const source: FortyKdcSource = {
   ],
   detachments: [
     { id: 'first-host', name: 'First Host', factionId: 'test-faction', stratagemIds: ['advance', 'unknown'] },
-    { id: 'second-host', name: 'Second Host', factionId: 'test-faction', stratagemIds: ['reaction', 'advance'] },
+    { id: 'second-host', name: 'Second Host', factionId: 'test-faction', stratagemIds: ['reaction', 'advance', 'physical-trigger'] },
     { id: 'other-host', name: 'First Host', factionId: 'other-faction', stratagemIds: ['other'] },
   ],
   stratagems: [
@@ -52,6 +52,16 @@ const source: FortyKdcSource = {
       abilityId: 'reaction-ability',
     },
     {
+      id: 'physical-trigger',
+      name: 'Physical Trigger',
+      detachmentId: 'second-host',
+      cpCost: 1,
+      phases: ['fight'],
+      playerTurn: 'either',
+      timing: 'once-per-phase',
+      abilityId: 'physical-trigger-ability',
+    },
+    {
       id: 'other',
       name: 'Wrong Faction',
       detachmentId: 'other-host',
@@ -63,9 +73,30 @@ const source: FortyKdcSource = {
     },
   ],
   abilities: [
-    { id: 'advance-ability', behavior: 'activated', triggers: [{ event: 'start-of-phase', hasStructuredGuard: false }] },
-    { id: 'unknown-ability', behavior: 'activated', triggers: [] },
-    { id: 'reaction-ability', behavior: 'reactive', triggers: [{ event: 'selected-to-shoot', hasStructuredGuard: false }] },
+    {
+      id: 'advance-ability',
+      behavior: 'activated',
+      triggers: [{ event: 'start-of-phase' }],
+      description: 'The selected unit can move more aggressively this phase.',
+    },
+    {
+      id: 'unknown-ability',
+      behavior: 'activated',
+      triggers: [],
+      description: 'Resolve the structured effect for the selected unit.',
+    },
+    {
+      id: 'reaction-ability',
+      behavior: 'reactive',
+      triggers: [{ event: 'selected-to-shoot', subject: 'enemy-unit' }],
+      description: 'The reacting unit gains the structured defensive effect.',
+    },
+    {
+      id: 'physical-trigger-ability',
+      behavior: 'reactive',
+      triggers: [{ event: 'on-model-destroyed' }, { event: 'after-battle-shock' }],
+      description: 'React to a recorded physical-state change.',
+    },
   ],
 }
 
@@ -106,7 +137,7 @@ describe('40kdc adapter', () => {
     expect(both.definitions.map((definition) => definition.name)).toContain('Return Fire')
   })
 
-  it('maps CP, phases, and usage limits into StratagemDefinition', () => {
+  it('maps CP, phases, usage limits, and generated DSL descriptions into StratagemDefinition', () => {
     const definition = provider.resolveArmyStratagems(army()).definitions[0]
     expect(definition).toMatchObject({
       cpCost: 2,
@@ -114,6 +145,7 @@ describe('40kdc adapter', () => {
       triggers: ['PHASE_START'],
       ownerScope: 'ACTIVE_PLAYER',
       usageLimits: ['ONCE_PER_PHASE'],
+      description: 'The selected unit can move more aggressively this phase.',
     })
   })
 
@@ -133,12 +165,13 @@ describe('40kdc adapter', () => {
     })).toEqual([])
   })
 
-  it('maps opponent-turn records as reactions and preserves target checks', () => {
+  it('maps opponent-turn records as reactions and enforces structured target and subject checks', () => {
     const result = provider.resolveArmyStratagems(army('Test Faction', ['Second Host']))
     const reaction = result.stratagems.find((item) => item.definition.name === 'Return Fire')
     expect(reaction).toMatchObject({
       classification: 'REACTION',
-      manualConfirmationRequired: true,
+      manualConfirmationRequired: false,
+      fullyAutomatedTiming: true,
       targetRestrictions: { requiredKeywords: ['Infantry'] },
       definition: {
         cpCost: 1,
@@ -149,16 +182,31 @@ describe('40kdc adapter', () => {
         usageLimits: ['ONCE_PER_TURN'],
       },
     })
-    const restriction = reaction?.definition.restrictions?.[0]
-    if (!restriction) throw new Error('expected target restriction')
+    const target = reaction?.definition.restrictions?.find((restriction) => restriction.id === '40kdc-target-keywords')
+    const subject = reaction?.definition.restrictions?.find((restriction) => restriction.id === '40kdc-trigger-subject-enemy-unit')
+    if (!target || !subject) throw new Error('expected structured restrictions')
     const base = {
       playerId: 'p2',
       gameState: { round: 1, activePlayerId: 'p1', phase: 'SHOOTING' as const, players: { p1: { cp: 1 }, p2: { cp: 1 } } },
       phase: 'SHOOTING' as const,
       trigger: 'UNIT_SELECTED_TO_SHOOT' as const,
     }
-    expect(restriction.evaluate({ ...base, context: {} })).toMatchObject({ allowed: false })
-    expect(restriction.evaluate({ ...base, context: { targetKeywords: ['INFANTRY'] } })).toMatchObject({ allowed: true })
+    expect(target.evaluate({ ...base, context: {} })).toMatchObject({ allowed: false })
+    expect(target.evaluate({ ...base, context: { targetKeywords: ['INFANTRY'] } })).toMatchObject({ allowed: true })
+    expect(subject.evaluate({ ...base, context: { triggerSubjectPlayerId: 'p1' } })).toMatchObject({ allowed: true })
+    expect(subject.evaluate({ ...base, context: { triggerSubjectPlayerId: 'p2' } })).toMatchObject({ allowed: false })
+  })
+
+  it('maps physical model-loss and battle-shock events without inventing a custom timing', () => {
+    const result = provider.resolveArmyStratagems(army('Test Faction', ['Second Host']))
+    const physical = result.stratagems.find((item) => item.definition.name === 'Physical Trigger')
+    expect(physical).toMatchObject({
+      fullyAutomatedTiming: true,
+      manualConfirmationRequired: false,
+      definition: {
+        triggers: ['MODEL_DESTROYED', 'BATTLESHOCK_RESOLVED'],
+      },
+    })
   })
 
   it('uses CUSTOM_CONFIRMATION for missing timing instead of guessing', () => {
@@ -194,8 +242,7 @@ describe('40kdc diagnostic for the imported 1700 Custodes roster', () => {
       && row.cp >= 0
       && row.detachment.length > 0
       && row.phases.length > 0
-      && row.manualConfirmationRequired
-      && !row.fullyAutomatedTiming
+      && row.manualConfirmationRequired !== row.fullyAutomatedTiming
     ))).toBe(true)
   })
 })

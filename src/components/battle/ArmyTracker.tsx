@@ -9,6 +9,9 @@ import type { SecondaryId } from '../../rulesets/cauldronFFA3/secondaryTypes'
 type ArmyTrackerProps = {
   session: BattleSession
   dispatch: (event: BattleEventInput) => void
+  preferredPlayerId?: string | null
+  sharedMode?: boolean
+  viewerPlayerId?: string | null
   secondaryTargetFilter?: SecondaryId | null
   onClearSecondaryTargetFilter?: () => void
 }
@@ -47,12 +50,14 @@ function UnitReference({
   army,
   ownerId,
   dispatch,
+  canEdit,
 }: {
   unit: UnitDefinition
   state: UnitState
   army: Army
   ownerId: string
   dispatch: (event: BattleEventInput) => void
+  canEdit: boolean
 }) {
   const stats = unit.stats
   const leaders = unit.ledByUnitIds.flatMap((id) => {
@@ -80,7 +85,7 @@ function UnitReference({
           const used = state.oncePerBattleAbilities[ability.name] ?? false
           return <li key={`${ability.name}-${ability.description ?? ''}`}>
             <div><strong>{ability.name}</strong>{ability.description && <p>{ability.description}</p>}</div>
-            <button className={used ? 'button button--danger button--small' : 'button button--small'} onClick={() => dispatch({
+            <button disabled={!canEdit} className={used ? 'button button--danger button--small' : 'button button--small'} onClick={() => dispatch({
               type: 'ABILITY_USED', payload: { playerId: ownerId, unitId: unit.id, abilityName: ability.name, used: !used },
             })}>{used ? 'Used · restore' : 'Mark used'}</button>
           </li>
@@ -104,19 +109,23 @@ function UnitCard({
   state,
   army,
   ownerId,
+  ownerName,
   activePlayerId,
   players,
   missionActionName,
   dispatch,
+  canEdit,
 }: {
   unit: UnitDefinition
   state: UnitState
   army: Army
   ownerId: string
+  ownerName: string
   activePlayerId: string
   players: Array<{ id: string; name: string }>
   missionActionName?: string
   dispatch: (event: BattleEventInput) => void
+  canEdit: boolean
 }) {
   const inferredAttacker = activePlayerId === ownerId ? 'other' : activePlayerId
   const [attacker, setAttacker] = useState(inferredAttacker)
@@ -125,18 +134,25 @@ function UnitCard({
   const multiModel = unit.startingModels > 1
   const maximumWounds = unit.stats?.wounds
   const wounds = state.woundsRemaining ?? maximumWounds ?? 0
-  const destroy = () => dispatch({
-    type: 'UNIT_DESTROYED', payload: { playerId: ownerId, unitId: unit.id, destroyedByPlayerId },
-  })
+  const readOnlyTitle = canEdit ? undefined : `${ownerName} manages this army state on their device.`
+  const destroy = () => {
+    if (!canEdit) return
+    dispatch({ type: 'UNIT_DESTROYED', payload: { playerId: ownerId, unitId: unit.id, destroyedByPlayerId } })
+  }
+  const recordBattleShock = (passed: boolean) => {
+    if (!canEdit) return
+    dispatch({ type: 'BATTLESHOCK_TEST_RESOLVED', payload: { playerId: ownerId, unitId: unit.id, passed } })
+  }
 
   return (
-    <article className={`unit-card${state.destroyed ? ' is-destroyed' : ''}`}>
+    <article className={`unit-card${state.destroyed ? ' is-destroyed' : ''}${canEdit ? '' : ' unit-card--readonly'}`}>
       <div className="unit-card__header">
         <div><h3>{unit.name}</h3><p>{unit.points} pts{unit.isWarlord ? ' · Warlord' : ''}</p></div>
         {state.battleShocked && <span className="status-badge status-badge--danger">Battle-shocked</span>}
       </div>
       {missionActionName && <div className="unit-mission-action"><span>Mission Action</span><strong>{missionActionName}</strong><small>Cannot Shoot or declare a charge this turn.</small></div>}
-      <label className="casualty-attribution"><span>Destroyed by</span><select value={attacker} onChange={(event) => setAttacker(event.target.value)}>
+      {!canEdit && <p className="shared-readonly-note">Read only on this device · {ownerName} records this unit's state.</p>}
+      <label className="casualty-attribution"><span>Destroyed by</span><select disabled={!canEdit} title={readOnlyTitle} value={attacker} onChange={(event) => setAttacker(event.target.value)}>
         {players.map((player) => <option key={player.id} value={player.id}>{player.name}{player.id === activePlayerId ? ' · current' : ''}</option>)}
         <option value="other">Other / environment</option>
       </select></label>
@@ -146,10 +162,10 @@ function UnitCard({
         </div>
         <div className="unit-vital"><strong>{state.modelsAlive} / {unit.startingModels}</strong><span>models alive</span></div>
         <div className="unit-actions">
-          <button disabled={state.modelsAlive === 0} onClick={() => dispatch({
+          <button disabled={!canEdit || state.modelsAlive === 0} title={readOnlyTitle} onClick={() => dispatch({
             type: 'UNIT_MODEL_DESTROYED', payload: { playerId: ownerId, unitId: unit.id, amount: 1, destroyedByPlayerId },
           })}>− Model</button>
-          <button disabled={state.modelsAlive >= unit.startingModels} onClick={() => dispatch({
+          <button disabled={!canEdit || state.modelsAlive >= unit.startingModels} title={readOnlyTitle} onClick={() => dispatch({
             type: 'UNIT_MODEL_RESTORED', payload: { playerId: ownerId, unitId: unit.id, amount: 1 },
           })}>+ Model</button>
         </div>
@@ -157,34 +173,50 @@ function UnitCard({
       </> : maximumWounds ? <>
         <div className="unit-vital unit-vital--wounds"><span>Wounds</span><strong>{wounds} / {maximumWounds}</strong></div>
         <div className="unit-actions unit-actions--three">
-          <button disabled={wounds <= 0} onClick={() => dispatch({
+          <button disabled={!canEdit || wounds <= 0} title={readOnlyTitle} onClick={() => dispatch({
             type: 'UNIT_WOUNDS_CHANGED',
             payload: { playerId: ownerId, unitId: unit.id, woundsRemaining: wounds - 1, destroyedByPlayerId },
           })}>− Wound</button>
-          <button disabled={wounds >= maximumWounds} onClick={() => dispatch({
+          <button disabled={!canEdit || wounds >= maximumWounds} title={readOnlyTitle} onClick={() => dispatch({
             type: 'UNIT_WOUNDS_CHANGED', payload: { playerId: ownerId, unitId: unit.id, woundsRemaining: wounds + 1 },
           })}>+ Wound</button>
-          <button className="danger-action" disabled={state.destroyed} onClick={destroy}>Destroyed</button>
+          <button className="danger-action" disabled={!canEdit || state.destroyed} title={readOnlyTitle} onClick={destroy}>Destroyed</button>
         </div>
         <p className="unit-summary">OC{unit.stats?.objectiveControl ?? '—'}</p>
       </> : <div className="unit-actions">
-        <button className="danger-action" disabled={state.destroyed} onClick={destroy}>Destroyed</button>
-        <button disabled={!state.destroyed} onClick={() => dispatch({
+        <button className="danger-action" disabled={!canEdit || state.destroyed} title={readOnlyTitle} onClick={destroy}>Destroyed</button>
+        <button disabled={!canEdit || !state.destroyed} title={readOnlyTitle} onClick={() => dispatch({
           type: 'UNIT_MODEL_RESTORED', payload: { playerId: ownerId, unitId: unit.id, amount: 1 },
         })}>Restore</button>
       </div>}
-      <div className="unit-status-actions"><button onClick={() => dispatch({
-        type: 'UNIT_BATTLESHOCK_CHANGED',
-        payload: { playerId: ownerId, unitId: unit.id, battleShocked: !state.battleShocked },
-      })}>{state.battleShocked ? 'Clear battle-shock' : 'Battle-shocked'}</button></div>
+      <div className="unit-battleshock-actions">
+        <span>Battle-shock test</span>
+        <div>
+          <button disabled={!canEdit || state.destroyed} title={readOnlyTitle} onClick={() => recordBattleShock(true)}>Passed</button>
+          <button className="danger-action" disabled={!canEdit || state.destroyed} title={readOnlyTitle} onClick={() => recordBattleShock(false)}>Failed</button>
+          {state.battleShocked && <button disabled={!canEdit} title={readOnlyTitle} onClick={() => dispatch({
+            type: 'UNIT_BATTLESHOCK_CHANGED',
+            payload: { playerId: ownerId, unitId: unit.id, battleShocked: false },
+          })}>Clear state</button>}
+        </div>
+        <small>Pass/Fail records an exact test timing. Clear state only removes the status.</small>
+      </div>
       <details className="unit-details"><summary>Details & quick reference</summary>
-        <UnitReference unit={unit} state={state} army={army} ownerId={ownerId} dispatch={dispatch} />
+        <UnitReference unit={unit} state={state} army={army} ownerId={ownerId} dispatch={dispatch} canEdit={canEdit} />
       </details>
     </article>
   )
 }
 
-export function ArmyTracker({ session, dispatch, secondaryTargetFilter, onClearSecondaryTargetFilter }: ArmyTrackerProps) {
+export function ArmyTracker({
+  session,
+  dispatch,
+  preferredPlayerId,
+  sharedMode = false,
+  viewerPlayerId = null,
+  secondaryTargetFilter,
+  onClearSecondaryTargetFilter,
+}: ArmyTrackerProps) {
   const armyPlayers = session.setup.players.flatMap((player) => {
     const army = player.armyId ? session.setup.armies[player.armyId] : undefined
     return army ? [{ player, army }] : []
@@ -193,16 +225,20 @@ export function ArmyTracker({ session, dispatch, secondaryTargetFilter, onClearS
   const rivalPlayerId = session.setup.rulesetId === CAULDRON_RULESET_ID
     ? getCurrentRivalPlayerId(session, session.state.activePlayerId)
     : null
+  const requestedHasArmy = Boolean(preferredPlayerId && armyPlayers.some(({ player }) => player.id === preferredPlayerId))
   const rivalHasArmy = armyPlayers.some(({ player }) => player.id === rivalPlayerId)
   const activeHasArmy = armyPlayers.some(({ player }) => player.id === session.state.activePlayerId)
-  const preferredPlayerId = rivalHasArmy
-    ? rivalPlayerId ?? ''
-    : activeHasArmy ? session.state.activePlayerId : armyPlayers[0]?.player.id ?? ''
-  const [selectedPlayerId, setSelectedPlayerId] = useState(preferredPlayerId)
-  useEffect(() => setSelectedPlayerId(preferredPlayerId), [preferredPlayerId])
+  const defaultPlayerId = requestedHasArmy
+    ? preferredPlayerId ?? ''
+    : rivalHasArmy
+      ? rivalPlayerId ?? ''
+      : activeHasArmy ? session.state.activePlayerId : armyPlayers[0]?.player.id ?? ''
+  const [selectedPlayerId, setSelectedPlayerId] = useState(defaultPlayerId)
+  useEffect(() => setSelectedPlayerId(defaultPlayerId), [defaultPlayerId])
   if (armyPlayers.length === 0) return <section className="empty-state"><h2>No army roster attached</h2></section>
   const selected = armyPlayers.find(({ player }) => player.id === selectedPlayerId) ?? armyPlayers[0]
   const playerState = session.state.players[selected.player.id]
+  const canEditSelectedArmy = !sharedMode || selected.player.id === viewerPlayerId
   const filterRivalTargets = Boolean(secondaryTargetFilter && selected.player.id === rivalPlayerId)
   const visibleUnits = filterRivalTargets && secondaryTargetFilter
     ? selected.army.units.filter((unit) => (
@@ -216,7 +252,7 @@ export function ArmyTracker({ session, dispatch, secondaryTargetFilter, onClearS
         aria-pressed={player.id === selected.player.id}
         key={player.id}
         onClick={() => setSelectedPlayerId(player.id)}
-      ><span>{player.name}</span><small>{player.id === session.state.activePlayerId
+      ><span>{player.name}{sharedMode && player.id === viewerPlayerId ? ' · You' : ''}</span><small>{player.id === session.state.activePlayerId
         ? 'Active player'
         : player.id === rivalPlayerId ? 'Rival' : 'Opponent'} · {army.faction}</small></button>)}
     </nav>
@@ -225,6 +261,7 @@ export function ArmyTracker({ session, dispatch, secondaryTargetFilter, onClearS
         <div><span className="eyebrow">{selected.player.name} · Zone {selected.player.deploymentZone ?? '—'}</span><h2>{selected.army.faction}</h2></div>
         <strong>{selected.army.totalPoints} pts</strong>
       </div>
+      {sharedMode && !canEditSelectedArmy && <div className="shared-army-readonly"><strong>Opponent army · read only</strong><span>{selected.player.name} records casualties, wounds, battle-shock and abilities on their device.</span></div>}
       {filterRivalTargets && secondaryTargetFilter && <div className="army-target-filter" role="status">
         <span><strong>Targets for {CAULDRON_SECONDARY_BY_ID[secondaryTargetFilter].name}</strong><small>{visibleUnits.length} eligible Rival unit{visibleUnits.length === 1 ? '' : 's'} remaining.</small></span>
         <button onClick={onClearSecondaryTargetFilter}>Show all units</button>
@@ -235,10 +272,12 @@ export function ArmyTracker({ session, dispatch, secondaryTargetFilter, onClearS
         state={playerState.units[unit.id]}
         army={selected.army}
         ownerId={selected.player.id}
+        ownerName={selected.player.name}
         activePlayerId={session.state.activePlayerId}
         players={players}
         missionActionName={getActiveMissionActionForUnit(session, selected.player.id, unit.id)?.name}
         dispatch={dispatch}
+        canEdit={canEditSelectedArmy}
       />)}</div>
       {filterRivalTargets && visibleUnits.length === 0 && <p className="context-note">No eligible Rival targets remain.</p>}
     </section>

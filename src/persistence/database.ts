@@ -62,6 +62,14 @@ export async function getLatestActiveBattle(): Promise<BattleSession | undefined
   return active[0]?.session ? normalizeLegacySession(active[0].session) : undefined
 }
 
+export async function listRecentBattles(limit = 6): Promise<StoredBattle[]> {
+  const recent = await database.battles.orderBy('updatedAt').reverse().limit(limit).toArray()
+  return recent.map((stored) => ({
+    ...stored,
+    session: normalizeLegacySession(stored.session),
+  }))
+}
+
 type LegacyPlayerSetup = BattleSession['setup']['players'][number] & { army?: Army }
 
 function normalizeLegacySession(session: BattleSession): BattleSession {

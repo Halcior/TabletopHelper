@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import type { Army, UnitDefinition } from '../army/types'
 import {
+  abandonBattle,
   advancePhase,
+  completeBattle,
   createBattleSession,
   deserializeBattleSession,
   dispatchBattleEvent,
@@ -196,5 +198,48 @@ describe('generic battle engine', () => {
     const restored = deserializeBattleSession(serializeBattleSession(current))
     expect(restored).toEqual(current)
     expect(() => deserializeBattleSession('{"unexpected":true}')).toThrow()
+  })
+
+  it('explicitly completes a battle, preserves scoring, blocks gameplay changes, and supports undo', () => {
+    let current = session()
+    current = dispatchBattleEvent(current, {
+      type: 'SCORE_ADJUSTED',
+      payload: { playerId: 'p1', category: 'primary', delta: 10 },
+    })
+    current = completeBattle(current, '2026-08-31T11:00:00.000Z')
+
+    expect(current.state.status).toBe('completed')
+    expect(totalScore(current.state.players.p1)).toBe(10)
+    expect(current.state.events.at(-1)?.type).toBe('GAME_ENDED')
+    expect(advancePhase(current)).toBe(current)
+    expect(() => dispatchBattleEvent(current, {
+      type: 'CP_GAINED', payload: { playerId: 'p1', amount: 1 },
+    })).toThrow(/completed/)
+
+    current = undoLastAction(current)
+    expect(current.state.status).toBe('active')
+    expect(totalScore(current.state.players.p1)).toBe(10)
+    current = redoLastAction(current)
+    expect(current.state.status).toBe('completed')
+  })
+
+  it('abandons a battle without deleting progress and keeps that lifecycle through persistence', () => {
+    let current = session()
+    current = dispatchBattleEvent(current, {
+      type: 'SCORE_ADJUSTED',
+      payload: { playerId: 'p1', category: 'secondary', delta: 4 },
+    })
+    current = abandonBattle(current, '2026-08-31T11:05:00.000Z')
+
+    expect(current.state.status).toBe('abandoned')
+    expect(totalScore(current.state.players.p1)).toBe(4)
+    expect(current.state.events.at(-1)?.type).toBe('GAME_ABANDONED')
+    expect(() => dispatchBattleEvent(current, {
+      type: 'OBJECTIVE_CONTROL_CHANGED', payload: { objectiveId: 'n1', controllerPlayerId: 'p1' },
+    })).toThrow(/abandoned/)
+
+    const restored = deserializeBattleSession(serializeBattleSession(current))
+    expect(restored.state.status).toBe('abandoned')
+    expect(totalScore(restored.state.players.p1)).toBe(4)
   })
 })

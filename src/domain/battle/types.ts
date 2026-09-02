@@ -13,6 +13,7 @@ export const BATTLE_PHASES = [
 export type BattlePhase = typeof BATTLE_PHASES[number]
 export type GuidanceLevel = 'guided' | 'fast'
 export type ScoreCategory = 'primary' | 'secondary' | 'plan' | 'adjustment'
+export type BattleLifecycleStatus = 'active' | 'completed' | 'abandoned'
 
 export type PlayerSetup = {
   id: string
@@ -105,6 +106,7 @@ type BattleEventMetadata = {
 export type BattleEvent = BattleEventMetadata & (
   | { type: 'GAME_STARTED'; payload: Record<string, never> }
   | { type: 'GAME_ENDED'; payload: Record<string, never> }
+  | { type: 'GAME_ABANDONED'; payload: Record<string, never> }
   | { type: 'ROUND_STARTED'; payload: { round: number } }
   | { type: 'ROUND_ENDED'; payload: { round: number } }
   | { type: 'TURN_STARTED'; payload: { playerId: string } }
@@ -127,6 +129,7 @@ export type BattleEvent = BattleEventMetadata & (
     payload: { playerId: string; unitId: string; destroyedByPlayerId?: string | null }
   }
   | { type: 'UNIT_BATTLESHOCK_CHANGED'; payload: { playerId: string; unitId: string; battleShocked: boolean } }
+  | { type: 'BATTLESHOCK_TEST_RESOLVED'; payload: { playerId: string; unitId: string; passed: boolean } }
   | { type: 'ABILITY_USED'; payload: { playerId: string; unitId: string; abilityName: string; used: boolean } }
   | { type: 'OBJECTIVE_OC_CHANGED'; payload: { objectiveId: string; playerId: string; oc: number } }
   | { type: 'OBJECTIVE_CONTROL_CHANGED'; payload: { objectiveId: string; controllerPlayerId: string | null } }
@@ -145,6 +148,7 @@ export type BattleEvent = BattleEventMetadata & (
   }
   | { type: 'REACTION_WINDOW_OPENED'; payload: { window: ReactionWindow } }
   | { type: 'REACTION_HOLD_REQUESTED'; payload: { window: ReactionWindow } }
+  | { type: 'REACTION_HOLD_REFINED'; payload: { window: ReactionWindow } }
   | { type: 'REACTION_PASSED'; payload: { reactionWindowId: string; playerId: string } }
   | {
     type: 'STRATAGEM_USED'
@@ -171,7 +175,7 @@ export type BattleEventInput = BattleEvent extends infer Event
 export type GameState = {
   gameId: string
   rulesetId: string
-  status: 'active' | 'completed'
+  status: BattleLifecycleStatus
   round: number
   activePlayerId: string
   phase: BattlePhase

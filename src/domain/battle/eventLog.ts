@@ -13,6 +13,7 @@ export function describeBattleEvent(event: BattleEvent, setup: BattleSetup): str
   switch (event.type) {
     case 'GAME_STARTED': return 'Battle started'
     case 'GAME_ENDED': return 'Battle ended'
+    case 'GAME_ABANDONED': return 'Battle abandoned'
     case 'ROUND_STARTED': return `Round ${event.payload.round} started`
     case 'ROUND_ENDED': return `Round ${event.payload.round} ended`
     case 'TURN_STARTED': return `${playerName(setup, event.payload.playerId)} turn started`
@@ -26,15 +27,17 @@ export function describeBattleEvent(event: BattleEvent, setup: BattleSetup): str
     case 'UNIT_WOUNDS_CHANGED': return `${unitName(setup, event.payload.playerId, event.payload.unitId)} set to ${event.payload.woundsRemaining} wounds`
     case 'UNIT_DESTROYED': return `${unitName(setup, event.payload.playerId, event.payload.unitId)} destroyed`
     case 'UNIT_BATTLESHOCK_CHANGED': return `${unitName(setup, event.payload.playerId, event.payload.unitId)} battle-shock ${event.payload.battleShocked ? 'on' : 'off'}`
+    case 'BATTLESHOCK_TEST_RESOLVED': return `${unitName(setup, event.payload.playerId, event.payload.unitId)} Battle-shock test ${event.payload.passed ? 'passed' : 'failed'}`
     case 'ABILITY_USED': return `${unitName(setup, event.payload.playerId, event.payload.unitId)}: ${event.payload.abilityName} ${event.payload.used ? 'used' : 'restored'}`
     case 'OBJECTIVE_OC_CHANGED': return `${event.payload.objectiveId}: ${playerName(setup, event.payload.playerId)} OC ${event.payload.oc}`
     case 'OBJECTIVE_CONTROL_CHANGED': return `${event.payload.objectiveId}: ${event.payload.controllerPlayerId ? playerName(setup, event.payload.controllerPlayerId) : 'uncontrolled'}`
     case 'MISSION_ACTION_STARTED': return `${unitName(setup, event.payload.action.playerId, event.payload.action.unitId)} started ${event.payload.action.name}`
-    case 'MISSION_ACTION_COMPLETED': return `Mission Action completed`
+    case 'MISSION_ACTION_COMPLETED': return 'Mission Action completed'
     case 'MISSION_ACTION_FAILED': return `Mission Action failed: ${event.payload.reason}`
     case 'MISSION_ACTION_CANCELLED': return event.payload.reason ? `Mission Action cancelled: ${event.payload.reason}` : 'Mission Action cancelled'
     case 'REACTION_WINDOW_OPENED': return `Reaction window opened: ${event.payload.window.trigger.replaceAll('_', ' ').toLowerCase()}`
     case 'REACTION_HOLD_REQUESTED': return `${playerName(setup, event.payload.window.requestedByPlayerId ?? '')} requested a reaction hold`
+    case 'REACTION_HOLD_REFINED': return `${playerName(setup, event.payload.window.requestedByPlayerId ?? '')} set HOLD timing: ${event.payload.window.trigger.replaceAll('_', ' ').toLowerCase()}`
     case 'REACTION_PASSED': return `${playerName(setup, event.payload.playerId)} passed the reaction window`
     case 'STRATAGEM_USED': return `${playerName(setup, event.payload.playerId)} used "${event.payload.stratagemName}" (${event.payload.cpCost} CP)`
     case 'REACTION_WINDOW_RESOLVED': return 'Reaction window resolved'
