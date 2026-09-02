@@ -34,6 +34,7 @@ function isMeaningfulPhysicalEvent(event: BattleEvent): boolean {
     'UNIT_MODEL_RESTORED',
     'UNIT_WOUNDS_CHANGED',
     'UNIT_DESTROYED',
+    'BATTLESHOCK_TEST_RESOLVED',
     'OBJECTIVE_CONTROL_CHANGED',
     'MISSION_ACTION_STARTED',
     'MISSION_ACTION_COMPLETED',
@@ -73,6 +74,13 @@ function describeCause(session: BattleSession, event: BattleEvent): { title: str
         title: `${name} · ${event.payload.woundsRemaining} W remaining`,
         detail: 'Wounds updated.',
         casualtyScoringPlayerId: event.payload.destroyedByPlayerId ?? undefined,
+      }
+    }
+    case 'BATTLESHOCK_TEST_RESOLVED': {
+      const name = unitName(session, event.payload.playerId, event.payload.unitId)
+      return {
+        title: `${name} · Battle-shock ${event.payload.passed ? 'passed' : 'failed'}`,
+        detail: event.payload.passed ? 'Battle-shock test recorded as passed.' : 'Battle-shock state applied.',
       }
     }
     case 'OBJECTIVE_CONTROL_CHANGED': {
