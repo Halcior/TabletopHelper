@@ -18,8 +18,10 @@ import {
 } from '../domain/battle/missionActions'
 import { selectCurrentTimingCheckpoint } from '../domain/context/timingContext'
 import {
+  cancelReactionWindow as cancelReactionWindowInBattle,
   passReaction as passReactionInBattle,
   processReactionTrigger as processReactionTriggerInBattle,
+  refineReactionHold as refineReactionHoldInBattle,
   requestReactionHold as requestReactionHoldInBattle,
   useStratagem as useStratagemInBattle,
 } from '../domain/stratagems/battleIntegration'
@@ -61,6 +63,8 @@ type BattleStore = {
   useStratagem: (input: UseStratagemInput) => void
   processReactionTrigger: (input: ReactionTriggerInput) => void
   requestReactionHold: (playerId: string, input: ReactionTriggerInput) => void
+  refineReactionHold: (reactionWindowId: string, playerId: string, input: ReactionTriggerInput) => void
+  cancelReactionWindow: (reactionWindowId: string) => void
   passReaction: (reactionWindowId: string, playerId: string) => void
   startMissionAction: (input: StartMissionActionInput) => void
   completeMissionAction: (actionId: string, positionConfirmed: boolean) => void
@@ -211,6 +215,18 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
     } catch (error: unknown) {
       set({ error: error instanceof Error ? error.message : String(error) })
     }
+  },
+
+  refineReactionHold(reactionWindowId, playerId, input) {
+    applySessionUpdate(get().session, (session) => (
+      refineReactionHoldInBattle(session, reactionWindowId, playerId, input)
+    ), set)
+  },
+
+  cancelReactionWindow(reactionWindowId) {
+    applySessionUpdate(get().session, (session) => (
+      cancelReactionWindowInBattle(session, reactionWindowId)
+    ), set)
   },
 
   passReaction(reactionWindowId, playerId) {
