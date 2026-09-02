@@ -75,6 +75,10 @@ export function ArmyQuickPanel({
         const wounds = state.woundsRemaining ?? maximumWounds ?? 0
         const canEdit = !sharedMode || ownerId === viewerPlayerId
         const readOnlyTitle = canEdit ? undefined : `${playerName} manages this unit state on their device.`
+        const recordBattleShock = (passed: boolean) => dispatch({
+          type: 'BATTLESHOCK_TEST_RESOLVED',
+          payload: { playerId: ownerId, unitId: unit.id, passed },
+        })
         return <article className={`quick-unit${state.destroyed ? ' is-destroyed' : ''}`} key={`${ownerId}-${unit.id}`}>
           <div className="quick-unit__heading"><div><strong>{unit.name}</strong><small>{unit.points} pts · {[...unit.categories, ...unit.keywords].join(', ') || 'Unit'}</small></div>{state.battleShocked && <span className="status-badge status-badge--danger">Battle-shocked</span>}</div>
           {!canEdit && <p className="shared-readonly-note">Read only · {playerName} owns this army state.</p>}
@@ -92,6 +96,16 @@ export function ArmyQuickPanel({
               <button className="button--danger" disabled={!canEdit || state.destroyed} title={readOnlyTitle} onClick={() => dispatch({ type: 'UNIT_DESTROYED', payload: { playerId: ownerId, unitId: unit.id, destroyedByPlayerId } })}>Destroyed</button>
             </div>
           </> : <button className="button--danger button--wide" disabled={!canEdit || state.destroyed} title={readOnlyTitle} onClick={() => dispatch({ type: 'UNIT_DESTROYED', payload: { playerId: ownerId, unitId: unit.id, destroyedByPlayerId } })}>Destroyed</button>}
+          <div className="quick-unit__battleshock">
+            <span>Battle-shock</span>
+            <div>
+              <button disabled={!canEdit || state.destroyed} title={readOnlyTitle} onClick={() => recordBattleShock(true)}>Pass</button>
+              <button className="button--danger" disabled={!canEdit || state.destroyed} title={readOnlyTitle} onClick={() => recordBattleShock(false)}>Fail</button>
+              {state.battleShocked && <button disabled={!canEdit} title={readOnlyTitle} onClick={() => dispatch({
+                type: 'UNIT_BATTLESHOCK_CHANGED', payload: { playerId: ownerId, unitId: unit.id, battleShocked: false },
+              })}>Clear</button>}
+            </div>
+          </div>
           <button className="quick-unit__details" onClick={() => onDetails(ownerId, unit.id)}>Details</button>
         </article>
       })}</div>
