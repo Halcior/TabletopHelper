@@ -10,6 +10,7 @@ import { PhaseEndTimingReview } from '../components/battle/context/PhaseEndTimin
 import { EndRoundReview } from '../components/battle/EndRoundReview'
 import { ObjectivesPanel } from '../components/battle/ObjectivesPanel'
 import { humanizePhase, PhaseStepper } from '../components/battle/PhaseStepper'
+import { ReactionHoldControl } from '../components/battle/ReactionHoldControl'
 import { Scoreboard } from '../components/battle/Scoreboard'
 import { SecondaryEndTurnReview } from '../components/battle/SecondaryEndTurnReview'
 import { SecondaryDetailPanel } from '../components/battle/SecondaryPanel'
@@ -27,7 +28,7 @@ import {
 } from '../domain/context'
 import { getCurrentReactionWindow, isBattleFlowPaused } from '../domain/stratagems/battleIntegration'
 import { getAvailableStratagems } from '../domain/stratagems/timingEngine'
-import type { StratagemAvailability } from '../domain/stratagems/types'
+import type { StratagemAvailability, TimingTrigger } from '../domain/stratagems/types'
 import { ReactionWindowPanel } from '../features/stratagems'
 import { getSharedSessionPermissions } from '../multiplayer/permissions'
 import { useSharedSessionStore } from '../multiplayer/sharedSessionStore'
@@ -44,6 +45,18 @@ import { useBattleStore } from '../stores/battleStore'
 type DashboardTab = 'overview' | 'army' | 'objectives' | 'cards' | 'log'
 
 const rulesDataCache = new WeakMap<Army, RulesDataResolution>()
+const ACTIVE_PLAYER_SUBJECT_TRIGGERS = new Set<TimingTrigger>([
+  'UNIT_SELECTED_TO_MOVE',
+  'UNIT_FINISHED_MOVE',
+  'UNIT_SELECTED_TO_SHOOT',
+  'SHOOTING_ATTACK_DECLARED',
+  'SHOOTING_ATTACK_RESOLVED',
+  'CHARGE_DECLARED',
+  'CHARGE_ROLL_MADE',
+  'CHARGE_COMPLETED',
+  'UNIT_SELECTED_TO_FIGHT',
+  'FIGHT_RESOLVED',
+])
 
 function resolveArmyRules(provider: RulesDataProvider, army: Army): RulesDataResolution {
   const cached = rulesDataCache.get(army)
@@ -143,6 +156,9 @@ export default function BattleDashboard() {
   const rivalId = cauldron ? getCurrentRivalPlayerId(session, active.id) : null
   const rival = rivalId ? session.state.players[rivalId] : null
   const playerIds = Object.keys(session.state.players)
+  const reactionHoldPlayers = session.state.turnOrder
+    .filter((playerId) => playerId !== active.id)
+    .map((playerId) => ({ id: playerId, name: session.state.players[playerId].name }))
   const playerNames = Object.fromEntries(Object.values(session.state.players).map((player) => [player.id, player.name]))
   const rulesDataByPlayer = Object.fromEntries(playerIds.map((playerId) => {
     const armyId = session.state.players[playerId].armyId
@@ -259,6 +275,18 @@ export default function BattleDashboard() {
       playerId: active.id,
       definition: availability.definition,
       trigger,
+    })
+  }
+
+  function handleReactionHold(playerId: string, trigger: TimingTrigger) {
+    if (currentWindow) return
+    requestReactionHold(playerId, {
+      trigger,
+      context: {
+        actingPlayerId: active.id,
+        ...(ACTIVE_PLAYER_SUBJECT_TRIGGERS.has(trigger) ? { triggerSubjectPlayerId: active.id } : {}),
+      },
+      definitionsByPlayer,
     })
   }
 
@@ -463,6 +491,15 @@ export default function BattleDashboard() {
                   onOpenCards={() => setTab('cards')}
                 />}
                 <BattleQuickStatus session={session} onOpenObjectives={() => setTab('objectives')} />
+                <ReactionHoldControl
+                  phase={session.state.phase}
+                  activePlayerName={active.name}
+                  players={reactionHoldPlayers}
+                  sharedMode={sharedBattle}
+                  viewerPlayerId={viewerPlayerId}
+                  disabled={Boolean(currentWindow)}
+                  onHold={handleReactionHold}
+                />
               </aside>
             </div>}
             {tab === 'army' && <ArmyTracker
