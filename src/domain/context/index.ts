@@ -1,3 +1,4 @@
+export * from './automaticReaction'
 export * from './contextEngine'
 export * from './selectors'
 export * from './timingContext'
