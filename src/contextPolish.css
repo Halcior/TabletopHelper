@@ -56,12 +56,27 @@
   background: rgb(73 59 28 / 28%);
 }
 
-.context-stratagem--unverified {
+.context-stratagem--unverified,
+.stratagem-card--unverified {
   border-style: dashed !important;
 }
 
 .context-stratagem--unverified > p {
   color: var(--paper) !important;
+}
+
+.stratagem-card__confidence-reasons {
+  display: grid;
+  gap: 5px;
+  margin: 10px 0;
+  padding-left: 18px;
+  color: var(--muted);
+  font-size: .75rem;
+  line-height: 1.4;
+}
+
+.reaction-window .stratagem-confidence {
+  margin: 6px 0 2px;
 }
 
 .quick-status-actions {
@@ -244,13 +259,6 @@
 
 .phase-end-review__actions {
   margin-top: 22px;
-}
-
-.recent-battle-card__heading {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
 }
 
 @media (max-width: 820px) {
