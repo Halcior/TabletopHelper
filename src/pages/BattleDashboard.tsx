@@ -6,6 +6,7 @@ import { BattleLog } from '../components/battle/BattleLog'
 import { BattleMenu } from '../components/battle/BattleMenu'
 import { BattleSummary } from '../components/battle/BattleSummary'
 import { ContextCommandCentre } from '../components/battle/context/ContextCommandCentre'
+import { PhaseEndTimingReview } from '../components/battle/context/PhaseEndTimingReview'
 import { EndRoundReview } from '../components/battle/EndRoundReview'
 import { ObjectivesPanel } from '../components/battle/ObjectivesPanel'
 import { humanizePhase, PhaseStepper } from '../components/battle/PhaseStepper'
@@ -17,7 +18,13 @@ import { SharedSessionStatus } from '../components/battle/SharedSessionStatus'
 import type { Army } from '../domain/army/types'
 import { canUndo } from '../domain/battle/selectors'
 import { BATTLE_PHASES } from '../domain/battle/types'
-import { buildBattleContext } from '../domain/context'
+import {
+  buildBattleContext,
+  selectReactionPlayersAtCheckpoint,
+  selectRelevantStratagemsAtCheckpoint,
+  type CurrentTimingCheckpoint,
+  type RelevantStratagem,
+} from '../domain/context'
 import { getCurrentReactionWindow, isBattleFlowPaused } from '../domain/stratagems/battleIntegration'
 import { getAvailableStratagems } from '../domain/stratagems/timingEngine'
 import type { StratagemAvailability } from '../domain/stratagems/types'
@@ -51,6 +58,7 @@ export default function BattleDashboard() {
   const [tab, setTab] = useState<DashboardTab>('overview')
   const [reviewOpen, setReviewOpen] = useState(false)
   const [turnReviewOpen, setTurnReviewOpen] = useState(false)
+  const [phaseEndReviewOpen, setPhaseEndReviewOpen] = useState(false)
   const [terminalLogOpen, setTerminalLogOpen] = useState(false)
   const [contextFocusItemId, setContextFocusItemId] = useState<string | null>(null)
   const [rulesDataProvider, setRulesDataProvider] = useState<RulesDataProvider | null>(null)
@@ -67,6 +75,7 @@ export default function BattleDashboard() {
     loadBattle,
     dispatch,
     useStratagem,
+    processReactionTrigger,
     requestReactionHold,
     passReaction,
     startMissionAction,
@@ -108,6 +117,7 @@ export default function BattleDashboard() {
   useEffect(() => {
     if (!session || session.state.status !== 'active') return
     setTab('overview')
+    setPhaseEndReviewOpen(false)
     setContextFocusItemId(null)
     setArmySecondaryFilter(null)
     setArmyPreferredPlayerId(null)
@@ -181,6 +191,40 @@ export default function BattleDashboard() {
       : `Round ${session.state.round + 1} · ${nextPlayer.name}`
     : `${nextPlayer.name} · Command`
   const progressionBlockers = battleContext?.blockingItems.filter((item) => item.type !== 'END_TURN_REVIEW') ?? []
+
+  const phaseEndCheckpointKey = `${session.state.round}:${active.id}:${session.state.phase}`
+  const phaseEndCheckpoint: CurrentTimingCheckpoint = {
+    triggers: ['PHASE_END'],
+    context: {
+      actingPlayerId: active.id,
+      phaseEndCheckpointKey,
+    },
+  }
+  const phaseEndStratagems = battleActive && session.state.phase !== 'END_TURN'
+    ? selectRelevantStratagemsAtCheckpoint(
+        session,
+        rulesDataByPlayer,
+        phaseEndCheckpoint,
+        active.id,
+        { allowCustomFallback: false },
+      )
+    : []
+  const phaseEndReactionPlayers = battleActive && session.state.phase !== 'END_TURN'
+    ? selectReactionPlayersAtCheckpoint(
+        session,
+        rulesDataByPlayer,
+        phaseEndCheckpoint,
+        { allowCustomFallback: false },
+      )
+    : []
+  const phaseEndHasReactions = phaseEndReactionPlayers.some((player) => player.exactCount + player.potentialCount > 0)
+  const phaseEndHasTimingOpportunities = phaseEndStratagems.length > 0 || phaseEndHasReactions
+  const phaseEndReactionsHandled = !phaseEndHasReactions || Object.values(session.state.timing.reactionWindows).some((window) => (
+    window.trigger === 'PHASE_END'
+    && window.context.phaseEndCheckpointKey === phaseEndCheckpointKey
+    && window.status === 'RESOLVED'
+  ))
+
   const nextLabel = progressionBlockers.length > 0
     ? `Resolve ${progressionBlockers.length} item${progressionBlockers.length === 1 ? '' : 's'}`
     : cauldronTurnReview
@@ -192,9 +236,11 @@ export default function BattleDashboard() {
     ? progressionBlockers[0].title
     : cauldronTurnReview
       ? 'Scoring & Mission Actions'
-      : phaseIndex < BATTLE_PHASES.length - 1
-        ? humanizePhase(BATTLE_PHASES[phaseIndex + 1])
-        : nextTurnDestination
+      : phaseEndHasTimingOpportunities && session.setup.guidanceLevel === 'guided'
+        ? 'End-of-phase timing check'
+        : phaseIndex < BATTLE_PHASES.length - 1
+          ? humanizePhase(BATTLE_PHASES[phaseIndex + 1])
+          : nextTurnDestination
   const headerTitle = battleActive
     ? `${phaseLabel} phase`
     : session.state.status === 'completed'
@@ -215,6 +261,31 @@ export default function BattleDashboard() {
     })
   }
 
+  function handlePhaseEndStratagem(option: RelevantStratagem) {
+    if (!canControlTurn || currentWindow) return
+    useStratagem({
+      playerId: active.id,
+      definition: option.definition,
+      trigger: 'PHASE_END',
+      context: phaseEndCheckpoint.context,
+    })
+  }
+
+  function handleOpenPhaseEndReactions() {
+    if (!canControlTurn || currentWindow || !phaseEndHasReactions) return
+    processReactionTrigger({
+      trigger: 'PHASE_END',
+      context: phaseEndCheckpoint.context,
+      definitionsByPlayer,
+    })
+  }
+
+  function handleFinishPhaseEndReview() {
+    if (!canControlTurn || currentWindow || !phaseEndReactionsHandled) return
+    setPhaseEndReviewOpen(false)
+    nextPhase()
+  }
+
   function handleNextAction() {
     if (!canControlTurn) return
     if (progressionBlockers.length > 0) {
@@ -222,15 +293,39 @@ export default function BattleDashboard() {
       setContextFocusItemId(progressionBlockers[0].id)
       return
     }
+    if (flowPaused) return
     setContextFocusItemId(null)
-    if (cauldronTurnReview) setTurnReviewOpen(true)
-    else nextPhase()
+    if (cauldronTurnReview) {
+      setTurnReviewOpen(true)
+      return
+    }
+    if (session.setup.guidanceLevel === 'guided' && phaseEndHasTimingOpportunities) {
+      setPhaseEndReviewOpen(true)
+      return
+    }
+    nextPhase()
   }
 
   function selectDashboardTab(item: DashboardTab) {
     if (item === 'army') setArmyPreferredPlayerId(null)
     setTab(item)
   }
+
+  const reactionWindowPanel = currentWindow ? <ReactionWindowPanel
+    window={currentWindow}
+    playerNames={playerNames}
+    optionsByPlayer={windowOptionsByPlayer}
+    sharedMode={sharedBattle}
+    viewerPlayerId={viewerPlayerId}
+    onUse={(playerId: string, availability: StratagemAvailability) => useStratagem({
+      playerId,
+      definition: availability.definition,
+      trigger: currentWindow.trigger,
+      context: currentWindow.context,
+      reactionWindowId: currentWindow.id,
+    })}
+    onPass={(playerId: string) => passReaction(currentWindow.id, playerId)}
+  /> : null
 
   return (
     <div className="battle-page">
@@ -294,7 +389,20 @@ export default function BattleDashboard() {
             if (endOfRound) setReviewOpen(true)
             else nextPhase()
           }}
-        /> : <>
+        /> : phaseEndReviewOpen ? <main className="battle-content phase-end-review-shell">
+          {reactionWindowPanel}
+          <PhaseEndTimingReview
+            phase={session.state.phase}
+            stratagems={phaseEndStratagems}
+            reactionPlayers={phaseEndReactionPlayers}
+            reactionWindowOpen={Boolean(currentWindow)}
+            reactionsHandled={phaseEndReactionsHandled}
+            onUseStratagem={handlePhaseEndStratagem}
+            onOpenReactions={handleOpenPhaseEndReactions}
+            onContinue={handleFinishPhaseEndReview}
+            onCancel={() => { if (!currentWindow) setPhaseEndReviewOpen(false) }}
+          />
+        </main> : <>
           <nav className="battle-tabs" aria-label="Battle panels">
             {dashboardTabs.map((item) => (
               <button className={tab === item ? 'selected' : ''} key={item} onClick={() => selectDashboardTab(item)}>{item}</button>
@@ -302,21 +410,7 @@ export default function BattleDashboard() {
           </nav>
 
           <main className="battle-content">
-            {currentWindow && <ReactionWindowPanel
-              window={currentWindow}
-              playerNames={playerNames}
-              optionsByPlayer={windowOptionsByPlayer}
-              sharedMode={sharedBattle}
-              viewerPlayerId={viewerPlayerId}
-              onUse={(playerId: string, availability: StratagemAvailability) => useStratagem({
-                playerId,
-                definition: availability.definition,
-                trigger: currentWindow.trigger,
-                context: currentWindow.context,
-                reactionWindowId: currentWindow.id,
-              })}
-              onPass={(playerId: string) => passReaction(currentWindow.id, playerId)}
-            />}
+            {reactionWindowPanel}
             {tab === 'overview' && battleContext && <div className="tactical-dashboard tactical-dashboard--context">
               <div className="tactical-column tactical-column--primary">
                 <ContextCommandCentre
