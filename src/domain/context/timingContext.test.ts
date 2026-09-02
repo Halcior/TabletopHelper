@@ -46,6 +46,7 @@ describe('current timing checkpoint', () => {
       actingPlayerId: 'p-a',
       triggerSubjectPlayerId: 'p-b',
       triggerSubjectUnitId: 'infantry',
+      targetKeywords: [],
     })
 
     session = dispatchBattleEvent(session, {
@@ -56,7 +57,7 @@ describe('current timing checkpoint', () => {
     expect(checkpoint?.triggers).toEqual(['MODEL_DESTROYED', 'UNIT_DESTROYED'])
   })
 
-  it('records both generic and result-specific battle-shock timing', () => {
+  it('records a failed battle-shock test when the physical state becomes Battle-shocked', () => {
     const session = dispatchBattleEvent(advanceCauldronPhase(testCauldronGame()), {
       type: 'UNIT_BATTLESHOCK_CHANGED',
       payload: { playerId: 'p-b', unitId: 'infantry', battleShocked: true },
@@ -66,6 +67,19 @@ describe('current timing checkpoint', () => {
       'BATTLESHOCK_RESOLVED',
       'BATTLESHOCK_FAILED',
     ])
+  })
+
+  it('does not misread clearing Battle-shock as a passed test', () => {
+    let session = dispatchBattleEvent(advanceCauldronPhase(testCauldronGame()), {
+      type: 'UNIT_BATTLESHOCK_CHANGED',
+      payload: { playerId: 'p-b', unitId: 'infantry', battleShocked: true },
+    }, { actorPlayerId: 'p-b' })
+    session = dispatchBattleEvent(session, {
+      type: 'UNIT_BATTLESHOCK_CHANGED',
+      payload: { playerId: 'p-b', unitId: 'infantry', battleShocked: false },
+    }, { actorPlayerId: 'p-b' })
+
+    expect(selectCurrentTimingCheckpoint(session)).toBeNull()
   })
 
   it('does not keep claiming phase-start timing after an unrelated recorded action', () => {
