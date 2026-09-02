@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { requestReactionHold } from '../stratagems/battleIntegration'
 import { advanceCauldronPhase, dispatchCauldronBattleEvent } from '../../rulesets/cauldronFFA3'
 import { testCauldronGame } from '../../rulesets/cauldronFFA3/cauldronTestUtils'
 import { CAULDRON_SECONDARY_IDS } from '../../rulesets/cauldronFFA3/secondaryDefinitions'
@@ -37,5 +38,22 @@ describe('latest battle update summary', () => {
     expect(update?.title).toMatch(/Four-model unit destroyed/i)
     expect(update?.consequences.some((item) => item.includes('Siła Ognia'))).toBe(true)
     expect(update?.consequences.some((item) => item.includes('Wyniszczenie'))).toBe(true)
+  })
+
+  it('shows when a reaction window was opened by the recorded table action', () => {
+    let session = testCauldronGame()
+    session = dispatchCauldronBattleEvent(session, {
+      type: 'OBJECTIVE_CONTROL_CHANGED',
+      payload: { objectiveId: 'N1', controllerPlayerId: 'p-a' },
+    })
+    const causeEvent = session.state.events.at(-1)!
+    session = requestReactionHold(session, 'p-b', {
+      trigger: 'CUSTOM_CONFIRMATION',
+      context: { eventId: causeEvent.id, actingPlayerId: 'p-a' },
+      definitionsByPlayer: { 'p-a': [], 'p-b': [], 'p-c': [] },
+    })
+
+    const update = buildLatestBattleUpdate(session)
+    expect(update?.consequences).toContain('Reaction window opened · 1 response pending')
   })
 })
