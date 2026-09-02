@@ -35,7 +35,7 @@ export function PhaseEndTimingReview({
         <span className="eyebrow">End-of-phase checkpoint</span>
         <h2>Before leaving {phaseName(phase)}</h2>
       </div>
-      <button onClick={onCancel}>Back</button>
+      <button disabled={reactionWindowOpen} onClick={onCancel}>Back</button>
     </div>
 
     <p className="phase-end-review__intro">
@@ -78,7 +78,7 @@ export function PhaseEndTimingReview({
     {stratagems.length === 0 && reacting.length === 0 && <p className="context-note">No end-of-phase timing opportunities were found.</p>}
 
     <div className="phase-end-review__actions">
-      <button onClick={onCancel}>Return to phase</button>
+      <button disabled={reactionWindowOpen} onClick={onCancel}>Return to phase</button>
       <button
         className="button--gold"
         disabled={reactionWindowOpen}
