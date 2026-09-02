@@ -114,7 +114,7 @@ export function getAvailableStratagems(
       const reason = denialReason(limit.evaluate({ ...evaluation, usage }), limit.description)
       return reason ? [reason] : []
     })
-    const policyReason = definition.reaction && input.reactionPolicy
+    const policyReason = input.reactionOnly && definition.reaction && input.reactionPolicy
       ? denialReason(
         input.reactionPolicy.canUseReaction({ ...evaluation, definition, usage }),
         'The current ruleset does not allow this reaction.',
