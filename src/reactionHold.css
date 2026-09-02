@@ -3,6 +3,15 @@
   gap: 10px;
 }
 
+.shared-reaction-hold-shell {
+  width: min(760px, calc(100% - 32px));
+  margin: 10px auto 0;
+}
+
+.shared-reaction-hold-shell .reaction-hold-control {
+  border-color: var(--line-gold);
+}
+
 .reaction-hold-control p {
   margin: 0;
   color: var(--muted);
@@ -48,6 +57,10 @@
 }
 
 @media (max-width: 560px) {
+  .shared-reaction-hold-shell {
+    width: calc(100% - 20px);
+  }
+
   .reaction-timing-picker__choices {
     grid-template-columns: 1fr;
   }
