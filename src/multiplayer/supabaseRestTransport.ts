@@ -84,7 +84,7 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
     return code
   }
 
-  private async request<T>(path: string, init: RequestInit = {}, roomCode?: string): Promise<T> {
+  private async request<T>(path: string, init: RequestInit = {}, roomCode?: string, clientId?: string): Promise<T> {
     if (!this.url || !this.apiKey) throw new Error('Shared sessions are not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY.')
     const legacyJwt = !this.apiKey.startsWith('sb_publishable_')
     const response = await fetch(`${this.url}/rest/v1/${path}`, {
@@ -94,6 +94,7 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
         ...(legacyJwt ? { Authorization: `Bearer ${this.apiKey}` } : {}),
         'Content-Type': 'application/json',
         ...(roomCode ? { 'x-room-code': normalizeRoomCode(roomCode) } : {}),
+        ...(clientId ? { 'x-client-id': clientId } : {}),
         ...init.headers,
       },
     })
@@ -124,8 +125,9 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
             battle_id: session.setup.gameId,
             status: session.state.status,
             session_snapshot: session,
+            host_client_id: clientId,
           }),
-        }, code)
+        }, code, clientId)
         room = rows[0] ? mapRoom(rows[0]) : null
       } catch (error) {
         lastError = error
@@ -170,25 +172,29 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
         is_host: isHost,
         last_seen_at: new Date().toISOString(),
       }),
-    }, room.code)
+    }, room.code, clientId)
     const row = rows[0]
     if (!row) throw new Error('Could not claim the player seat.')
     return mapParticipant(row)
   }
 
-  async publishEvents(roomId: string, events: BattleEvent[], submittedByPlayerId?: string): Promise<void> {
+  async publishEvents(roomId: string, events: BattleEvent[], submittedByPlayerId?: string, clientId?: string): Promise<void> {
     if (events.length === 0) return
+    const normalizedEvents = events.map((event) => ({
+      ...event,
+      actorPlayerId: submittedByPlayerId ?? event.actorPlayerId,
+    }))
     await this.request<unknown>('shared_events?on_conflict=room_id,event_id', {
       method: 'POST',
       headers: { Prefer: 'resolution=ignore-duplicates,return=minimal' },
-      body: JSON.stringify(events.map((event) => ({
+      body: JSON.stringify(normalizedEvents.map((event) => ({
         room_id: roomId,
         event_id: event.id,
         action_id: event.actionId,
-        actor_player_id: event.actorPlayerId ?? submittedByPlayerId ?? null,
+        actor_player_id: event.actorPlayerId ?? null,
         event_payload: event,
       }))),
-    }, this.roomCode(roomId))
+    }, this.roomCode(roomId), clientId)
   }
 
   async listEvents(roomId: string, afterSequence: number): Promise<SharedEventEnvelope[]> {
@@ -211,7 +217,7 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
       method: 'PATCH',
       headers: { Prefer: 'return=minimal' },
       body: JSON.stringify({ last_seen_at: new Date().toISOString() }),
-    }, this.roomCode(roomId))
+    }, this.roomCode(roomId), clientId)
   }
 
   async releaseParticipant(roomId: string, clientId: string): Promise<void> {
@@ -219,15 +225,15 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
       method: 'PATCH',
       headers: { Prefer: 'return=minimal' },
       body: JSON.stringify({ last_seen_at: '1970-01-01T00:00:00.000Z' }),
-    }, this.roomCode(roomId))
+    }, this.roomCode(roomId), clientId)
   }
 
-  async updateRoomStatus(roomId: string, status: BattleLifecycleStatus): Promise<void> {
+  async updateRoomStatus(roomId: string, status: BattleLifecycleStatus, clientId?: string): Promise<void> {
     await this.request<void>(`shared_rooms?id=eq.${encodeURIComponent(roomId)}`, {
       method: 'PATCH',
       headers: { Prefer: 'return=minimal' },
       body: JSON.stringify({ status, updated_at: new Date().toISOString() }),
-    }, this.roomCode(roomId))
+    }, this.roomCode(roomId), clientId)
   }
 }
 
