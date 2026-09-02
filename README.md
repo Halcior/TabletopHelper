@@ -8,16 +8,21 @@ Current capabilities:
 - preview and persist imported armies locally;
 - configure a Cauldron FFA 3 battle with three saved armies, deployment zones, fixed turn order, and Operational Plans;
 - track automatic Rival rotation, snapshots, phases, turns, rounds, CP, objectives, attributed casualties, wounds, abilities, and an event log;
-- review and automatically commit Cauldron Primary scoring, including all five Operational Plans;
+- manage all 15 Cauldron Secondaries and Mission Actions, including automatic Sabotaż evaluation;
+- review and automatically commit Cauldron Primary scoring, with a detailed scoring audit;
+- share one battle across three commander devices with offline retry and host-only recorded corrections;
+- export a privacy-safe diagnostic report when a playtest problem occurs;
+- install the hosted build as a PWA and reopen the previously visited app shell offline;
 - undo/redo actions and resume active battles from IndexedDB.
 
 Development commands:
 
 1. `npm install`
 2. `npm run dev`
-3. `npx tsc --noEmit`
-4. `npm test -- --run`
-5. `npm run build`
+3. `npm run generate:rules-data` after updating `@alpaca-software/40kdc-data`
+4. `npx tsc --noEmit`
+5. `npm test -- --run`
+6. `npm run build`
 
 ## Remote playtesting
 

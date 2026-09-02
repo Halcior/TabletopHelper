@@ -133,6 +133,11 @@ export function authorizeSharedAction(
 
     if (event.type === 'OBJECTIVE_CONTROL_CHANGED') continue
 
+    if (event.type === 'STATE_CORRECTED') {
+      if (!membership.isHost) return deny('Only the room host can apply state corrections.')
+      continue
+    }
+
     if (event.type === 'REACTION_HOLD_REQUESTED' || event.type === 'REACTION_HOLD_REFINED') {
       const requester = event.payload.window.requestedByPlayerId
       if (requester !== viewerPlayerId) return deny('You can only manage your own reaction hold.')

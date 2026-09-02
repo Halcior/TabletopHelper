@@ -223,6 +223,53 @@ function applyEvent(state: GameState, event: BattleEvent, setup: BattleSetup): v
       player.score[event.payload.category] = Math.max(0, player.score[event.payload.category] + event.payload.delta)
       return
     }
+    case 'STATE_CORRECTED': {
+      const reason = event.payload.reason.trim()
+      if (!reason) throw new Error('A correction requires a reason.')
+      const correction = event.payload.correction
+      switch (correction.kind) {
+        case 'CP':
+          requirePlayer(state, correction.playerId).cp = Math.max(0, Math.floor(correction.value))
+          return
+        case 'SCORE':
+          requirePlayer(state, correction.playerId).score[correction.category] = Math.max(0, Math.floor(correction.value))
+          return
+        case 'UNIT_MODELS': {
+          const unit = requireUnit(state, correction.playerId, correction.unitId)
+          const definition = unitDefinition(setup, correction.playerId, correction.unitId)
+          unit.modelsAlive = Math.max(0, Math.min(definition?.startingModels ?? correction.value, Math.floor(correction.value)))
+          unit.destroyed = unit.modelsAlive === 0
+          if (unit.destroyed) unit.woundsRemaining = 0
+          if (!unit.destroyed && definition?.startingModels === 1 && unit.woundsRemaining === 0) {
+            unit.woundsRemaining = definition.stats?.wounds
+          }
+          return
+        }
+        case 'UNIT_WOUNDS': {
+          const unit = requireUnit(state, correction.playerId, correction.unitId)
+          const definition = unitDefinition(setup, correction.playerId, correction.unitId)
+          const maximum = definition?.stats?.wounds ?? Number.POSITIVE_INFINITY
+          unit.woundsRemaining = Math.max(0, Math.min(maximum, Math.floor(correction.value)))
+          unit.destroyed = unit.woundsRemaining === 0
+          if (definition?.startingModels === 1) unit.modelsAlive = unit.destroyed ? 0 : 1
+          return
+        }
+        case 'UNIT_BATTLESHOCK':
+          requireUnit(state, correction.playerId, correction.unitId).battleShocked = correction.value
+          return
+        case 'OBJECTIVE_CONTROL':
+          if (correction.controllerPlayerId !== null) requirePlayer(state, correction.controllerPlayerId)
+          requireObjective(state, correction.objectiveId).controllerPlayerId = correction.controllerPlayerId
+          return
+        case 'OBJECTIVE_OC': {
+          requirePlayer(state, correction.playerId)
+          const objective = requireObjective(state, correction.objectiveId)
+          objective.playerOC[correction.playerId] = Math.max(0, Math.floor(correction.value))
+          objective.controllerPlayerId = resolveObjectiveController(objective.playerOC)
+          return
+        }
+      }
+    }
     case 'UNIT_MODEL_DESTROYED': {
       const unit = requireUnit(state, event.payload.playerId, event.payload.unitId)
       unit.modelsAlive = Math.max(0, unit.modelsAlive - Math.max(1, event.payload.amount))

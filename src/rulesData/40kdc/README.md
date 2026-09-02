@@ -1,8 +1,10 @@
 # 40kdc rules-data adapter
 
-`@alpaca-software/40kdc-data` is the primary metadata source. Package types are
-contained in `source.ts`; the rest of the application receives only the existing
-`StratagemDefinition` domain model and provider-owned diagnostics.
+`@alpaca-software/40kdc-data` is the primary metadata source. It is a development
+dependency used by `npm run generate:rules-data`. The generator writes a compact,
+versioned runtime snapshot containing only fields consumed by the adapter. This
+keeps package tooling and the multi-megabyte linked source bundle out of the
+browser while preserving the existing `StratagemDefinition` contract.
 
 The adapter imports names, detachment associations, CP costs, phases, player-turn
 scope, usage limits, structured triggers, and structured keyword restrictions.

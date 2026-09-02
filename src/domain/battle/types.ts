@@ -46,6 +46,15 @@ export type BattleSetup = {
 
 export type ScoreBreakdown = Record<ScoreCategory, number>
 
+export type BattleCorrection =
+  | { kind: 'CP'; playerId: string; value: number }
+  | { kind: 'SCORE'; playerId: string; category: ScoreCategory; value: number }
+  | { kind: 'UNIT_MODELS'; playerId: string; unitId: string; value: number }
+  | { kind: 'UNIT_WOUNDS'; playerId: string; unitId: string; value: number }
+  | { kind: 'UNIT_BATTLESHOCK'; playerId: string; unitId: string; value: boolean }
+  | { kind: 'OBJECTIVE_CONTROL'; objectiveId: string; controllerPlayerId: string | null }
+  | { kind: 'OBJECTIVE_OC'; objectiveId: string; playerId: string; value: number }
+
 export type PlayerState = {
   id: string
   name: string
@@ -115,6 +124,7 @@ export type BattleEvent = BattleEventMetadata & (
   | { type: 'CP_GAINED'; payload: { playerId: string; amount: number } }
   | { type: 'CP_SPENT'; payload: { playerId: string; amount: number } }
   | { type: 'SCORE_ADJUSTED'; payload: { playerId: string; category: ScoreCategory; delta: number } }
+  | { type: 'STATE_CORRECTED'; payload: { correction: BattleCorrection; reason: string } }
   | {
     type: 'UNIT_MODEL_DESTROYED'
     payload: { playerId: string; unitId: string; amount: number; destroyedByPlayerId?: string | null }

@@ -143,20 +143,18 @@ export function evaluateOperationalPlan(
     )
   }
 
-  if (confirmation.sabotageMissionActionCompleted === undefined) {
-    return result(planId, 'REQUIRES_CONFIRMATION', 'Confirm the physical Mission Action during round review.', {
-      confirmation: {
-        key: 'sabotageMissionActionCompleted',
-        prompt: 'Did you complete a Mission Action this Battle Round on a neutral objective that you did not control at the beginning of your turn?',
-      },
-    })
-  }
+  const sabotageCompleted = Object.values(session.state.missionActions).some((action) => (
+    action.playerId === playerId
+    && action.type === 'SABOTAGE'
+    && action.status === 'COMPLETED'
+    && action.endedRound === battleRound
+  ))
   return result(
     planId,
-    confirmation.sabotageMissionActionCompleted ? 'COMPLETED' : 'INCOMPLETE',
-    confirmation.sabotageMissionActionCompleted
-      ? 'The qualifying Mission Action was confirmed.'
-      : 'The qualifying Mission Action was not completed.',
+    sabotageCompleted ? 'COMPLETED' : 'INCOMPLETE',
+    sabotageCompleted
+      ? 'The qualifying Sabotage Mission Action was completed.'
+      : 'Complete a Sabotage Mission Action on a qualifying neutral objective.',
   )
 }
 

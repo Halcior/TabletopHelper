@@ -1,28 +1,38 @@
 # Roadmap
 
-Completed foundation:
+## Completed foundation
 
 - strict domain model and reliable real-fixture New Recruit import;
-- event-driven battle engine with immutable snapshots and undo/redo;
-- IndexedDB army/battle persistence and resume flow;
-- mobile-first dashboard, three independent army trackers, objectives, and battle log.
+- event-driven battle engine with immutable snapshots, local undo/redo, and IndexedDB resume;
+- mobile-first dashboard, three army trackers, objectives, reactions, Stratagem timing, and event log;
+- compact generated `40kdc-data` runtime snapshot and route-level code splitting;
+- installable PWA shell with same-origin runtime caching.
 
-Completed Cauldron FFA 3 core:
+## Completed Cauldron FFA 3 core
 
-- three-army setup with A/B/C deployment and independent fixed turn order;
-- automatic odd/even Rival rotation and visible active Rival;
-- all five Operational Plans, including guided physical-state confirmations;
-- casualty attribution and exact Wyniszczenie net-value calculation;
-- automatic Round/Turn Start snapshots;
-- end-round Primary review, automatic scoring, 45 VP cap, and plan changes.
+- three-player A/B/C setup, fixed turn order, automatic Rival rotation, and all five Operational Plans;
+- automatic Round/Turn Start snapshots, casualty attribution, Wyniszczenie, Primary review, caps, and plan changes;
+- all 15 Secondary cards, deck lifecycle, automatic/assisted evaluators, and scoring history;
+- Mission Actions for Secure Data, Scan Signal, and automatic Sabotaż plan evaluation;
+- scoring audit derived from committed Battle Events.
 
-Recommended next milestone after live play-testing:
+## Completed shared-play hardening
 
-- Mission Action state so Sabotaż can become automatic;
-- Secondary deck lifecycle and a small first evaluator set before expanding to all 15 cards;
-- ruleset-level scoring audit/history UI based on committed events.
+- seat ownership, presence, capability-scoped Supabase RLS, offline queue, reconnect, and idempotent retry;
+- direct invite links and resumable shared membership;
+- host-only exact state corrections preserved as immutable Battle Events;
+- downloadable diagnostic report without room-code or client-ID capabilities;
+- deterministic three-client convergence test covering permissions, automatic scoring, offline retry, and corrections.
 
-Later milestones:
+## Next milestone: live playtest findings
 
-- Twists, table mode, results, post-game statistics, and broader rulesets;
-- full PWA service worker, install assets, and offline-shell verification.
+- run the documented three-phone tabletop flow and turn findings into reproducible tests;
+- add browser-level Playwright coverage when the test-browser dependency is available;
+- add synchronized inverse/compensating actions if host corrections prove too slow for common mistakes;
+- improve result and post-game statistics based on real playtest needs.
+
+## Later milestones
+
+- QR invite display, host transfer, snapshot compaction, and optional realtime transport;
+- authenticated identity or stronger server-side room capability before public production use;
+- Twists, dedicated table mode, and broader rulesets.

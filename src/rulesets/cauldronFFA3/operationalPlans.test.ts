@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { dispatchBattleEvent } from '../../domain/battle/engine'
+import { completeMissionAction, startMissionAction } from '../../domain/battle/missionActions'
 import { cauldronEvent } from './events'
 import {
   canChangeOperationalPlan,
@@ -56,10 +57,19 @@ describe('Cauldron Operational Plans', () => {
     }).status).toBe('COMPLETED')
   })
 
-  it('keeps Sabotaż manual until Mission Actions are implemented', () => {
-    const session = testCauldronGame({ plans: ['SABOTAZ', 'WYNISZCZENIE', 'WYNISZCZENIE'] })
-    expect(evaluateOperationalPlan(session, 'p-a').status).toBe('REQUIRES_CONFIRMATION')
-    expect(evaluateOperationalPlan(session, 'p-a', 1, { sabotageMissionActionCompleted: true }).status).toBe('COMPLETED')
+  it('scores Sabotaż automatically from a completed Mission Action', () => {
+    let session = testCauldronGame({ plans: ['SABOTAZ', 'WYNISZCZENIE', 'WYNISZCZENIE'] })
+    session = dispatchBattleEvent(session, { type: 'PHASE_CHANGED', payload: { phase: 'MOVEMENT' } })
+    session = startMissionAction(session, {
+      id: 'sabotage-1', playerId: 'p-a', unitId: 'infantry', type: 'SABOTAGE', name: 'Sabotage',
+      targetObjectiveId: 'N1', locationType: 'NEUTRAL_OBJECTIVE', unknownConditionsConfirmed: true,
+    })
+    for (const phase of ['SHOOTING', 'CHARGE', 'FIGHT', 'END_TURN'] as const) {
+      session = dispatchBattleEvent(session, { type: 'PHASE_CHANGED', payload: { phase } })
+    }
+    session = completeMissionAction(session, 'sabotage-1', true)
+
+    expect(evaluateOperationalPlan(session, 'p-a').status).toBe('COMPLETED')
   })
 
   it('spends 1 CP once and prevents the new Plan scoring in the change round', () => {

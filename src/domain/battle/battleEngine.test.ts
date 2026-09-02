@@ -200,6 +200,34 @@ describe('generic battle engine', () => {
     expect(() => deserializeBattleSession('{"unexpected":true}')).toThrow()
   })
 
+  it('records exact state corrections as replayable events', () => {
+    let current = session()
+    current = dispatchBattleEvent(current, {
+      type: 'STATE_CORRECTED',
+      payload: { correction: { kind: 'CP', playerId: 'p2', value: 7 }, reason: 'Missed CP gain' },
+    }, { actorPlayerId: 'p1' })
+    current = dispatchBattleEvent(current, {
+      type: 'STATE_CORRECTED',
+      payload: { correction: { kind: 'UNIT_MODELS', playerId: 'p1', unitId: 'infantry', value: 2 }, reason: 'Accidental double tap' },
+    }, { actorPlayerId: 'p1' })
+    current = dispatchBattleEvent(current, {
+      type: 'STATE_CORRECTED',
+      payload: { correction: { kind: 'OBJECTIVE_CONTROL', objectiveId: 'n1', controllerPlayerId: 'p2' }, reason: 'Board state correction' },
+    }, { actorPlayerId: 'p1' })
+
+    expect(current.state.players.p2.cp).toBe(7)
+    expect(current.state.players.p1.units.infantry.modelsAlive).toBe(2)
+    expect(current.state.objectives.n1.controllerPlayerId).toBe('p2')
+    expect(deserializeBattleSession(serializeBattleSession(current))).toEqual(current)
+  })
+
+  it('rejects an unreasoned correction', () => {
+    expect(() => dispatchBattleEvent(session(), {
+      type: 'STATE_CORRECTED',
+      payload: { correction: { kind: 'CP', playerId: 'p1', value: 3 }, reason: '   ' },
+    })).toThrow(/requires a reason/i)
+  })
+
   it('explicitly completes a battle, preserves scoring, blocks gameplay changes, and supports undo', () => {
     let current = session()
     current = dispatchBattleEvent(current, {

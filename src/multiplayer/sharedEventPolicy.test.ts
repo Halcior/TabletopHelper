@@ -127,4 +127,18 @@ describe('shared event policy', () => {
     expect(authorizeSharedMutation(before, after, membership('p-b', false)).allowed).toBe(false)
     expect(authorizeSharedMutation(before, after, membership('p-b', true)).allowed).toBe(true)
   })
+
+  it('allows only the host to correct any commander state', () => {
+    const before = testCauldronGame()
+    const after = dispatchBattleEvent(before, {
+      type: 'STATE_CORRECTED',
+      payload: {
+        correction: { kind: 'CP', playerId: 'p-a', value: 5 },
+        reason: 'Corrected after an accidental tap',
+      },
+    }, { actorPlayerId: 'p-b' })
+
+    expect(authorizeSharedMutation(before, after, membership('p-b', false)).allowed).toBe(false)
+    expect(authorizeSharedMutation(before, after, membership('p-b', true)).allowed).toBe(true)
+  })
 })

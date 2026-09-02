@@ -76,6 +76,49 @@
   gap: 9px;
 }
 
+.correction-dialog {
+  width: min(620px, 100%);
+  max-height: calc(100dvh - 28px);
+  overflow-y: auto;
+}
+
+.correction-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.correction-form label {
+  display: grid;
+  gap: 6px;
+}
+
+.correction-form label > span {
+  color: var(--muted);
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.correction-form select,
+.correction-form input[type="number"],
+.correction-form input[type="text"] {
+  width: 100%;
+}
+
+.correction-form .correction-reason,
+.correction-form .battle-confirmation__actions {
+  grid-column: 1 / -1;
+}
+
+.correction-check {
+  align-content: end;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  min-height: 44px;
+}
+
 .battle-terminal-content {
   width: min(1080px, 100%);
   margin: 0 auto;
@@ -170,6 +213,53 @@
 
 .battle-terminal-log {
   margin-top: 16px;
+}
+
+.scoring-audit {
+  margin: 12px 0 18px;
+  border: 1px solid var(--line-gold);
+  background: rgb(57 48 29 / 18%);
+}
+
+.scoring-audit summary {
+  padding: 12px 14px;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.scoring-audit summary span {
+  float: right;
+  color: var(--muted);
+  font-size: .72rem;
+}
+
+.scoring-audit > p {
+  padding: 0 14px 12px;
+}
+
+.scoring-audit ol {
+  margin: 0;
+  padding: 0 14px 12px;
+  list-style: none;
+  display: grid;
+  gap: 7px;
+}
+
+.scoring-audit li {
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.scoring-audit li span {
+  display: grid;
+  gap: 2px;
+}
+
+.scoring-audit li small {
+  color: var(--muted);
 }
 
 .context-centre {
@@ -518,6 +608,15 @@
 }
 
 @media (max-width: 560px) {
+  .correction-form {
+    grid-template-columns: 1fr;
+  }
+
+  .correction-form .correction-reason,
+  .correction-form .battle-confirmation__actions {
+    grid-column: auto;
+  }
+
   .battle-confirmation__actions,
   .battle-summary__actions {
     display: grid;

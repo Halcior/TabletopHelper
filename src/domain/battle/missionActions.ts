@@ -110,6 +110,17 @@ export function getEligibleMissionActionUnits(
     .filter((result) => result.eligible)
 }
 
+export function getEligibleSabotageObjectives(session: BattleSession, playerId: string) {
+  const turnStart = [...session.state.snapshots.turnStart].reverse().find((snapshot) => (
+    snapshot.round === session.state.round && snapshot.playerId === playerId
+  ))
+  if (!turnStart) return []
+  return Object.values(session.state.objectives).filter((objective) => (
+    objective.type === 'neutral'
+    && turnStart?.objectiveStates[objective.id]?.controllerPlayerId !== playerId
+  ))
+}
+
 export function getActiveMissionActionForUnit(
   session: BattleSession,
   playerId: string,
@@ -156,6 +167,14 @@ export function startMissionAction(session: BattleSession, input: StartMissionAc
   if (input.type === 'SCAN_SIGNAL' && input.locationType !== 'BATTLEFIELD_CENTRE') {
     throw new Error('Scanning Signal requires confirmation that the unit is near the battlefield centre.')
   }
+  if (
+    input.type === 'SABOTAGE'
+    && (!input.targetObjectiveId || input.locationType !== 'NEUTRAL_OBJECTIVE')
+  ) throw new Error('Sabotage requires a neutral objective target.')
+  if (
+    input.type === 'SABOTAGE'
+    && !getEligibleSabotageObjectives(session, input.playerId).some((objective) => objective.id === input.targetObjectiveId)
+  ) throw new Error('Sabotage requires an objective you did not control at the start of this turn.')
   const action: MissionActionState = {
     id: input.id ?? `mission-action-${createId()}`,
     playerId: input.playerId,

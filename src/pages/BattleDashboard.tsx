@@ -16,6 +16,7 @@ import { SecondaryEndTurnReview } from '../components/battle/SecondaryEndTurnRev
 import { SecondaryDetailPanel } from '../components/battle/SecondaryPanel'
 import { SharedPlayerPerspective } from '../components/battle/SharedPlayerPerspective'
 import { SharedSessionStatus } from '../components/battle/SharedSessionStatus'
+import { downloadBattleDiagnosticReport } from '../diagnostics/battleReport'
 import type { Army } from '../domain/army/types'
 import { canUndo } from '../domain/battle/selectors'
 import { BATTLE_PHASES } from '../domain/battle/types'
@@ -91,6 +92,7 @@ export default function BattleDashboard() {
     resolveEliminationChoice,
     selectPriorityTargetCandidates,
     choosePriorityTarget,
+    applyCorrection,
     nextPhase,
     changePlan,
     confirmRound,
@@ -423,12 +425,15 @@ export default function BattleDashboard() {
           {cauldron && <span className="ruleset-label">Cauldron FFA 3</span>}
           <SharedSessionStatus battleId={session.setup.gameId} />
           {battleActive && <BattleMenu
+            session={session}
             canEndBattle={canEndBattle}
             canManageBattle={canManageLifecycle}
             endBlockedReason={endBlocker}
             onOpenLog={() => setTab('log')}
+            onExportReport={() => downloadBattleDiagnosticReport(session, useSharedSessionStore.getState())}
             onEndBattle={endBattle}
             onAbandonBattle={abandonBattle}
+            onApplyCorrection={applyCorrection}
           />}
         </div>
       </header>
