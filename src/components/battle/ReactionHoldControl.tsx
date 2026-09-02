@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { BattlePhase, BattleSession } from '../../domain/battle/types'
 import {
   getReactionContextRequirements,
@@ -106,7 +106,9 @@ export function ReactionHoldControl({
   sharedMode = false,
   viewerPlayerId = null,
   disabled = false,
-  onHold,
+  onHoldStart,
+  onHoldRefine,
+  onHoldCancel,
 }: {
   phase: BattlePhase
   activePlayerName: string
@@ -116,7 +118,9 @@ export function ReactionHoldControl({
   sharedMode?: boolean
   viewerPlayerId?: string | null
   disabled?: boolean
-  onHold: (playerId: string, trigger: TimingTrigger, context?: ReactionContext) => void
+  onHoldStart: (playerId: string) => void
+  onHoldRefine: (reactionWindowId: string, playerId: string, trigger: TimingTrigger, context?: ReactionContext) => void
+  onHoldCancel: (reactionWindowId: string) => void
 }) {
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null)
   const [pendingChoice, setPendingChoice] = useState<TriggerChoice | null>(null)
@@ -127,15 +131,26 @@ export function ReactionHoldControl({
     ? players.filter((player) => player.id === viewerPlayerId)
     : players
   const selectedPlayer = players.find((player) => player.id === selectedPlayerId)
+  const activeWindowId = session.state.timing.activeReactionWindowId
+  const activeWindow = activeWindowId ? session.state.timing.reactionWindows[activeWindowId] : undefined
+  const draftHold = activeWindow?.status === 'OPEN' && activeWindow.context.holdDraft === true
+    ? activeWindow
+    : undefined
   const choices = phaseChoices(phase)
   const units = getUnitChoices(session)
   const requirements = selectedPlayer && pendingChoice
     ? getReactionContextRequirements(definitionsByPlayer[selectedPlayer.id] ?? [], phase, pendingChoice.trigger)
     : null
 
+  useEffect(() => {
+    const requester = draftHold?.requestedByPlayerId
+    if (!requester || selectedPlayerId || !visiblePlayers.some((player) => player.id === requester)) return
+    setSelectedPlayerId(requester)
+  }, [draftHold?.id, draftHold?.requestedByPlayerId, selectedPlayerId, visiblePlayers])
+
   if (visiblePlayers.length === 0) return null
 
-  function resetDialog() {
+  function clearDialog() {
     setSelectedPlayerId(null)
     setPendingChoice(null)
     setTriggerSubjectKey('')
@@ -143,8 +158,33 @@ export function ReactionHoldControl({
     setMoveType('')
   }
 
+  function cancelHold() {
+    if (activeWindow?.status === 'OPEN' && activeWindow.requestedByPlayerId === selectedPlayerId) {
+      onHoldCancel(activeWindow.id)
+    }
+    clearDialog()
+  }
+
+  function startHold(playerId: string) {
+    const existingDraft = draftHold?.requestedByPlayerId === playerId
+    setSelectedPlayerId(playerId)
+    setPendingChoice(null)
+    if (!existingDraft) onHoldStart(playerId)
+  }
+
+  function refine(trigger: TimingTrigger, context: ReactionContext) {
+    if (!selectedPlayer || !activeWindow || activeWindow.status !== 'OPEN') return
+    if (activeWindow.requestedByPlayerId !== selectedPlayer.id) return
+    onHoldRefine(activeWindow.id, selectedPlayer.id, trigger, {
+      ...context,
+      actingPlayerId: session.state.activePlayerId,
+      holdDraft: false,
+    })
+    clearDialog()
+  }
+
   function startTiming(choice: TriggerChoice) {
-    if (!selectedPlayer) return
+    if (!selectedPlayer || !activeWindow) return
     const nextRequirements = getReactionContextRequirements(
       definitionsByPlayer[selectedPlayer.id] ?? [],
       phase,
@@ -154,8 +194,7 @@ export function ReactionHoldControl({
       || nextRequirements.requiresMoveType
       || nextRequirements.requiresTargetUnit
     if (!needsContext) {
-      onHold(selectedPlayer.id, choice.trigger, { actingPlayerId: session.state.activePlayerId })
-      resetDialog()
+      refine(choice.trigger, {})
       return
     }
     setPendingChoice(choice)
@@ -179,14 +218,11 @@ export function ReactionHoldControl({
       } : {}),
     }
     if (!reactionContextIsComplete(requirements, context)) return
-    onHold(selectedPlayer.id, pendingChoice.trigger, context)
-    resetDialog()
+    refine(pendingChoice.trigger, context)
   }
 
   function submitManualHold() {
-    if (!selectedPlayer) return
-    onHold(selectedPlayer.id, 'CUSTOM_CONFIRMATION', { actingPlayerId: session.state.activePlayerId })
-    resetDialog()
+    refine('CUSTOM_CONFIRMATION', {})
   }
 
   return <>
@@ -194,106 +230,106 @@ export function ReactionHoldControl({
       <div className="section-heading">
         <div><span className="eyebrow">Opponent timing</span><h2>HOLD / REACT</h2></div>
       </div>
-      <p>Pause {activePlayerName}'s flow when a reaction timing occurs, then identify the tabletop moment.</p>
+      <p>HOLD pauses {activePlayerName} immediately. Then identify the tabletop moment while the battle flow stays stopped.</p>
       <div className="reaction-hold-control__buttons">
-        {visiblePlayers.map((player) => <button
-          className="button button--small"
-          disabled={disabled}
-          key={player.id}
-          onClick={() => {
-            setSelectedPlayerId(player.id)
-            setPendingChoice(null)
-          }}
-        >HOLD · {player.name}</button>)}
+        {visiblePlayers.map((player) => {
+          const continuingDraft = draftHold?.requestedByPlayerId === player.id
+          return <button
+            className="button button--small"
+            disabled={disabled && !continuingDraft}
+            key={player.id}
+            onClick={() => startHold(player.id)}
+          >{continuingDraft ? `Continue HOLD · ${player.name}` : `HOLD · ${player.name}`}</button>
+        })}
       </div>
     </section>
 
-    {selectedPlayer && <div className="quick-panel-layer" role="presentation" onMouseDown={(event) => {
-      if (event.currentTarget === event.target) resetDialog()
-    }}>
+    {selectedPlayer && <div className="quick-panel-layer" role="presentation">
       <aside className="quick-panel reaction-timing-picker" role="dialog" aria-modal="true" aria-label="Choose reaction timing">
         <div className="quick-panel__heading">
           <div>
-            <span className="eyebrow">{selectedPlayer.name} requested HOLD</span>
+            <span className="eyebrow">{selectedPlayer.name} · battle paused</span>
             <h2>{pendingChoice ? 'Add tabletop context' : 'What just happened?'}</h2>
           </div>
-          <button onClick={resetDialog}>Cancel</button>
+          <button onClick={cancelHold}>Cancel HOLD</button>
         </div>
 
-        {!pendingChoice ? <>
-          <p className="context-note">Pick the closest structured timing. This does not resolve attacks or dice; it only opens the correct reaction checkpoint.</p>
-          <div className="reaction-timing-picker__choices">
-            {choices.map((choice) => <button key={choice.trigger} onClick={() => startTiming(choice)}>
-              <strong>{choice.label}</strong>
-              <span>{choice.detail}</span>
-            </button>)}
-            <button onClick={submitManualHold}>
-              <strong>Other / manual timing</strong>
-              <span>Pause first and confirm the exact rule at the table.</span>
-            </button>
-          </div>
-        </> : requirements && <>
-          <p className="context-note">
-            {pendingChoice.label}. The matched structured reaction data needs a little more table state before legality can be checked.
-          </p>
-          <div className="reaction-context-form">
-            {requirements.requiresTriggerSubject && <label>
-              <span>Which unit triggered this timing?</span>
-              <select value={triggerSubjectKey} onChange={(event) => setTriggerSubjectKey(event.target.value)}>
-                <option value="">Select unit…</option>
-                {units.map((unit) => <option key={`subject-${unit.key}`} value={unit.key}>
-                  {unit.playerName} · {unit.unitName}{unit.destroyed ? ' · destroyed' : ''}
-                </option>)}
-              </select>
-            </label>}
+        {!activeWindow || activeWindow.requestedByPlayerId !== selectedPlayer.id
+          ? <p className="context-note">Capturing HOLD… the timing picker will unlock as soon as the pause is recorded.</p>
+          : !pendingChoice ? <>
+            <p className="context-note">The battle is already paused. Pick the closest structured timing; this does not resolve attacks or dice.</p>
+            <div className="reaction-timing-picker__choices">
+              {choices.map((choice) => <button key={choice.trigger} onClick={() => startTiming(choice)}>
+                <strong>{choice.label}</strong>
+                <span>{choice.detail}</span>
+              </button>)}
+              <button onClick={submitManualHold}>
+                <strong>Other / manual timing</strong>
+                <span>Keep the pause and confirm the exact rule at the table.</span>
+              </button>
+            </div>
+          </> : requirements && <>
+            <p className="context-note">
+              {pendingChoice.label}. The matched structured reaction data needs a little more table state before legality can be checked.
+            </p>
+            <div className="reaction-context-form">
+              {requirements.requiresTriggerSubject && <label>
+                <span>Which unit triggered this timing?</span>
+                <select value={triggerSubjectKey} onChange={(event) => setTriggerSubjectKey(event.target.value)}>
+                  <option value="">Select unit…</option>
+                  {units.map((unit) => <option key={`subject-${unit.key}`} value={unit.key}>
+                    {unit.playerName} · {unit.unitName}{unit.destroyed ? ' · destroyed' : ''}
+                  </option>)}
+                </select>
+              </label>}
 
-            {requirements.requiresMoveType && <fieldset>
-              <legend>What kind of move was it?</legend>
-              <div className="reaction-context-form__move-types">
-                {MOVE_TYPES.map((option) => <button
-                  className={moveType === option.value ? 'selected' : ''}
-                  key={option.value}
-                  type="button"
-                  onClick={() => setMoveType(option.value)}
-                >{option.label}</button>)}
-              </div>
-            </fieldset>}
+              {requirements.requiresMoveType && <fieldset>
+                <legend>What kind of move was it?</legend>
+                <div className="reaction-context-form__move-types">
+                  {MOVE_TYPES.map((option) => <button
+                    className={moveType === option.value ? 'selected' : ''}
+                    key={option.value}
+                    type="button"
+                    onClick={() => setMoveType(option.value)}
+                  >{option.label}</button>)}
+                </div>
+              </fieldset>}
 
-            {requirements.requiresTargetUnit && <label>
-              <span>Which unit is the Stratagem target?</span>
-              <select value={targetKey} onChange={(event) => setTargetKey(event.target.value)}>
-                <option value="">Select target…</option>
-                {units.map((unit) => <option key={`target-${unit.key}`} value={unit.key}>
-                  {unit.playerName} · {unit.unitName}{unit.destroyed ? ' · destroyed' : ''}
-                </option>)}
-              </select>
-              <small>Keywords are read from the imported army and checked by the Timing Engine.</small>
-            </label>}
-          </div>
+              {requirements.requiresTargetUnit && <label>
+                <span>Which unit is the Stratagem target?</span>
+                <select value={targetKey} onChange={(event) => setTargetKey(event.target.value)}>
+                  <option value="">Select target…</option>
+                  {units.map((unit) => <option key={`target-${unit.key}`} value={unit.key}>
+                    {unit.playerName} · {unit.unitName}{unit.destroyed ? ' · destroyed' : ''}
+                  </option>)}
+                </select>
+                <small>Keywords are read from the imported army and checked by the Timing Engine.</small>
+              </label>}
+            </div>
 
-          <div className="reaction-context-summary">
-            <span>{requirements.matchingDefinitionIds.length} structured reaction{requirements.matchingDefinitionIds.length === 1 ? '' : 's'} matched this timing.</span>
-            <span>No attack or dice result is calculated here.</span>
-          </div>
+            <div className="reaction-context-summary">
+              <span>{requirements.matchingDefinitionIds.length} structured reaction{requirements.matchingDefinitionIds.length === 1 ? '' : 's'} matched this timing.</span>
+              <span>Battle remains paused until this HOLD is used, passed or cancelled.</span>
+            </div>
 
-          <div className="reaction-context-actions">
-            <button type="button" onClick={() => setPendingChoice(null)}>Back</button>
-            <button type="button" onClick={submitManualHold}>Use manual HOLD</button>
-            <button
-              className="button--gold"
-              type="button"
-              disabled={!reactionContextIsComplete(requirements, {
-                triggerSubjectPlayerId: units.find((unit) => unit.key === triggerSubjectKey)?.playerId,
-                triggerSubjectUnitId: units.find((unit) => unit.key === triggerSubjectKey)?.unitId,
-                moveType: moveType || undefined,
-                targetPlayerId: units.find((unit) => unit.key === targetKey)?.playerId,
-                targetUnitId: units.find((unit) => unit.key === targetKey)?.unitId,
-                targetKeywords: units.find((unit) => unit.key === targetKey)?.keywords,
-              })}
-              onClick={submitStructuredHold}
-            >Open structured HOLD</button>
-          </div>
-        </>}
+            <div className="reaction-context-actions">
+              <button type="button" onClick={() => setPendingChoice(null)}>Back</button>
+              <button type="button" onClick={submitManualHold}>Use manual timing</button>
+              <button
+                className="button--gold"
+                type="button"
+                disabled={!reactionContextIsComplete(requirements, {
+                  triggerSubjectPlayerId: units.find((unit) => unit.key === triggerSubjectKey)?.playerId,
+                  triggerSubjectUnitId: units.find((unit) => unit.key === triggerSubjectKey)?.unitId,
+                  moveType: moveType || undefined,
+                  targetPlayerId: units.find((unit) => unit.key === targetKey)?.playerId,
+                  targetUnitId: units.find((unit) => unit.key === targetKey)?.unitId,
+                  targetKeywords: units.find((unit) => unit.key === targetKey)?.keywords,
+                })}
+                onClick={submitStructuredHold}
+              >Set structured timing</button>
+            </div>
+          </>}
       </aside>
     </div>}
   </>
