@@ -21,6 +21,7 @@ import { canUndo } from '../domain/battle/selectors'
 import { BATTLE_PHASES } from '../domain/battle/types'
 import {
   buildBattleContext,
+  selectAutomaticReactionPrompt,
   selectReactionPlayersAtCheckpoint,
   selectRelevantStratagemsAtCheckpoint,
   type CurrentTimingCheckpoint,
@@ -117,6 +118,30 @@ export default function BattleDashboard() {
       })
     return () => { active = false }
   }, [])
+
+  useEffect(() => {
+    if (!session || session.setup.gameId !== battleId || session.state.status !== 'active' || !rulesDataProvider) return
+    const permissions = getSharedSessionPermissions(session, sharedMembership)
+    if (!permissions.canControlTurn) return
+    const rulesDataByPlayer = Object.fromEntries(session.state.turnOrder.map((playerId) => {
+      const armyId = session.state.players[playerId].armyId
+      const army = armyId ? session.setup.armies[armyId] : undefined
+      return [playerId, army ? resolveArmyRules(rulesDataProvider, army) : null]
+    }))
+    const reactionPolicy = session.setup.rulesetId === CAULDRON_RULESET_ID ? cauldronReactionPolicy : undefined
+    const prompt = selectAutomaticReactionPrompt(session, rulesDataByPlayer, reactionPolicy)
+    if (!prompt) return
+    const definitionsByPlayer = Object.fromEntries(session.state.turnOrder.map((playerId) => [
+      playerId,
+      rulesDataByPlayer[playerId]?.definitions ?? [],
+    ]))
+    processReactionTrigger({
+      trigger: prompt.trigger,
+      context: prompt.context,
+      definitionsByPlayer,
+      reactionPolicy,
+    })
+  }, [battleId, processReactionTrigger, rulesDataProvider, session, sharedMembership])
 
   useEffect(() => {
     if (!session || session.state.status !== 'active') return
