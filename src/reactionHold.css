@@ -1,0 +1,58 @@
+.reaction-hold-control {
+  display: grid;
+  gap: 10px;
+}
+
+.reaction-hold-control p {
+  margin: 0;
+  color: var(--muted);
+  font-size: .8rem;
+  line-height: 1.45;
+}
+
+.reaction-hold-control__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.reaction-hold-control__buttons button {
+  min-height: 42px;
+  flex: 1 1 130px;
+}
+
+.reaction-timing-picker__choices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  margin-top: 14px;
+}
+
+.reaction-timing-picker__choices button {
+  display: grid;
+  gap: 4px;
+  min-height: 70px;
+  padding: 11px 12px;
+  text-align: left;
+  align-content: center;
+}
+
+.reaction-timing-picker__choices button strong {
+  color: var(--paper);
+}
+
+.reaction-timing-picker__choices button span {
+  color: var(--muted);
+  font-size: .72rem;
+  line-height: 1.35;
+}
+
+@media (max-width: 560px) {
+  .reaction-timing-picker__choices {
+    grid-template-columns: 1fr;
+  }
+
+  .reaction-hold-control__buttons button {
+    flex-basis: 100%;
+  }
+}
