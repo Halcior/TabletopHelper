@@ -276,6 +276,8 @@ function adaptStratagem(input: {
     timing: sourceEvents.length > 0
       ? `Structured source event: ${sourceEvents.join(', ')}`
       : 'Exact timing requires manual confirmation.',
+    timingConfidence: reasons.length === 0 ? 'VERIFIED' : 'REQUIRES_CONFIRMATION',
+    timingConfidenceReasons: reasons,
     phases: [...new Set(stratagem.phases.map(mapPhase))],
     triggers: mappedTriggers,
     reaction: classification !== 'ACTIVE',
