@@ -237,8 +237,8 @@ export default function BattleDashboard() {
     ? progressionBlockers[0].title
     : cauldronTurnReview
       ? 'Scoring & Mission Actions'
-      : phaseEndHasTimingOpportunities && guidanceLevel === 'guided'
-        ? 'End-of-phase timing check'
+      : phaseEndHasTimingOpportunities
+        ? guidanceLevel === 'guided' ? 'End-of-phase timing check' : 'End timing available · quick review'
         : phaseIndex < BATTLE_PHASES.length - 1
           ? humanizePhase(BATTLE_PHASES[phaseIndex + 1])
           : nextTurnDestination
@@ -282,7 +282,8 @@ export default function BattleDashboard() {
   }
 
   function handleFinishPhaseEndReview() {
-    if (!canControlTurn || currentWindow || !phaseEndReactionsHandled) return
+    if (!canControlTurn || currentWindow) return
+    if (guidanceLevel === 'guided' && !phaseEndReactionsHandled) return
     setPhaseEndReviewOpen(false)
     nextPhase()
   }
@@ -300,7 +301,7 @@ export default function BattleDashboard() {
       setTurnReviewOpen(true)
       return
     }
-    if (guidanceLevel === 'guided' && phaseEndHasTimingOpportunities) {
+    if (phaseEndHasTimingOpportunities) {
       setPhaseEndReviewOpen(true)
       return
     }
@@ -398,6 +399,7 @@ export default function BattleDashboard() {
             reactionPlayers={phaseEndReactionPlayers}
             reactionWindowOpen={Boolean(currentWindow)}
             reactionsHandled={phaseEndReactionsHandled}
+            enforceReactionWindow={guidanceLevel === 'guided'}
             onUseStratagem={handlePhaseEndStratagem}
             onOpenReactions={handleOpenPhaseEndReactions}
             onContinue={handleFinishPhaseEndReview}
