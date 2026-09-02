@@ -16,6 +16,7 @@ import {
   startMissionAction as startMissionActionInBattle,
   type StartMissionActionInput,
 } from '../domain/battle/missionActions'
+import { selectCurrentTimingCheckpoint } from '../domain/context/timingContext'
 import {
   passReaction as passReactionInBattle,
   requestReactionHold as requestReactionHoldInBattle,
@@ -102,6 +103,19 @@ function applySessionUpdate(
   }
 }
 
+function withRecordedTimingContext(session: BattleSession, input: UseStratagemInput): UseStratagemInput {
+  if (input.reactionWindowId || input.trigger === 'CUSTOM_CONFIRMATION') return input
+  const checkpoint = selectCurrentTimingCheckpoint(session)
+  if (!checkpoint) return input
+  const matchingTrigger = checkpoint.triggers.find((trigger) => input.definition.triggers.includes(trigger))
+  if (!matchingTrigger) return input
+  return {
+    ...input,
+    trigger: matchingTrigger,
+    context: input.context ?? checkpoint.context,
+  }
+}
+
 export const useBattleStore = create<BattleStore>((set, get) => ({
   session: null,
   loading: false,
@@ -158,7 +172,7 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
     const current = get().session
     if (!current) return
     try {
-      const session = useStratagemInBattle(current, input)
+      const session = useStratagemInBattle(current, withRecordedTimingContext(current, input))
       assertSharedMutationAllowed(current, session)
       set({ session, error: null })
       queueSave(session)
