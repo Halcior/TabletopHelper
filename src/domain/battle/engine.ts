@@ -259,6 +259,9 @@ function applyEvent(state: GameState, event: BattleEvent, setup: BattleSetup): v
     case 'UNIT_BATTLESHOCK_CHANGED':
       requireUnit(state, event.payload.playerId, event.payload.unitId).battleShocked = event.payload.battleShocked
       return
+    case 'BATTLESHOCK_TEST_RESOLVED':
+      requireUnit(state, event.payload.playerId, event.payload.unitId).battleShocked = !event.payload.passed
+      return
     case 'ABILITY_USED':
       requireUnit(state, event.payload.playerId, event.payload.unitId)
         .oncePerBattleAbilities[event.payload.abilityName] = event.payload.used
