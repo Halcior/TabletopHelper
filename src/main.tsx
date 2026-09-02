@@ -9,6 +9,7 @@ import './sharedSessions.css'
 import './uiSimplify.css'
 import './uiFocus.css'
 import './mobileBattle.css'
+import './reactionHold.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
