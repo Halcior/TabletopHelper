@@ -16,6 +16,11 @@ const TURN_OWNER_EVENTS = new Set<BattleEvent['type']>([
   'REACTION_WINDOW_CANCELLED',
 ])
 
+const AUTOMATIC_ELIMINATION_ACTIONS = new Set([
+  'SECONDARY_COMPLETED',
+  'SECONDARY_ELIMINATION_CHOICE_REQUIRED',
+])
+
 function deny(reason: string): SharedMutationDecision {
   return { allowed: false, reason }
 }
@@ -66,6 +71,26 @@ function hasPrimaryCommit(events: BattleEvent[]): boolean {
   return events.some((event) => event.type === 'RULESET_EVENT' && event.payload.action === 'PRIMARY_COMMITTED')
 }
 
+function automaticCasualtyBeneficiary(events: BattleEvent[], viewerPlayerId: string): string | undefined {
+  for (const event of events) {
+    if (event.type !== 'UNIT_MODEL_DESTROYED' && event.type !== 'UNIT_WOUNDS_CHANGED' && event.type !== 'UNIT_DESTROYED') continue
+    if (event.payload.playerId !== viewerPlayerId) continue
+    const beneficiary = event.payload.destroyedByPlayerId
+    if (beneficiary && beneficiary !== viewerPlayerId) return beneficiary
+  }
+  return undefined
+}
+
+function isAutomaticCasualtyConsequence(event: BattleEvent, beneficiaryPlayerId: string | undefined): boolean {
+  if (!beneficiaryPlayerId) return false
+  if (event.type === 'SCORE_ADJUSTED') {
+    return event.payload.playerId === beneficiaryPlayerId && event.payload.category === 'secondary'
+  }
+  return event.type === 'RULESET_EVENT'
+    && AUTOMATIC_ELIMINATION_ACTIONS.has(event.payload.action)
+    && rulesetPlayerId(event) === beneficiaryPlayerId
+}
+
 /**
  * Authorizes one local user action before it is committed to a shared battle.
  * UI permissions remain useful guidance, but this is the store-level backstop:
@@ -102,6 +127,8 @@ export function authorizeSharedAction(
     return deny('Only the active commander can confirm end-of-round scoring.')
   }
 
+  const automaticBeneficiary = automaticCasualtyBeneficiary(events, viewerPlayerId)
+
   for (const event of events) {
     if (event.type === 'GAME_STARTED') continue
     if (TURN_OWNER_EVENTS.has(event.type)) continue
@@ -117,6 +144,8 @@ export function authorizeSharedAction(
       if (requester && requester !== viewerPlayerId) return deny('You can only request your own reaction hold.')
       continue
     }
+
+    if (isAutomaticCasualtyConsequence(event, automaticBeneficiary)) continue
 
     const targetPlayerId = playerScopedTarget(event, sessionBefore)
     if (targetPlayerId && targetPlayerId !== viewerPlayerId) {
