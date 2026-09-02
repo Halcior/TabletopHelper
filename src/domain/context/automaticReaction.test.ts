@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { createBattleSession, dispatchBattleEvent } from '../battle/engine'
 import { requestReactionHold } from '../stratagems/battleIntegration'
 import type { ReactionPolicy, StratagemDefinition } from '../stratagems/types'
+import { advanceCauldronPhase } from '../../rulesets/cauldronFFA3'
+import { testCauldronGame } from '../../rulesets/cauldronFFA3/cauldronTestUtils'
 import { selectAutomaticReactionPrompt } from './automaticReaction'
 import type { ContextRulesByPlayer } from './types'
 
@@ -89,5 +91,38 @@ describe('automatic Guided reaction prompt', () => {
     }
 
     expect(selectAutomaticReactionPrompt(battle(), manualRules)).toBeNull()
+  })
+
+  it('can auto-pause on an explicitly recorded failed Battle-shock test', () => {
+    const failedShockReaction: StratagemDefinition = {
+      ...reaction,
+      id: 'failed-shock-reaction',
+      name: 'Failed shock reaction',
+      phases: ['MOVEMENT'],
+      triggers: ['BATTLESHOCK_FAILED'],
+    }
+    const shockRules: ContextRulesByPlayer = {
+      'p-a': { stratagems: [] },
+      'p-b': {
+        stratagems: [{
+          definition: failedShockReaction,
+          classification: 'REACTION',
+          manualConfirmationRequired: false,
+          fullyAutomatedTiming: true,
+        }],
+      },
+      'p-c': { stratagems: [] },
+    }
+    let session = advanceCauldronPhase(testCauldronGame())
+    session = dispatchBattleEvent(session, {
+      type: 'BATTLESHOCK_TEST_RESOLVED',
+      payload: { playerId: 'p-a', unitId: 'infantry', passed: false },
+    }, { actorPlayerId: 'p-a' })
+
+    expect(selectAutomaticReactionPrompt(session, shockRules)).toMatchObject({
+      trigger: 'BATTLESHOCK_FAILED',
+      eligiblePlayerIds: ['p-b'],
+      context: { battleShockPassed: false, triggerSubjectPlayerId: 'p-a' },
+    })
   })
 })
