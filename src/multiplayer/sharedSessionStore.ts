@@ -31,6 +31,7 @@ let suppressBattlePublish = false
 let pollCounter = 0
 let pollInFlight = false
 let removeBrowserListeners: (() => void) | null = null
+let syncGeneration = 0
 
 function message(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
@@ -76,11 +77,20 @@ function readMembership(): SharedMembership | null {
 const initialMembership = readMembership()
 setSharedRuntimeMembership(initialMembership)
 
+function syncIsCurrent(generation: number, membership: SharedMembership): boolean {
+  const current = useSharedSessionStore.getState().membership
+  return generation === syncGeneration
+    && current?.roomId === membership.roomId
+    && current.clientId === membership.clientId
+    && current.playerId === membership.playerId
+}
+
 function updatePendingCount(): void {
   useSharedSessionStore.setState({ pendingEventCount: pendingLocalEvents.size })
 }
 
 function stopSyncLoop(): void {
+  syncGeneration += 1
   if (pollTimer) clearInterval(pollTimer)
   pollTimer = null
   unsubscribeBattle?.()
@@ -123,16 +133,19 @@ async function publishLocalEvents(events: BattleEvent[]): Promise<void> {
   const state = useSharedSessionStore.getState()
   const membership = state.membership
   if (!membership || events.length === 0) return
+  const generation = syncGeneration
   events.forEach((event) => pendingLocalEvents.set(event.id, event))
   updatePendingCount()
   if (!browserOnline()) {
-    useSharedSessionStore.setState({ connectionStatus: 'offline' })
+    if (syncIsCurrent(generation, membership)) useSharedSessionStore.setState({ connectionStatus: 'offline' })
     return
   }
   try {
     await sharedSessionTransport.publishEvents(membership.roomId, events, membership.playerId, membership.clientId)
+    if (!syncIsCurrent(generation, membership)) return
     useSharedSessionStore.setState({ connectionStatus: 'connected', error: null })
   } catch (error) {
+    if (!syncIsCurrent(generation, membership)) return
     useSharedSessionStore.setState((current) => ({
       connectionStatus: 'reconnecting',
       error: message(error),
@@ -145,6 +158,7 @@ async function pollRoom(): Promise<void> {
   const store = useSharedSessionStore.getState()
   const membership = store.membership
   if (!membership || pollInFlight) return
+  const generation = syncGeneration
   if (!browserOnline()) {
     useSharedSessionStore.setState({ connectionStatus: 'offline' })
     return
@@ -159,10 +173,12 @@ async function pollRoom(): Promise<void> {
         membership.playerId,
         membership.clientId,
       )
+      if (!syncIsCurrent(generation, membership)) return
     }
 
     const afterSequence = canonicalEvents.at(-1)?.sequence ?? 0
     const incoming = await sharedSessionTransport.listEvents(membership.roomId, afterSequence)
+    if (!syncIsCurrent(generation, membership)) return
     if (incoming.length > 0) {
       canonicalEvents = mergeCanonicalEnvelopes(canonicalEvents, incoming)
       for (const envelope of incoming) pendingLocalEvents.delete(envelope.event.id)
@@ -173,15 +189,19 @@ async function pollRoom(): Promise<void> {
     pollCounter += 1
     if (pollCounter % PRESENCE_EVERY_POLLS === 0) {
       await sharedSessionTransport.touchParticipant(membership.roomId, membership.clientId)
+      if (!syncIsCurrent(generation, membership)) return
       const participants = await sharedSessionTransport.listParticipants(membership.roomId)
+      if (!syncIsCurrent(generation, membership)) return
       useSharedSessionStore.setState({ participants })
     }
 
     const session = useBattleStore.getState().session
     if (membership.isHost && session && session.state.status !== store.roomStatus) {
       await sharedSessionTransport.updateRoomStatus(membership.roomId, session.state.status, membership.clientId)
+      if (!syncIsCurrent(generation, membership)) return
       useSharedSessionStore.setState({ roomStatus: session.state.status })
     }
+    if (!syncIsCurrent(generation, membership)) return
     useSharedSessionStore.setState({
       connectionStatus: 'connected',
       error: null,
@@ -190,6 +210,7 @@ async function pollRoom(): Promise<void> {
       pendingEventCount: pendingLocalEvents.size,
     })
   } catch (error) {
+    if (!syncIsCurrent(generation, membership)) return
     useSharedSessionStore.setState((current) => ({
       connectionStatus: browserOnline() ? 'reconnecting' : 'offline',
       error: message(error),
@@ -197,7 +218,7 @@ async function pollRoom(): Promise<void> {
       pendingEventCount: pendingLocalEvents.size,
     }))
   } finally {
-    pollInFlight = false
+    if (generation === syncGeneration) pollInFlight = false
   }
 }
 
