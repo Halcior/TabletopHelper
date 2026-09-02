@@ -1,6 +1,6 @@
 import type { UnitDefinition, UnitState } from '../army/types'
 import type { BattlePhase, BattleSession, GuidanceLevel, MissionActionState, ObjectiveState, PlayerState } from '../battle/types'
-import type { StratagemAvailability, StratagemDefinition } from '../stratagems/types'
+import type { ReactionPolicy, StratagemAvailability, StratagemDefinition } from '../stratagems/types'
 
 export type ContextStatus = 'DONE' | 'AVAILABLE' | 'REQUIRED' | 'WARNING' | 'INFO' | 'BLOCKING'
 export type ContextSeverity = 'QUIET' | 'INFO' | 'ATTENTION' | 'CRITICAL'
@@ -131,6 +131,7 @@ export type BattleContext = {
 export type BuildBattleContextInput = {
   session: BattleSession
   rulesDataByPlayer?: ContextRulesByPlayer
+  reactionPolicy?: ReactionPolicy
 }
 
 export type ActiveMissionActionContext = MissionActionState & {
