@@ -4,6 +4,7 @@ import type { BattleEvent, BattleSession } from '../domain/battle/types'
 import { saveBattle } from '../persistence/database'
 import { useBattleStore } from '../stores/battleStore'
 import { participantIsActive } from './presence'
+import { classifySeatRestore } from './seatOwnership'
 import { setSharedRuntimeMembership } from './sharedRuntime'
 import { findRetryableLocalEvents, mergeCanonicalEnvelopes } from './sharedSync'
 import { sharedSessionTransport } from './supabaseRestTransport'
@@ -365,15 +366,31 @@ export const useSharedSessionStore = create<SharedSessionStore>((set, get) => ({
   },
 
   async restoreForBattle(battleId) {
-    const membership = readMembership()
-    if (!membership || membership.battleId !== battleId || !sharedSessionTransport.configured) return false
+    const savedMembership = readMembership()
+    if (!savedMembership || savedMembership.battleId !== battleId || !sharedSessionTransport.configured) return false
     if (get().connectionStatus === 'connected' && get().membership?.battleId === battleId) return true
-    setSharedRuntimeMembership(membership)
-    set({ connectionStatus: browserOnline() ? 'connecting' : 'offline', membership, error: null })
+    setSharedRuntimeMembership(savedMembership)
+    set({ connectionStatus: browserOnline() ? 'connecting' : 'offline', membership: savedMembership, error: null })
     if (!browserOnline()) return false
     try {
-      const inspection = await sharedSessionTransport.inspectRoom(membership.roomCode)
+      let inspection = await sharedSessionTransport.inspectRoom(savedMembership.roomCode)
       if (!inspection) throw new Error('The shared room no longer exists.')
+      const restoreDecision = classifySeatRestore(savedMembership, inspection.participants)
+      if (restoreDecision === 'blocked') {
+        throw new Error(savedMembership.isHost
+          ? 'The host seat belongs to a different browser identity. Re-open this room from the original host device.'
+          : 'Your saved player seat is currently active on another device.')
+      }
+      if (restoreDecision === 'reclaim') {
+        if (savedMembership.isHost) {
+          throw new Error('The host seat cannot be transferred automatically. Re-open this room from the original host device.')
+        }
+        await sharedSessionTransport.joinRoom(inspection.room, savedMembership.playerId, savedMembership.clientId)
+        inspection = await sharedSessionTransport.inspectRoom(savedMembership.roomCode) ?? inspection
+      }
+      const seat = inspection.participants.find((participant) => participant.playerId === savedMembership.playerId)
+      if (!seat || seat.clientId !== savedMembership.clientId) throw new Error('Your saved player seat could not be restored.')
+      const membership = { ...savedMembership, isHost: seat.isHost }
       startSyncLoop(inspection, membership)
       return true
     } catch (error) {
