@@ -11,6 +11,13 @@ type BattleSummaryProps = {
   restoreDisabledReason?: string
 }
 
+function competitionRank(totals: readonly number[], index: number): number {
+  if (index <= 0) return 1
+  return totals[index] === totals[index - 1]
+    ? competitionRank(totals, index - 1)
+    : index + 1
+}
+
 export function BattleSummary({
   session,
   logOpen,
@@ -22,6 +29,7 @@ export function BattleSummary({
   const players = Object.values(session.state.players)
     .map((player) => ({ player, total: totalScore(player) }))
     .sort((left, right) => right.total - left.total)
+  const totals = players.map(({ total }) => total)
   const highest = players[0]?.total ?? 0
   const winners = players.filter(({ total }) => total === highest)
   const completed = session.state.status === 'completed'
@@ -42,7 +50,7 @@ export function BattleSummary({
         className={`battle-summary__player${completed && total === highest ? ' battle-summary__player--winner' : ''}`}
         key={player.id}
       >
-        <span>{completed ? `#${index + 1}` : 'Current'}</span>
+        <span>{completed ? `#${competitionRank(totals, index)}` : 'Current'}</span>
         <div><strong>{player.name}</strong><small>{player.faction ?? 'Army'}</small></div>
         <strong className="battle-summary__total">{total}<small> VP</small></strong>
         <div className="battle-summary__breakdown">
