@@ -35,6 +35,7 @@ import { useSharedSessionStore } from '../multiplayer/sharedSessionStore'
 import type { RulesDataProvider, RulesDataResolution } from '../rulesData/types'
 import {
   CAULDRON_RULESET_ID,
+  cauldronReactionPolicy,
   getCurrentRivalPlayerId,
   getPendingEliminationChoice,
   isCauldronEndOfRound,
@@ -137,6 +138,7 @@ export default function BattleDashboard() {
   const viewerPlayerId = sharedPermissions.viewerPlayerId
   const viewer = viewerPlayerId ? session.state.players[viewerPlayerId] : null
   const cauldron = session.setup.rulesetId === CAULDRON_RULESET_ID
+  const reactionPolicy = cauldron ? cauldronReactionPolicy : undefined
   const dashboardTabs: DashboardTab[] = cauldron
     ? ['overview', 'army', 'objectives', 'cards', 'log']
     : ['overview', 'army', 'objectives', 'log']
@@ -157,7 +159,7 @@ export default function BattleDashboard() {
     playerId,
     rulesDataByPlayer[playerId]?.definitions ?? [],
   ]))
-  const battleContext = battleActive ? buildBattleContext({ session, rulesDataByPlayer }) : null
+  const battleContext = battleActive ? buildBattleContext({ session, rulesDataByPlayer, reactionPolicy }) : null
   const currentWindow = battleActive ? getCurrentReactionWindow(session) : null
   const windowOptionsByPlayer = currentWindow
     ? Object.fromEntries(Object.values(currentWindow.responses).map((response) => [response.playerId, getAvailableStratagems({
@@ -168,6 +170,7 @@ export default function BattleDashboard() {
       context: currentWindow.context,
       definitions: definitionsByPlayer[response.playerId] ?? [],
       reactionOnly: true,
+      reactionPolicy,
     }).filter(({ definition }) => response.availableOptionIds.includes(definition.id))]))
     : {}
   const flowPaused = battleActive && isBattleFlowPaused(session)
@@ -219,7 +222,7 @@ export default function BattleDashboard() {
         session,
         rulesDataByPlayer,
         phaseEndCheckpoint,
-        { allowCustomFallback: false },
+        { allowCustomFallback: false, reactionPolicy },
       )
     : []
   const phaseEndHasReactions = phaseEndReactionPlayers.some((player) => player.exactCount + player.potentialCount > 0)
@@ -275,6 +278,7 @@ export default function BattleDashboard() {
         actingPlayerId: active.id,
       },
       definitionsByPlayer,
+      reactionPolicy,
     })
   }
 
@@ -294,6 +298,7 @@ export default function BattleDashboard() {
       trigger: 'PHASE_END',
       context: phaseEndCheckpoint.context,
       definitionsByPlayer,
+      reactionPolicy,
     })
   }
 
@@ -341,6 +346,7 @@ export default function BattleDashboard() {
       trigger: currentWindow.trigger,
       context: currentWindow.context,
       reactionWindowId: currentWindow.id,
+      reactionPolicy,
     })}
     onPass={(playerId: string) => passReaction(currentWindow.id, playerId)}
   /> : null
