@@ -13,7 +13,6 @@ const TURN_OWNER_EVENTS = new Set<BattleEvent['type']>([
   'TURN_ENDED',
   'PHASE_CHANGED',
   'REACTION_WINDOW_OPENED',
-  'REACTION_WINDOW_CANCELLED',
 ])
 
 const AUTOMATIC_ELIMINATION_ACTIONS = new Set([
@@ -133,9 +132,20 @@ export function authorizeSharedAction(
 
     if (event.type === 'OBJECTIVE_CONTROL_CHANGED') continue
 
-    if (event.type === 'REACTION_HOLD_REQUESTED') {
+    if (event.type === 'REACTION_HOLD_REQUESTED' || event.type === 'REACTION_HOLD_REFINED') {
       const requester = event.payload.window.requestedByPlayerId
-      if (requester && requester !== viewerPlayerId) return deny('You can only request your own reaction hold.')
+      if (requester !== viewerPlayerId) return deny('You can only manage your own reaction hold.')
+      continue
+    }
+
+    if (event.type === 'REACTION_WINDOW_CANCELLED') {
+      const window = sessionBefore.state.timing.reactionWindows[event.payload.reactionWindowId]
+      const requester = window?.requestedByPlayerId
+      if (requester) {
+        if (requester !== viewerPlayerId) return deny('Only the player who requested HOLD can cancel it.')
+      } else if (viewerPlayerId !== sessionBefore.state.activePlayerId) {
+        return deny('Only the active commander can cancel this reaction window.')
+      }
       continue
     }
 
