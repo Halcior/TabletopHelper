@@ -132,6 +132,42 @@
   font-size: .76rem;
 }
 
+.unit-battleshock-actions,
+.quick-unit__battleshock {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.unit-battleshock-actions > span,
+.quick-unit__battleshock > span {
+  color: var(--muted);
+  font-size: .68rem;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.unit-battleshock-actions > div,
+.quick-unit__battleshock > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.unit-battleshock-actions button,
+.quick-unit__battleshock button {
+  min-height: 38px;
+}
+
+.unit-battleshock-actions small {
+  color: var(--muted);
+  font-size: .7rem;
+  line-height: 1.35;
+}
+
 .quick-status-actions {
   display: flex;
   flex-wrap: wrap;
@@ -332,6 +368,12 @@
 
   .latest-battle-update__effects ul {
     display: grid;
+  }
+
+  .unit-battleshock-actions > div,
+  .quick-unit__battleshock > div {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .discard-choice {
