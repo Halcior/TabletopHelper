@@ -28,6 +28,7 @@ export function ReactionWindowPanel({
   const priorityPlayerId = getReactionPriorityPlayerId(window)
   const playerName = (playerId: string) => playerNames[playerId] ?? 'Unknown player'
   const draftHold = window.requestedByPlayerId && window.context.holdDraft === true
+  const automaticExact = !window.requestedByPlayerId && typeof window.context.eventId === 'string'
   return (
     <section className="panel reaction-window" role="alert" aria-live="assertive">
       <div className="reaction-window__heading">
@@ -47,6 +48,9 @@ export function ReactionWindowPanel({
             : `${playerName(window.requestedByPlayerId)} requested time to react.`}
         </div>
       )}
+      {automaticExact && <div className="reaction-hold-notice reaction-hold-notice--automatic">
+        Auto-detected from recorded table state. A fully structured timing matched; no attack or dice result was inferred.
+      </div>}
       {draftHold
         ? <p className="reaction-waiting">Keep the tabletop action paused until the reacting player finishes timing selection or cancels HOLD.</p>
         : <div className="reaction-response-list">
