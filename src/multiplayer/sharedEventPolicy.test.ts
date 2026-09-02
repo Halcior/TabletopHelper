@@ -6,6 +6,7 @@ import {
 } from '../rulesets/cauldronFFA3'
 import { testCauldronGame } from '../rulesets/cauldronFFA3/cauldronTestUtils'
 import { CAULDRON_SECONDARY_IDS } from '../rulesets/cauldronFFA3/secondaryDefinitions'
+import type { SecondaryId } from '../rulesets/cauldronFFA3/secondaryTypes'
 import { authorizeSharedMutation } from './sharedEventPolicy'
 import type { SharedMembership } from './types'
 
@@ -44,7 +45,7 @@ describe('shared event policy', () => {
   })
 
   it('allows the unit owner to record a casualty that automatically scores the attacker Secondary', () => {
-    const deck = ['SILA_OGNIA', ...CAULDRON_SECONDARY_IDS.filter((id) => id !== 'SILA_OGNIA')]
+    const deck: SecondaryId[] = ['SILA_OGNIA', ...CAULDRON_SECONDARY_IDS.filter((id) => id !== 'SILA_OGNIA')]
     let before = testCauldronGame({ secondaryDeckOrders: { 'p-a': deck } })
     before = advanceCauldronPhase(before)
     before = advanceCauldronPhase(before)
