@@ -101,6 +101,41 @@ export function requestReactionHold(
   ], { timestamp: input.timestamp, actorPlayerId: playerId })
 }
 
+/**
+ * Replaces an already-open explicit HOLD with the structured timing/context the
+ * reacting player selected. The window id and original openedAt are preserved,
+ * so other devices remain paused on one continuous HOLD.
+ */
+export function refineReactionHold(
+  session: BattleSession,
+  reactionWindowId: string,
+  playerId: string,
+  input: ReactionTriggerInput,
+): BattleSession {
+  const existing = session.state.timing.reactionWindows[reactionWindowId]
+  if (!existing || existing.status !== 'OPEN') throw new Error('The reaction hold is not open.')
+  if (existing.requestedByPlayerId !== playerId) throw new Error('Only the player who requested HOLD can refine its timing.')
+
+  const opportunity = getReactionOpportunity({
+    gameState: session.state,
+    trigger: input.trigger,
+    context: input.context,
+    definitionsByPlayer: input.definitionsByPlayer,
+    reactionPolicy: input.reactionPolicy,
+  })
+  const window = createReactionWindow({
+    opportunity,
+    mode: session.setup.guidanceLevel,
+    requestedByPlayerId: playerId,
+    id: existing.id,
+    openedAt: existing.openedAt,
+  })
+  if (!window) throw new Error('Could not refine the reaction hold.')
+  return dispatchBattleEvents(session, [
+    { type: 'REACTION_HOLD_REFINED', payload: { window } },
+  ], { timestamp: input.timestamp, actorPlayerId: playerId })
+}
+
 export function passReaction(
   session: BattleSession,
   reactionWindowId: string,
@@ -209,5 +244,5 @@ export function cancelReactionWindow(
   if (!window || window.status !== 'OPEN') throw new Error('The reaction window is not open.')
   return dispatchBattleEvents(session, [
     { type: 'REACTION_WINDOW_CANCELLED', payload: { reactionWindowId } },
-  ], { timestamp, actorPlayerId: session.state.activePlayerId })
+  ], { timestamp, actorPlayerId: window.requestedByPlayerId ?? session.state.activePlayerId })
 }
