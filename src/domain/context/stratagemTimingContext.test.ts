@@ -5,6 +5,10 @@ import type { StratagemDefinition } from '../stratagems/types'
 import { advanceCauldronPhase } from '../../rulesets/cauldronFFA3'
 import { testCauldronGame } from '../../rulesets/cauldronFFA3/cauldronTestUtils'
 import { buildBattleContext } from './contextEngine'
+import {
+  selectReactionPlayersAtCheckpoint,
+  selectRelevantStratagemsAtCheckpoint,
+} from './selectors'
 import type { ContextRulesByPlayer } from './types'
 
 function toShooting(session: BattleSession): BattleSession {
@@ -96,6 +100,25 @@ describe('Context Engine exact timing checkpoints', () => {
     }, { actorPlayerId: 'p-a' })
 
     expect(buildBattleContext({ session, rulesDataByPlayer: rulesData }).reactionPlayers
+      .find((player) => player.playerId === 'p-b')?.exactCount).toBe(1)
+  })
+
+  it('can evaluate an explicit PHASE_END checkpoint without pretending it is current earlier', () => {
+    const session = toShooting(testCauldronGame())
+    const activeEnd = definition('active-end-option', 'PHASE_END')
+    const reactionEnd = definition('reaction-end-option', 'PHASE_END', true)
+    const rulesData: ContextRulesByPlayer = {
+      ...rules('p-a', [activeEnd]),
+      ...rules('p-b', [reactionEnd], 'REACTION'),
+    }
+    const checkpoint = {
+      triggers: ['PHASE_END' as const],
+      context: { actingPlayerId: 'p-a' },
+    }
+
+    expect(buildBattleContext({ session, rulesDataByPlayer: rulesData }).relevantStratagems).toHaveLength(0)
+    expect(selectRelevantStratagemsAtCheckpoint(session, rulesData, checkpoint, 'p-a')[0]?.availability.canUse).toBe(true)
+    expect(selectReactionPlayersAtCheckpoint(session, rulesData, checkpoint)
       .find((player) => player.playerId === 'p-b')?.exactCount).toBe(1)
   })
 })
