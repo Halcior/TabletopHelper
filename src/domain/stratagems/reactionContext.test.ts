@@ -7,10 +7,11 @@ function restriction(id: string): TimingRestriction {
 }
 
 function definition(input: Partial<StratagemDefinition> & Pick<StratagemDefinition, 'id'>): StratagemDefinition {
+  const { id, ...overrides } = input
   return {
-    id: input.id,
+    id,
     kind: 'STRATAGEM',
-    name: input.id,
+    name: id,
     description: 'test',
     ownerScope: 'OPPONENT',
     phases: ['SHOOTING'],
@@ -20,7 +21,7 @@ function definition(input: Partial<StratagemDefinition> & Pick<StratagemDefiniti
     usageLimits: [],
     source: 'test',
     cpCost: 1,
-    ...input,
+    ...overrides,
   }
 }
 
