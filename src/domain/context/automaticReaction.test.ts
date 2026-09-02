@@ -115,6 +115,10 @@ describe('automatic Guided reaction prompt', () => {
     }
     let session = advanceCauldronPhase(testCauldronGame())
     session = dispatchBattleEvent(session, {
+      type: 'CP_GAINED',
+      payload: { playerId: 'p-b', amount: 1 },
+    }, { actorPlayerId: 'p-b' })
+    session = dispatchBattleEvent(session, {
       type: 'BATTLESHOCK_TEST_RESOLVED',
       payload: { playerId: 'p-a', unitId: 'infantry', passed: false },
     }, { actorPlayerId: 'p-a' })
