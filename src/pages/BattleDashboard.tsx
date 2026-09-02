@@ -79,6 +79,8 @@ export default function BattleDashboard() {
     useStratagem,
     processReactionTrigger,
     requestReactionHold,
+    refineReactionHold,
+    cancelReactionWindow,
     passReaction,
     startMissionAction,
     completeMissionAction,
@@ -269,13 +271,31 @@ export default function BattleDashboard() {
     })
   }
 
-  function handleReactionHold(playerId: string, trigger: TimingTrigger, context: ReactionContext = {}) {
+  function handleReactionHoldStart(playerId: string) {
     if (currentWindow) return
     requestReactionHold(playerId, {
+      trigger: 'CUSTOM_CONFIRMATION',
+      context: {
+        actingPlayerId: active.id,
+        holdDraft: true,
+      },
+      definitionsByPlayer,
+      reactionPolicy,
+    })
+  }
+
+  function handleReactionHoldRefine(
+    reactionWindowId: string,
+    playerId: string,
+    trigger: TimingTrigger,
+    context: ReactionContext = {},
+  ) {
+    refineReactionHold(reactionWindowId, playerId, {
       trigger,
       context: {
         ...context,
         actingPlayerId: active.id,
+        holdDraft: false,
       },
       definitionsByPlayer,
       reactionPolicy,
@@ -361,7 +381,9 @@ export default function BattleDashboard() {
       sharedMode
       viewerPlayerId={viewerPlayerId}
       disabled={Boolean(currentWindow)}
-      onHold={handleReactionHold}
+      onHoldStart={handleReactionHoldStart}
+      onHoldRefine={handleReactionHoldRefine}
+      onHoldCancel={cancelReactionWindow}
     />
   </div> : null
 
@@ -464,7 +486,7 @@ export default function BattleDashboard() {
                   onMulligan={mulliganSecondary}
                   onOpenEndTurn={() => { if (canControlTurn) setTurnReviewOpen(true) }}
                   onUseStratagem={handleContextStratagem}
-                  onHoldReaction={(playerId) => handleReactionHold(playerId, 'CUSTOM_CONFIRMATION')}
+                  onHoldReaction={handleReactionHoldStart}
                   onPassReaction={passReaction}
                   onChangePlan={changePlan}
                   onResolveEliminationChoice={resolveEliminationChoice}
@@ -503,7 +525,9 @@ export default function BattleDashboard() {
                   session={session}
                   definitionsByPlayer={definitionsByPlayer}
                   disabled={Boolean(currentWindow)}
-                  onHold={handleReactionHold}
+                  onHoldStart={handleReactionHoldStart}
+                  onHoldRefine={handleReactionHoldRefine}
+                  onHoldCancel={cancelReactionWindow}
                 />}
               </aside>
             </div>}
