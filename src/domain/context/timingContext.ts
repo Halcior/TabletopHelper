@@ -34,6 +34,18 @@ function uniqueTriggers(values: TimingTrigger[]): TimingTrigger[] {
   return [...new Set(values)]
 }
 
+function targetUnitContext(session: BattleSession, playerId: string, unitId: string): ReactionContext {
+  const armyId = session.state.players[playerId]?.armyId
+  const unit = armyId ? session.setup.armies[armyId]?.units.find((candidate) => candidate.id === unitId) : undefined
+  return {
+    targetPlayerId: playerId,
+    targetUnitId: unitId,
+    triggerSubjectPlayerId: playerId,
+    triggerSubjectUnitId: unitId,
+    targetKeywords: unit ? [...unit.categories, ...unit.keywords] : undefined,
+  }
+}
+
 function casualtyCheckpoint(session: BattleSession, event: BattleEvent): CurrentTimingCheckpoint | null {
   if (
     event.type !== 'UNIT_MODEL_DESTROYED'
@@ -61,12 +73,9 @@ function casualtyCheckpoint(session: BattleSession, event: BattleEvent): Current
     triggers: uniqueTriggers(triggers),
     sourceEventId: event.id,
     context: {
+      ...targetUnitContext(session, ownerId, unitId),
       eventId: event.id,
       actingPlayerId: destroyedByPlayerId ?? event.actorPlayerId,
-      targetPlayerId: ownerId,
-      targetUnitId: unitId,
-      triggerSubjectPlayerId: ownerId,
-      triggerSubjectUnitId: unitId,
     },
   }
 }
@@ -88,24 +97,20 @@ function checkpointFromEvent(session: BattleSession, event: BattleEvent): Curren
     }
   }
 
-  if (event.type === 'UNIT_BATTLESHOCK_CHANGED') {
+  if (event.type === 'UNIT_BATTLESHOCK_CHANGED' && event.payload.battleShocked) {
     return {
-      triggers: [
-        'BATTLESHOCK_RESOLVED',
-        event.payload.battleShocked ? 'BATTLESHOCK_FAILED' : 'BATTLESHOCK_PASSED',
-      ],
+      triggers: ['BATTLESHOCK_RESOLVED', 'BATTLESHOCK_FAILED'],
       sourceEventId: event.id,
       context: {
+        ...targetUnitContext(session, event.payload.playerId, event.payload.unitId),
         eventId: event.id,
         actingPlayerId: event.actorPlayerId,
-        targetPlayerId: event.payload.playerId,
-        targetUnitId: event.payload.unitId,
-        triggerSubjectPlayerId: event.payload.playerId,
-        triggerSubjectUnitId: event.payload.unitId,
       },
     }
   }
 
+  // Clearing Battle-shock is not proof that a test was passed: in normal play
+  // the state may simply expire at the start of the next Command phase.
   return null
 }
 
