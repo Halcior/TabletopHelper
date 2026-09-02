@@ -135,7 +135,7 @@ create policy "shared participants update" on public.shared_participants
       shared_participants.client_id = public.request_shared_client_id()
       or (
         shared_participants.is_host = false
-        and shared_participants.last_seen_at < now() - interval '15 seconds'
+        and shared_participants.last_seen_at < now() - interval '30 seconds'
       )
     )
   )
