@@ -357,6 +357,18 @@ export default function BattleDashboard() {
     onPass={(playerId: string) => passReaction(currentWindow.id, playerId)}
   /> : null
 
+  const sharedReactionHold = sharedBattle && !canControlTurn ? <div className="shared-reaction-hold-shell">
+    <ReactionHoldControl
+      phase={session.state.phase}
+      activePlayerName={active.name}
+      players={reactionHoldPlayers}
+      sharedMode
+      viewerPlayerId={viewerPlayerId}
+      disabled={Boolean(currentWindow)}
+      onHold={handleReactionHold}
+    />
+  </div> : null
+
   return (
     <div className="battle-page">
       <header className="battle-status">
@@ -401,6 +413,7 @@ export default function BattleDashboard() {
         {sharedBattle && sharedConnectionStatus !== 'connected' && <div className="alert battle-alert">Shared sync: {sharedConnectionStatus}. Local changes are retained and will retry.</div>}
         {sharedBattle && canControlTurn && <div className="shared-flow-notice shared-flow-notice--active">Your turn as {viewer?.name ?? active.name}. You control phase progression and end-turn review on this device.</div>}
         {sharedBattle && !canControlTurn && <div className="shared-flow-notice">Connected as {viewer?.name ?? 'player'}. Waiting for {sharedPermissions.waitingForPlayerName ?? active.name} to advance their turn. Your own CP, army state and reaction responses remain yours.</div>}
+        {sharedReactionHold}
         {error && <div className="alert alert--danger battle-alert">{error}</div>}
 
         {reviewOpen ? <EndRoundReview
@@ -491,15 +504,13 @@ export default function BattleDashboard() {
                   onOpenCards={() => setTab('cards')}
                 />}
                 <BattleQuickStatus session={session} onOpenObjectives={() => setTab('objectives')} />
-                <ReactionHoldControl
+                {!sharedBattle && <ReactionHoldControl
                   phase={session.state.phase}
                   activePlayerName={active.name}
                   players={reactionHoldPlayers}
-                  sharedMode={sharedBattle}
-                  viewerPlayerId={viewerPlayerId}
                   disabled={Boolean(currentWindow)}
                   onHold={handleReactionHold}
-                />
+                />}
               </aside>
             </div>}
             {tab === 'army' && <ArmyTracker
