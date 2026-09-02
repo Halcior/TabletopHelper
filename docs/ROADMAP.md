@@ -5,6 +5,7 @@
 - strict domain model and reliable real-fixture New Recruit import;
 - event-driven battle engine with immutable snapshots, local undo/redo, and IndexedDB resume;
 - mobile-first dashboard, three army trackers, objectives, reactions, Stratagem timing, and event log;
+- compact phone flow with a single primary advance action, progressive reminder disclosure, color-coded objective ownership, and recent-unit quick damage controls;
 - compact generated `40kdc-data` runtime snapshot and route-level code splitting;
 - installable PWA shell with same-origin runtime caching.
 

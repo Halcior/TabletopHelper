@@ -9,8 +9,12 @@ type BattleMenuProps = {
   canManageBattle?: boolean
   session: BattleSession
   endBlockedReason?: string
+  canUndoAction?: boolean
+  canRedoAction?: boolean
   onOpenLog: () => void
   onExportReport: () => void
+  onUndo?: () => void
+  onRedo?: () => void
   onEndBattle: () => void
   onAbandonBattle: () => void
   onApplyCorrection: (correction: BattleCorrection, reason: string) => void
@@ -21,8 +25,12 @@ export function BattleMenu({
   canManageBattle = true,
   session,
   endBlockedReason,
+  canUndoAction = false,
+  canRedoAction = false,
   onOpenLog,
   onExportReport,
+  onUndo,
+  onRedo,
   onEndBattle,
   onAbandonBattle,
   onApplyCorrection,
@@ -72,6 +80,8 @@ export function BattleMenu({
       {open && <div className="battle-menu__popover" role="menu">
         <strong>Battle</strong>
         <button type="button" role="menuitem" onClick={() => { setOpen(false); onOpenLog() }}>View battle log</button>
+        <button type="button" role="menuitem" disabled={!canUndoAction} onClick={() => { setOpen(false); onUndo?.() }}>Undo last action</button>
+        <button type="button" role="menuitem" disabled={!canRedoAction} onClick={() => { setOpen(false); onRedo?.() }}>Redo action</button>
         <button type="button" role="menuitem" onClick={() => { setOpen(false); onExportReport() }}>Export diagnostic report</button>
         <button type="button" role="menuitem" disabled={!canManageBattle} onClick={() => { setOpen(false); setCorrectionOpen(true) }}>Correct battle state</button>
         {!canManageBattle && <small className="battle-menu__hint">Only the shared-session host can record corrections.</small>}
