@@ -27,6 +27,7 @@ export function describeBattleEvent(event: BattleEvent, setup: BattleSetup): str
     case 'UNIT_WOUNDS_CHANGED': return `${unitName(setup, event.payload.playerId, event.payload.unitId)} set to ${event.payload.woundsRemaining} wounds`
     case 'UNIT_DESTROYED': return `${unitName(setup, event.payload.playerId, event.payload.unitId)} destroyed`
     case 'UNIT_BATTLESHOCK_CHANGED': return `${unitName(setup, event.payload.playerId, event.payload.unitId)} battle-shock ${event.payload.battleShocked ? 'on' : 'off'}`
+    case 'BATTLESHOCK_TEST_RESOLVED': return `${unitName(setup, event.payload.playerId, event.payload.unitId)} Battle-shock test ${event.payload.passed ? 'passed' : 'failed'}`
     case 'ABILITY_USED': return `${unitName(setup, event.payload.playerId, event.payload.unitId)}: ${event.payload.abilityName} ${event.payload.used ? 'used' : 'restored'}`
     case 'OBJECTIVE_OC_CHANGED': return `${event.payload.objectiveId}: ${playerName(setup, event.payload.playerId)} OC ${event.payload.oc}`
     case 'OBJECTIVE_CONTROL_CHANGED': return `${event.payload.objectiveId}: ${event.payload.controllerPlayerId ? playerName(setup, event.payload.controllerPlayerId) : 'uncontrolled'}`
