@@ -19,6 +19,7 @@ import {
 import { selectCurrentTimingCheckpoint } from '../domain/context/timingContext'
 import {
   passReaction as passReactionInBattle,
+  processReactionTrigger as processReactionTriggerInBattle,
   requestReactionHold as requestReactionHoldInBattle,
   useStratagem as useStratagemInBattle,
 } from '../domain/stratagems/battleIntegration'
@@ -58,6 +59,7 @@ type BattleStore = {
   resumeLatest: () => Promise<string | null>
   dispatch: (event: BattleEventInput) => void
   useStratagem: (input: UseStratagemInput) => void
+  processReactionTrigger: (input: ReactionTriggerInput) => void
   requestReactionHold: (playerId: string, input: ReactionTriggerInput) => void
   passReaction: (reactionWindowId: string, playerId: string) => void
   startMissionAction: (input: StartMissionActionInput) => void
@@ -176,6 +178,23 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
       assertSharedMutationAllowed(current, session)
       set({ session, error: null })
       queueSave(session)
+    } catch (error: unknown) {
+      set({ error: error instanceof Error ? error.message : String(error) })
+    }
+  },
+
+  processReactionTrigger(input) {
+    const current = get().session
+    if (!current) return
+    try {
+      const result = processReactionTriggerInBattle(current, input)
+      if (result.session === current) {
+        set({ error: null })
+        return
+      }
+      assertSharedMutationAllowed(current, result.session)
+      set({ session: result.session, error: null })
+      queueSave(result.session)
     } catch (error: unknown) {
       set({ error: error instanceof Error ? error.message : String(error) })
     }
