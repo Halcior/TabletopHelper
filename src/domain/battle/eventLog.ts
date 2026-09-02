@@ -36,6 +36,7 @@ export function describeBattleEvent(event: BattleEvent, setup: BattleSetup): str
     case 'MISSION_ACTION_CANCELLED': return event.payload.reason ? `Mission Action cancelled: ${event.payload.reason}` : 'Mission Action cancelled'
     case 'REACTION_WINDOW_OPENED': return `Reaction window opened: ${event.payload.window.trigger.replaceAll('_', ' ').toLowerCase()}`
     case 'REACTION_HOLD_REQUESTED': return `${playerName(setup, event.payload.window.requestedByPlayerId ?? '')} requested a reaction hold`
+    case 'REACTION_HOLD_REFINED': return `${playerName(setup, event.payload.window.requestedByPlayerId ?? '')} set HOLD timing: ${event.payload.window.trigger.replaceAll('_', ' ').toLowerCase()}`
     case 'REACTION_PASSED': return `${playerName(setup, event.payload.playerId)} passed the reaction window`
     case 'STRATAGEM_USED': return `${playerName(setup, event.payload.playerId)} used "${event.payload.stratagemName}" (${event.payload.cpCost} CP)`
     case 'REACTION_WINDOW_RESOLVED': return 'Reaction window resolved'
