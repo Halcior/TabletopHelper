@@ -22,6 +22,7 @@ import {
   useStratagem as useStratagemInBattle,
 } from '../domain/stratagems/battleIntegration'
 import type { ReactionTriggerInput, UseStratagemInput } from '../domain/stratagems/battleIntegration'
+import { assertSharedMutationAllowed } from '../multiplayer/sharedRuntime'
 import { getBattle, getLatestActiveBattle, saveBattle } from '../persistence/database'
 import {
   advanceCauldronPhase,
@@ -93,6 +94,7 @@ function applySessionUpdate(
   if (!current) return
   try {
     const session = update(current)
+    assertSharedMutationAllowed(current, session)
     set({ session, error: null })
     queueSave(session)
   } catch (error: unknown) {
@@ -157,6 +159,7 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
     if (!current) return
     try {
       const session = useStratagemInBattle(current, input)
+      assertSharedMutationAllowed(current, session)
       set({ session, error: null })
       queueSave(session)
     } catch (error: unknown) {
@@ -169,6 +172,7 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
     if (!current) return
     try {
       const session = requestReactionHoldInBattle(current, playerId, input)
+      assertSharedMutationAllowed(current, session)
       set({ session, error: null })
       queueSave(session)
     } catch (error: unknown) {
@@ -181,6 +185,7 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
     if (!current) return
     try {
       const session = passReactionInBattle(current, reactionWindowId, playerId)
+      assertSharedMutationAllowed(current, session)
       set({ session, error: null })
       queueSave(session)
     } catch (error: unknown) {
