@@ -1,26 +1,52 @@
 # Shared sessions MVP
 
-The first shared-session milestone keeps the existing event-driven Battle Engine and adds a network replication layer around it.
+The shared-session layer keeps the existing event-driven Battle Engine and replicates its materialized events between player devices.
 
-## What works in this milestone
+## Current behavior
 
-- One device hosts an existing active battle.
-- Host chooses which player seat belongs to that device.
-- A six-character room code is generated.
-- Two other devices can find the room and claim the remaining player seats.
-- New battle events are uploaded to the shared room and polled by every connected client.
-- Remote clients rebuild the local BattleSession from the creation snapshot plus server-ordered events.
-- Presence heartbeats show roughly how many commanders are connected.
+- One device hosts an existing active battle and claims one player seat.
+- A six-character room code is generated for the table.
+- Two other devices can claim the remaining player seats.
+- New Battle Events are uploaded to the shared room and consumed in server sequence order.
+- Remote clients rebuild the local `BattleSession` from the creation snapshot plus canonical events.
+- Presence heartbeats show which commander seats are currently active.
 - Phase progression follows the active player seat: each commander advances their own turn from their own device.
-- The host retains battle lifecycle administration (end / abandon) but cannot drive another player's normal phase flow.
-- Each commander manages their own CP controls in shared mode.
-- Reaction-window USE / PASS controls belong to the responding player's device; the other devices show a waiting state.
+- The host retains manual battle lifecycle administration (end / abandon) but cannot drive another player's normal phase flow.
+- Automatic `GAME_ENDED` produced by finishing the final turn is allowed for that active commander even when they are not the host.
+- Each commander owns their own CP, army state, Mission Actions, active-turn Secondary decisions and Stratagem use.
+- Shared objective control remains intentionally writable by any seated commander because it represents common board state.
+- A unit owner can record their own casualty even when that same physical action automatically awards an opponent Secondary; the derived scoring stays in the same canonical action group.
+- Reaction-window USE / PASS belongs to the responding player device.
+- Priority Target's final Rival choice may be made by the responsible Rival rather than the card owner.
+- Undo/redo remains disabled in shared rooms until synchronized compensating actions exist.
 - Local IndexedDB persistence remains active on every device.
-- If polling temporarily fails, local changes remain visible and publishing/polling retries.
 
 This version intentionally uses the Supabase REST API with ~900 ms polling instead of adding a large realtime SDK. The `SharedSessionTransport` interface is isolated so it can later be replaced with Supabase Realtime/WebSocket without changing the Battle Engine or UI flow.
 
+## Identity and backend protection
+
+The browser keeps a persistent client ID. Mutating REST requests carry both `x-room-code` and `x-client-id`. Supabase RLS binds writes to the claimed participant row:
+
+- an event write must identify the same player seat in `actor_player_id` and the event payload;
+- the participant's room, client ID and player ID must match the request;
+- only the host client identity can update room lifecycle state;
+- an active player seat cannot be silently taken by a different device;
+- a stale non-host seat can be reclaimed after the presence timeout;
+- the host seat is not automatically transferred to a different browser identity.
+
+The app also enforces the same ownership boundaries in the Battle Store before local state is committed. UI disabled states are therefore guidance, not the only permission boundary.
+
+Room-code access is still capability-style private-play protection rather than user authentication. A public production service should add authenticated player identity or a stronger server-side room secret.
+
+## Offline and reconnect behavior
+
+Temporary network loss does not discard local battle events. They remain in the local persisted session and in the pending publish queue. When the browser comes back online, the client retries the same event IDs; the backend's `(room_id, event_id)` uniqueness makes retries idempotent.
+
+If the browser closes while changes are still offline, restoring the saved shared membership compares the local event history with the original room snapshot and reconstructs retry candidates. Canonical polling results are deduplicated by server sequence. Async results from an old room/sync generation are ignored after disconnecting or switching rooms, so a late request cannot overwrite a newly joined session.
+
 ## Supabase setup
+
+For a new project:
 
 1. Create a Supabase project.
 2. Open SQL Editor.
@@ -35,7 +61,7 @@ VITE_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
 
 6. Restart Vite after changing environment variables.
 
-The SQL policies are deliberately permissive for private tabletop testing. They must be replaced with authenticated/capability-validated mutations before a public production deployment.
+For an existing development database, apply the repository migrations instead of rerunning the bootstrap schema blindly.
 
 ## Test on three phones on one Wi-Fi network
 
@@ -51,38 +77,34 @@ Use `ipconfig` to find the PC IPv4 address, for example `192.168.1.50`, then ope
 http://192.168.1.50:5173
 ```
 
-Windows Firewall may ask to allow Node/Vite on private networks.
+Windows Firewall may ask to allow Node/Vite on private networks. The app uses a portable RFC 4122 UUID fallback because `crypto.randomUUID()` may be unavailable on a phone opening a plain LAN HTTP address.
 
-### Flow
+### Functional test flow
 
-1. On the host device, create/import armies and start a normal Cauldron battle.
-2. Open **Shared**.
-3. Select the host player's seat and choose **Create shared room**.
-4. Give the room code to the other two players.
-5. Each guest opens **Shared**, enters the code, chooses an available player seat, and joins.
-6. Open the battle on all devices.
-7. On Player A's turn, verify only Player A has the active `Next phase` control.
-8. Finish Player A's turn and verify phase ownership moves to Player B's phone, then Player C's.
-9. Verify each player can change only their own CP from the scoreboard.
-10. Open a reaction window and verify only the responding player gets USE / PASS controls.
-11. Test objective control, casualties, Secondary progress and Stratagem use across all devices.
+1. Host a Cauldron battle and join all three player seats.
+2. Verify only the active commander can advance phases and their turn.
+3. Verify every commander can adjust only their own CP and army state.
+4. Let Player B record one of their own units destroyed by Player A and verify Player A's qualifying automatic Secondary is still scored and synchronized.
+5. Change objective control from a non-active phone and verify every device receives it.
+6. Open a reaction window and verify only the responsible player can USE / PASS.
+7. Put one guest phone offline, record an allowed local action, restore connectivity and verify the action appears once on all devices.
+8. Repeat the previous test but close/reopen the guest browser before reconnecting; verify the persisted event is retried.
+9. Try to claim an occupied seat from another device; it should remain unavailable while presence is fresh and become reclaimable after the stale timeout for a non-host seat.
+10. Finish the last player's final turn with a non-host active commander and verify automatic battle completion succeeds.
 
 ## Current multiplayer constraints
 
-- The active player owns normal phase progression; host-only administration is limited to ending or abandoning the shared battle.
-- Undo/redo is disabled in shared sessions because event deletion is not yet represented as a synchronized compensating event.
-- CP and reaction controls now have client-side ownership, but the rest of the battle-state permissions are still cooperative. Server-side authorization comes later.
-- Objectives remain intentionally shared-edit state for now.
-- Army casualty/wound ownership is not yet enforced; the UI still allows cooperative corrections where the existing tracker exposes them.
-- Seat claims are persisted in the backend and stale seats can be reclaimed after disconnect.
-- The room stores a creation snapshot plus all later materialized Battle Events. Long-running room snapshot compaction is a later optimization.
+- Room access is not tied to user accounts; possession of the room code grants read capability and the seat-claim flow grants a player capability.
+- Undo/redo is disabled in shared sessions.
+- Objectives are intentionally shared-edit state.
+- Host transfer to another browser/device is not implemented.
+- The room stores a creation snapshot plus later Battle Events. Snapshot compaction is a later optimization.
+- Polling is deliberately simple; realtime push can replace the transport later.
 
 ## Next multiplayer milestones
 
-1. Make each phone open its own army/personal status by default while still showing shared battle context.
-2. Add own-army state ownership with an explicit host/admin correction path.
-3. Replace polling with realtime push while keeping the same transport contract.
-4. Add synchronized compensating undo.
-5. Delegate special decisions such as Rival target selection directly to the responsible player's phone.
-6. Add QR/deep-link room joining.
-7. Harden backend policies before any public deployment.
+1. Add a synchronized compensating-action model for shared undo.
+2. Add an explicit host/admin correction workflow instead of weakening normal player ownership.
+3. Add QR/deep-link room joining and easier invite sharing.
+4. Consider realtime push after correctness testing proves the event model.
+5. Add authenticated identity / stronger room capability before treating the service as public production infrastructure.
