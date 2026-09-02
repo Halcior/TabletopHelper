@@ -147,6 +147,7 @@ export type BattleEvent = BattleEventMetadata & (
   }
   | { type: 'REACTION_WINDOW_OPENED'; payload: { window: ReactionWindow } }
   | { type: 'REACTION_HOLD_REQUESTED'; payload: { window: ReactionWindow } }
+  | { type: 'REACTION_HOLD_REFINED'; payload: { window: ReactionWindow } }
   | { type: 'REACTION_PASSED'; payload: { reactionWindowId: string; playerId: string } }
   | {
     type: 'STRATAGEM_USED'
