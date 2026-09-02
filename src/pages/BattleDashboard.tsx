@@ -28,7 +28,7 @@ import {
 } from '../domain/context'
 import { getCurrentReactionWindow, isBattleFlowPaused } from '../domain/stratagems/battleIntegration'
 import { getAvailableStratagems } from '../domain/stratagems/timingEngine'
-import type { StratagemAvailability, TimingTrigger } from '../domain/stratagems/types'
+import type { ReactionContext, StratagemAvailability, TimingTrigger } from '../domain/stratagems/types'
 import { ReactionWindowPanel } from '../features/stratagems'
 import { getSharedSessionPermissions } from '../multiplayer/permissions'
 import { useSharedSessionStore } from '../multiplayer/sharedSessionStore'
@@ -45,18 +45,6 @@ import { useBattleStore } from '../stores/battleStore'
 type DashboardTab = 'overview' | 'army' | 'objectives' | 'cards' | 'log'
 
 const rulesDataCache = new WeakMap<Army, RulesDataResolution>()
-const ACTIVE_PLAYER_SUBJECT_TRIGGERS = new Set<TimingTrigger>([
-  'UNIT_SELECTED_TO_MOVE',
-  'UNIT_FINISHED_MOVE',
-  'UNIT_SELECTED_TO_SHOOT',
-  'SHOOTING_ATTACK_DECLARED',
-  'SHOOTING_ATTACK_RESOLVED',
-  'CHARGE_DECLARED',
-  'CHARGE_ROLL_MADE',
-  'CHARGE_COMPLETED',
-  'UNIT_SELECTED_TO_FIGHT',
-  'FIGHT_RESOLVED',
-])
 
 function resolveArmyRules(provider: RulesDataProvider, army: Army): RulesDataResolution {
   const cached = rulesDataCache.get(army)
@@ -278,13 +266,13 @@ export default function BattleDashboard() {
     })
   }
 
-  function handleReactionHold(playerId: string, trigger: TimingTrigger) {
+  function handleReactionHold(playerId: string, trigger: TimingTrigger, context: ReactionContext = {}) {
     if (currentWindow) return
     requestReactionHold(playerId, {
       trigger,
       context: {
+        ...context,
         actingPlayerId: active.id,
-        ...(ACTIVE_PLAYER_SUBJECT_TRIGGERS.has(trigger) ? { triggerSubjectPlayerId: active.id } : {}),
       },
       definitionsByPlayer,
     })
@@ -362,6 +350,8 @@ export default function BattleDashboard() {
       phase={session.state.phase}
       activePlayerName={active.name}
       players={reactionHoldPlayers}
+      session={session}
+      definitionsByPlayer={definitionsByPlayer}
       sharedMode
       viewerPlayerId={viewerPlayerId}
       disabled={Boolean(currentWindow)}
@@ -468,11 +458,7 @@ export default function BattleDashboard() {
                   onMulligan={mulliganSecondary}
                   onOpenEndTurn={() => { if (canControlTurn) setTurnReviewOpen(true) }}
                   onUseStratagem={handleContextStratagem}
-                  onHoldReaction={(playerId) => requestReactionHold(playerId, {
-                    trigger: 'CUSTOM_CONFIRMATION',
-                    context: { actingPlayerId: active.id },
-                    definitionsByPlayer,
-                  })}
+                  onHoldReaction={(playerId) => handleReactionHold(playerId, 'CUSTOM_CONFIRMATION')}
                   onPassReaction={passReaction}
                   onChangePlan={changePlan}
                   onResolveEliminationChoice={resolveEliminationChoice}
@@ -508,6 +494,8 @@ export default function BattleDashboard() {
                   phase={session.state.phase}
                   activePlayerName={active.name}
                   players={reactionHoldPlayers}
+                  session={session}
+                  definitionsByPlayer={definitionsByPlayer}
                   disabled={Boolean(currentWindow)}
                   onHold={handleReactionHold}
                 />}
