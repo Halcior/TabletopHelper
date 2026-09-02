@@ -137,6 +137,12 @@ describe('Context Engine cross-system progress', () => {
 })
 
 describe('Context Engine reactions and blockers', () => {
+  it('renders each context item in only one section', () => {
+    const context = buildBattleContext({ session: game('CEL_PRIORYTETOWY', 'PRESJA_TAKTYCZNA') })
+    const ids = context.sections.flatMap((section) => section.items.map((item) => item.id))
+    expect(new Set(ids).size).toBe(ids.length)
+  })
+
   it('keeps a zero-reaction status compact and non-blocking', () => {
     const context = buildBattleContext({ session: toPhase(game('SILA_OGNIA'), 'SHOOTING') })
     expect(context.reactions[0].title).toBe('No reactions available')

@@ -29,9 +29,9 @@ export function QuickObjectiveControls({
                 payload: { objectiveId: objective.id, controllerPlayerId: null },
               })}
             >None</button>
-            {players.map((player) => <button
+            {players.map((player, index) => <button
               aria-pressed={objective.controllerPlayerId === player.id}
-              className={objective.controllerPlayerId === player.id ? 'selected' : ''}
+              className={`objective-choice objective-choice--player-${index}${objective.controllerPlayerId === player.id ? ' selected' : ''}`}
               key={player.id}
               onClick={() => dispatch({
                 type: 'OBJECTIVE_CONTROL_CHANGED',

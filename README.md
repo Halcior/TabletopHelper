@@ -13,6 +13,7 @@ Current capabilities:
 - share one battle across three commander devices with offline retry and host-only recorded corrections;
 - export a privacy-safe diagnostic report when a playtest problem occurs;
 - install the hosted build as a PWA and reopen the previously visited app shell offline;
+- use a one-handed phone battle surface with one-tap Fast Mode progression, collapsed reminders, readable objective ownership, and recent-unit damage controls;
 - undo/redo actions and resume active battles from IndexedDB.
 
 Development commands:

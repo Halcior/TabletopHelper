@@ -137,6 +137,7 @@ export function ContextCommandCentre({
   const [panel, setPanel] = useState<PanelState>(null)
   const [dismissed, setDismissed] = useState<Set<string>>(() => new Set())
   const [candidateIds, setCandidateIds] = useState<string[]>([])
+  const [expanded, setExpanded] = useState(false)
   const playerId = session.state.activePlayerId
   const viewerControlsTurn = !sharedMode || viewerPlayerId === playerId
   const rivalPlayerId = getCurrentRivalPlayerId(session, playerId)
@@ -147,10 +148,28 @@ export function ContextCommandCentre({
   const priorityTargetId = priorityCard?.cardSpecificState?.priorityTargetUnitId
   const priorityCandidates = getPriorityTargetCandidates(session, playerId).filter((candidate) => candidate.eligible)
   const priorityWaitingForRival = selectedPriorityCandidates.length === 2 && !priorityTargetId
-  const visibleSections = useMemo(() => context.sections.map((section) => ({
+  const availableSections = useMemo(() => context.sections.map((section) => ({
     ...section,
     items: section.items.filter((item) => !dismissed.has(item.id) && !hideQuietReaction(item)),
   })).filter((section) => section.items.length > 0), [context.sections, dismissed])
+  const visibleSections = useMemo(() => {
+    if (expanded) return availableSections
+    const blockingIds = new Set(availableSections.flatMap((section) => (
+      section.items.filter((item) => item.status === 'BLOCKING').map((item) => item.id)
+    )))
+    const firstActionable = availableSections
+      .flatMap((section) => section.items)
+      .find((item) => !blockingIds.has(item.id) && ['REQUIRED', 'WARNING', 'AVAILABLE'].includes(item.status))
+    const visibleIds = blockingIds.size > 0
+      ? blockingIds
+      : new Set(firstActionable ? [firstActionable.id] : availableSections[0]?.items[0] ? [availableSections[0].items[0].id] : [])
+    return availableSections.map((section) => ({
+      ...section,
+      items: section.items.filter((item) => visibleIds.has(item.id)),
+    })).filter((section) => section.items.length > 0)
+  }, [availableSections, expanded])
+  const hiddenItemCount = availableSections.reduce((sum, section) => sum + section.items.length, 0)
+    - visibleSections.reduce((sum, section) => sum + section.items.length, 0)
   const stratagemOptions = useMemo(() => [...context.relevantStratagems].sort((left, right) => (
     Number(left.manualConfirmationRequired) - Number(right.manualConfirmationRequired)
   )), [context.relevantStratagems])
@@ -160,6 +179,7 @@ export function ContextCommandCentre({
     setDismissed(new Set())
     setPanel(null)
     setCandidateIds([])
+    setExpanded(false)
   }, [session.state.activePlayerId, session.state.round, session.state.phase])
 
   useEffect(() => {
@@ -269,6 +289,13 @@ export function ContextCommandCentre({
     </section>)}
 
     {visibleSections.length === 0 && <p className="context-empty">Nothing requires attention in this phase.</p>}
+
+    {(hiddenItemCount > 0 || expanded) && <button
+      className="context-expand"
+      type="button"
+      aria-expanded={expanded}
+      onClick={() => setExpanded((current) => !current)}
+    >{expanded ? 'Show only priorities' : `Show ${hiddenItemCount} more reminder${hiddenItemCount === 1 ? '' : 's'}`}</button>}
 
     {panel?.type === 'army' && <ArmyQuickPanel
       session={session}

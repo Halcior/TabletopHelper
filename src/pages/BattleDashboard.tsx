@@ -28,6 +28,7 @@ import {
   type CurrentTimingCheckpoint,
   type RelevantStratagem,
 } from '../domain/context'
+import { selectNextBattleAction } from '../domain/context/progression'
 import { getCurrentReactionWindow, isBattleFlowPaused } from '../domain/stratagems/battleIntegration'
 import { getAvailableStratagems } from '../domain/stratagems/timingEngine'
 import type { ReactionContext, StratagemAvailability, TimingTrigger } from '../domain/stratagems/types'
@@ -273,8 +274,8 @@ export default function BattleDashboard() {
     ? progressionBlockers[0].title
     : cauldronTurnReview
       ? 'Scoring & Mission Actions'
-      : phaseEndHasTimingOpportunities
-        ? guidanceLevel === 'guided' ? 'End-of-phase timing check' : 'End timing available · quick review'
+      : phaseEndHasTimingOpportunities && guidanceLevel === 'guided'
+        ? 'End-of-phase timing check'
         : phaseIndex < BATTLE_PHASES.length - 1
           ? humanizePhase(BATTLE_PHASES[phaseIndex + 1])
           : nextTurnDestination
@@ -358,18 +359,25 @@ export default function BattleDashboard() {
 
   function handleNextAction() {
     if (!canControlTurn) return
-    if (progressionBlockers.length > 0) {
+    const action = selectNextBattleAction({
+      blockerCount: progressionBlockers.length,
+      flowPaused,
+      endTurnReview: cauldronTurnReview,
+      phaseEndHasTimingOpportunities,
+      guidanceLevel,
+    })
+    if (action === 'FOCUS_BLOCKER') {
       setTab('overview')
       setContextFocusItemId(progressionBlockers[0].id)
       return
     }
-    if (flowPaused) return
+    if (action === 'WAIT_REACTION') return
     setContextFocusItemId(null)
-    if (cauldronTurnReview) {
+    if (action === 'OPEN_END_TURN_REVIEW') {
       setTurnReviewOpen(true)
       return
     }
-    if (phaseEndHasTimingOpportunities) {
+    if (action === 'OPEN_TIMING_REVIEW') {
       setPhaseEndReviewOpen(true)
       return
     }
@@ -428,9 +436,13 @@ export default function BattleDashboard() {
             session={session}
             canEndBattle={canEndBattle}
             canManageBattle={canManageLifecycle}
+            canUndoAction={!sharedBattle && canUndo(session.state)}
+            canRedoAction={!sharedBattle && session.redoActions.length > 0}
             endBlockedReason={endBlocker}
             onOpenLog={() => setTab('log')}
             onExportReport={() => downloadBattleDiagnosticReport(session, useSharedSessionStore.getState())}
+            onUndo={undo}
+            onRedo={redo}
             onEndBattle={endBattle}
             onAbandonBattle={abandonBattle}
             onApplyCorrection={applyCorrection}
@@ -575,9 +587,7 @@ export default function BattleDashboard() {
             {tab === 'log' && <BattleLog session={session} />}
           </main>
 
-          <footer className="battle-actions">
-            <button disabled={sharedBattle || !canUndo(session.state)} title={sharedBattle ? 'Shared-session undo will be added as a synchronized compensating action.' : undefined} onClick={undo}>Undo</button>
-            <button disabled={sharedBattle || session.redoActions.length === 0} title={sharedBattle ? 'Redo is disabled while the battle is shared.' : undefined} onClick={redo}>Redo</button>
+          <footer className="battle-actions battle-actions--primary">
             <button
               className="button--gold next-phase"
               disabled={!canControlTurn}

@@ -374,12 +374,13 @@ export function buildBattleContext(input: BuildBattleContextInput): BattleContex
   const blockingItems = allItems.filter((item) => item.status === 'BLOCKING')
   const warnings = allItems.filter((item) => item.status === 'WARNING')
   const priorities = allItems.filter((item) => ['BLOCKING', 'REQUIRED', 'AVAILABLE'].includes(item.status) && item.source !== 'REACTION')
+  const blockingIds = new Set(blockingItems.map((item) => item.id))
   const sections = [
     section('attention', 'Requires attention', blockingItems),
-    section('goals', 'Active goals', secondaries),
+    section('goals', 'Active goals', secondaries.filter((item) => !blockingIds.has(item.id))),
     section('now', 'What matters now', [...commands.filter((item) => item.status !== 'BLOCKING'), ...missions, ...plans, ...automaticEvents]),
     section('stratagems', 'Stratagems', stratagems),
-    section('reactions', 'Reactions', reactions),
+    section('reactions', 'Reactions', reactions.filter((item) => !blockingIds.has(item.id))),
   ].filter((value): value is ContextSection => Boolean(value))
   const availableActions = [...new Map(allItems.flatMap((item) => item.actions).map((itemAction) => [itemAction.id, itemAction])).values()]
   return {

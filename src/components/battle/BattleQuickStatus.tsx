@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import type { BattleSession } from '../../domain/battle/types'
-import { buildLatestBattleUpdate } from '../../domain/context/latestUpdate'
 import { useBattleStore } from '../../stores/battleStore'
 import { QuickObjectiveControls } from './QuickObjectiveControls'
 
@@ -13,21 +12,11 @@ export function BattleQuickStatus({
 }) {
   const [quickEditOpen, setQuickEditOpen] = useState(false)
   const dispatch = useBattleStore((state) => state.dispatch)
-  const latestUpdate = buildLatestBattleUpdate(session)
   const objectives = Object.values(session.state.objectives)
     .sort((left, right) => Number(left.type === 'home') - Number(right.type === 'home'))
 
   return (
     <div className="battle-quick-stack">
-      {latestUpdate && <section className="panel battle-update-pulse" aria-label="Latest battle update">
-        <span className="eyebrow">Latest update</span>
-        <strong>{latestUpdate.title}</strong>
-        <small>{latestUpdate.detail}</small>
-        {latestUpdate.consequences.length > 0 && <div className="battle-update-pulse__effects">
-          {latestUpdate.consequences.map((effect) => <span key={effect}>{effect}</span>)}
-        </div>}
-      </section>}
-
       <section className="panel quick-status-panel">
         <div className="section-heading">
           <div><span className="eyebrow">Board</span><h2>Objectives</h2></div>
@@ -43,7 +32,13 @@ export function BattleQuickStatus({
               const controller = objective.controllerPlayerId
                 ? session.state.players[objective.controllerPlayerId]?.name ?? 'Unknown'
                 : 'Uncontrolled'
-              return <li key={objective.id}><strong>{objective.name}</strong><span>{controller}</span></li>
+              const controllerIndex = objective.controllerPlayerId
+                ? session.state.turnOrder.indexOf(objective.controllerPlayerId)
+                : -1
+              return <li className={`objective-chip objective-chip--player-${controllerIndex}`} key={objective.id}>
+                <strong>{objective.name}</strong>
+                <span className="objective-controller"><i aria-hidden="true" />{controller}</span>
+              </li>
             })}
           </ul>}
       </section>

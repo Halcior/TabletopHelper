@@ -101,12 +101,6 @@
   font-size: 1rem;
 }
 
-.latest-battle-update > p {
-  margin: 0;
-  color: var(--muted);
-  font-size: .8rem;
-}
-
 .latest-battle-update__effects {
   display: grid;
   gap: 5px;

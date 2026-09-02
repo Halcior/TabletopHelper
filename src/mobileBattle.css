@@ -21,6 +21,51 @@
     padding-bottom: calc(106px + env(safe-area-inset-bottom));
   }
 
+  .battle-page button {
+    min-height: 44px;
+  }
+
+  .battle-page input,
+  .battle-page select {
+    min-height: 44px;
+  }
+
+  .battle-page small,
+  .battle-page .status-badge,
+  .battle-page .plan-status,
+  .battle-page .plan-change-unavailable,
+  .battle-page .reminder__status,
+  .battle-page .secondary-card__heading span,
+  .battle-page .mission-known-checks li,
+  .battle-page .priority-rival-choice span,
+  .battle-page .secondary-deck-counts span,
+  .battle-page .unit-mission-action span,
+  .battle-page .rules-data-attribution,
+  .battle-page .casualty-attribution,
+  .battle-page .stat-grid span,
+  .battle-page .weapon-table th,
+  .battle-page .control-choices button,
+  .battle-page .reaction-status-card > div span,
+  .battle-page .reaction-hold-button span,
+  .battle-page .reaction-trigger,
+  .battle-page .reaction-options > summary,
+  .battle-page .reaction-player-status span {
+    font-size: .75rem !important;
+  }
+
+  .battle-page .eyebrow {
+    font-size: .75rem;
+  }
+
+  .battle-status {
+    min-height: 54px;
+    padding: 5px 8px;
+  }
+
+  .battle-round > strong::before {
+    font-size: .75rem;
+  }
+
   .battle-content {
     padding: 6px 6px 14px;
   }
@@ -61,7 +106,7 @@
 
   .score-card__name {
     min-width: 0;
-    font-size: .68rem;
+    font-size: .75rem;
   }
 
   .score-card__identity span,
@@ -85,7 +130,7 @@
   }
 
   .score-card__numbers span {
-    font-size: .52rem;
+    font-size: .75rem;
   }
 
   .score-card .compact-controls {
@@ -97,9 +142,9 @@
 
   .score-card .compact-controls button {
     min-width: 0;
-    min-height: 32px;
+    min-height: 44px;
     padding: 3px 2px;
-    font-size: .58rem;
+    font-size: .75rem;
   }
 
   /* Keep the phase rail on-screen without a second horizontal navigation gesture. */
@@ -140,7 +185,7 @@
     display: block;
     max-width: 56px;
     overflow: hidden;
-    font-size: .54rem;
+    font-size: .75rem;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
@@ -150,7 +195,7 @@
     margin: 4px 6px 0;
     padding: 5px 7px;
     overflow: hidden;
-    font-size: .64rem;
+    font-size: .75rem;
     line-height: 1.25;
     text-align: left;
     text-overflow: ellipsis;
@@ -174,7 +219,7 @@
 
   .shared-perspective__heading .eyebrow {
     margin-bottom: 1px;
-    font-size: .55rem;
+    font-size: .75rem;
   }
 
   .shared-perspective__heading h3 {
@@ -188,7 +233,7 @@
   .shared-perspective__role {
     max-width: 48%;
     padding: 4px 5px;
-    font-size: .52rem;
+    font-size: .75rem;
     line-height: 1.15;
   }
 
@@ -212,17 +257,17 @@
 
   .shared-perspective__numbers > div:nth-child(3) strong {
     font-family: Inter, ui-sans-serif, system-ui, sans-serif;
-    font-size: .74rem;
+    font-size: .75rem;
     font-weight: 800;
   }
 
   .shared-perspective__numbers span {
-    font-size: .52rem;
+    font-size: .75rem;
   }
 
   .player-focus-line {
     padding: 5px 0;
-    font-size: .64rem;
+    font-size: .75rem;
   }
 
   .player-focus-secondary-list {
@@ -237,11 +282,11 @@
   }
 
   .player-focus-secondary strong {
-    font-size: .68rem;
+    font-size: .75rem;
   }
 
   .player-focus-secondary span {
-    font-size: .6rem;
+    font-size: .75rem;
   }
 
   .player-focus-secondary small {
@@ -256,7 +301,7 @@
   .shared-perspective__actions button {
     min-height: 36px;
     padding: 4px 6px;
-    font-size: .62rem;
+    font-size: .75rem;
   }
 
   /* Objectives are a one-line board snapshot; details remain one tap away. */
@@ -274,32 +319,49 @@
 
   .quick-status-actions .button,
   .quick-status-actions button {
-    min-height: 34px;
+    min-height: 44px;
     padding: 3px 6px;
-    font-size: .6rem;
+    font-size: .75rem;
+  }
+
+  .quick-status-panel .secondary-objective-row {
+    grid-template-columns: 1fr;
+  }
+
+  .quick-status-panel .secondary-objective-row span,
+  .quick-status-panel .secondary-objective-choices button {
+    font-size: .75rem;
+  }
+
+  .quick-status-panel .secondary-objective-choices button {
+    min-height: 44px;
   }
 
   .quick-objective-list {
     width: 100%;
     display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 3px;
     overflow: visible;
   }
 
   .quick-objective-list li {
     min-width: 0;
-    min-height: 36px;
-    padding: 4px;
-    gap: 0;
+    min-height: 44px;
+    padding: 5px 6px;
+    gap: 2px;
+    display: grid;
   }
 
   .quick-objective-list strong {
-    font-size: .65rem;
+    overflow: hidden;
+    font-size: .75rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .quick-objective-list span {
-    font-size: .5rem;
+    font-size: .75rem;
   }
 
   /* When another commander owns the turn, do not show their entire co-pilot flow. */
@@ -331,7 +393,7 @@
   }
 
   .tactical-dashboard:has(.shared-perspective:not(.shared-perspective--active)) .context-clear {
-    font-size: .58rem;
+    font-size: .75rem;
   }
 
   .tactical-dashboard:has(.shared-perspective:not(.shared-perspective--active)) .context-section {
@@ -340,7 +402,7 @@
 
   .tactical-dashboard:has(.shared-perspective:not(.shared-perspective--active)) .context-section > h3 {
     margin-bottom: 3px;
-    font-size: .58rem;
+    font-size: .75rem;
   }
 
   .tactical-dashboard:has(.shared-perspective:not(.shared-perspective--active)) .context-item {
@@ -358,7 +420,7 @@
 
   .tactical-dashboard:has(.shared-perspective:not(.shared-perspective--active)) .context-item p {
     margin: 0;
-    font-size: .66rem;
+    font-size: .75rem;
     line-height: 1.3;
   }
 
@@ -392,20 +454,82 @@
 
   .battle-tabs button {
     min-height: 44px;
+    font-size: .75rem;
   }
 
   .battle-actions {
     min-height: 58px;
-    grid-template-columns: 46px 46px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
     padding: 4px 6px calc(4px + env(safe-area-inset-bottom));
-  }
-
-  .battle-actions > button:not(.next-phase) {
-    min-height: 44px;
   }
 
   .next-phase {
     min-height: 44px;
+  }
+
+  .next-phase span {
+    font-size: .75rem;
+  }
+
+  .context-item__top > span,
+  .context-item__top > strong,
+  .context-section > h3,
+  .latest-battle-update__toggle,
+  .latest-battle-update__body > p,
+  .latest-battle-update__effects > span,
+  .latest-battle-update__effects li {
+    font-size: .75rem;
+  }
+
+  .latest-battle-update {
+    margin-bottom: 6px;
+    padding: 9px 10px;
+  }
+
+  .latest-battle-update__heading h3 {
+    font-size: .875rem;
+  }
+
+  .recent-units {
+    margin-bottom: 8px;
+    padding: 8px;
+  }
+
+  .recent-units__heading {
+    margin-bottom: 6px;
+    align-items: flex-start;
+  }
+
+  .recent-units__heading small {
+    display: none;
+  }
+
+  .recent-unit-list {
+    grid-template-columns: 1fr;
+  }
+
+  .recent-unit__identity strong,
+  .recent-unit__identity span,
+  .recent-unit__actions button {
+    font-size: .75rem;
+  }
+
+  .recent-unit__actions {
+    grid-template-columns: repeat(2, 46px);
+  }
+
+  .unit-card .model-pips,
+  .unit-card .unit-summary,
+  .unit-battleshock-actions small {
+    display: none;
+  }
+
+  .unit-card__header,
+  .unit-vital,
+  .unit-actions,
+  .unit-battleshock-actions,
+  .casualty-attribution {
+    margin-bottom: 6px;
   }
 }
 
@@ -414,16 +538,8 @@
     font-size: .82rem;
   }
 
-  .score-card .compact-controls button {
-    font-size: .54rem;
-  }
-
   .phase-step--current strong {
     max-width: 44px;
-  }
-
-  .quick-objective-list span {
-    display: none;
   }
 
   .shared-perspective__role {

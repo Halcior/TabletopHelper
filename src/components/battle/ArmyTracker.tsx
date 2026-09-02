@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { Army, UnitDefinition, UnitState, WeaponProfile } from '../../domain/army/types'
 import { getActiveMissionActionForUnit } from '../../domain/battle/missionActions'
+import { selectRecentUnits } from '../../domain/battle/recentUnits'
 import type { BattleEventInput, BattleSession } from '../../domain/battle/types'
 import { CAULDRON_RULESET_ID, getCurrentRivalPlayerId } from '../../rulesets/cauldronFFA3'
 import { CAULDRON_SECONDARY_BY_ID } from '../../rulesets/cauldronFFA3/secondaryDefinitions'
@@ -145,7 +146,7 @@ function UnitCard({
   }
 
   return (
-    <article className={`unit-card${state.destroyed ? ' is-destroyed' : ''}${canEdit ? '' : ' unit-card--readonly'}`}>
+    <article id={`unit-card-${ownerId}-${unit.id}`} className={`unit-card${state.destroyed ? ' is-destroyed' : ''}${canEdit ? '' : ' unit-card--readonly'}`}>
       <div className="unit-card__header">
         <div><h3>{unit.name}</h3><p>{unit.points} pts{unit.isWarlord ? ' · Warlord' : ''}</p></div>
         {state.battleShocked && <span className="status-badge status-badge--danger">Battle-shocked</span>}
@@ -208,6 +209,79 @@ function UnitCard({
   )
 }
 
+function QuickUnitControl({
+  unit,
+  state,
+  ownerId,
+  activePlayerId,
+  dispatch,
+  canEdit,
+  onOpen,
+}: {
+  unit: UnitDefinition
+  state: UnitState
+  ownerId: string
+  activePlayerId: string
+  dispatch: (event: BattleEventInput) => void
+  canEdit: boolean
+  onOpen: () => void
+}) {
+  const maximumWounds = unit.stats?.wounds
+  const wounds = state.woundsRemaining ?? maximumWounds ?? 0
+  const multiModel = unit.startingModels > 1
+  const destroyedByPlayerId = activePlayerId === ownerId ? null : activePlayerId
+  const vital = multiModel
+    ? `${state.modelsAlive}/${unit.startingModels} models`
+    : maximumWounds ? `${wounds}/${maximumWounds} W` : state.destroyed ? 'Destroyed' : 'Active'
+
+  function recordLoss() {
+    if (!canEdit) return
+    if (multiModel) {
+      dispatch({ type: 'UNIT_MODEL_DESTROYED', payload: { playerId: ownerId, unitId: unit.id, amount: 1, destroyedByPlayerId } })
+    } else if (maximumWounds) {
+      dispatch({ type: 'UNIT_WOUNDS_CHANGED', payload: { playerId: ownerId, unitId: unit.id, woundsRemaining: wounds - 1, destroyedByPlayerId } })
+    } else {
+      dispatch({ type: 'UNIT_DESTROYED', payload: { playerId: ownerId, unitId: unit.id, destroyedByPlayerId } })
+    }
+  }
+
+  function restoreLoss() {
+    if (!canEdit) return
+    if (multiModel || !maximumWounds) {
+      dispatch({ type: 'UNIT_MODEL_RESTORED', payload: { playerId: ownerId, unitId: unit.id, amount: 1 } })
+    } else {
+      dispatch({ type: 'UNIT_WOUNDS_CHANGED', payload: { playerId: ownerId, unitId: unit.id, woundsRemaining: wounds + 1 } })
+    }
+  }
+
+  const canRecordLoss = multiModel ? state.modelsAlive > 0 : maximumWounds ? wounds > 0 : !state.destroyed
+  const canRestoreLoss = multiModel
+    ? state.modelsAlive < unit.startingModels
+    : maximumWounds ? wounds < maximumWounds : state.destroyed
+
+  return <article className={`recent-unit${state.destroyed ? ' is-destroyed' : ''}`}>
+    <button className="recent-unit__identity" type="button" onClick={onOpen}>
+      <strong>{unit.name}</strong>
+      <span>{vital}</span>
+    </button>
+    <div className="recent-unit__actions">
+      <button
+        className="recent-unit__loss"
+        type="button"
+        aria-label={`Record one ${multiModel ? 'destroyed model' : maximumWounds ? 'lost wound' : 'destruction'} for ${unit.name}`}
+        disabled={!canEdit || !canRecordLoss}
+        onClick={recordLoss}
+      >{multiModel ? '−1' : maximumWounds ? '−1W' : 'KO'}</button>
+      <button
+        type="button"
+        aria-label={`Restore one ${multiModel ? 'model' : maximumWounds ? 'wound' : 'unit'} for ${unit.name}`}
+        disabled={!canEdit || !canRestoreLoss}
+        onClick={restoreLoss}
+      >{multiModel ? '+1' : maximumWounds ? '+1W' : '↺'}</button>
+    </div>
+  </article>
+}
+
 export function ArmyTracker({
   session,
   dispatch,
@@ -240,11 +314,26 @@ export function ArmyTracker({
   const playerState = session.state.players[selected.player.id]
   const canEditSelectedArmy = !sharedMode || selected.player.id === viewerPlayerId
   const filterRivalTargets = Boolean(secondaryTargetFilter && selected.player.id === rivalPlayerId)
-  const visibleUnits = filterRivalTargets && secondaryTargetFilter
+  const filteredUnits = filterRivalTargets && secondaryTargetFilter
     ? selected.army.units.filter((unit) => (
       !playerState.units[unit.id].destroyed && matchesSecondaryTarget(unit, secondaryTargetFilter)
     ))
     : selected.army.units
+  const recentUnitIds = selectRecentUnits(session, selected.player.id, 3).map(({ unitId }) => unitId)
+  const recentRank = new Map(recentUnitIds.map((unitId, index) => [unitId, index]))
+  const visibleUnits = [...filteredUnits].sort((left, right) => (
+    (recentRank.get(left.id) ?? Number.MAX_SAFE_INTEGER) - (recentRank.get(right.id) ?? Number.MAX_SAFE_INTEGER)
+  ))
+  const quickUnits = filterRivalTargets
+    ? []
+    : (recentUnitIds.length > 0
+        ? recentUnitIds.flatMap((unitId) => selected.army.units.find((unit) => unit.id === unitId) ?? [])
+        : visibleUnits.filter((unit) => !playerState.units[unit.id].destroyed).slice(0, 3))
+
+  function openUnitCard(unitId: string) {
+    document.getElementById(`unit-card-${selected.player.id}-${unitId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
   return <div className="army-trackers">
     <nav className="army-player-tabs" aria-label="Choose player army">
       {armyPlayers.map(({ player, army }) => <button
@@ -266,6 +355,22 @@ export function ArmyTracker({
         <span><strong>Targets for {CAULDRON_SECONDARY_BY_ID[secondaryTargetFilter].name}</strong><small>{visibleUnits.length} eligible Rival unit{visibleUnits.length === 1 ? '' : 's'} remaining.</small></span>
         <button onClick={onClearSecondaryTargetFilter}>Show all units</button>
       </div>}
+      {quickUnits.length > 0 && <section className="recent-units" aria-label={recentUnitIds.length > 0 ? 'Recently used units' : 'Quick unit access'}>
+        <div className="recent-units__heading">
+          <div><span className="eyebrow">{recentUnitIds.length > 0 ? 'Recently used' : 'Quick access'}</span><h3>Units</h3></div>
+          <small>Quick damage uses the current player as attacker.</small>
+        </div>
+        <div className="recent-unit-list">{quickUnits.map((unit) => <QuickUnitControl
+          key={unit.id}
+          unit={unit}
+          state={playerState.units[unit.id]}
+          ownerId={selected.player.id}
+          activePlayerId={session.state.activePlayerId}
+          dispatch={dispatch}
+          canEdit={canEditSelectedArmy}
+          onOpen={() => openUnitCard(unit.id)}
+        />)}</div>
+      </section>}
       <div className="unit-grid">{visibleUnits.map((unit) => <UnitCard
         key={unit.id}
         unit={unit}
