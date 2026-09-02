@@ -37,12 +37,17 @@ export type OwnerScope = 'ACTIVE_PLAYER' | 'OPPONENT' | 'ANY_PLAYER'
 export type StandardUsageLimit = typeof STANDARD_USAGE_LIMITS[number]
 export type TimedOptionKind = 'STRATAGEM' | 'ABILITY' | (string & {})
 export type TimingConfidence = 'VERIFIED' | 'REQUIRES_CONFIRMATION'
+export type ReactionMoveType = 'normal' | 'advance' | 'fall-back' | 'charge'
 
 export type ReactionContext = {
   actingPlayerId?: string
   sourceUnitId?: string
+  triggerSubjectPlayerId?: string
+  triggerSubjectUnitId?: string
+  moveType?: ReactionMoveType
   targetUnitId?: string
   targetPlayerId?: string
+  targetKeywords?: readonly string[]
   objectiveId?: string
   eventId?: string
   [key: string]: unknown
