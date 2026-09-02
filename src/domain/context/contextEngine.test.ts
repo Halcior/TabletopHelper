@@ -122,7 +122,7 @@ describe('Context Engine cross-system progress', () => {
     expect(source(context, 'SECONDARY').find((item) => item.relatedSecondaryId === 'PRESJA_TAKTYCZNA')?.shortDescription).toContain('You 2; Rival 0')
   })
 
-  it('derives current-phase Stratagems, excludes unrelated phases, and labels manual timing', () => {
+  it('filters Stratagems to the current timing checkpoint and labels manual timing', () => {
     const session = toPhase(game('SILA_OGNIA'), 'SHOOTING')
     const rulesData = rules([
       { definition: definition({ id: 'shoot', name: 'Shooting option', phases: ['SHOOTING'] }) },
@@ -130,7 +130,7 @@ describe('Context Engine cross-system progress', () => {
       { definition: definition({ id: 'manual', name: 'Manual option', phases: ['SHOOTING'], triggers: ['CUSTOM_CONFIRMATION'] }), manual: true },
     ])
     const context = buildBattleContext({ session, rulesDataByPlayer: rulesData })
-    expect(context.relevantStratagems.map((option) => option.definition.id)).toEqual(['shoot', 'manual'])
+    expect(context.relevantStratagems.map((option) => option.definition.id)).toEqual(['manual'])
     expect(source(context, 'STRATAGEM')[0].shortDescription).toMatch(/requires player confirmation/i)
     expect(context.blockingItems.some((item) => item.source === 'STRATAGEM')).toBe(false)
   })
