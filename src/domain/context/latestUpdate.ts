@@ -1,4 +1,5 @@
 import type { BattleEvent, BattleSession } from '../battle/types'
+import { getCurrentReactionWindow } from '../stratagems/battleIntegration'
 import { CAULDRON_RULESET_ID } from '../../rulesets/cauldronFFA3/constants'
 import { evaluateOperationalPlan, getOperationalPlanState } from '../../rulesets/cauldronFFA3/operationalPlans'
 import { CAULDRON_SECONDARY_BY_ID } from '../../rulesets/cauldronFFA3/secondaryDefinitions'
@@ -153,6 +154,15 @@ export function buildLatestBattleUpdate(session: BattleSession): LatestBattleUpd
     } catch {
       // Presentation feedback must never make the battle screen fail when optional
       // ruleset configuration is missing or belongs to another game type.
+    }
+  }
+
+  const reactionWindow = getCurrentReactionWindow(session)
+  if (reactionWindow?.status === 'OPEN' && reactionWindow.context.eventId === cause.id) {
+    const pendingResponses = Object.values(reactionWindow.responses)
+      .filter((response) => response.status === 'PENDING').length
+    if (pendingResponses > 0) {
+      consequences.push(`Reaction window opened · ${pendingResponses} response${pendingResponses === 1 ? '' : 's'} pending`)
     }
   }
 
