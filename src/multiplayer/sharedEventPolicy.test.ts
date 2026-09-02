@@ -44,6 +44,21 @@ describe('shared event policy', () => {
     expect(decision.reason).toMatch(/own player or army state/i)
   })
 
+  it('lets a commander record only their own Battle-shock test result', () => {
+    const before = testCauldronGame()
+    const ownResult = dispatchBattleEvent(before, {
+      type: 'BATTLESHOCK_TEST_RESOLVED',
+      payload: { playerId: 'p-b', unitId: 'infantry', passed: false },
+    }, { actorPlayerId: 'p-b' })
+    const otherResult = dispatchBattleEvent(before, {
+      type: 'BATTLESHOCK_TEST_RESOLVED',
+      payload: { playerId: 'p-a', unitId: 'infantry', passed: false },
+    }, { actorPlayerId: 'p-b' })
+
+    expect(authorizeSharedMutation(before, ownResult, membership('p-b')).allowed).toBe(true)
+    expect(authorizeSharedMutation(before, otherResult, membership('p-b')).allowed).toBe(false)
+  })
+
   it('allows the unit owner to record a casualty that automatically scores the attacker Secondary', () => {
     const deck: SecondaryId[] = ['SILA_OGNIA', ...CAULDRON_SECONDARY_IDS.filter((id) => id !== 'SILA_OGNIA')]
     let before = testCauldronGame({ secondaryDeckOrders: { 'p-a': deck } })
