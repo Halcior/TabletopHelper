@@ -355,7 +355,9 @@ export function buildBattleContext(input: BuildBattleContextInput): BattleContex
   const activePlayer = selectActivePlayer(session)
   const rival = selectCurrentRival(session)
   const relevantStratagems = selectRelevantStratagems(session, input.rulesDataByPlayer)
-  const reactionPlayers = selectReactionPlayers(session, input.rulesDataByPlayer)
+  const reactionPlayers = selectReactionPlayers(session, input.rulesDataByPlayer, {
+    reactionPolicy: input.reactionPolicy,
+  })
   const explicit = explicitBlockerItems(session)
   const secondaries = secondaryItems(session)
   const commands = commandItems(session)
