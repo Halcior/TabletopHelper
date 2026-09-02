@@ -16,6 +16,7 @@ import { CauldronPlanPanel } from '../CauldronPlanPanel'
 import { MissionActionLauncher } from '../MissionActionLauncher'
 import { ArmyQuickPanel } from '../quickPanels/ArmyQuickPanel'
 import { ObjectiveQuickPanel } from '../quickPanels/ObjectiveQuickPanel'
+import { LatestBattleUpdateCard } from './LatestBattleUpdateCard'
 
 type PanelState =
   | { type: 'army'; playerId?: string; unitId?: string; secondaryId?: SecondaryId }
@@ -221,6 +222,8 @@ export function ContextCommandCentre({
   }
 
   return <section className={`context-centre context-centre--${context.guidanceLevel}`}>
+    <LatestBattleUpdateCard session={session} />
+
     <div className="context-centre__heading">
       <div><span className="eyebrow">What matters now</span><h2>{phaseLabel(context.phase)} priorities</h2></div>
       {sharedMode && !viewerControlsTurn
