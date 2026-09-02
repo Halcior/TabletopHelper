@@ -25,10 +25,10 @@ export type FortyKdcTargetRestrictions = {
 export type FortyKdcTriggerRecord = {
   event: string
   subject?: FortyKdcTriggerSubject
-  moveTypes: readonly FortyKdcMoveType[]
-  hasCondition: boolean
-  hasProximity: boolean
-  hasWindow: boolean
+  moveTypes?: readonly FortyKdcMoveType[]
+  hasCondition?: boolean
+  hasProximity?: boolean
+  hasWindow?: boolean
 }
 
 export type FortyKdcAbilityRecord = {
