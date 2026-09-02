@@ -5,6 +5,7 @@ import { saveBattle } from '../persistence/database'
 import { useBattleStore } from '../stores/battleStore'
 import { participantIsActive } from './presence'
 import { setSharedRuntimeMembership } from './sharedRuntime'
+import { findRetryableLocalEvents, mergeCanonicalEnvelopes } from './sharedSync'
 import { sharedSessionTransport } from './supabaseRestTransport'
 import type {
   SharedConnectionStatus,
@@ -162,11 +163,8 @@ async function pollRoom(): Promise<void> {
     const afterSequence = canonicalEvents.at(-1)?.sequence ?? 0
     const incoming = await sharedSessionTransport.listEvents(membership.roomId, afterSequence)
     if (incoming.length > 0) {
-      for (const envelope of incoming) {
-        if (!canonicalEvents.some((known) => known.sequence === envelope.sequence)) canonicalEvents.push(envelope)
-        pendingLocalEvents.delete(envelope.event.id)
-      }
-      canonicalEvents.sort((left, right) => left.sequence - right.sequence)
+      canonicalEvents = mergeCanonicalEnvelopes(canonicalEvents, incoming)
+      for (const envelope of incoming) pendingLocalEvents.delete(envelope.event.id)
       updatePendingCount()
       rebuildFromCanonical()
     }
@@ -243,6 +241,11 @@ function startSyncLoop(inspection: SharedRoomInspection, membership: SharedMembe
     const session = rehydrateBattleSession(inspection.room.sessionSnapshot)
     useBattleStore.setState({ session, error: null })
     void saveBattle(session)
+  } else {
+    for (const event of findRetryableLocalEvents(inspection.room.sessionSnapshot, localSession)) {
+      pendingLocalEvents.set(event.id, event)
+    }
+    updatePendingCount()
   }
 
   unsubscribeBattle = useBattleStore.subscribe((state, previous) => {
