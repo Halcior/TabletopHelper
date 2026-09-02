@@ -79,6 +79,59 @@
   margin: 6px 0 2px;
 }
 
+.latest-battle-update {
+  display: grid;
+  gap: 9px;
+  margin-bottom: 14px;
+  padding: 13px 15px;
+  border: 1px solid rgb(92 132 91 / 45%);
+  border-left: 3px solid #6f9b72;
+  background: rgb(30 69 41 / 14%);
+}
+
+.latest-battle-update__heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.latest-battle-update__heading h3 {
+  margin: 3px 0 0;
+  font-size: 1rem;
+}
+
+.latest-battle-update > p {
+  margin: 0;
+  color: var(--muted);
+  font-size: .8rem;
+}
+
+.latest-battle-update__effects {
+  display: grid;
+  gap: 5px;
+  padding-top: 7px;
+  border-top: 1px solid rgb(92 132 91 / 30%);
+}
+
+.latest-battle-update__effects > span {
+  color: #b7d7bb;
+  font-size: .65rem;
+  font-weight: 800;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+
+.latest-battle-update__effects ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 0;
+  padding-left: 18px;
+  color: var(--paper);
+  font-size: .76rem;
+}
+
 .quick-status-actions {
   display: flex;
   flex-wrap: wrap;
@@ -272,6 +325,15 @@
 }
 
 @media (max-width: 560px) {
+  .latest-battle-update__heading,
+  .latest-battle-update__effects ul {
+    align-items: flex-start;
+  }
+
+  .latest-battle-update__effects ul {
+    display: grid;
+  }
+
   .discard-choice {
     align-items: stretch;
     flex-direction: column;
