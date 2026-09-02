@@ -34,6 +34,7 @@ function playerScopedTarget(event: BattleEvent, session: BattleSession): string 
     case 'UNIT_WOUNDS_CHANGED':
     case 'UNIT_DESTROYED':
     case 'UNIT_BATTLESHOCK_CHANGED':
+    case 'BATTLESHOCK_TEST_RESOLVED':
     case 'ABILITY_USED':
     case 'OBJECTIVE_OC_CHANGED':
     case 'REACTION_PASSED':
