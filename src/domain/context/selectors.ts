@@ -12,7 +12,7 @@ import {
   getSecondaryState,
 } from '../../rulesets/cauldronFFA3/secondary'
 import type { ActiveSecondaryView, SecondaryId } from '../../rulesets/cauldronFFA3/secondaryTypes'
-import { selectCurrentTimingCheckpoint } from './timingContext'
+import { selectCurrentTimingCheckpoint, type CurrentTimingCheckpoint } from './timingContext'
 import type {
   ActiveMissionActionContext,
   BattleContext,
@@ -118,12 +118,12 @@ function evaluateAcrossTriggers(input: {
   session: BattleSession
   playerId: string
   definition: RelevantStratagem['definition']
+  checkpoint: CurrentTimingCheckpoint | null
 }): StratagemAvailability {
-  const checkpoint = selectCurrentTimingCheckpoint(input.session)
   const definitionTriggers = input.definition.triggers.length > 0
     ? input.definition.triggers
     : ['CUSTOM_CONFIRMATION' as TimingTrigger]
-  const exactMatches = checkpoint?.triggers.filter((trigger) => definitionTriggers.includes(trigger)) ?? []
+  const exactMatches = input.checkpoint?.triggers.filter((trigger) => definitionTriggers.includes(trigger)) ?? []
   const manualFallback = definitionTriggers.includes('CUSTOM_CONFIRMATION')
   const triggers = exactMatches.length > 0
     ? exactMatches
@@ -133,8 +133,8 @@ function evaluateAcrossTriggers(input: {
     return {
       definition: input.definition,
       canUse: false,
-      reasons: [checkpoint
-        ? `Current recorded timing (${checkpoint.triggers.join(', ')}) does not match this Stratagem.`
+      reasons: [input.checkpoint
+        ? `Current recorded timing (${input.checkpoint.triggers.join(', ')}) does not match this Stratagem.`
         : 'No exact timing checkpoint is currently recorded.'],
     }
   }
@@ -143,7 +143,7 @@ function evaluateAcrossTriggers(input: {
     playerId: input.playerId,
     gameState: input.session.state,
     trigger,
-    context: checkpoint?.context,
+    context: input.checkpoint?.context,
     definitions: [input.definition],
   }))
   const usable = evaluations.find((evaluation) => evaluation.canUse)
@@ -162,14 +162,15 @@ function manualFallbackAvailable(record: {
   return record.manualConfirmationRequired && record.definition.triggers.includes('CUSTOM_CONFIRMATION')
 }
 
-export function selectRelevantStratagems(
+export function selectRelevantStratagemsAtCheckpoint(
   session: BattleSession,
   rulesDataByPlayer: ContextRulesByPlayer = {},
+  checkpoint: CurrentTimingCheckpoint | null,
   playerId = session.state.activePlayerId,
 ): RelevantStratagem[] {
   return (rulesDataByPlayer[playerId]?.stratagems ?? []).flatMap((record) => {
     if (record.classification === 'REACTION' || !definitionMatchesPhase(record.definition, session.state.phase)) return []
-    const availability = evaluateAcrossTriggers({ session, playerId, definition: record.definition })
+    const availability = evaluateAcrossTriggers({ session, playerId, definition: record.definition, checkpoint })
     if (!availability.canUse && !manualFallbackAvailable(record)) return []
     return [{
       definition: record.definition,
@@ -180,9 +181,23 @@ export function selectRelevantStratagems(
   })
 }
 
-export function selectReactionPlayers(
+export function selectRelevantStratagems(
   session: BattleSession,
   rulesDataByPlayer: ContextRulesByPlayer = {},
+  playerId = session.state.activePlayerId,
+): RelevantStratagem[] {
+  return selectRelevantStratagemsAtCheckpoint(
+    session,
+    rulesDataByPlayer,
+    selectCurrentTimingCheckpoint(session),
+    playerId,
+  )
+}
+
+export function selectReactionPlayersAtCheckpoint(
+  session: BattleSession,
+  rulesDataByPlayer: ContextRulesByPlayer = {},
+  checkpoint: CurrentTimingCheckpoint | null,
 ): ReactionPlayerContext[] {
   const activePlayerId = session.state.activePlayerId
   const window = selectPendingReactionWindow(session)
@@ -194,7 +209,7 @@ export function selectReactionPlayers(
     ))
     const evaluated = records.map((record) => ({
       record,
-      availability: evaluateAcrossTriggers({ session, playerId, definition: record.definition }),
+      availability: evaluateAcrossTriggers({ session, playerId, definition: record.definition, checkpoint }),
     }))
     return {
       playerId,
@@ -209,6 +224,17 @@ export function selectReactionPlayers(
       pending: window?.responses[playerId]?.status === 'PENDING',
     }
   })
+}
+
+export function selectReactionPlayers(
+  session: BattleSession,
+  rulesDataByPlayer: ContextRulesByPlayer = {},
+): ReactionPlayerContext[] {
+  return selectReactionPlayersAtCheckpoint(
+    session,
+    rulesDataByPlayer,
+    selectCurrentTimingCheckpoint(session),
+  )
 }
 
 export function selectCommandPointRecordedThisTurn(session: BattleSession): boolean {
