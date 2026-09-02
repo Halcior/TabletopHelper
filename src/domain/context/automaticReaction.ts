@@ -15,7 +15,8 @@ export type AutomaticReactionPrompt = {
 /**
  * Finds the first exact recorded timing that has a legal opponent reaction.
  * It deliberately ignores phase-level/manual fallback guesses: only triggers
- * proven by the current persisted timing checkpoint are considered.
+ * proven by the current persisted timing checkpoint and rules records whose
+ * timing guards are fully structured are allowed to pause Guided play.
  */
 export function selectAutomaticReactionPrompt(
   session: BattleSession,
@@ -27,7 +28,9 @@ export function selectAutomaticReactionPrompt(
   if (!checkpoint) return null
   const definitionsByPlayer = Object.fromEntries(session.state.turnOrder.map((playerId) => [
     playerId,
-    (rulesDataByPlayer[playerId]?.stratagems ?? []).map((record) => record.definition),
+    (rulesDataByPlayer[playerId]?.stratagems ?? [])
+      .filter((record) => record.fullyAutomatedTiming && !record.manualConfirmationRequired)
+      .map((record) => record.definition),
   ]))
 
   for (const trigger of checkpoint.triggers) {
