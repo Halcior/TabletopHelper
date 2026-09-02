@@ -3,7 +3,7 @@ import { getActiveMissionActionForUnit, getPlayerTurnNumber, getUnitDefinition }
 import type { BattleSession, PlayerState } from '../battle/types'
 import { getCurrentReactionWindow } from '../stratagems/battleIntegration'
 import { getAvailableStratagems } from '../stratagems/timingEngine'
-import type { StratagemAvailability, TimingTrigger } from '../stratagems/types'
+import type { ReactionPolicy, StratagemAvailability, TimingTrigger } from '../stratagems/types'
 import { CAULDRON_RULESET_ID, getCurrentRivalPlayerId } from '../../rulesets/cauldronFFA3'
 import {
   getActiveSecondaryViews,
@@ -25,6 +25,7 @@ import type {
 
 export type CheckpointSelectionOptions = {
   allowCustomFallback?: boolean
+  reactionPolicy?: ReactionPolicy
 }
 
 export function selectActivePlayer(session: BattleSession): PlayerState {
@@ -124,6 +125,8 @@ function evaluateAcrossTriggers(input: {
   definition: RelevantStratagem['definition']
   checkpoint: CurrentTimingCheckpoint | null
   allowCustomFallback: boolean
+  reactionOnly?: boolean
+  reactionPolicy?: ReactionPolicy
 }): StratagemAvailability {
   const definitionTriggers = input.definition.triggers.length > 0
     ? input.definition.triggers
@@ -150,6 +153,8 @@ function evaluateAcrossTriggers(input: {
     trigger,
     context: input.checkpoint?.context,
     definitions: [input.definition],
+    reactionOnly: input.reactionOnly,
+    reactionPolicy: input.reactionPolicy,
   }))
   const usable = evaluations.find((evaluation) => evaluation.canUse)
   if (usable) return usable
@@ -185,6 +190,7 @@ export function selectRelevantStratagemsAtCheckpoint(
       definition: record.definition,
       checkpoint,
       allowCustomFallback,
+      reactionOnly: false,
     })
     if (!availability.canUse && !manualFallbackAvailable(record, allowCustomFallback)) return []
     return [{
@@ -233,6 +239,8 @@ export function selectReactionPlayersAtCheckpoint(
         definition: record.definition,
         checkpoint,
         allowCustomFallback,
+        reactionOnly: true,
+        reactionPolicy: options.reactionPolicy,
       }),
     }))
     return {
@@ -253,12 +261,13 @@ export function selectReactionPlayersAtCheckpoint(
 export function selectReactionPlayers(
   session: BattleSession,
   rulesDataByPlayer: ContextRulesByPlayer = {},
+  options: CheckpointSelectionOptions = {},
 ): ReactionPlayerContext[] {
   return selectReactionPlayersAtCheckpoint(
     session,
     rulesDataByPlayer,
     selectCurrentTimingCheckpoint(session),
-    { allowCustomFallback: true },
+    options,
   )
 }
 
