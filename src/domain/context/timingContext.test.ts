@@ -57,22 +57,45 @@ describe('current timing checkpoint', () => {
     expect(checkpoint?.triggers).toEqual(['MODEL_DESTROYED', 'UNIT_DESTROYED'])
   })
 
-  it('records a failed battle-shock test when the physical state becomes Battle-shocked', () => {
+  it('records exact failed and passed Battle-shock test timings', () => {
+    let session = dispatchBattleEvent(advanceCauldronPhase(testCauldronGame()), {
+      type: 'BATTLESHOCK_TEST_RESOLVED',
+      payload: { playerId: 'p-b', unitId: 'infantry', passed: false },
+    }, { actorPlayerId: 'p-b' })
+
+    expect(selectCurrentTimingCheckpoint(session)).toMatchObject({
+      triggers: ['BATTLESHOCK_RESOLVED', 'BATTLESHOCK_FAILED'],
+      context: {
+        triggerSubjectPlayerId: 'p-b',
+        triggerSubjectUnitId: 'infantry',
+        battleShockPassed: false,
+      },
+    })
+
+    session = dispatchBattleEvent(session, {
+      type: 'BATTLESHOCK_TEST_RESOLVED',
+      payload: { playerId: 'p-b', unitId: 'infantry', passed: true },
+    }, { actorPlayerId: 'p-b' })
+
+    expect(selectCurrentTimingCheckpoint(session)).toMatchObject({
+      triggers: ['BATTLESHOCK_RESOLVED', 'BATTLESHOCK_PASSED'],
+      context: { battleShockPassed: true },
+    })
+  })
+
+  it('does not infer a test result from a manual Battle-shock state override', () => {
     const session = dispatchBattleEvent(advanceCauldronPhase(testCauldronGame()), {
       type: 'UNIT_BATTLESHOCK_CHANGED',
       payload: { playerId: 'p-b', unitId: 'infantry', battleShocked: true },
     }, { actorPlayerId: 'p-b' })
 
-    expect(selectCurrentTimingCheckpoint(session)?.triggers).toEqual([
-      'BATTLESHOCK_RESOLVED',
-      'BATTLESHOCK_FAILED',
-    ])
+    expect(selectCurrentTimingCheckpoint(session)).toBeNull()
   })
 
   it('does not misread clearing Battle-shock as a passed test', () => {
     let session = dispatchBattleEvent(advanceCauldronPhase(testCauldronGame()), {
-      type: 'UNIT_BATTLESHOCK_CHANGED',
-      payload: { playerId: 'p-b', unitId: 'infantry', battleShocked: true },
+      type: 'BATTLESHOCK_TEST_RESOLVED',
+      payload: { playerId: 'p-b', unitId: 'infantry', passed: false },
     }, { actorPlayerId: 'p-b' })
     session = dispatchBattleEvent(session, {
       type: 'UNIT_BATTLESHOCK_CHANGED',
