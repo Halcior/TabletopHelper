@@ -23,6 +23,10 @@ import type {
   RelevantStratagem,
 } from './types'
 
+export type CheckpointSelectionOptions = {
+  allowCustomFallback?: boolean
+}
+
 export function selectActivePlayer(session: BattleSession): PlayerState {
   return session.state.players[session.state.activePlayerId]
 }
@@ -119,12 +123,13 @@ function evaluateAcrossTriggers(input: {
   playerId: string
   definition: RelevantStratagem['definition']
   checkpoint: CurrentTimingCheckpoint | null
+  allowCustomFallback: boolean
 }): StratagemAvailability {
   const definitionTriggers = input.definition.triggers.length > 0
     ? input.definition.triggers
     : ['CUSTOM_CONFIRMATION' as TimingTrigger]
   const exactMatches = input.checkpoint?.triggers.filter((trigger) => definitionTriggers.includes(trigger)) ?? []
-  const manualFallback = definitionTriggers.includes('CUSTOM_CONFIRMATION')
+  const manualFallback = input.allowCustomFallback && definitionTriggers.includes('CUSTOM_CONFIRMATION')
   const triggers = exactMatches.length > 0
     ? exactMatches
     : manualFallback ? ['CUSTOM_CONFIRMATION' as TimingTrigger] : []
@@ -158,8 +163,10 @@ function evaluateAcrossTriggers(input: {
 function manualFallbackAvailable(record: {
   manualConfirmationRequired: boolean
   definition: RelevantStratagem['definition']
-}): boolean {
-  return record.manualConfirmationRequired && record.definition.triggers.includes('CUSTOM_CONFIRMATION')
+}, allowCustomFallback: boolean): boolean {
+  return allowCustomFallback
+    && record.manualConfirmationRequired
+    && record.definition.triggers.includes('CUSTOM_CONFIRMATION')
 }
 
 export function selectRelevantStratagemsAtCheckpoint(
@@ -167,11 +174,19 @@ export function selectRelevantStratagemsAtCheckpoint(
   rulesDataByPlayer: ContextRulesByPlayer = {},
   checkpoint: CurrentTimingCheckpoint | null,
   playerId = session.state.activePlayerId,
+  options: CheckpointSelectionOptions = {},
 ): RelevantStratagem[] {
+  const allowCustomFallback = options.allowCustomFallback ?? true
   return (rulesDataByPlayer[playerId]?.stratagems ?? []).flatMap((record) => {
     if (record.classification === 'REACTION' || !definitionMatchesPhase(record.definition, session.state.phase)) return []
-    const availability = evaluateAcrossTriggers({ session, playerId, definition: record.definition, checkpoint })
-    if (!availability.canUse && !manualFallbackAvailable(record)) return []
+    const availability = evaluateAcrossTriggers({
+      session,
+      playerId,
+      definition: record.definition,
+      checkpoint,
+      allowCustomFallback,
+    })
+    if (!availability.canUse && !manualFallbackAvailable(record, allowCustomFallback)) return []
     return [{
       definition: record.definition,
       classification: record.classification,
@@ -191,6 +206,7 @@ export function selectRelevantStratagems(
     rulesDataByPlayer,
     selectCurrentTimingCheckpoint(session),
     playerId,
+    { allowCustomFallback: true },
   )
 }
 
@@ -198,9 +214,11 @@ export function selectReactionPlayersAtCheckpoint(
   session: BattleSession,
   rulesDataByPlayer: ContextRulesByPlayer = {},
   checkpoint: CurrentTimingCheckpoint | null,
+  options: CheckpointSelectionOptions = {},
 ): ReactionPlayerContext[] {
   const activePlayerId = session.state.activePlayerId
   const window = selectPendingReactionWindow(session)
+  const allowCustomFallback = options.allowCustomFallback ?? true
   return session.state.turnOrder.filter((playerId) => playerId !== activePlayerId).map((playerId) => {
     const records = (rulesDataByPlayer[playerId]?.stratagems ?? []).filter((record) => (
       record.classification !== 'ACTIVE'
@@ -209,7 +227,13 @@ export function selectReactionPlayersAtCheckpoint(
     ))
     const evaluated = records.map((record) => ({
       record,
-      availability: evaluateAcrossTriggers({ session, playerId, definition: record.definition, checkpoint }),
+      availability: evaluateAcrossTriggers({
+        session,
+        playerId,
+        definition: record.definition,
+        checkpoint,
+        allowCustomFallback,
+      }),
     }))
     return {
       playerId,
@@ -219,7 +243,7 @@ export function selectReactionPlayersAtCheckpoint(
       )).length,
       potentialCount: evaluated.filter(({ record, availability }) => (
         record.manualConfirmationRequired
-        && (availability.canUse || manualFallbackAvailable(record))
+        && (availability.canUse || manualFallbackAvailable(record, allowCustomFallback))
       )).length,
       pending: window?.responses[playerId]?.status === 'PENDING',
     }
@@ -234,6 +258,7 @@ export function selectReactionPlayers(
     session,
     rulesDataByPlayer,
     selectCurrentTimingCheckpoint(session),
+    { allowCustomFallback: true },
   )
 }
 
