@@ -91,12 +91,6 @@ function isAutomaticCasualtyConsequence(event: BattleEvent, beneficiaryPlayerId:
     && rulesetPlayerId(event) === beneficiaryPlayerId
 }
 
-/**
- * Authorizes one local user action before it is committed to a shared battle.
- * UI permissions remain useful guidance, but this is the store-level backstop:
- * a shared client can mutate its own army/CP/reactions, shared board control,
- * and only the active commander can advance the battle flow.
- */
 export function authorizeSharedAction(
   sessionBefore: BattleSession,
   events: BattleEvent[],
@@ -109,17 +103,20 @@ export function authorizeSharedAction(
   const viewerPlayerId = membership.playerId
   if (!sessionBefore.state.players[viewerPlayerId]) return deny('Your shared player seat is not part of this battle.')
 
-  const lifecycle = events.some((event) => event.type === 'GAME_ENDED' || event.type === 'GAME_ABANDONED')
-  if (lifecycle) {
-    return membership.isHost
-      ? { allowed: true }
-      : deny('Only the room host can end or abandon a shared battle.')
-  }
-
   const progression = events.some((event) => TURN_OWNER_EVENTS.has(event.type))
   if (progression && viewerPlayerId !== sessionBefore.state.activePlayerId) {
     const activeName = sessionBefore.state.players[sessionBefore.state.activePlayerId]?.name ?? 'the active player'
     return deny(`Only ${activeName} can advance the current turn.`)
+  }
+
+  if (events.some((event) => event.type === 'GAME_ABANDONED') && !membership.isHost) {
+    return deny('Only the room host can abandon a shared battle.')
+  }
+
+  const gameEnded = events.some((event) => event.type === 'GAME_ENDED')
+  const automaticFinalTurnEnd = gameEnded && progression && viewerPlayerId === sessionBefore.state.activePlayerId
+  if (gameEnded && !automaticFinalTurnEnd && !membership.isHost) {
+    return deny('Only the room host can end a shared battle manually.')
   }
 
   const primaryCommit = hasPrimaryCommit(events)
@@ -130,14 +127,11 @@ export function authorizeSharedAction(
   const automaticBeneficiary = automaticCasualtyBeneficiary(events, viewerPlayerId)
 
   for (const event of events) {
-    if (event.type === 'GAME_STARTED') continue
+    if (event.type === 'GAME_STARTED' || event.type === 'GAME_ENDED' || event.type === 'GAME_ABANDONED') continue
     if (TURN_OWNER_EVENTS.has(event.type)) continue
     if (event.type === 'REACTION_WINDOW_RESOLVED') continue
 
-    if (event.type === 'OBJECTIVE_CONTROL_CHANGED') {
-      // Board control is shared physical state and may be recorded by any seated commander.
-      continue
-    }
+    if (event.type === 'OBJECTIVE_CONTROL_CHANGED') continue
 
     if (event.type === 'REACTION_HOLD_REQUESTED') {
       const requester = event.payload.window.requestedByPlayerId
@@ -157,7 +151,6 @@ export function authorizeSharedAction(
       if (event.payload.action === 'PRIMARY_COMMITTED') continue
       const target = rulesetPlayerId(event)
       if (target && target !== viewerPlayerId) {
-        // Priority Target is intentionally chosen by the card owner's current Rival.
         if (isPriorityTargetRivalChoice(event)) continue
         if (progression && viewerPlayerId === sessionBefore.state.activePlayerId) continue
         return deny('This ruleset action belongs to another commander.')
