@@ -97,20 +97,24 @@ function checkpointFromEvent(session: BattleSession, event: BattleEvent): Curren
     }
   }
 
-  if (event.type === 'UNIT_BATTLESHOCK_CHANGED' && event.payload.battleShocked) {
+  if (event.type === 'BATTLESHOCK_TEST_RESOLVED') {
     return {
-      triggers: ['BATTLESHOCK_RESOLVED', 'BATTLESHOCK_FAILED'],
+      triggers: [
+        'BATTLESHOCK_RESOLVED',
+        event.payload.passed ? 'BATTLESHOCK_PASSED' : 'BATTLESHOCK_FAILED',
+      ],
       sourceEventId: event.id,
       context: {
         ...targetUnitContext(session, event.payload.playerId, event.payload.unitId),
         eventId: event.id,
-        actingPlayerId: event.actorPlayerId,
+        actingPlayerId: event.actorPlayerId ?? event.payload.playerId,
+        battleShockPassed: event.payload.passed,
       },
     }
   }
 
-  // Clearing Battle-shock is not proof that a test was passed: in normal play
-  // the state may simply expire at the start of the next Command phase.
+  // UNIT_BATTLESHOCK_CHANGED is a state override, not proof that a test was
+  // rolled. In particular, clearing Battle-shock can simply be phase expiry.
   return null
 }
 
