@@ -139,6 +139,10 @@ function UnitCard({
     if (!canEdit) return
     dispatch({ type: 'UNIT_DESTROYED', payload: { playerId: ownerId, unitId: unit.id, destroyedByPlayerId } })
   }
+  const recordBattleShock = (passed: boolean) => {
+    if (!canEdit) return
+    dispatch({ type: 'BATTLESHOCK_TEST_RESOLVED', payload: { playerId: ownerId, unitId: unit.id, passed } })
+  }
 
   return (
     <article className={`unit-card${state.destroyed ? ' is-destroyed' : ''}${canEdit ? '' : ' unit-card--readonly'}`}>
@@ -185,10 +189,18 @@ function UnitCard({
           type: 'UNIT_MODEL_RESTORED', payload: { playerId: ownerId, unitId: unit.id, amount: 1 },
         })}>Restore</button>
       </div>}
-      <div className="unit-status-actions"><button disabled={!canEdit} title={readOnlyTitle} onClick={() => dispatch({
-        type: 'UNIT_BATTLESHOCK_CHANGED',
-        payload: { playerId: ownerId, unitId: unit.id, battleShocked: !state.battleShocked },
-      })}>{state.battleShocked ? 'Clear battle-shock' : 'Battle-shocked'}</button></div>
+      <div className="unit-battleshock-actions">
+        <span>Battle-shock test</span>
+        <div>
+          <button disabled={!canEdit || state.destroyed} title={readOnlyTitle} onClick={() => recordBattleShock(true)}>Passed</button>
+          <button className="danger-action" disabled={!canEdit || state.destroyed} title={readOnlyTitle} onClick={() => recordBattleShock(false)}>Failed</button>
+          {state.battleShocked && <button disabled={!canEdit} title={readOnlyTitle} onClick={() => dispatch({
+            type: 'UNIT_BATTLESHOCK_CHANGED',
+            payload: { playerId: ownerId, unitId: unit.id, battleShocked: false },
+          })}>Clear state</button>}
+        </div>
+        <small>Pass/Fail records an exact test timing. Clear state only removes the status.</small>
+      </div>
       <details className="unit-details"><summary>Details & quick reference</summary>
         <UnitReference unit={unit} state={state} army={army} ownerId={ownerId} dispatch={dispatch} canEdit={canEdit} />
       </details>
