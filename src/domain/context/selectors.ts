@@ -12,6 +12,7 @@ import {
   getSecondaryState,
 } from '../../rulesets/cauldronFFA3/secondary'
 import type { ActiveSecondaryView, SecondaryId } from '../../rulesets/cauldronFFA3/secondaryTypes'
+import { selectCurrentTimingCheckpoint } from './timingContext'
 import type {
   ActiveMissionActionContext,
   BattleContext,
@@ -118,13 +119,31 @@ function evaluateAcrossTriggers(input: {
   playerId: string
   definition: RelevantStratagem['definition']
 }): StratagemAvailability {
-  const triggers = input.definition.triggers.length > 0
+  const checkpoint = selectCurrentTimingCheckpoint(input.session)
+  const definitionTriggers = input.definition.triggers.length > 0
     ? input.definition.triggers
     : ['CUSTOM_CONFIRMATION' as TimingTrigger]
+  const exactMatches = checkpoint?.triggers.filter((trigger) => definitionTriggers.includes(trigger)) ?? []
+  const manualFallback = definitionTriggers.includes('CUSTOM_CONFIRMATION')
+  const triggers = exactMatches.length > 0
+    ? exactMatches
+    : manualFallback ? ['CUSTOM_CONFIRMATION' as TimingTrigger] : []
+
+  if (triggers.length === 0) {
+    return {
+      definition: input.definition,
+      canUse: false,
+      reasons: [checkpoint
+        ? `Current recorded timing (${checkpoint.triggers.join(', ')}) does not match this Stratagem.`
+        : 'No exact timing checkpoint is currently recorded.'],
+    }
+  }
+
   const evaluations = triggers.flatMap((trigger) => getAvailableStratagems({
     playerId: input.playerId,
     gameState: input.session.state,
     trigger,
+    context: checkpoint?.context,
     definitions: [input.definition],
   }))
   const usable = evaluations.find((evaluation) => evaluation.canUse)
@@ -136,6 +155,13 @@ function evaluateAcrossTriggers(input: {
   }
 }
 
+function manualFallbackAvailable(record: {
+  manualConfirmationRequired: boolean
+  definition: RelevantStratagem['definition']
+}): boolean {
+  return record.manualConfirmationRequired && record.definition.triggers.includes('CUSTOM_CONFIRMATION')
+}
+
 export function selectRelevantStratagems(
   session: BattleSession,
   rulesDataByPlayer: ContextRulesByPlayer = {},
@@ -143,11 +169,13 @@ export function selectRelevantStratagems(
 ): RelevantStratagem[] {
   return (rulesDataByPlayer[playerId]?.stratagems ?? []).flatMap((record) => {
     if (record.classification === 'REACTION' || !definitionMatchesPhase(record.definition, session.state.phase)) return []
+    const availability = evaluateAcrossTriggers({ session, playerId, definition: record.definition })
+    if (!availability.canUse && !manualFallbackAvailable(record)) return []
     return [{
       definition: record.definition,
       classification: record.classification,
       manualConfirmationRequired: record.manualConfirmationRequired,
-      availability: evaluateAcrossTriggers({ session, playerId, definition: record.definition }),
+      availability,
     }]
   })
 }
@@ -164,11 +192,20 @@ export function selectReactionPlayers(
       && definitionMatchesPhase(record.definition, session.state.phase)
       && session.state.players[playerId].cp >= record.definition.cpCost
     ))
+    const evaluated = records.map((record) => ({
+      record,
+      availability: evaluateAcrossTriggers({ session, playerId, definition: record.definition }),
+    }))
     return {
       playerId,
       playerName: session.state.players[playerId].name,
-      exactCount: records.filter((record) => !record.manualConfirmationRequired).length,
-      potentialCount: records.filter((record) => record.manualConfirmationRequired).length,
+      exactCount: evaluated.filter(({ record, availability }) => (
+        !record.manualConfirmationRequired && availability.canUse
+      )).length,
+      potentialCount: evaluated.filter(({ record, availability }) => (
+        record.manualConfirmationRequired
+        && (availability.canUse || manualFallbackAvailable(record))
+      )).length,
       pending: window?.responses[playerId]?.status === 'PENDING',
     }
   })
