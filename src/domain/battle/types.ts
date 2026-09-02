@@ -129,6 +129,7 @@ export type BattleEvent = BattleEventMetadata & (
     payload: { playerId: string; unitId: string; destroyedByPlayerId?: string | null }
   }
   | { type: 'UNIT_BATTLESHOCK_CHANGED'; payload: { playerId: string; unitId: string; battleShocked: boolean } }
+  | { type: 'BATTLESHOCK_TEST_RESOLVED'; payload: { playerId: string; unitId: string; passed: boolean } }
   | { type: 'ABILITY_USED'; payload: { playerId: string; unitId: string; abilityName: string; used: boolean } }
   | { type: 'OBJECTIVE_OC_CHANGED'; payload: { objectiveId: string; playerId: string; oc: number } }
   | { type: 'OBJECTIVE_CONTROL_CHANGED'; payload: { objectiveId: string; controllerPlayerId: string | null } }
