@@ -16,11 +16,14 @@ import type {
 } from '../types'
 import type {
   FortyKdcAbilityRecord,
+  FortyKdcMoveType,
   FortyKdcPhase,
   FortyKdcPlayerTurn,
   FortyKdcSource,
   FortyKdcStratagemRecord,
   FortyKdcTargetRestrictions,
+  FortyKdcTriggerRecord,
+  FortyKdcTriggerSubject,
 } from './sourceTypes'
 
 const SOURCE_NAME = '40kdc-data'
@@ -89,8 +92,10 @@ function mapEvent(event: string, phases: readonly FortyKdcPhase[]): TimingTrigge
     case 'charge-move':
     case 'end-of-charge-move': return 'CHARGE_COMPLETED'
     case 'selected-to-fight': return 'UNIT_SELECTED_TO_FIGHT'
+    case 'on-model-destroyed': return 'MODEL_DESTROYED'
     case 'on-unit-destroyed':
     case 'enemy-unit-destroyed-in-melee': return 'UNIT_DESTROYED'
+    case 'after-battle-shock': return 'BATTLESHOCK_RESOLVED'
     case 'after-unit-resolves-attacks': {
       if (phases.length === 1 && phases[0] === 'shooting') return 'SHOOTING_ATTACK_RESOLVED'
       if (phases.length === 1 && phases[0] === 'fight') return 'FIGHT_RESOLVED'
@@ -119,11 +124,11 @@ function structuredRestrictions(
 function targetRestriction(input: StructuredTargetRestrictions): TimingRestriction {
   return {
     id: '40kdc-target-keywords',
-    description: 'Confirm that the selected target satisfies its keyword restrictions.',
+    description: 'Selected target must satisfy the structured keyword restrictions.',
     evaluate: ({ context }) => {
       const candidate = context.targetKeywords
       if (!Array.isArray(candidate) || !candidate.every((keyword) => typeof keyword === 'string')) {
-        return { allowed: false, reason: 'Target keywords require manual confirmation.' }
+        return { allowed: false, reason: 'Target keywords are not available for this timing checkpoint.' }
       }
       const keywords = new Set(candidate.map((keyword) => normalize(keyword)))
       const hasAll = input.requiredKeywords.every((keyword) => keywords.has(normalize(keyword)))
@@ -140,6 +145,84 @@ function targetRestriction(input: StructuredTargetRestrictions): TimingRestricti
   }
 }
 
+function subjectRestriction(subject: FortyKdcTriggerSubject): TimingRestriction {
+  return {
+    id: `40kdc-trigger-subject-${subject}`,
+    description: `Structured trigger subject: ${subject}.`,
+    evaluate: ({ playerId, context }) => {
+      if (subject === 'any-unit') return true
+      const subjectPlayerId = context.triggerSubjectPlayerId
+      if (subject === 'friendly-unit' || subject === 'enemy-unit') {
+        if (typeof subjectPlayerId !== 'string') {
+          return { allowed: false, reason: 'Triggering unit owner is not available for this timing checkpoint.' }
+        }
+        const allowed = subject === 'friendly-unit' ? subjectPlayerId === playerId : subjectPlayerId !== playerId
+        return {
+          allowed,
+          reason: allowed ? undefined : `The triggering unit is not a valid ${subject} subject.`,
+        }
+      }
+
+      const triggerSubjectUnitId = context.triggerSubjectUnitId
+      const sourceUnitId = context.sourceUnitId
+      if (typeof triggerSubjectUnitId !== 'string' || typeof sourceUnitId !== 'string') {
+        return { allowed: false, reason: 'Exact triggering unit identity is not available for this timing checkpoint.' }
+      }
+      const allowed = triggerSubjectUnitId === sourceUnitId
+      return {
+        allowed,
+        reason: allowed ? undefined : 'The triggering unit is not the Stratagem source unit.',
+      }
+    },
+  }
+}
+
+function moveTypeRestriction(moveTypes: readonly FortyKdcMoveType[]): TimingRestriction {
+  return {
+    id: '40kdc-trigger-move-type',
+    description: `Movement trigger is restricted to: ${moveTypes.join(', ')}.`,
+    evaluate: ({ context }) => {
+      const moveType = context.moveType
+      if (typeof moveType !== 'string') {
+        return { allowed: false, reason: 'Move type is not available for this timing checkpoint.' }
+      }
+      const allowed = moveTypes.includes(moveType as FortyKdcMoveType)
+      return {
+        allowed,
+        reason: allowed ? undefined : 'The triggering move type does not satisfy this Stratagem.',
+      }
+    },
+  }
+}
+
+function commonSubject(triggers: readonly FortyKdcTriggerRecord[]): {
+  subject?: FortyKdcTriggerSubject
+  mixed: boolean
+} {
+  if (triggers.length === 0) return { mixed: false }
+  const values = triggers.map((trigger) => trigger.subject ?? null)
+  const unique = new Set(values)
+  if (unique.size !== 1) return { mixed: true }
+  return { subject: values[0] ?? undefined, mixed: false }
+}
+
+function moveTypeKey(values: readonly FortyKdcMoveType[]): string {
+  return [...values].sort().join('|')
+}
+
+function commonMoveTypes(triggers: readonly FortyKdcTriggerRecord[]): {
+  moveTypes: readonly FortyKdcMoveType[]
+  mixed: boolean
+} {
+  if (triggers.length === 0) return { moveTypes: [], mixed: false }
+  const first = triggers[0].moveTypes ?? []
+  const key = moveTypeKey(first)
+  if (triggers.some((trigger) => moveTypeKey(trigger.moveTypes ?? []) !== key)) {
+    return { moveTypes: [], mixed: true }
+  }
+  return { moveTypes: first, mixed: false }
+}
+
 function adaptStratagem(input: {
   factionId: string
   detachment: FortyKdcSource['detachments'][number]
@@ -147,28 +230,44 @@ function adaptStratagem(input: {
   ability?: FortyKdcAbilityRecord
 }): ResolvedStratagem {
   const { factionId, detachment, stratagem, ability } = input
-  const sourceEvents = ability?.triggers.map((trigger) => trigger.event) ?? []
-  const mapped = ability?.triggers
+  const sourceTriggers = ability?.triggers ?? []
+  const sourceEvents = sourceTriggers.map((trigger) => trigger.event)
+  const mapped = sourceTriggers
     .map((trigger) => mapEvent(trigger.event, stratagem.phases))
-    .filter((trigger): trigger is TimingTrigger => Boolean(trigger)) ?? []
+    .filter((trigger): trigger is TimingTrigger => Boolean(trigger))
   const mappedTriggers = [...new Set<TimingTrigger>(mapped)]
   const unmappedEvents = sourceEvents.filter((event) => !mapEvent(event, stratagem.phases))
   if (sourceEvents.length === 0 || unmappedEvents.length > 0) mappedTriggers.push('CUSTOM_CONFIRMATION')
 
   const targetRestrictions = structuredRestrictions(stratagem.targetRestrictions)
+  const subject = commonSubject(sourceTriggers)
+  const moveTypes = commonMoveTypes(sourceTriggers)
+  const unsupportedSubject = subject.subject === 'model-in-bearer'
   const reasons = [
     ...(sourceEvents.length === 0 ? ['No structured trigger is available from the source.'] : []),
     ...(unmappedEvents.length > 0 ? [`Unsupported source trigger: ${unmappedEvents.join(', ')}.`] : []),
-    ...(ability?.triggers.some((trigger) => trigger.hasStructuredGuard)
-      ? ['The source trigger contains guards that the current timing model cannot evaluate.']
+    ...(sourceTriggers.some((trigger) => trigger.hasCondition)
+      ? ['The source trigger contains a condition that the current timing model cannot evaluate.']
       : []),
-    ...(targetRestrictions ? ['Target keyword restrictions require a selected target.'] : []),
+    ...(sourceTriggers.some((trigger) => trigger.hasProximity)
+      ? ['The source trigger contains a proximity guard that requires manual confirmation.']
+      : []),
+    ...(sourceTriggers.some((trigger) => trigger.hasWindow)
+      ? ['The source trigger contains a timing window that requires manual confirmation.']
+      : []),
+    ...(subject.mixed ? ['The source uses different trigger subjects for different timing events.'] : []),
+    ...(unsupportedSubject ? ['Model-in-bearer trigger subjects require manual confirmation.'] : []),
+    ...(moveTypes.mixed ? ['The source uses different move-type guards for different timing events.'] : []),
     ...(stratagem.targetRestrictions?.hasUnstructuredNotes
       ? ['The source contains an unstructured restriction that was not imported.']
       : []),
   ]
   const classification = mapClassification(stratagem.playerTurn, ability)
-  const restrictions = targetRestrictions ? [targetRestriction(targetRestrictions)] : []
+  const restrictions: TimingRestriction[] = [
+    ...(targetRestrictions ? [targetRestriction(targetRestrictions)] : []),
+    ...(subject.subject && !subject.mixed && !unsupportedSubject ? [subjectRestriction(subject.subject)] : []),
+    ...(moveTypes.moveTypes.length > 0 && !moveTypes.mixed ? [moveTypeRestriction(moveTypes.moveTypes)] : []),
+  ]
   const description = ability?.description?.trim()
   const definition: StratagemDefinition = {
     id: `40kdc:${stratagem.id}`,
