@@ -21,7 +21,7 @@ import { LatestBattleUpdateCard } from './LatestBattleUpdateCard'
 type PanelState =
   | { type: 'army'; playerId?: string; unitId?: string; secondaryId?: SecondaryId }
   | { type: 'objectives' }
-  | { type: 'mission'; secondaryId: SecondaryId }
+  | { type: 'mission'; secondaryId?: SecondaryId; missionActionType?: 'SABOTAGE' }
   | { type: 'stratagems' }
   | { type: 'mulligan' }
   | { type: 'priority' }
@@ -195,7 +195,11 @@ export function ContextCommandCentre({
         setPanel({ type: 'army', playerId: itemAction.playerId, unitId: itemAction.unitId })
         break
       case 'CHANGE_OBJECTIVE_CONTROL': setPanel({ type: 'objectives' }); break
-      case 'START_MISSION_ACTION': setPanel({ type: 'mission', secondaryId: itemAction.secondaryId as SecondaryId }); break
+      case 'START_MISSION_ACTION': setPanel({
+        type: 'mission',
+        secondaryId: itemAction.secondaryId as SecondaryId | undefined,
+        missionActionType: itemAction.missionActionType === 'SABOTAGE' ? 'SABOTAGE' : undefined,
+      }); break
       case 'CHECK_SECONDARY_CONDITION':
       case 'END_TURN': onOpenEndTurn(); break
       case 'SELECT_PRIORITY_TARGET': setPanel({ type: 'priority' }); break
@@ -281,6 +285,7 @@ export function ContextCommandCentre({
     {panel?.type === 'mission' && <div className="quick-panel-layer" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) setPanel(null) }}><aside className="quick-panel" role="dialog" aria-modal="true"><MissionActionLauncher
       session={session}
       secondaryId={panel.secondaryId}
+      missionActionType={panel.missionActionType}
       onStart={(input) => { onStartMissionAction(input); setPanel(null) }}
       onClose={() => setPanel(null)}
     /></aside></div>}

@@ -1,26 +1,35 @@
 import { useEffect, useRef, useState } from 'react'
+import type { BattleCorrection, BattleSession } from '../../domain/battle/types'
+import { BattleCorrectionDialog } from './BattleCorrectionDialog'
 
 type Confirmation = 'end' | 'abandon' | null
 
 type BattleMenuProps = {
   canEndBattle: boolean
   canManageBattle?: boolean
+  session: BattleSession
   endBlockedReason?: string
   onOpenLog: () => void
+  onExportReport: () => void
   onEndBattle: () => void
   onAbandonBattle: () => void
+  onApplyCorrection: (correction: BattleCorrection, reason: string) => void
 }
 
 export function BattleMenu({
   canEndBattle,
   canManageBattle = true,
+  session,
   endBlockedReason,
   onOpenLog,
+  onExportReport,
   onEndBattle,
   onAbandonBattle,
+  onApplyCorrection,
 }: BattleMenuProps) {
   const [open, setOpen] = useState(false)
   const [confirmation, setConfirmation] = useState<Confirmation>(null)
+  const [correctionOpen, setCorrectionOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -63,6 +72,9 @@ export function BattleMenu({
       {open && <div className="battle-menu__popover" role="menu">
         <strong>Battle</strong>
         <button type="button" role="menuitem" onClick={() => { setOpen(false); onOpenLog() }}>View battle log</button>
+        <button type="button" role="menuitem" onClick={() => { setOpen(false); onExportReport() }}>Export diagnostic report</button>
+        <button type="button" role="menuitem" disabled={!canManageBattle} onClick={() => { setOpen(false); setCorrectionOpen(true) }}>Correct battle state</button>
+        {!canManageBattle && <small className="battle-menu__hint">Only the shared-session host can record corrections.</small>}
         <button type="button" role="menuitem" disabled={!canEndBattle || !canManageBattle} onClick={requestEndBattle}>End battle</button>
         {!canManageBattle && <small className="battle-menu__hint">Only the shared-session host can end or abandon the battle.</small>}
         {canManageBattle && !canEndBattle && endBlockedReason && <small className="battle-menu__hint">{endBlockedReason}</small>}
@@ -70,6 +82,8 @@ export function BattleMenu({
         <small className="battle-menu__hint">Build {import.meta.env.VITE_BUILD_SHA}</small>
       </div>}
     </div>
+
+    {correctionOpen && <BattleCorrectionDialog session={session} onApply={onApplyCorrection} onClose={() => setCorrectionOpen(false)} />}
 
     {confirmation && <div className="battle-confirmation-backdrop" role="presentation" onMouseDown={() => setConfirmation(null)}>
       <section

@@ -22,6 +22,16 @@ export function describeBattleEvent(event: BattleEvent, setup: BattleSetup): str
     case 'CP_GAINED': return `${playerName(setup, event.payload.playerId)} gained ${event.payload.amount} CP`
     case 'CP_SPENT': return `${playerName(setup, event.payload.playerId)} spent ${event.payload.amount} CP`
     case 'SCORE_ADJUSTED': return `${playerName(setup, event.payload.playerId)} ${event.payload.category} ${event.payload.delta >= 0 ? '+' : ''}${event.payload.delta} VP`
+    case 'STATE_CORRECTED': {
+      const correction = event.payload.correction
+      const target = 'playerId' in correction ? playerName(setup, correction.playerId) : correction.objectiveId
+      const value = correction.kind === 'OBJECTIVE_CONTROL'
+        ? correction.controllerPlayerId ? playerName(setup, correction.controllerPlayerId) : 'uncontrolled'
+        : correction.kind === 'UNIT_BATTLESHOCK'
+          ? correction.value ? 'Battle-shocked' : 'steady'
+          : correction.value
+      return `Host correction · ${target} · ${correction.kind.replaceAll('_', ' ').toLowerCase()} = ${value} · ${event.payload.reason}`
+    }
     case 'UNIT_MODEL_DESTROYED': return `${unitName(setup, event.payload.playerId, event.payload.unitId)} lost ${event.payload.amount} model`
     case 'UNIT_MODEL_RESTORED': return `${unitName(setup, event.payload.playerId, event.payload.unitId)} restored ${event.payload.amount} model`
     case 'UNIT_WOUNDS_CHANGED': return `${unitName(setup, event.payload.playerId, event.payload.unitId)} set to ${event.payload.woundsRemaining} wounds`

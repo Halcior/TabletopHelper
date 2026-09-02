@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { dispatchBattleEvent, undoLastAction } from '../../domain/battle/engine'
+import { completeMissionAction, startMissionAction } from '../../domain/battle/missionActions'
 import { getCurrentRivalPlayerId } from './rivalRotation'
 import { getCauldronRoundStartSnapshot, getCauldronTurnStartSnapshot } from './snapshots'
 import { advanceCauldronPhase, createCauldronGame, isCauldronEndOfRound } from './session'
@@ -72,10 +73,17 @@ describe('Cauldron session integration', () => {
         type: 'OBJECTIVE_CONTROL_CHANGED', payload: { objectiveId, controllerPlayerId: 'p-a' },
       })
     }
-    session = advance(session, 6)
+    session = advance(session, 1)
+    session = startMissionAction(session, {
+      id: 'sabotage-round-2', playerId: 'p-a', unitId: 'infantry', type: 'SABOTAGE', name: 'Sabotage',
+      targetObjectiveId: 'N1', locationType: 'NEUTRAL_OBJECTIVE', unknownConditionsConfirmed: true,
+    })
+    session = advance(session, 4)
+    session = completeMissionAction(session, 'sabotage-round-2', true)
+    session = advance(session, 1)
     session = advance(session, 6)
     session = advance(session, 5)
-    session = confirmCauldronEndRound(session, { 'p-a': { sabotageMissionActionCompleted: true } })
+    session = confirmCauldronEndRound(session)
     expect(session.state.players['p-a'].score.primary).toBe(15)
     expect(session.state.round).toBe(3)
   })

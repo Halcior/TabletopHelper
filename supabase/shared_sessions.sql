@@ -172,6 +172,10 @@ create policy "shared events create" on public.shared_events
         and participant.client_id = public.request_shared_client_id()
         and participant.player_id = shared_events.actor_player_id
         and room.code = public.request_shared_room_code()
+        and (
+          shared_events.event_payload ->> 'type' <> 'STATE_CORRECTED'
+          or participant.is_host = true
+        )
     )
   );
 

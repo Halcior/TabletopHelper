@@ -200,6 +200,7 @@ function planItems(session: BattleSession): ContextItem[] {
     || session.state.phase === 'END_TURN'
     || evaluation.status === 'COMPLETED'
     || (planState.planId === 'WYNISZCZENIE' && ['SHOOTING', 'FIGHT'].includes(session.state.phase))
+    || (planState.planId === 'SABOTAZ' && session.state.phase === 'MOVEMENT')
   if (!visible) return []
   const availability = canChangeOperationalPlan(session, playerId)
   const progress = evaluation.progress
@@ -215,9 +216,12 @@ function planItems(session: BattleSession): ContextItem[] {
     source: 'OPERATIONAL_PLAN',
     phase: session.state.phase,
     relatedPlayerId: playerId,
-    actions: availability.available
-      ? [action('change-operational-plan', 'CHANGE_OPERATIONAL_PLAN', 'Change plan', { playerId })]
-      : [],
+    actions: [
+      ...(availability.available ? [action('change-operational-plan', 'CHANGE_OPERATIONAL_PLAN', 'Change plan', { playerId })] : []),
+      ...(planState.planId === 'SABOTAZ' && session.state.phase === 'MOVEMENT' && evaluation.status !== 'COMPLETED'
+        ? [action('start-sabotage', 'START_MISSION_ACTION', 'Start Sabotage', { playerId, missionActionType: 'SABOTAGE' })]
+        : []),
+    ],
     details: [evaluation.reason],
   }]
 }

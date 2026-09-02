@@ -18,6 +18,8 @@ The shared-session layer keeps the existing event-driven Battle Engine and repli
 - A unit owner can record their own casualty even when that same physical action automatically awards an opponent Secondary; the derived scoring stays in the same canonical action group.
 - Reaction-window USE / PASS belongs to the responding player device.
 - Priority Target's final Rival choice may be made by the responsible Rival rather than the card owner.
+- The host can record exact CP, score, unit, and objective corrections for any commander; every correction requires a reason and remains visible in the canonical log.
+- Any commander can export a diagnostic JSON without exposing the room code, persistent client ID, or backend row identifiers.
 - Undo/redo remains disabled in shared rooms until synchronized compensating actions exist.
 - Local IndexedDB persistence remains active on every device.
 
@@ -30,6 +32,7 @@ The browser keeps a persistent client ID. Mutating REST requests carry both `x-r
 - an event write must identify the same player seat in `actor_player_id` and the event payload;
 - the participant's room, client ID and player ID must match the request;
 - only the host client identity can update room lifecycle state;
+- only the host participant can publish a `STATE_CORRECTED` event;
 - an active player seat cannot be silently taken by a different device;
 - a stale non-host seat can be reclaimed after the presence timeout;
 - the host seat is not automatically transferred to a different browser identity.
@@ -91,6 +94,7 @@ Windows Firewall may ask to allow Node/Vite on private networks. The app uses a 
 8. Repeat the previous test but close/reopen the guest browser before reconnecting; verify the persisted event is retried.
 9. Try to claim an occupied seat from another device; it should remain unavailable while presence is fresh and become reclaimable after the stale timeout for a non-host seat.
 10. Finish the last player's final turn with a non-host active commander and verify automatic battle completion succeeds.
+11. From the host phone, correct another commander's CP and verify the reason, exact value, and log entry synchronize to all devices.
 
 ## Current multiplayer constraints
 
@@ -104,7 +108,7 @@ Windows Firewall may ask to allow Node/Vite on private networks. The app uses a 
 ## Next multiplayer milestones
 
 1. Add a synchronized compensating-action model for shared undo.
-2. Add an explicit host/admin correction workflow instead of weakening normal player ownership.
-3. Add QR/deep-link room joining and easier invite sharing.
+2. Add browser-level multi-context coverage on top of the deterministic three-client convergence test.
+3. Add QR display to the existing deep-link invite flow.
 4. Consider realtime push after correctness testing proves the event model.
 5. Add authenticated identity / stronger room capability before treating the service as public production infrastructure.

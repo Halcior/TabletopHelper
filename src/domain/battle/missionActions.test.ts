@@ -120,4 +120,18 @@ describe('Mission Actions', () => {
     session = evaluateEndTurnSecondaries(session, 'p-a')
     expect(getGameSecondaryVp(session, 'p-a')).toBe(5)
   })
+
+  it('starts Sabotage only on a neutral objective not controlled at turn start', () => {
+    let session = movement()
+    expect(() => startMissionAction(session, {
+      playerId: 'p-a', unitId: 'infantry', type: 'SABOTAGE', name: 'Sabotage',
+      targetObjectiveId: 'A-HOME', locationType: 'NEUTRAL_OBJECTIVE', unknownConditionsConfirmed: true,
+    })).toThrow(/did not control|neutral objective/i)
+
+    session = startMissionAction(session, {
+      id: 'sabotage-1', playerId: 'p-a', unitId: 'infantry', type: 'SABOTAGE', name: 'Sabotage',
+      targetObjectiveId: 'N1', locationType: 'NEUTRAL_OBJECTIVE', unknownConditionsConfirmed: true,
+    })
+    expect(session.state.missionActions['sabotage-1']).toEqual(expect.objectContaining({ type: 'SABOTAGE', targetObjectiveId: 'N1' }))
+  })
 })

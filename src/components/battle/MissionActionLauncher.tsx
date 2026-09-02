@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import {
   getEligibleMissionActionUnits,
+  getEligibleSabotageObjectives,
   type StartMissionActionInput,
 } from '../../domain/battle/missionActions'
 import type { BattleSession } from '../../domain/battle/types'
@@ -8,18 +9,22 @@ import type { SecondaryId } from '../../rulesets/cauldronFFA3/secondaryTypes'
 
 type MissionActionLauncherProps = {
   session: BattleSession
-  secondaryId: SecondaryId
+  secondaryId?: SecondaryId
+  missionActionType?: 'SABOTAGE'
   onStart: (input: StartMissionActionInput) => void
   onClose: () => void
 }
 
-export function MissionActionLauncher({ session, secondaryId, onStart, onClose }: MissionActionLauncherProps) {
+export function MissionActionLauncher({ session, secondaryId, missionActionType, onStart, onClose }: MissionActionLauncherProps) {
   const playerId = session.state.activePlayerId
   const units = useMemo(
     () => getEligibleMissionActionUnits(session, playerId),
     [session, playerId],
   )
-  const neutralObjectives = Object.values(session.state.objectives).filter((objective) => objective.type === 'neutral')
+  const sabotage = missionActionType === 'SABOTAGE'
+  const neutralObjectives = sabotage
+    ? getEligibleSabotageObjectives(session, playerId)
+    : Object.values(session.state.objectives).filter((objective) => objective.type === 'neutral')
   const [unitId, setUnitId] = useState(units[0]?.unitId ?? '')
   const [objectiveId, setObjectiveId] = useState(neutralObjectives[0]?.id ?? '')
   const [confirmed, setConfirmed] = useState(false)
@@ -28,6 +33,7 @@ export function MissionActionLauncher({ session, secondaryId, onStart, onClose }
   }, [unitId, units])
   const selected = units.find((unit) => unit.unitId === unitId)
   const secureData = secondaryId === 'ZABEZPIECZ_DANE'
+  const usesObjective = secureData || sabotage
 
   function submit(event: FormEvent) {
     event.preventDefault()
@@ -35,10 +41,10 @@ export function MissionActionLauncher({ session, secondaryId, onStart, onClose }
     onStart({
       playerId,
       unitId: selected.unitId,
-      type: secureData ? 'SECURE_DATA' : 'SCAN_SIGNAL',
-      name: secureData ? 'Securing Data' : 'Scanning Signal',
-      targetObjectiveId: secureData ? objectiveId : undefined,
-      locationType: secureData ? 'NEUTRAL_OBJECTIVE' : 'BATTLEFIELD_CENTRE',
+      type: sabotage ? 'SABOTAGE' : secureData ? 'SECURE_DATA' : 'SCAN_SIGNAL',
+      name: sabotage ? 'Sabotage' : secureData ? 'Securing Data' : 'Scanning Signal',
+      targetObjectiveId: usesObjective ? objectiveId : undefined,
+      locationType: usesObjective ? 'NEUTRAL_OBJECTIVE' : 'BATTLEFIELD_CENTRE',
       linkedSecondaryCardId: secondaryId,
       unknownConditionsConfirmed: confirmed,
     })
@@ -47,7 +53,7 @@ export function MissionActionLauncher({ session, secondaryId, onStart, onClose }
   return (
     <form className="mission-action-launcher" onSubmit={submit}>
       <div className="section-heading">
-        <div><span className="eyebrow">Mission Action</span><h3>{secureData ? 'Secure Data' : 'Scan Signal'}</h3></div>
+        <div><span className="eyebrow">Mission Action</span><h3>{sabotage ? 'Sabotage' : secureData ? 'Secure Data' : 'Scan Signal'}</h3></div>
         <button type="button" onClick={onClose}>Close</button>
       </div>
       {session.state.phase !== 'MOVEMENT'
@@ -58,7 +64,7 @@ export function MissionActionLauncher({ session, secondaryId, onStart, onClose }
             <label>Acting unit<select value={unitId} onChange={(event) => setUnitId(event.target.value)}>
               {units.map((unit) => <option key={unit.unitId} value={unit.unitId}>{unit.unitName}</option>)}
             </select></label>
-            {secureData && <label>Neutral objective<select value={objectiveId} onChange={(event) => setObjectiveId(event.target.value)}>
+            {usesObjective && <label>Neutral objective<select value={objectiveId} onChange={(event) => setObjectiveId(event.target.value)}>
               {neutralObjectives.map((objective) => <option key={objective.id} value={objective.id}>{objective.name}</option>)}
             </select></label>}
             {selected && <ul className="mission-known-checks">
@@ -68,7 +74,8 @@ export function MissionActionLauncher({ session, secondaryId, onStart, onClose }
               <input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} />
               <span>The unit is eligible to shoot, did not Advance or Fall Back, is not in Engagement Range, and is in the required position.</span>
             </label>
-            <button className="button--gold button--wide" disabled={!selected || !confirmed || (secureData && !objectiveId)}>Start action</button>
+            {sabotage && neutralObjectives.length === 0 && <p className="context-note">No neutral objective qualifies because every neutral objective was controlled by you at the start of this turn.</p>}
+            <button className="button--gold button--wide" disabled={!selected || !confirmed || (usesObjective && !objectiveId)}>Start action</button>
           </>}
     </form>
   )

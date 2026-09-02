@@ -9,7 +9,7 @@ import {
   redoLastAction,
   undoLastAction,
 } from '../domain/battle/engine'
-import type { BattleEventInput, BattleSession, GuidanceLevel } from '../domain/battle/types'
+import type { BattleCorrection, BattleEventInput, BattleSession, GuidanceLevel } from '../domain/battle/types'
 import {
   cancelMissionAction as cancelMissionActionInBattle,
   completeMissionAction as completeMissionActionInBattle,
@@ -26,7 +26,7 @@ import {
   useStratagem as useStratagemInBattle,
 } from '../domain/stratagems/battleIntegration'
 import type { ReactionTriggerInput, UseStratagemInput } from '../domain/stratagems/battleIntegration'
-import { assertSharedMutationAllowed } from '../multiplayer/sharedRuntime'
+import { assertSharedMutationAllowed, getSharedRuntimeMembership } from '../multiplayer/sharedRuntime'
 import { getBattle, getLatestActiveBattle, saveBattle } from '../persistence/database'
 import {
   advanceCauldronPhase,
@@ -75,6 +75,7 @@ type BattleStore = {
   resolveEliminationChoice: (playerId: string, cardId: SecondaryId) => void
   selectPriorityTargetCandidates: (playerId: string, unitIds: string[]) => void
   choosePriorityTarget: (playerId: string, unitId: string) => void
+  applyCorrection: (correction: BattleCorrection, reason: string) => void
   nextPhase: () => void
   changePlan: (playerId: string, planId: OperationalPlanId) => void
   confirmRound: (confirmations: Record<string, PlanConfirmation>) => void
@@ -282,6 +283,13 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
 
   choosePriorityTarget(playerId, unitId) {
     applySessionUpdate(get().session, (session) => choosePriorityTargetInBattle(session, playerId, unitId), set)
+  },
+
+  applyCorrection(correction, reason) {
+    applySessionUpdate(get().session, (session) => dispatchBattleEvent(session, {
+      type: 'STATE_CORRECTED',
+      payload: { correction, reason: reason.trim() },
+    }, { actorPlayerId: getSharedRuntimeMembership()?.playerId }), set)
   },
 
   nextPhase() {

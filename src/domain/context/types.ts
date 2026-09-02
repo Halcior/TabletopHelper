@@ -1,5 +1,5 @@
 import type { UnitDefinition, UnitState } from '../army/types'
-import type { BattlePhase, BattleSession, GuidanceLevel, MissionActionState, ObjectiveState, PlayerState } from '../battle/types'
+import type { BattlePhase, BattleSession, GuidanceLevel, MissionActionState, MissionActionType, ObjectiveState, PlayerState } from '../battle/types'
 import type { ReactionPolicy, StratagemAvailability, StratagemDefinition } from '../stratagems/types'
 
 export type ContextStatus = 'DONE' | 'AVAILABLE' | 'REQUIRED' | 'WARNING' | 'INFO' | 'BLOCKING'
@@ -44,6 +44,7 @@ export type ContextAction = {
   unitId?: string
   objectiveId?: string
   secondaryId?: string
+  missionActionType?: MissionActionType
   stratagemId?: string
   reactionWindowId?: string
 }
