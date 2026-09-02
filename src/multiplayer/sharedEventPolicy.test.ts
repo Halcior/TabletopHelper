@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { completeBattle, dispatchBattleEvent } from '../domain/battle/engine'
+import { completeBattle, dispatchBattleEvent, dispatchBattleEvents } from '../domain/battle/engine'
 import {
   advanceCauldronPhase,
   dispatchCauldronBattleEvent,
@@ -83,6 +83,17 @@ describe('shared event policy', () => {
     expect(authorizeSharedMutation(before, after, membership('p-a')).allowed).toBe(true)
   })
 
+  it('allows a non-host active commander to finish the final turn when GAME_ENDED is automatic', () => {
+    const before = testCauldronGame()
+    const after = dispatchBattleEvents(before, [
+      { type: 'TURN_ENDED', payload: { playerId: 'p-a' } },
+      { type: 'ROUND_ENDED', payload: { round: 5 } },
+      { type: 'GAME_ENDED', payload: {} },
+    ], { actorPlayerId: 'p-a' })
+
+    expect(authorizeSharedMutation(before, after, membership('p-a', false)).allowed).toBe(true)
+  })
+
   it('allows any seated commander to record shared objective control', () => {
     const before = testCauldronGame()
     const after = dispatchBattleEvent(before, {
@@ -93,7 +104,7 @@ describe('shared event policy', () => {
     expect(authorizeSharedMutation(before, after, membership('p-b')).allowed).toBe(true)
   })
 
-  it('reserves battle lifecycle actions for the room host', () => {
+  it('reserves manual battle lifecycle actions for the room host', () => {
     const before = testCauldronGame()
     const after = completeBattle(before)
 
