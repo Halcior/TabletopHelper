@@ -128,6 +128,7 @@ export default function BattleDashboard() {
 
   const active = session.state.players[session.state.activePlayerId]
   const battleActive = session.state.status === 'active'
+  const guidanceLevel = session.setup.guidanceLevel
   const sharedPermissions = getSharedSessionPermissions(session, sharedMembership)
   const sharedBattle = sharedPermissions.shared
   const canControlTurn = sharedPermissions.canControlTurn
@@ -236,7 +237,7 @@ export default function BattleDashboard() {
     ? progressionBlockers[0].title
     : cauldronTurnReview
       ? 'Scoring & Mission Actions'
-      : phaseEndHasTimingOpportunities && session.setup.guidanceLevel === 'guided'
+      : phaseEndHasTimingOpportunities && guidanceLevel === 'guided'
         ? 'End-of-phase timing check'
         : phaseIndex < BATTLE_PHASES.length - 1
           ? humanizePhase(BATTLE_PHASES[phaseIndex + 1])
@@ -299,7 +300,7 @@ export default function BattleDashboard() {
       setTurnReviewOpen(true)
       return
     }
-    if (session.setup.guidanceLevel === 'guided' && phaseEndHasTimingOpportunities) {
+    if (guidanceLevel === 'guided' && phaseEndHasTimingOpportunities) {
       setPhaseEndReviewOpen(true)
       return
     }
@@ -334,7 +335,7 @@ export default function BattleDashboard() {
         <div className="battle-turn"><span>{battleActive ? `${active.name} turn` : 'Session status'}</span><h1>{headerTitle}</h1></div>
         <div className="battle-context">
           {battleActive && rival && <div className="rival-callout"><span>Current Rival</span><strong>{rival.name}</strong></div>}
-          {battleActive && <span className={`mode-badge mode-badge--${session.setup.guidanceLevel}`}>{session.setup.guidanceLevel} mode</span>}
+          {battleActive && <span className={`mode-badge mode-badge--${guidanceLevel}`}>{guidanceLevel} mode</span>}
           {cauldron && <span className="ruleset-label">Cauldron FFA 3</span>}
           <SharedSessionStatus battleId={session.setup.gameId} />
           {battleActive && <BattleMenu
