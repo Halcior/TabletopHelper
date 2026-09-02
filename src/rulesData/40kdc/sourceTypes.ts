@@ -1,5 +1,7 @@
 export type FortyKdcPhase = 'command' | 'movement' | 'shooting' | 'charge' | 'fight'
 export type FortyKdcPlayerTurn = 'your-turn' | 'opponent-turn' | 'either'
+export type FortyKdcTriggerSubject = 'self' | 'bearer' | 'friendly-unit' | 'enemy-unit' | 'any-unit' | 'model-in-bearer'
+export type FortyKdcMoveType = 'normal' | 'advance' | 'fall-back' | 'charge'
 
 export type FortyKdcFactionRecord = {
   id: string
@@ -22,7 +24,11 @@ export type FortyKdcTargetRestrictions = {
 
 export type FortyKdcTriggerRecord = {
   event: string
-  hasStructuredGuard: boolean
+  subject?: FortyKdcTriggerSubject
+  moveTypes: readonly FortyKdcMoveType[]
+  hasCondition: boolean
+  hasProximity: boolean
+  hasWindow: boolean
 }
 
 export type FortyKdcAbilityRecord = {
