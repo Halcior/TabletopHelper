@@ -27,6 +27,7 @@ import type {
 } from './sourceTypes'
 
 const SOURCE_NAME = '40kdc-data'
+type AutomaticTriggerSubject = Extract<FortyKdcTriggerSubject, 'friendly-unit' | 'enemy-unit' | 'any-unit'>
 
 function normalize(value: string): string {
   return value
@@ -145,33 +146,20 @@ function targetRestriction(input: StructuredTargetRestrictions): TimingRestricti
   }
 }
 
-function subjectRestriction(subject: FortyKdcTriggerSubject): TimingRestriction {
+function subjectRestriction(subject: AutomaticTriggerSubject): TimingRestriction {
   return {
     id: `40kdc-trigger-subject-${subject}`,
     description: `Structured trigger subject: ${subject}.`,
     evaluate: ({ playerId, context }) => {
       if (subject === 'any-unit') return true
       const subjectPlayerId = context.triggerSubjectPlayerId
-      if (subject === 'friendly-unit' || subject === 'enemy-unit') {
-        if (typeof subjectPlayerId !== 'string') {
-          return { allowed: false, reason: 'Triggering unit owner is not available for this timing checkpoint.' }
-        }
-        const allowed = subject === 'friendly-unit' ? subjectPlayerId === playerId : subjectPlayerId !== playerId
-        return {
-          allowed,
-          reason: allowed ? undefined : `The triggering unit is not a valid ${subject} subject.`,
-        }
+      if (typeof subjectPlayerId !== 'string') {
+        return { allowed: false, reason: 'Triggering unit owner is not available for this timing checkpoint.' }
       }
-
-      const triggerSubjectUnitId = context.triggerSubjectUnitId
-      const sourceUnitId = context.sourceUnitId
-      if (typeof triggerSubjectUnitId !== 'string' || typeof sourceUnitId !== 'string') {
-        return { allowed: false, reason: 'Exact triggering unit identity is not available for this timing checkpoint.' }
-      }
-      const allowed = triggerSubjectUnitId === sourceUnitId
+      const allowed = subject === 'friendly-unit' ? subjectPlayerId === playerId : subjectPlayerId !== playerId
       return {
         allowed,
-        reason: allowed ? undefined : 'The triggering unit is not the Stratagem source unit.',
+        reason: allowed ? undefined : `The triggering unit is not a valid ${subject} subject.`,
       }
     },
   }
@@ -204,6 +192,14 @@ function commonSubject(triggers: readonly FortyKdcTriggerRecord[]): {
   const unique = new Set(values)
   if (unique.size !== 1) return { mixed: true }
   return { subject: values[0] ?? undefined, mixed: false }
+}
+
+function automaticSubject(subject: FortyKdcTriggerSubject | undefined): AutomaticTriggerSubject | undefined {
+  return subject === 'friendly-unit' || subject === 'enemy-unit' || subject === 'any-unit' ? subject : undefined
+}
+
+function sourceBoundSubject(subject: FortyKdcTriggerSubject | undefined): boolean {
+  return subject === 'self' || subject === 'bearer' || subject === 'model-in-bearer'
 }
 
 function moveTypeKey(values: readonly FortyKdcMoveType[]): string {
@@ -241,8 +237,8 @@ function adaptStratagem(input: {
 
   const targetRestrictions = structuredRestrictions(stratagem.targetRestrictions)
   const subject = commonSubject(sourceTriggers)
+  const autoSubject = automaticSubject(subject.subject)
   const moveTypes = commonMoveTypes(sourceTriggers)
-  const unsupportedSubject = subject.subject === 'model-in-bearer'
   const reasons = [
     ...(sourceEvents.length === 0 ? ['No structured trigger is available from the source.'] : []),
     ...(unmappedEvents.length > 0 ? [`Unsupported source trigger: ${unmappedEvents.join(', ')}.`] : []),
@@ -256,7 +252,9 @@ function adaptStratagem(input: {
       ? ['The source trigger contains a timing window that requires manual confirmation.']
       : []),
     ...(subject.mixed ? ['The source uses different trigger subjects for different timing events.'] : []),
-    ...(unsupportedSubject ? ['Model-in-bearer trigger subjects require manual confirmation.'] : []),
+    ...(sourceBoundSubject(subject.subject)
+      ? ['The trigger is bound to the Stratagem source or bearer, which is not selected automatically yet.']
+      : []),
     ...(moveTypes.mixed ? ['The source uses different move-type guards for different timing events.'] : []),
     ...(stratagem.targetRestrictions?.hasUnstructuredNotes
       ? ['The source contains an unstructured restriction that was not imported.']
@@ -265,7 +263,7 @@ function adaptStratagem(input: {
   const classification = mapClassification(stratagem.playerTurn, ability)
   const restrictions: TimingRestriction[] = [
     ...(targetRestrictions ? [targetRestriction(targetRestrictions)] : []),
-    ...(subject.subject && !subject.mixed && !unsupportedSubject ? [subjectRestriction(subject.subject)] : []),
+    ...(autoSubject && !subject.mixed ? [subjectRestriction(autoSubject)] : []),
     ...(moveTypes.moveTypes.length > 0 && !moveTypes.mixed ? [moveTypeRestriction(moveTypes.moveTypes)] : []),
   ]
   const description = ability?.description?.trim()
