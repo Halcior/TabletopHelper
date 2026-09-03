@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { SharedParticipant } from './types'
-import { canStartSharedLobby, summarizeSharedLobby } from './sharedLobby'
+import { canStartSharedLobby, sharedBattleHasStarted, summarizeSharedLobby } from './sharedLobby'
 
 const NOW = Date.parse('2026-09-03T12:00:00.000Z')
 const PLAYERS = ['player-a', 'player-b', 'player-c']
@@ -19,6 +19,13 @@ function phone(playerId: string, ready = false, seenAt = NOW): SharedParticipant
 }
 
 describe('three-phone shared lobby', () => {
+  it('keeps the battle blocked until the start state is known and confirmed', () => {
+    expect(sharedBattleHasStarted(undefined)).toBe(false)
+    expect(sharedBattleHasStarted(null)).toBe(false)
+    expect(sharedBattleHasStarted('')).toBe(false)
+    expect(sharedBattleHasStarted('2026-09-03T12:00:00.000Z')).toBe(true)
+  })
+
   it('starts only after all three online phones are ready and survives a reconnect', () => {
     const joined = PLAYERS.map((playerId) => phone(playerId))
     expect(summarizeSharedLobby(PLAYERS, joined, NOW)).toMatchObject({

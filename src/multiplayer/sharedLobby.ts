@@ -9,6 +9,10 @@ export type SharedLobbySummary = {
   allReady: boolean
 }
 
+export function sharedBattleHasStarted(startedAt: string | null | undefined): startedAt is string {
+  return typeof startedAt === 'string' && startedAt.length > 0
+}
+
 export function summarizeSharedLobby(
   playerIds: string[],
   participants: SharedParticipant[],

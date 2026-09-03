@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { SharedMembership, SharedParticipant } from './types'
-import { classifySeatRestore } from './seatOwnership'
+import { classifySeatRestore, shouldPreserveHostClaim } from './seatOwnership'
 
 function membership(overrides: Partial<SharedMembership> = {}): SharedMembership {
   return {
@@ -18,6 +18,13 @@ function participant(overrides: Partial<SharedParticipant> = {}): SharedParticip
 }
 
 describe('shared seat restore ownership', () => {
+  it('preserves host authority only for the original browser identity', () => {
+    const host = participant({ isHost: true })
+    expect(shouldPreserveHostClaim(host, 'client-a')).toBe(true)
+    expect(shouldPreserveHostClaim(host, 'client-b')).toBe(false)
+    expect(shouldPreserveHostClaim(participant(), 'client-a')).toBe(false)
+  })
+
   it('reuses the seat on the same browser identity', () => {
     expect(classifySeatRestore(membership(), [participant()], 1_010_000)).toBe('reuse')
   })

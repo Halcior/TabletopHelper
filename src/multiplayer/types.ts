@@ -52,7 +52,7 @@ export interface SharedSessionTransport {
   preflight(): Promise<void>
   createRoom(session: BattleSession, hostPlayerId: string, clientId: string): Promise<SharedRoomInspection>
   inspectRoom(code: string): Promise<SharedRoomInspection | null>
-  joinRoom(room: SharedRoom, playerId: string, clientId: string): Promise<SharedParticipant>
+  joinRoom(room: SharedRoom, playerId: string, clientId: string, preserveHost?: boolean): Promise<SharedParticipant>
   publishEvents(roomId: string, events: BattleEvent[], submittedByPlayerId?: string, clientId?: string): Promise<void>
   listEvents(roomId: string, afterSequence: number): Promise<SharedEventEnvelope[]>
   listParticipants(roomId: string): Promise<SharedParticipant[]>

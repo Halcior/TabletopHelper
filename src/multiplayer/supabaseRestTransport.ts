@@ -90,6 +90,10 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
       {},
       probeCode,
     )
+    await this.request<null>('rpc/start_shared_room', {
+      method: 'POST',
+      body: JSON.stringify({ p_room_id: '00000000-0000-0000-0000-000000000000' }),
+    }, probeCode, 'preflight')
   }
 
   private rememberRoom(room: SharedRoom): void {
@@ -169,11 +173,11 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
     return { room, participants: await this.listParticipants(room.id) }
   }
 
-  async joinRoom(room: SharedRoom, playerId: string, clientId: string): Promise<SharedParticipant> {
+  async joinRoom(room: SharedRoom, playerId: string, clientId: string, preserveHost = false): Promise<SharedParticipant> {
     const player = room.sessionSnapshot.state.players[playerId]
     if (!player) throw new Error('That player seat does not exist in this battle.')
     this.rememberRoom(room)
-    return this.upsertParticipant(room, playerId, clientId, false)
+    return this.upsertParticipant(room, playerId, clientId, preserveHost)
   }
 
   private async upsertParticipant(room: SharedRoom, playerId: string, clientId: string, isHost: boolean): Promise<SharedParticipant> {
@@ -257,16 +261,12 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
   }
 
   async startRoom(roomId: string, clientId: string): Promise<string> {
-    const startedAt = new Date().toISOString()
-    const rows = await this.request<SupabaseRoomRow[]>(`shared_rooms?id=eq.${encodeURIComponent(roomId)}&started_at=is.null`, {
-      method: 'PATCH',
-      headers: { Prefer: 'return=representation' },
-      body: JSON.stringify({ started_at: startedAt, updated_at: startedAt }),
+    const startedAt = await this.request<string | null>('rpc/start_shared_room', {
+      method: 'POST',
+      body: JSON.stringify({ p_room_id: roomId }),
     }, this.roomCode(roomId), clientId)
-    const room = rows[0]
-    if (!room?.started_at) throw new Error('The room could not be started. Refresh the lobby and try again.')
-    this.rememberRoom(mapRoom(room))
-    return room.started_at
+    if (!startedAt) throw new Error('The room could not be started. Refresh the lobby and try again.')
+    return startedAt
   }
 
   async updateRoomStatus(roomId: string, status: BattleLifecycleStatus, clientId?: string): Promise<void> {

@@ -95,6 +95,8 @@ begin
       raise exception 'All three player seats must be online and ready before starting.'
         using errcode = '23514';
     end if;
+    new.started_at := now();
+    new.updated_at := new.started_at;
   end if;
   return new;
 end;
@@ -106,8 +108,35 @@ create trigger enforce_shared_lobby_start
   before update of started_at on public.shared_rooms
   for each row execute function public.enforce_shared_lobby_start();
 
+create or replace function public.start_shared_room(p_room_id uuid)
+returns timestamptz
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+declare
+  result timestamptz;
+begin
+  update public.shared_rooms
+  set started_at = now(), updated_at = now()
+  where id = p_room_id and started_at is null
+  returning started_at into result;
+
+  if result is null then
+    select room.started_at into result
+    from public.shared_rooms room
+    where room.id = p_room_id;
+  end if;
+
+  return result;
+end;
+$$;
+
+revoke all on function public.start_shared_room(uuid) from public;
+
 grant execute on function public.request_shared_room_code() to anon;
 grant execute on function public.request_shared_client_id() to anon;
+grant execute on function public.start_shared_room(uuid) to anon;
 
 drop policy if exists "shared rooms read" on public.shared_rooms;
 drop policy if exists "shared rooms create" on public.shared_rooms;

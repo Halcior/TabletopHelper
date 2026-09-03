@@ -67,6 +67,13 @@ export default function SharedSessions() {
   }, [checkBackend, configured])
 
   useEffect(() => {
+    if (!configured || !membership) return
+    const recoverConnection = () => void forceSync()
+    window.addEventListener('online', recoverConnection)
+    return () => window.removeEventListener('online', recoverConnection)
+  }, [configured, forceSync, membership?.battleId])
+
+  useEffect(() => {
     if (!configured) return
     const code = roomCodeFromSearch(location.search)
     if (!code) return

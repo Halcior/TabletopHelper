@@ -5,7 +5,7 @@ import { saveBattle } from '../persistence/database'
 import { useBattleStore } from '../stores/battleStore'
 import { participantIsActive } from './presence'
 import { canStartSharedLobby } from './sharedLobby'
-import { classifySeatRestore } from './seatOwnership'
+import { classifySeatRestore, shouldPreserveHostClaim } from './seatOwnership'
 import { setSharedRuntimeMembership } from './sharedRuntime'
 import { findRetryableLocalEvents, mergeCanonicalEnvelopes } from './sharedSync'
 import { sharedSessionTransport } from './supabaseRestTransport'
@@ -44,7 +44,7 @@ function message(error: unknown): string {
 
 function backendMessage(error: unknown): string {
   const detail = message(error)
-  if (detail.includes('started_at') || detail.includes('is_ready')) {
+  if (detail.includes('started_at') || detail.includes('is_ready') || detail.includes('start_shared_room')) {
     return 'Supabase is connected, but the shared-lobby migration is missing. Run supabase/migrations/20260903113330_shared_lobby_readiness.sql in SQL Editor.'
   }
   return `Supabase connection check failed. ${detail}`
@@ -446,15 +446,21 @@ export const useSharedSessionStore = create<SharedSessionStore>((set, get) => ({
     if (!await get().checkBackend()) throw new Error(get().backendCheckMessage ?? 'Supabase connection check failed.')
     set({ connectionStatus: 'connecting', error: null })
     try {
-      await sharedSessionTransport.joinRoom(inspection.room, playerId, id)
+      const joinedParticipant = await sharedSessionTransport.joinRoom(
+        inspection.room,
+        playerId,
+        id,
+        shouldPreserveHostClaim(occupied, id),
+      )
       const refreshed = await sharedSessionTransport.inspectRoom(inspection.room.code) ?? inspection
+      const currentParticipant = refreshed.participants.find((participant) => participant.clientId === id) ?? joinedParticipant
       const membership: SharedMembership = {
         roomId: inspection.room.id,
         roomCode: inspection.room.code,
         battleId: inspection.room.battleId,
         clientId: id,
         playerId,
-        isHost: false,
+        isHost: currentParticipant.isHost,
       }
       startSyncLoop(refreshed, membership)
       return membership
@@ -467,7 +473,11 @@ export const useSharedSessionStore = create<SharedSessionStore>((set, get) => ({
   async restoreForBattle(battleId) {
     const savedMembership = readMembership()
     if (!savedMembership || savedMembership.battleId !== battleId || !sharedSessionTransport.configured) return false
-    if (get().connectionStatus === 'connected' && get().membership?.battleId === battleId) return true
+    if (
+      get().connectionStatus === 'connected'
+      && get().membership?.battleId === battleId
+      && get().inspection?.room.id === savedMembership.roomId
+    ) return true
     setSharedRuntimeMembership(savedMembership)
     set({ connectionStatus: browserOnline() ? 'connecting' : 'offline', membership: savedMembership, error: null })
     if (!browserOnline()) return false
@@ -499,8 +509,17 @@ export const useSharedSessionStore = create<SharedSessionStore>((set, get) => ({
   },
 
   async forceSync() {
-    if (!get().membership) return
-    set({ connectionStatus: browserOnline() ? 'reconnecting' : 'offline', error: null })
+    const membership = get().membership
+    if (!membership) return
+    if (!browserOnline()) {
+      set({ connectionStatus: 'offline' })
+      return
+    }
+    set({ connectionStatus: 'reconnecting', error: null })
+    if (!get().inspection || get().backendCheckStatus === 'failed') {
+      if (!await get().checkBackend(true)) return
+      if (!await get().restoreForBattle(membership.battleId)) return
+    }
     await pollRoom()
   },
 

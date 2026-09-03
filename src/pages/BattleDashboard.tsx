@@ -36,6 +36,7 @@ import { getAvailableStratagems } from '../domain/stratagems/timingEngine'
 import type { ReactionContext, StratagemAvailability, TimingTrigger } from '../domain/stratagems/types'
 import { ReactionWindowPanel } from '../features/stratagems'
 import { getSharedSessionPermissions } from '../multiplayer/permissions'
+import { sharedBattleHasStarted } from '../multiplayer/sharedLobby'
 import { useSharedSessionStore } from '../multiplayer/sharedSessionStore'
 import type { RulesDataProvider, RulesDataResolution } from '../rulesData/types'
 import {
@@ -167,7 +168,7 @@ export default function BattleDashboard() {
 
   if (loading && session?.setup.gameId !== battleId) return <div className="page-shell"><div className="loading-state">Restoring battle…</div></div>
   if (!session || session.setup.gameId !== battleId) return <div className="page-shell"><div className="empty-state"><h1>Battle unavailable</h1><p>{error ?? 'The local battle could not be found.'}</p><Link className="button" to="/">Return home</Link></div></div>
-  if (sharedMembership?.battleId === session.setup.gameId && sharedRoomStartedAt === null) {
+  if (sharedMembership?.battleId === session.setup.gameId && !sharedBattleHasStarted(sharedRoomStartedAt)) {
     return <Navigate to={`/shared?room=${sharedMembership.roomCode}`} replace />
   }
 
