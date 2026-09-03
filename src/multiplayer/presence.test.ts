@@ -10,6 +10,7 @@ function participant(lastSeenAt: string): SharedParticipant {
     playerId: 'player',
     displayName: 'Player',
     isHost: false,
+    isReady: false,
     lastSeenAt,
   }
 }

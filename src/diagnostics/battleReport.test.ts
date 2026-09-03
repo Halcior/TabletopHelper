@@ -13,7 +13,7 @@ describe('battle diagnostic report', () => {
       pendingEventCount: 2,
       lastSyncedAt: '2026-09-02T12:00:00.000Z',
       consecutiveFailures: 0,
-      participants: [{ id: 'participant-secret', roomId: 'secret-room', clientId: 'secret-client', playerId: 'p-a', displayName: 'Alpha', isHost: true, lastSeenAt: '2026-09-02T12:00:00.000Z' }],
+      participants: [{ id: 'participant-secret', roomId: 'secret-room', clientId: 'secret-client', playerId: 'p-a', displayName: 'Alpha', isHost: true, isReady: true, lastSeenAt: '2026-09-02T12:00:00.000Z' }],
       roomStatus: 'active',
       error: null,
     } satisfies SharedDiagnosticState

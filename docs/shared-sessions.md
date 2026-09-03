@@ -4,12 +4,15 @@ The shared-session layer keeps the existing event-driven Battle Engine and repli
 
 ## Current behavior
 
-- One device hosts an existing active battle and claims one player seat.
-- A six-character room code is generated for the table.
-- Two other devices can claim the remaining player seats.
+- A battle can create a shared lobby directly from setup or from the battle header.
+- The host claims one player seat and receives a six-character room code plus a scannable QR invite.
+- Two other devices claim the remaining seats, then all three commanders confirm readiness.
+- The host can start only when all three seats are online and ready; the backend enforces the same rule.
+- Starting the lobby moves all connected phones into the shared battle.
 - New Battle Events are uploaded to the shared room and consumed in server sequence order.
 - Remote clients rebuild the local `BattleSession` from the creation snapshot plus canonical events.
 - Presence heartbeats show which commander seats are currently active.
+- A prominent in-battle warning reports local sync loss, queued events, stale backend confirmation, or another missing phone.
 - Phase progression follows the active player seat: each commander advances their own turn from their own device.
 - The host retains manual battle lifecycle administration (end / abandon) but cannot drive another player's normal phase flow.
 - Automatic `GAME_ENDED` produced by finishing the final turn is allowed for that active commander even when they are not the host.
@@ -59,12 +62,18 @@ For a new project:
 
 ```env
 VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
-VITE_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
+VITE_SUPABASE_PUBLISHABLE_KEY=YOUR_SUPABASE_PUBLISHABLE_KEY
 ```
 
 6. Restart Vite after changing environment variables.
 
-For an existing development database, apply the repository migrations instead of rerunning the bootstrap schema blindly.
+For an existing development database, apply the repository migrations instead of rerunning the bootstrap schema blindly. If the original shared-session schema is already installed, run the newest migration in SQL Editor:
+
+```text
+supabase/migrations/20260903113330_shared_lobby_readiness.sql
+```
+
+The Shared page runs a read-only backend preflight and reports if the URL, publishable key, tables, or lobby columns are missing.
 
 ## Test on three phones on one Wi-Fi network
 
@@ -84,17 +93,24 @@ Windows Firewall may ask to allow Node/Vite on private networks. The app uses a 
 
 ### Functional test flow
 
-1. Host a Cauldron battle and join all three player seats.
-2. Verify only the active commander can advance phases and their turn.
-3. Verify every commander can adjust only their own CP and army state.
-4. Let Player B record one of their own units destroyed by Player A and verify Player A's qualifying automatic Secondary is still scored and synchronized.
-5. Change objective control from a non-active phone and verify every device receives it.
-6. Open a reaction window and verify only the responsible player can USE / PASS.
-7. Put one guest phone offline, record an allowed local action, restore connectivity and verify the action appears once on all devices.
-8. Repeat the previous test but close/reopen the guest browser before reconnecting; verify the persisted event is retried.
-9. Try to claim an occupied seat from another device; it should remain unavailable while presence is fresh and become reclaimable after the stale timeout for a non-host seat.
-10. Finish the last player's final turn with a non-host active commander and verify automatic battle completion succeeds.
-11. From the host phone, correct another commander's CP and verify the reason, exact value, and log entry synchronize to all devices.
+The deterministic lobby, permissions, synchronization, offline retry, and reconnect scenario can be run without phones first:
+
+```powershell
+npm run test:three-phones
+```
+
+1. Create a shared lobby, scan its QR code on the other phones, and join all three player seats.
+2. Mark all three phones ready; verify that the host cannot start early and that all phones enter the battle after start.
+3. Verify only the active commander can advance phases and their turn.
+4. Verify every commander can adjust only their own CP and army state.
+5. Let Player B record one of their own units destroyed by Player A and verify Player A's qualifying automatic Secondary is still scored and synchronized.
+6. Change objective control from a non-active phone and verify every device receives it.
+7. Open a reaction window and verify only the responsible player can USE / PASS.
+8. Put one guest phone offline, record an allowed local action, restore connectivity and verify the action appears once on all devices.
+9. Repeat the previous test but close/reopen the guest browser before reconnecting; verify the persisted event is retried.
+10. Try to claim an occupied seat from another device; it should remain unavailable while presence is fresh and become reclaimable after the stale timeout for a non-host seat.
+11. Finish the last player's final turn with a non-host active commander and verify automatic battle completion succeeds.
+12. From the host phone, correct another commander's CP and verify the reason, exact value, and log entry synchronize to all devices.
 
 ## Current multiplayer constraints
 
@@ -108,7 +124,6 @@ Windows Firewall may ask to allow Node/Vite on private networks. The app uses a 
 ## Next multiplayer milestones
 
 1. Add a synchronized compensating-action model for shared undo.
-2. Add browser-level multi-context coverage on top of the deterministic three-client convergence test.
-3. Add QR display to the existing deep-link invite flow.
-4. Consider realtime push after correctness testing proves the event model.
-5. Add authenticated identity / stronger room capability before treating the service as public production infrastructure.
+2. Add browser-level multi-context coverage on top of the deterministic three-client and three-phone lobby tests.
+3. Consider realtime push after correctness testing proves the event model.
+4. Add authenticated identity / stronger room capability before treating the service as public production infrastructure.

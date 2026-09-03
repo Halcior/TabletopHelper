@@ -69,6 +69,7 @@ export function createBattleDiagnosticReport(
         playerId: participant.playerId,
         displayName: participant.displayName,
         isHost: participant.isHost,
+        isReady: participant.isReady,
         lastSeenAt: participant.lastSeenAt,
       })),
     },

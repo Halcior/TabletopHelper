@@ -167,6 +167,8 @@ p { color: var(--muted); line-height: 1.65; }
 .plan-description { min-height: 65px; margin: 0; padding-top: 2px; font-size: .73rem; line-height: 1.5; }
 .setup-footer { margin-top: 14px; padding: 18px; display: grid; grid-template-columns: minmax(240px, 1fr) auto; align-items: end; gap: 14px; }
 .setup-footer .alert { grid-column: 1 / -1; margin: 0; }
+.setup-footer--battle-mode { grid-template-columns: minmax(190px, .8fr) minmax(190px, .8fr) minmax(260px, 1.2fr); }
+.setup-submit-actions { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 8px; }
 
 .battle-page { min-height: 100vh; padding-bottom: 92px; }
 .battle-status { padding: 16px max(calc((100vw - 1400px) / 2), 20px); border-bottom: 1px solid var(--line-gold); background: linear-gradient(100deg, #171b1d, #0d0f10); display: grid; grid-template-columns: auto minmax(280px, 1fr) auto; align-items: center; gap: clamp(20px, 4vw, 54px); }
@@ -522,9 +524,16 @@ p { color: var(--muted); line-height: 1.65; }
   .setup-toolbar > div { margin-right: 0; }
   .cauldron-player-grid, .round-review-grid { grid-template-columns: 1fr; }
   .setup-footer { grid-template-columns: 1fr; }
+  .setup-footer--battle-mode { grid-template-columns: 1fr 1fr; }
+  .setup-footer--battle-mode .setup-submit-actions { grid-column: 1 / -1; }
   .plan-change__controls { grid-template-columns: 1fr; }
   .stratagem-list, .reaction-status-grid { grid-template-columns: 1fr; }
   .reaction-status-card { grid-template-columns: minmax(0, 1fr) auto; }
+}
+
+@media (max-width: 560px) {
+  .setup-footer--battle-mode { grid-template-columns: 1fr; }
+  .setup-footer--battle-mode .setup-submit-actions { grid-column: auto; grid-template-columns: 1fr; }
 }
 
 @media (min-width: 701px) and (max-width: 1000px) {

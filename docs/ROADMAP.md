@@ -24,17 +24,19 @@
 - direct invite links and resumable shared membership;
 - host-only exact state corrections preserved as immutable Battle Events;
 - downloadable diagnostic report without room-code or client-ID capabilities;
-- deterministic three-client convergence test covering permissions, automatic scoring, offline retry, and corrections.
+- deterministic three-client convergence test covering permissions, automatic scoring, offline retry, and corrections;
+- QR deep-link invites, a synchronized three-seat readiness lobby, direct shared start, backend preflight, and visible sync-loss warnings;
+- deterministic three-phone lobby coverage for readiness, disconnect, reconnect, and host-only start.
 
 ## Next milestone: live playtest findings
 
 - run the documented three-phone tabletop flow and turn findings into reproducible tests;
-- add browser-level Playwright coverage when the test-browser dependency is available;
+- add browser-level Playwright coverage against a disposable Supabase project when test credentials are available;
 - add synchronized inverse/compensating actions if host corrections prove too slow for common mistakes;
 - improve result and post-game statistics based on real playtest needs.
 
 ## Later milestones
 
-- QR invite display, host transfer, snapshot compaction, and optional realtime transport;
+- host transfer, snapshot compaction, and optional realtime transport;
 - authenticated identity or stronger server-side room capability before public production use;
 - Twists, dedicated table mode, and broader rulesets.

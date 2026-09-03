@@ -13,6 +13,7 @@ import {
   type OperationalPlanId,
   type TurnPosition,
 } from '../rulesets/cauldronFFA3'
+import { useSharedSessionStore } from '../multiplayer/sharedSessionStore'
 import { useBattleStore } from '../stores/battleStore'
 
 type PlayerDraft = CauldronPlayerInput
@@ -30,9 +31,14 @@ export default function BattleSetup() {
   const [armies, setArmies] = useState<Army[]>([])
   const [players, setPlayers] = useState<PlayerDraft[]>(DEFAULT_PLAYERS)
   const [guidance, setGuidance] = useState<GuidanceLevel>('guided')
+  const [hostPlayerId, setHostPlayerId] = useState(DEFAULT_PLAYERS[0].id)
   const [loadingArmies, setLoadingArmies] = useState(true)
+  const [sharedWorking, setSharedWorking] = useState(false)
   const [localError, setLocalError] = useState<string | null>(null)
   const { startCauldronBattle, loading, error } = useBattleStore()
+  const sharedConfigured = useSharedSessionStore((state) => state.configured)
+  const checkBackend = useSharedSessionStore((state) => state.checkBackend)
+  const hostCurrentBattle = useSharedSessionStore((state) => state.hostCurrentBattle)
 
   useEffect(() => {
     void listArmies().then((stored) => {
@@ -68,6 +74,8 @@ export default function BattleSetup() {
   async function submit(event: FormEvent) {
     event.preventDefault()
     setLocalError(null)
+    const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null
+    const sharedMode = submitter?.value === 'shared'
     if (new Set(players.map((player) => player.deploymentZone)).size !== 3) {
       setLocalError('Assign deployment zones A, B, and C exactly once.')
       return
@@ -80,10 +88,25 @@ export default function BattleSetup() {
       .map((id) => armies.find((army) => army.id === id))
       .filter((army): army is Army => Boolean(army))
     try {
+      if (sharedMode) {
+        if (!sharedConfigured) throw new Error('Configure Supabase before creating a shared lobby.')
+        setSharedWorking(true)
+        const backendReady = await checkBackend(true)
+        if (!backendReady) {
+          throw new Error(useSharedSessionStore.getState().backendCheckMessage ?? 'Supabase connection check failed.')
+        }
+      }
       const battleId = await startCauldronBattle(players, selectedArmies, guidance)
-      navigate(`/battle/${battleId}`)
-    } catch {
-      // The store exposes the persistence or validation error in this form.
+      if (sharedMode) {
+        const membership = await hostCurrentBattle(hostPlayerId)
+        navigate(`/shared?room=${membership.roomCode}`)
+      } else {
+        navigate(`/battle/${battleId}`)
+      }
+    } catch (reason) {
+      setLocalError(reason instanceof Error ? reason.message : String(reason))
+    } finally {
+      setSharedWorking(false)
     }
   }
 
@@ -125,13 +148,21 @@ export default function BattleSetup() {
             <p className="plan-description">{OPERATIONAL_PLAN_DEFINITIONS[player.operationalPlanId].description}</p>
           </section>
         ))}</div>
-        <section className="panel setup-footer">
+        <section className="panel setup-footer setup-footer--battle-mode">
           <label>Guidance level<select value={guidance} onChange={(event) => setGuidance(event.target.value as GuidanceLevel)}>
             <option value="guided">Guided — full contextual reminders</option>
             <option value="fast">Fast — essential reminders only</option>
           </select></label>
+          <label>Shared host seat<select value={hostPlayerId} onChange={(event) => setHostPlayerId(event.target.value)}>
+            {players.map((player) => <option key={player.id} value={player.id}>{player.name}</option>)}
+          </select></label>
           {(localError || error) && <div className="alert alert--danger">{localError ?? error}</div>}
-          <button className="button button--gold" disabled={loading}>{loading ? 'Preparing battle…' : 'Start Cauldron battle'}</button>
+          <div className="setup-submit-actions">
+            <button className="button" type="submit" value="local" disabled={loading || sharedWorking}>{loading && !sharedWorking ? 'Preparing…' : 'Start locally'}</button>
+            <button className="button button--gold" type="submit" value="shared" disabled={loading || sharedWorking || !sharedConfigured} title={sharedConfigured ? undefined : 'Configure Supabase first'}>
+              {sharedWorking ? 'Checking Supabase…' : 'Create shared lobby'}
+            </button>
+          </div>
         </section>
       </form>
     </div>
