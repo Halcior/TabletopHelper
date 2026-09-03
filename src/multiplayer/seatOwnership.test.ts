@@ -11,7 +11,7 @@ function membership(overrides: Partial<SharedMembership> = {}): SharedMembership
 
 function participant(overrides: Partial<SharedParticipant> = {}): SharedParticipant {
   return {
-    id: 'participant-1', roomId: 'room-1', clientId: 'client-a', playerId: 'p-a', displayName: 'Alpha', isHost: false,
+    id: 'participant-1', roomId: 'room-1', clientId: 'client-a', playerId: 'p-a', displayName: 'Alpha', isHost: false, isReady: false,
     lastSeenAt: new Date(1_000_000).toISOString(),
     ...overrides,
   }

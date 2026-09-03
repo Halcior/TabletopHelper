@@ -8,10 +8,12 @@
     "generate:rules-data": "node scripts/generate-40kdc-source.mjs",
     "diagnose:stratagems": "vite-node scripts/diagnose-stratagems.ts",
     "preview": "vite preview",
-    "test": "vitest"
+    "test": "vitest",
+    "test:three-phones": "vitest --run src/multiplayer/sharedLobby.test.ts src/multiplayer/threeClientFlow.test.ts"
   },
   "dependencies": {
     "dexie": "^4.1.1",
+    "qrcode.react": "4.2.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.14.1",

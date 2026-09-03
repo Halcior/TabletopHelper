@@ -15,8 +15,10 @@ create table if not exists public.shared_rooms (
   status text not null default 'active' check (status in ('active', 'completed', 'abandoned')),
   session_snapshot jsonb not null,
   host_client_id text not null,
+  started_at timestamptz,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  constraint shared_rooms_started_after_created check (started_at is null or started_at >= created_at)
 );
 
 create table if not exists public.shared_participants (
@@ -26,6 +28,7 @@ create table if not exists public.shared_participants (
   player_id text not null,
   display_name text not null,
   is_host boolean not null default false,
+  is_ready boolean not null default false,
   last_seen_at timestamptz not null default now(),
   unique (room_id, player_id),
   unique (room_id, client_id)
@@ -73,6 +76,35 @@ as $$
     ''
   );
 $$;
+
+create or replace function public.enforce_shared_lobby_start()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+begin
+  if old.started_at is null and new.started_at is not null then
+    if (
+      select count(*)
+      from public.shared_participants participant
+      where participant.room_id = new.id
+        and participant.is_ready = true
+        and participant.last_seen_at > now() - interval '20 seconds'
+    ) <> 3 then
+      raise exception 'All three player seats must be online and ready before starting.'
+        using errcode = '23514';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+revoke all on function public.enforce_shared_lobby_start() from public;
+drop trigger if exists enforce_shared_lobby_start on public.shared_rooms;
+create trigger enforce_shared_lobby_start
+  before update of started_at on public.shared_rooms
+  for each row execute function public.enforce_shared_lobby_start();
 
 grant execute on function public.request_shared_room_code() to anon;
 grant execute on function public.request_shared_client_id() to anon;
@@ -172,6 +204,7 @@ create policy "shared events create" on public.shared_events
         and participant.client_id = public.request_shared_client_id()
         and participant.player_id = shared_events.actor_player_id
         and room.code = public.request_shared_room_code()
+        and room.started_at is not null
         and (
           shared_events.event_payload ->> 'type' <> 'STATE_CORRECTED'
           or participant.is_host = true

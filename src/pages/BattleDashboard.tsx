@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, Navigate, useParams } from 'react-router-dom'
 import { AppIcon, type AppIconName } from '../components/AppIcon'
 import { ArmyTracker } from '../components/battle/ArmyTracker'
 import { BattleQuickStatus } from '../components/battle/BattleQuickStatus'
@@ -17,6 +17,7 @@ import { SecondaryEndTurnReview } from '../components/battle/SecondaryEndTurnRev
 import { SecondaryDetailPanel } from '../components/battle/SecondaryPanel'
 import { SharedPlayerPerspective } from '../components/battle/SharedPlayerPerspective'
 import { SharedSessionStatus } from '../components/battle/SharedSessionStatus'
+import { SharedSyncWarning } from '../components/battle/SharedSyncWarning'
 import { downloadBattleDiagnosticReport } from '../diagnostics/battleReport'
 import type { Army } from '../domain/army/types'
 import { canUndo } from '../domain/battle/selectors'
@@ -81,7 +82,7 @@ export default function BattleDashboard() {
   const [armySecondaryFilter, setArmySecondaryFilter] = useState<SecondaryId | null>(null)
   const [armyPreferredPlayerId, setArmyPreferredPlayerId] = useState<string | null>(null)
   const sharedMembership = useSharedSessionStore((state) => state.membership)
-  const sharedConnectionStatus = useSharedSessionStore((state) => state.connectionStatus)
+  const sharedRoomStartedAt = useSharedSessionStore((state) => state.roomStartedAt)
   const {
     session,
     loading,
@@ -166,6 +167,9 @@ export default function BattleDashboard() {
 
   if (loading && session?.setup.gameId !== battleId) return <div className="page-shell"><div className="loading-state">Restoring battle…</div></div>
   if (!session || session.setup.gameId !== battleId) return <div className="page-shell"><div className="empty-state"><h1>Battle unavailable</h1><p>{error ?? 'The local battle could not be found.'}</p><Link className="button" to="/">Return home</Link></div></div>
+  if (sharedMembership?.battleId === session.setup.gameId && sharedRoomStartedAt === null) {
+    return <Navigate to={`/shared?room=${sharedMembership.roomCode}`} replace />
+  }
 
   const active = session.state.players[session.state.activePlayerId]
   const battleActive = session.state.status === 'active'
@@ -479,7 +483,7 @@ export default function BattleDashboard() {
           viewerPlayerId={viewerPlayerId}
         />
         <PhaseStepper phase={session.state.phase} />
-        {sharedBattle && sharedConnectionStatus !== 'connected' && <div className="alert battle-alert">Shared sync: {sharedConnectionStatus}. Local changes are retained and will retry.</div>}
+        {sharedBattle && <SharedSyncWarning battleId={session.setup.gameId} />}
         {sharedBattle && canControlTurn && <div className="shared-flow-notice shared-flow-notice--active">Your turn as {viewer?.name ?? active.name}. You control phase progression and end-turn review on this device.</div>}
         {sharedBattle && !canControlTurn && <div className="shared-flow-notice">Connected as {viewer?.name ?? 'player'}. Waiting for {sharedPermissions.waitingForPlayerName ?? active.name} to advance their turn. Your own CP, army state and reaction responses remain yours.</div>}
         {sharedReactionHold}

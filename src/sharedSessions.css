@@ -42,6 +42,186 @@
   font: inherit;
 }
 
+.shared-backend-check {
+  display: grid;
+  grid-template-columns: minmax(150px, auto) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px 16px;
+  margin-bottom: 16px;
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  background: rgb(16 20 21 / 84%);
+}
+
+.shared-backend-check > div {
+  display: grid;
+  gap: 2px;
+}
+
+.shared-backend-check span {
+  color: var(--muted);
+  font-size: .62rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.shared-backend-check p {
+  margin: 0;
+  color: var(--muted);
+  font-size: .76rem;
+}
+
+.shared-backend-check--ready {
+  border-color: rgb(84 127 91 / 70%);
+  background: rgb(30 69 41 / 18%);
+}
+
+.shared-backend-check--failed {
+  border-color: rgb(151 69 62 / 72%);
+  background: rgb(83 25 22 / 22%);
+}
+
+.shared-room-focus.shared-lobby {
+  width: 100%;
+  max-width: 920px;
+  margin-top: 3vh;
+}
+
+.shared-room-focus__status.shared-lobby__counters {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.shared-lobby__content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 210px;
+  gap: 14px;
+}
+
+.shared-lobby__seats {
+  display: grid;
+  gap: 8px;
+}
+
+.shared-lobby-seat {
+  --seat-color: var(--line-strong);
+  position: relative;
+  overflow: hidden;
+  min-height: 74px;
+  padding: 11px 12px 11px 15px;
+  border: 1px solid var(--line);
+  background: rgb(9 13 14 / 58%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.shared-lobby-seat::before {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--seat-color);
+  content: "";
+}
+
+.shared-lobby-seat--player-0 { --seat-color: var(--player-0); }
+.shared-lobby-seat--player-1 { --seat-color: var(--player-1); }
+.shared-lobby-seat--player-2 { --seat-color: var(--player-2); }
+
+.shared-lobby-seat.is-mine {
+  border-color: color-mix(in srgb, var(--seat-color) 58%, var(--line));
+  background: color-mix(in srgb, var(--seat-color) 8%, #0b0f10);
+}
+
+.shared-lobby-seat__identity,
+.shared-lobby-seat__state {
+  display: grid;
+  gap: 3px;
+}
+
+.shared-lobby-seat__identity span,
+.shared-lobby-seat__identity small,
+.shared-lobby-seat__state span {
+  color: var(--muted);
+  font-size: .68rem;
+}
+
+.shared-lobby-seat__identity span {
+  color: var(--seat-color);
+  font-weight: 850;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+
+.shared-lobby-seat__state {
+  min-width: 92px;
+  text-align: right;
+}
+
+.shared-lobby-seat__state .is-online,
+.shared-lobby-seat__state .is-ready {
+  color: var(--success);
+}
+
+.shared-lobby-seat__state .is-offline {
+  color: var(--danger);
+}
+
+.shared-lobby__invite {
+  padding: 12px;
+  border: 1px solid var(--line);
+  display: grid;
+  align-content: start;
+  justify-items: center;
+  gap: 6px;
+  text-align: center;
+}
+
+.shared-lobby__invite > span,
+.shared-lobby__invite > small {
+  color: var(--muted);
+  font-size: .68rem;
+  line-height: 1.35;
+}
+
+.shared-lobby__invite > button {
+  width: 100%;
+  margin-top: 4px;
+}
+
+.shared-lobby__qr {
+  padding: 5px;
+  border-radius: 6px;
+  background: #fff;
+  line-height: 0;
+}
+
+.shared-lobby__ready-actions {
+  display: grid;
+  grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr);
+  gap: 8px;
+}
+
+.shared-lobby__ready-actions > button {
+  min-height: 50px;
+}
+
+.shared-lobby__waiting {
+  min-height: 50px;
+  padding: 10px 12px;
+  border: 1px dashed var(--line);
+  color: var(--muted);
+  display: grid;
+  place-items: center;
+  font-size: .76rem;
+  text-align: center;
+}
+
+.shared-room-focus__actions.shared-lobby__utility-actions {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .shared-room-banner {
   display: grid;
   grid-template-columns: repeat(3, minmax(90px, 1fr));
@@ -153,6 +333,51 @@
 
 .shared-status--idle {
   opacity: .7;
+}
+
+button.shared-status {
+  width: auto;
+  text-align: left;
+}
+
+.shared-sync-warning {
+  position: sticky;
+  z-index: 12;
+  top: 0;
+  width: min(1060px, calc(100% - 28px));
+  margin: 8px auto 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line-gold);
+  background: rgb(53 43 20 / 96%);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 32%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.shared-sync-warning--danger {
+  border-color: rgb(176 88 71 / 88%);
+  background: rgb(63 25 22 / 97%);
+}
+
+.shared-sync-warning > div {
+  display: grid;
+  gap: 2px;
+}
+
+.shared-sync-warning span,
+.shared-sync-warning small {
+  color: var(--muted);
+  font-size: .72rem;
+}
+
+.shared-sync-warning small {
+  color: #efb0aa;
+}
+
+.shared-sync-warning > button {
+  flex: 0 0 auto;
 }
 
 .shared-flow-notice {
@@ -357,9 +582,87 @@
   .shared-room-banner {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+
+  .shared-lobby__content {
+    grid-template-columns: minmax(0, 1fr) 176px;
+  }
+
+  .shared-room-focus__status.shared-lobby__counters > div:last-child {
+    grid-column: auto;
+  }
+
+  .shared-lobby__qr svg {
+    width: 132px;
+    height: 132px;
+  }
 }
 
 @media (max-width: 560px) {
+  .shared-backend-check {
+    grid-template-columns: 1fr auto;
+  }
+
+  .shared-backend-check p {
+    grid-column: 1 / -1;
+  }
+
+  .shared-room-focus__status.shared-lobby__counters {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .shared-lobby__content {
+    grid-template-columns: 1fr;
+  }
+
+  .shared-lobby__invite {
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto auto;
+    justify-items: stretch;
+    text-align: left;
+  }
+
+  .shared-lobby__qr {
+    grid-row: 1 / 4;
+  }
+
+  .shared-lobby__qr svg {
+    width: 104px;
+    height: 104px;
+  }
+
+  .shared-lobby__invite > button {
+    align-self: end;
+  }
+
+  .shared-lobby__ready-actions {
+    position: sticky;
+    z-index: 4;
+    bottom: 8px;
+    grid-template-columns: 1fr;
+    padding: 8px;
+    border: 1px solid var(--line-gold);
+    background: rgb(10 14 15 / 96%);
+    box-shadow: 0 -8px 24px rgb(0 0 0 / 36%);
+  }
+
+  .shared-room-focus__actions.shared-lobby__utility-actions {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .shared-lobby__utility-actions .button--gold {
+    grid-column: 1 / -1;
+  }
+
+  .shared-sync-warning {
+    width: calc(100% - 20px);
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .shared-sync-warning > button {
+    width: 100%;
+  }
+
   .shared-code-entry {
     grid-template-columns: 1fr;
   }

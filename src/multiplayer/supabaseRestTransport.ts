@@ -15,6 +15,7 @@ type SupabaseRoomRow = {
   battle_id: string
   status: BattleLifecycleStatus
   session_snapshot: BattleSession
+  started_at: string | null
   created_at: string
   updated_at: string
 }
@@ -26,6 +27,7 @@ type SupabaseParticipantRow = {
   player_id: string
   display_name: string
   is_host: boolean
+  is_ready: boolean
   last_seen_at: string
 }
 
@@ -48,6 +50,7 @@ function mapRoom(row: SupabaseRoomRow): SharedRoom {
     battleId: row.battle_id,
     status: row.status,
     sessionSnapshot: row.session_snapshot,
+    startedAt: row.started_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
@@ -61,6 +64,7 @@ function mapParticipant(row: SupabaseParticipantRow): SharedParticipant {
     playerId: row.player_id,
     displayName: row.display_name,
     isHost: row.is_host,
+    isReady: row.is_ready,
     lastSeenAt: row.last_seen_at,
   }
 }
@@ -72,6 +76,20 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
 
   get configured(): boolean {
     return Boolean(this.url && this.apiKey)
+  }
+
+  async preflight(): Promise<void> {
+    const probeCode = 'AAAAAA'
+    await this.request<Pick<SupabaseRoomRow, 'id' | 'started_at'>[]>(
+      'shared_rooms?select=id,started_at&limit=1',
+      {},
+      probeCode,
+    )
+    await this.request<Pick<SupabaseParticipantRow, 'id' | 'is_ready'>[]>(
+      'shared_participants?select=id,is_ready&limit=1',
+      {},
+      probeCode,
+    )
   }
 
   private rememberRoom(room: SharedRoom): void {
@@ -126,6 +144,7 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
             status: session.state.status,
             session_snapshot: session,
             host_client_id: clientId,
+            started_at: null,
           }),
         }, code, clientId)
         room = rows[0] ? mapRoom(rows[0]) : null
@@ -170,6 +189,7 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
         player_id: playerId,
         display_name: player.name,
         is_host: isHost,
+        is_ready: false,
         last_seen_at: new Date().toISOString(),
       }),
     }, room.code, clientId)
@@ -220,12 +240,33 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
     }, this.roomCode(roomId), clientId)
   }
 
+  async setParticipantReady(roomId: string, clientId: string, ready: boolean): Promise<void> {
+    await this.request<void>(`shared_participants?room_id=eq.${encodeURIComponent(roomId)}&client_id=eq.${encodeURIComponent(clientId)}`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ is_ready: ready, last_seen_at: new Date().toISOString() }),
+    }, this.roomCode(roomId), clientId)
+  }
+
   async releaseParticipant(roomId: string, clientId: string): Promise<void> {
     await this.request<void>(`shared_participants?room_id=eq.${encodeURIComponent(roomId)}&client_id=eq.${encodeURIComponent(clientId)}`, {
       method: 'PATCH',
       headers: { Prefer: 'return=minimal' },
-      body: JSON.stringify({ last_seen_at: '1970-01-01T00:00:00.000Z' }),
+      body: JSON.stringify({ is_ready: false, last_seen_at: '1970-01-01T00:00:00.000Z' }),
     }, this.roomCode(roomId), clientId)
+  }
+
+  async startRoom(roomId: string, clientId: string): Promise<string> {
+    const startedAt = new Date().toISOString()
+    const rows = await this.request<SupabaseRoomRow[]>(`shared_rooms?id=eq.${encodeURIComponent(roomId)}&started_at=is.null`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=representation' },
+      body: JSON.stringify({ started_at: startedAt, updated_at: startedAt }),
+    }, this.roomCode(roomId), clientId)
+    const room = rows[0]
+    if (!room?.started_at) throw new Error('The room could not be started. Refresh the lobby and try again.')
+    this.rememberRoom(mapRoom(room))
+    return room.started_at
   }
 
   async updateRoomStatus(roomId: string, status: BattleLifecycleStatus, clientId?: string): Promise<void> {
