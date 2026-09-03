@@ -10,6 +10,7 @@ import './uiSimplify.css'
 import './uiFocus.css'
 import './mobileBattle.css'
 import './reactionHold.css'
+import './tacticalTheme.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

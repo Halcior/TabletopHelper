@@ -26,13 +26,14 @@ export function Scoreboard({
     <section className="scoreboard" aria-label="Player scores and command points">
       {orderedPlayerIds.map((playerId) => {
         const player = session.state.players[playerId]
+        const playerIndex = Math.max(0, session.state.turnOrder.indexOf(playerId))
         const active = playerId === session.state.activePlayerId
         const rival = playerId === rivalPlayerId
         const viewer = sharedMode && playerId === viewerPlayerId
         const canEditCp = !sharedMode || viewer
         const role = viewer ? 'You' : active ? 'Active' : rival ? 'Rival' : 'Opponent'
         return (
-          <article className={`score-card${active ? ' is-active' : ''}${rival ? ' is-rival' : ''}${viewer ? ' is-viewer' : ''}`} key={playerId}>
+          <article className={`score-card score-card--player-${playerIndex}${active ? ' is-active' : ''}${rival ? ' is-rival' : ''}${viewer ? ' is-viewer' : ''}`} key={playerId}>
             <div className="score-card__identity">
               <div className="score-card__name">{player.name}</div>
               {player.faction && <small>{player.faction}</small>}

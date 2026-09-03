@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { AppIcon, type AppIconName } from '../components/AppIcon'
 import { totalScore } from '../domain/battle/selectors'
 import type { BattleSession } from '../domain/battle/types'
 import {
@@ -15,6 +16,14 @@ function statusLabel(status: StoredBattle['status']): string {
   if (status === 'completed') return 'Completed'
   if (status === 'abandoned') return 'Abandoned'
   return 'Active'
+}
+
+function HomeActionContent({ icon, label, title, detail }: { icon: AppIconName; label: string; title: string; detail: string }) {
+  return <>
+    <span className="home-action__icon"><AppIcon name={icon} /></span>
+    <span className="home-action__copy"><small>{label}</small><strong>{title}</strong><span>{detail}</span></span>
+    <AppIcon name="chevron" className="home-action__arrow" />
+  </>
 }
 
 export default function Home() {
@@ -65,31 +74,21 @@ export default function Home() {
 
         <div className="home-command-actions">
           {activeBattle && <Link className="home-action home-action--primary" to={`/battle/${activeBattle.setup.gameId}`}>
-            <span>Continue</span>
-            <strong>Resume battle</strong>
-            <small>Round {activeBattle.state.round} · {activeBattle.state.phase.replaceAll('_', ' ')}</small>
+            <HomeActionContent icon="overview" label="Continue" title="Resume battle" detail={`Round ${activeBattle.state.round} · ${activeBattle.state.phase.replaceAll('_', ' ')}`} />
           </Link>}
 
           {armies.length > 0 ? <Link className={`home-action${activeBattle ? '' : ' home-action--primary'}`} to="/battle/setup">
-            <span>Play</span>
-            <strong>New battle</strong>
-            <small>Set up Cauldron FFA 3</small>
+            <HomeActionContent icon="objectives" label="Play" title="New battle" detail="Set up Cauldron FFA 3" />
           </Link> : <Link className="home-action home-action--primary" to="/army-import">
-            <span>First step</span>
-            <strong>Import army</strong>
-            <small>Add a New Recruit roster</small>
+            <HomeActionContent icon="import" label="First step" title="Import army" detail="Add a New Recruit roster" />
           </Link>}
 
           <Link className="home-action" to="/shared">
-            <span>Multiplayer</span>
-            <strong>Host or join</strong>
-            <small>Use a shared room code</small>
+            <HomeActionContent icon="shared" label="Multiplayer" title="Host or join" detail="Use a shared room code" />
           </Link>
 
           {armies.length > 0 && <Link className="home-action" to="/army-import">
-            <span>Roster</span>
-            <strong>Import army</strong>
-            <small>{armies.length} saved locally</small>
+            <HomeActionContent icon="army" label="Roster" title="Import army" detail={`${armies.length} saved locally`} />
           </Link>}
         </div>
 

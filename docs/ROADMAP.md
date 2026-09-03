@@ -6,6 +6,7 @@
 - event-driven battle engine with immutable snapshots, local undo/redo, and IndexedDB resume;
 - mobile-first dashboard, three army trackers, objectives, reactions, Stratagem timing, and event log;
 - compact phone flow with a single primary advance action, progressive reminder disclosure, color-coded objective ownership, and recent-unit quick damage controls;
+- coherent tactical-console visual system across battle, setup, roster import, shared rooms, and home, including icon navigation, player-colour identity, refreshed PWA artwork, and reduced-motion support;
 - compact generated `40kdc-data` runtime snapshot and route-level code splitting;
 - installable PWA shell with same-origin runtime caching.
 

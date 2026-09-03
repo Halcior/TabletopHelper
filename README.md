@@ -14,7 +14,12 @@ Current capabilities:
 - export a privacy-safe diagnostic report when a playtest problem occurs;
 - install the hosted build as a PWA and reopen the previously visited app shell offline;
 - use a one-handed phone battle surface with one-tap Fast Mode progression, collapsed reminders, readable objective ownership, and recent-unit damage controls;
+- use a restrained tactical-console visual system with semantic player colours, icon-led navigation, accessible state contrast, and reduced-motion support;
 - undo/redo actions and resume active battles from IndexedDB.
+
+## Visual language
+
+The interface uses a dark tactical-console theme rather than decorative parchment or heavy glow. Gold is reserved for the current phase and primary action; red marks blockers, green confirms completed state, and gold/blue/red consistently identify the three commanders. Operational screens use compact system typography and 44px-or-larger mobile controls. `src/tacticalTheme.css` is the canonical final visual layer over the feature-specific stylesheets.
 
 Development commands:
 
