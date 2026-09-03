@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { AppIcon, type AppIconName } from '../components/AppIcon'
 import { ArmyTracker } from '../components/battle/ArmyTracker'
 import { BattleQuickStatus } from '../components/battle/BattleQuickStatus'
 import { BattleLog } from '../components/battle/BattleLog'
@@ -47,6 +48,14 @@ import type { SecondaryId } from '../rulesets/cauldronFFA3/secondaryTypes'
 import { useBattleStore } from '../stores/battleStore'
 
 type DashboardTab = 'overview' | 'army' | 'objectives' | 'cards' | 'log'
+
+const DASHBOARD_TAB_ICONS: Record<DashboardTab, AppIconName> = {
+  overview: 'overview',
+  army: 'army',
+  objectives: 'objectives',
+  cards: 'cards',
+  log: 'log',
+}
 
 const rulesDataCache = new WeakMap<Army, RulesDataResolution>()
 
@@ -219,7 +228,7 @@ export default function BattleDashboard() {
   const cauldronTurnReview = battleActive && cauldron && session.state.phase === 'END_TURN'
   const phaseLabel = humanizePhase(session.state.phase)
   const phaseIndex = BATTLE_PHASES.indexOf(session.state.phase)
-  const activePlayerIndex = session.state.turnOrder.indexOf(active.id)
+  const activePlayerIndex = Math.max(0, session.state.turnOrder.indexOf(active.id))
   const lastPlayerTurn = activePlayerIndex === session.state.turnOrder.length - 1
   const nextPlayerId = session.state.turnOrder[(activePlayerIndex + 1) % session.state.turnOrder.length]
   const nextPlayer = session.state.players[nextPlayerId]
@@ -424,7 +433,7 @@ export default function BattleDashboard() {
 
   return (
     <div className="battle-page">
-      <header className="battle-status">
+      <header className={`battle-status battle-status--player-${activePlayerIndex}`}>
         <div className="battle-round"><span>Battle round</span><strong>{session.state.round}<small>/ {session.state.maxRounds}</small></strong></div>
         <div className="battle-turn"><span>{battleActive ? `${active.name} turn` : 'Session status'}</span><h1>{headerTitle}</h1></div>
         <div className="battle-context">
@@ -509,7 +518,7 @@ export default function BattleDashboard() {
         </main> : <>
           <nav className="battle-tabs" aria-label="Battle panels">
             {dashboardTabs.map((item) => (
-              <button className={tab === item ? 'selected' : ''} key={item} onClick={() => selectDashboardTab(item)}>{item}</button>
+              <button className={tab === item ? 'selected' : ''} key={item} onClick={() => selectDashboardTab(item)}><AppIcon name={DASHBOARD_TAB_ICONS[item]} /><span>{item}</span></button>
             ))}
           </nav>
 
@@ -592,7 +601,7 @@ export default function BattleDashboard() {
               className="button--gold next-phase"
               disabled={!canControlTurn}
               onClick={handleNextAction}
-            >{!canControlTurn ? `Waiting for ${active.name}` : flowPaused && progressionBlockers.length === 0 ? 'Reaction pending' : nextLabel}<span>{!canControlTurn ? `Room ${sharedMembership?.roomCode ?? ''}` : flowPaused && progressionBlockers.length === 0 ? 'Resolve reaction to continue' : nextDestination}</span></button>
+            ><span className="next-phase__copy"><strong>{!canControlTurn ? `Waiting for ${active.name}` : flowPaused && progressionBlockers.length === 0 ? 'Reaction pending' : nextLabel}</strong><small>{!canControlTurn ? `Room ${sharedMembership?.roomCode ?? ''}` : flowPaused && progressionBlockers.length === 0 ? 'Resolve reaction to continue' : nextDestination}</small></span><AppIcon name="next" className="next-phase__icon" /></button>
           </footer>
         </>}
       </>}

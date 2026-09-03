@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { Link, NavLink, Route, Routes, useLocation } from 'react-router-dom'
+import { AppIcon } from './components/AppIcon'
 
 const ArmyImport = lazy(() => import('./pages/ArmyImport'))
 const BattleDashboard = lazy(() => import('./pages/BattleDashboard'))
@@ -14,11 +15,11 @@ export default function App() {
     <div className="app-root">
       {!inBattle && (
         <header className="app-header">
-          <Link className="brand" to="/"><span className="brand-mark">TC</span><span>Tabletop <strong>Companion</strong></span></Link>
+          <Link className="brand" to="/" aria-label="Tabletop Companion home"><span className="brand-mark"><AppIcon name="mark" /></span><span>Tabletop <strong>Companion</strong></span></Link>
           <nav>
-            <NavLink to="/" end>Home</NavLink>
-            <NavLink to="/shared">Shared</NavLink>
-            <NavLink to="/army-import">Import</NavLink>
+            <NavLink to="/" end><AppIcon name="home" /><span>Home</span></NavLink>
+            <NavLink to="/shared"><AppIcon name="shared" /><span>Shared</span></NavLink>
+            <NavLink to="/army-import"><AppIcon name="import" /><span>Import</span></NavLink>
           </nav>
         </header>
       )}
