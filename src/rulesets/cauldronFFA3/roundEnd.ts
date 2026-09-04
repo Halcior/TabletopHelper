@@ -1,58 +1,54 @@
 import { dispatchBattleEvents, getPhaseTransitionEvents } from '../../domain/battle/engine'
-import type { BattleEventInput, BattleSession } from '../../domain/battle/types'
+import type { BattleSession } from '../../domain/battle/types'
 import { cauldronEvent, getCauldronEventData } from './events'
-import { buildPrimaryReview } from './primary'
+import {
+  createDeferredWyniszczenieEvents,
+  getPrimaryTurnCommit,
+} from './primary'
 import { addSnapshotEvents } from './snapshots'
 import { addSecondaryRefillEvents, createEndTurnSecondaryEvents, getSecondaryState } from './secondary'
 import { isCauldronEndOfRound } from './session'
-import type { PlanConfirmation, PrimaryRoundResult } from './types'
+import type { PlanConfirmation } from './types'
 
-type PrimaryCommit = {
+type RoundCommit = {
   round: number
-  reviews: PrimaryRoundResult[]
-  confirmations: Record<string, PlanConfirmation>
 }
 
 export function isPrimaryCommitted(session: BattleSession, round: number): boolean {
-  return getCauldronEventData<PrimaryCommit>(session, 'PRIMARY_COMMITTED')
+  return getCauldronEventData<RoundCommit>(session, 'PRIMARY_COMMITTED')
     .some((commit) => commit.round === round)
 }
 
 export function confirmCauldronEndRound(
   session: BattleSession,
-  confirmations: Record<string, PlanConfirmation> = {},
+  _confirmations: Record<string, PlanConfirmation> = {},
 ): BattleSession {
   if (!isCauldronEndOfRound(session)) throw new Error('Cauldron round review is only available after the final player turn.')
-  if (isPrimaryCommitted(session, session.state.round)) throw new Error('Primary has already been committed for this Battle Round.')
+  if (isPrimaryCommitted(session, session.state.round)) throw new Error('This Battle Round has already been committed.')
   if (Object.values(session.state.missionActions).some((action) => (
     action.playerId === session.state.activePlayerId && action.status === 'ACTIVE'
   ))) throw new Error('Resolve active Mission Actions before ending the turn.')
   if (getSecondaryState(session)[session.state.activePlayerId]?.pendingEliminationChoice) {
     throw new Error('Resolve the pending Secondary scoring choice before ending the turn.')
   }
-  const secondaryEvents = createEndTurnSecondaryEvents(session, session.state.activePlayerId)
-  const reviews = buildPrimaryReview(session, confirmations)
-  if (session.state.round >= 2 && reviews.some((review) => review.planEvaluation.status === 'REQUIRES_CONFIRMATION')) {
-    throw new Error('Answer all required Operational Plan confirmations before ending the round.')
+
+  for (const playerId of session.state.turnOrder) {
+    if (!getPrimaryTurnCommit(session, playerId, session.state.round)) {
+      throw new Error(`Resolve ${session.state.players[playerId]?.name ?? playerId} end-turn Primary before ending the Battle Round.`)
+    }
   }
 
-  const scoringEvents: BattleEventInput[] = reviews.flatMap((review) => (
-    review.roundPrimary > 0
-      ? [{
-        type: 'SCORE_ADJUSTED' as const,
-        payload: { playerId: review.playerId, category: 'primary' as const, delta: review.roundPrimary },
-      }]
-      : []
-  ))
+  // This call is intentionally idempotent. In the normal UI the final player's Secondary
+  // review has already run before this round review opens.
+  const secondaryEvents = createEndTurnSecondaryEvents(session, session.state.activePlayerId)
+  const deferredPrimaryEvents = createDeferredWyniszczenieEvents(session)
   const transitions = getPhaseTransitionEvents(session)
+  const transitionWithSnapshots = addSnapshotEvents(session, transitions)
+
   return dispatchBattleEvents(session, [
     ...secondaryEvents,
-    ...scoringEvents,
-    cauldronEvent('PRIMARY_COMMITTED', {
-      round: session.state.round,
-      reviews,
-      confirmations,
-    } satisfies PrimaryCommit),
-    ...addSecondaryRefillEvents(session, addSnapshotEvents(session, transitions)),
+    ...deferredPrimaryEvents,
+    cauldronEvent('PRIMARY_COMMITTED', { round: session.state.round } satisfies RoundCommit),
+    ...addSecondaryRefillEvents(session, transitionWithSnapshots),
   ], { actorPlayerId: session.state.activePlayerId })
 }
