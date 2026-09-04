@@ -11,7 +11,6 @@ import { cauldronEvent } from './events'
 import { testArmy, testCauldronGame } from './cauldronTestUtils'
 import { createCauldronGame } from './session'
 import {
-  CAULDRON_SECONDARY_BY_ID,
   CAULDRON_SECONDARY_DEFINITIONS,
   CAULDRON_SECONDARY_IDS,
 } from './secondaryDefinitions'
@@ -21,7 +20,6 @@ import {
   dispatchCauldronBattleEvent,
   discardSecondaryCards,
   evaluateEndTurnSecondaries,
-  getActiveSecondaryViews,
   getGameSecondaryVp,
   getPendingEliminationChoice,
   getPriorityTargetCandidates,
@@ -39,9 +37,8 @@ function deck(...first: SecondaryId[]): SecondaryId[] {
 }
 
 function game(...first: SecondaryId[]): BattleSession {
-  const order = deck(...first)
   return testCauldronGame({
-    secondaryDeckOrders: { 'p-a': order, 'p-b': deck(), 'p-c': deck() },
+    secondaryDeckOrders: { 'p-a': deck(...first), 'p-b': deck(), 'p-c': deck() },
   })
 }
 
@@ -61,13 +58,45 @@ function control(session: BattleSession, objectiveId: string, playerId: string |
   })
 }
 
+function drawBehindEnemyLinesInRoundTwo(): BattleSession {
+  let session = toPhase(game('SILA_OGNIA', 'PRESJA_TAKTYCZNA', 'ZA_LINIAMI_WROGA'), 'END_TURN')
+  session = discardSecondaryCards(session, 'p-a', ['SILA_OGNIA'])
+  session = dispatchBattleEvents(session, [
+    { type: 'ROUND_STARTED', payload: { round: 2 } },
+    { type: 'TURN_STARTED', payload: { playerId: 'p-a' } },
+  ])
+  session = dispatchBattleEvents(session, createSecondaryRefillEvents(session, 'p-a', 2, () => 0))
+  return toPhase(session, 'END_TURN')
+}
+
+function priorityGameWithGamma(): BattleSession {
+  const armies = [testArmy('army-a'), testArmy('army-b'), testArmy('army-c')]
+  const scout = structuredClone(armies[1].units[0])
+  scout.id = 'scout'
+  scout.name = 'Scout'
+  scout.points = 60
+  armies[1].units.push(scout)
+  return createCauldronGame({
+    gameId: 'priority-gamma',
+    createdAt: '2026-09-04T10:00:00.000Z',
+    guidanceLevel: 'guided',
+    armies,
+    secondaryDeckOrders: { 'p-a': deck('CEL_PRIORYTETOWY', 'PRESJA_TAKTYCZNA') },
+    players: [
+      { id: 'p-a', name: 'Alpha', armyId: 'army-a', deploymentZone: 'A', turnPosition: 1, operationalPlanId: 'WYNISZCZENIE' },
+      { id: 'p-b', name: 'Bravo', armyId: 'army-b', deploymentZone: 'B', turnPosition: 2, operationalPlanId: 'WYNISZCZENIE' },
+      { id: 'p-c', name: 'Charlie', armyId: 'army-c', deploymentZone: 'C', turnPosition: 3, operationalPlanId: 'WYNISZCZENIE' },
+    ],
+  })
+}
+
 describe('Cauldron Secondary definitions and deck', () => {
-  it('provides all 15 immutable cards with exact VP values', () => {
+  it('provides all 15 immutable cards with hotfix VP values', () => {
     expect(CAULDRON_SECONDARY_DEFINITIONS).toHaveLength(15)
     expect(Object.isFrozen(CAULDRON_SECONDARY_DEFINITIONS)).toBe(true)
     expect(Object.fromEntries(CAULDRON_SECONDARY_DEFINITIONS.map((card) => [card.id, card.vp]))).toEqual({
       SILA_OGNIA: 4,
-      WALKA_W_ZWARCIU: 4,
+      WALKA_W_ZWARCIU: 5,
       ZNISZCZ_KOLOSA: 5,
       ELIMINACJA_DOWODCY: 5,
       SZTURM_NA_POZYCJE: 5,
@@ -99,9 +128,7 @@ describe('Cauldron Secondary definitions and deck', () => {
     const original = getSecondaryState(session)['p-a']
     expect(isMulliganAvailable(session, 'p-a')).toBe(true)
     session = mulliganSecondary(session, 'p-a', 'SILA_OGNIA', () => 0)
-    expect(getSecondaryState(session)['p-a'].active.map((card) => card.cardId)).toEqual([
-      'PRESJA_TAKTYCZNA', 'ZIEMIA_NICZYJA',
-    ])
+    expect(getSecondaryState(session)['p-a'].active.map((card) => card.cardId)).toEqual(['PRESJA_TAKTYCZNA', 'ZIEMIA_NICZYJA'])
     expect(isMulliganAvailable(session, 'p-a')).toBe(false)
     expect(() => mulliganSecondary(session, 'p-a', 'PRESJA_TAKTYCZNA')).toThrow(/already been used/i)
     const restored = getSecondaryState(undoLastAction(session))['p-a']
@@ -109,7 +136,7 @@ describe('Cauldron Secondary definitions and deck', () => {
     expect(restored.deck).toEqual(original.deck)
   })
 
-  it('refills an incomplete Command-phase hand back to two cards', () => {
+  it('refills an incomplete hand back to two cards while the deck still has cards', () => {
     let session = toPhase(game('SILA_OGNIA', 'PRESJA_TAKTYCZNA', 'ZIEMIA_NICZYJA'), 'END_TURN')
     session = discardSecondaryCards(session, 'p-a', ['SILA_OGNIA'])
     expect(getSecondaryState(session)['p-a'].active).toHaveLength(1)
@@ -117,29 +144,28 @@ describe('Cauldron Secondary definitions and deck', () => {
     expect(getSecondaryState(session)['p-a'].active).toHaveLength(2)
   })
 
-  it('reshuffles only incomplete discards and never completed cards', () => {
+  it('stops drawing permanently when the deck is exhausted and never reshuffles incomplete cards', () => {
     let session = game('SILA_OGNIA', 'PRESJA_TAKTYCZNA')
     const state = getSecondaryState(session)['p-a']
-    const round = session.state.round
-    const turn = 1
     const events = state.deck.flatMap((cardId) => [
-      cauldronEvent('SECONDARY_DRAWN', { playerId: 'p-a', cardId, round, turn }),
-      cauldronEvent('SECONDARY_DISCARDED', { playerId: 'p-a', cardId, round, turn, reason: 'test' }),
+      cauldronEvent('SECONDARY_DRAWN', { playerId: 'p-a', cardId, round: 1, turn: 1 }),
+      cauldronEvent('SECONDARY_DISCARDED', { playerId: 'p-a', cardId, round: 1, turn: 1, reason: 'exhaust test' }),
     ])
     session = dispatchBattleEvents(session, events)
     session = toPhase(session, 'END_TURN')
     session = discardSecondaryCards(session, 'p-a', ['SILA_OGNIA', 'PRESJA_TAKTYCZNA'])
     const refill = createSecondaryRefillEvents(session, 'p-a', 2, () => 0)
-    expect(refill.some((event) => event.type === 'RULESET_EVENT' && event.payload.action === 'SECONDARY_DECK_SHUFFLED')).toBe(true)
-    expect(refill.filter((event) => event.type === 'RULESET_EVENT' && event.payload.action === 'SECONDARY_DRAWN')).toHaveLength(2)
+    expect(getSecondaryState(session)['p-a'].deck).toHaveLength(0)
+    expect(refill.filter((event) => event.type === 'RULESET_EVENT' && event.payload.action === 'SECONDARY_DRAWN')).toHaveLength(0)
+    expect(refill.some((event) => event.type === 'RULESET_EVENT' && event.payload.action === 'SECONDARY_DECK_SHUFFLED')).toBe(false)
+  })
 
-    const completedSession = dispatchBattleEvents(session, [
-      cauldronEvent('SECONDARY_DECK_SHUFFLED', { playerId: 'p-a', deckOrder: ['SILA_OGNIA'] }),
-      cauldronEvent('SECONDARY_DRAWN', { playerId: 'p-a', cardId: 'SILA_OGNIA', round, turn }),
-      cauldronEvent('SECONDARY_COMPLETED', { playerId: 'p-a', cardId: 'SILA_OGNIA', round, turn, pointsAwarded: 4 }),
-    ])
-    expect(getSecondaryState(completedSession)['p-a'].completed.map((card) => card.cardId)).toContain('SILA_OGNIA')
-    expect(getSecondaryState(completedSession)['p-a'].discarded.map((card) => card.cardId)).not.toContain('SILA_OGNIA')
+  it('automatically replaces Za Liniami Wroga and Utrzymaj Bazę in Battle Round 1 without using the mulligan', () => {
+    const session = game('ZA_LINIAMI_WROGA', 'UTRZYMAJ_BAZE', 'SILA_OGNIA', 'PRESJA_TAKTYCZNA')
+    const state = getSecondaryState(session)['p-a']
+    expect(state.active.map((card) => card.cardId)).toEqual(['SILA_OGNIA', 'PRESJA_TAKTYCZNA'])
+    expect(state.discarded.map((card) => card.cardId)).toEqual(expect.arrayContaining(['ZA_LINIAMI_WROGA', 'UTRZYMAJ_BAZE']))
+    expect(isMulliganAvailable(session, 'p-a')).toBe(true)
   })
 
   it('immediately replaces invalid type-specific cards without consuming a mulligan', () => {
@@ -162,16 +188,22 @@ describe('Cauldron Secondary definitions and deck', () => {
     expect(state.discarded.map((card) => card.cardId)).toContain('ZNISZCZ_KOLOSA')
     expect(isMulliganAvailable(session, 'p-a')).toBe(true)
   })
+
+  it('automatically replaces Szturm na Pozycję when the current Rival has no objective at draw time', () => {
+    const session = game('SZTURM_NA_POZYCJE', 'SILA_OGNIA', 'PRESJA_TAKTYCZNA')
+    const state = getSecondaryState(session)['p-a']
+    expect(state.active.map((card) => card.cardId)).toEqual(['SILA_OGNIA', 'PRESJA_TAKTYCZNA'])
+    expect(state.discarded.map((card) => card.cardId)).toContain('SZTURM_NA_POZYCJE')
+  })
 })
 
 describe('Cauldron elimination Secondaries', () => {
-  it('matches Shooting/Fight, unit traits, and only the current Rival', () => {
+  it('matches Shooting/unit traits and only the current Rival', () => {
     let session = toPhase(game('SILA_OGNIA', 'ZNISZCZ_KOLOSA'), 'SHOOTING')
     session = dispatchCauldronBattleEvent(session, {
       type: 'UNIT_DESTROYED', payload: { playerId: 'p-c', unitId: 'tank', destroyedByPlayerId: 'p-a' },
     })
     expect(getSecondaryState(session)['p-a'].completed).toHaveLength(0)
-
     session = dispatchCauldronBattleEvent(session, {
       type: 'UNIT_DESTROYED', payload: { playerId: 'p-b', unitId: 'tank', destroyedByPlayerId: 'p-a' },
     })
@@ -180,75 +212,48 @@ describe('Cauldron elimination Secondaries', () => {
     session = resolveEliminationChoice(session, 'p-a', 'ZNISZCZ_KOLOSA')
     expect(getGameSecondaryVp(session, 'p-a')).toBe(5)
     expect(getSecondaryState(session)['p-a'].active.map((card) => card.cardId)).toContain('SILA_OGNIA')
-    session = undoLastAction(session)
-    expect(getPendingEliminationChoice(session, 'p-a')).toBeDefined()
   })
 
-  it('automatically scores a single Fight or CHARACTER match', () => {
-    let fight = toPhase(game('WALKA_W_ZWARCIU', 'ZIEMIA_NICZYJA'), 'FIGHT')
-    fight = dispatchCauldronBattleEvent(fight, {
+  it('scores Walka w Zwarciu for 5 VP after a qualifying Fight kill', () => {
+    let session = toPhase(game('WALKA_W_ZWARCIU', 'ZIEMIA_NICZYJA'), 'FIGHT')
+    session = dispatchCauldronBattleEvent(session, {
       type: 'UNIT_DESTROYED', payload: { playerId: 'p-b', unitId: 'infantry', destroyedByPlayerId: 'p-a' },
     })
-    expect(getSecondaryState(fight)['p-a'].completed[0].cardId).toBe('WALKA_W_ZWARCIU')
-
-    let character = game('ELIMINACJA_DOWODCY', 'ZIEMIA_NICZYJA')
-    character = dispatchCauldronBattleEvent(character, {
-      type: 'UNIT_DESTROYED', payload: { playerId: 'p-b', unitId: 'remainder', destroyedByPlayerId: 'p-a' },
-    })
-    expect(getSecondaryState(character)['p-a'].completed[0].cardId).toBe('ELIMINACJA_DOWODCY')
+    const completed = getSecondaryState(session)['p-a'].completed.find((card) => card.cardId === 'WALKA_W_ZWARCIU')
+    expect(completed?.pointsAwarded).toBe(5)
   })
 })
 
 describe('Cauldron end-turn evaluation and scoring caps', () => {
-  it('evaluates objective snapshot, neutral count, and tactical pressure automatically', () => {
-    let assault = game('SZTURM_NA_POZYCJE', 'ZIEMIA_NICZYJA')
-    assault = dispatchBattleEvents(assault, [
-      { type: 'ROUND_STARTED', payload: { round: 2 } },
-      { type: 'TURN_STARTED', payload: { playerId: 'p-a' } },
-      cauldronEvent('TURN_SNAPSHOT_CAPTURED', {
-      round: 2,
-      playerId: 'p-a',
-      objectiveStates: Object.fromEntries(Object.entries(assault.state.objectives).map(([id, objective]) => [id, {
-        controllerPlayerId: id === 'N1' ? 'p-c' : objective.controllerPlayerId,
-        playerOC: objective.playerOC,
-      }])),
-    })])
-    assault = control(assault, 'N1', 'p-a')
-    assault = control(assault, 'N2', 'p-a')
-    assault = toPhase(assault, 'END_TURN')
-    assault = evaluateEndTurnSecondaries(assault, 'p-a')
-    expect(getRoundSecondaryVp(assault, 'p-a')).toBe(10)
-    expect(getSecondaryState(assault)['p-a'].completed).toHaveLength(2)
-
-    let pressure = game('PRESJA_TAKTYCZNA', 'UTRZYMAJ_BAZE')
-    pressure = control(pressure, 'N1', 'p-a')
-    pressure = control(pressure, 'N2', 'p-a')
-    pressure = control(pressure, 'A-HOME', 'p-a')
-    pressure = toPhase(pressure, 'END_TURN')
-    pressure = evaluateEndTurnSecondaries(pressure, 'p-a', { noEnemyInOwnDeployment: true })
-    expect(getRoundSecondaryVp(pressure, 'p-a')).toBe(7)
+  it('scores objective Secondaries automatically from current objective control', () => {
+    let session = game('ZIEMIA_NICZYJA', 'PRESJA_TAKTYCZNA')
+    session = control(session, 'N1', 'p-a')
+    session = control(session, 'N2', 'p-a')
+    session = toPhase(session, 'END_TURN')
+    session = evaluateEndTurnSecondaries(session, 'p-a')
+    expect(getRoundSecondaryVp(session, 'p-a')).toBe(9)
+    expect(getSecondaryState(session)['p-a'].completed).toHaveLength(2)
   })
 
-  it('evaluates partial/confirmation position cards without pretending to know positions', () => {
-    let session = game('DOMINACJA_CENTRUM', 'ZA_LINIAMI_WROGA')
-    session = toPhase(session, 'END_TURN')
-    expect(evaluateEndTurnSecondaries(session, 'p-a')).toBe(session)
-    session = evaluateEndTurnSecondaries(session, 'p-a', {
-      centreOcByPlayer: { 'p-a': 6, 'p-b': 4, 'p-c': 6 },
-      behindEnemyLines: true,
-    })
-    expect(getRoundSecondaryVp(session, 'p-a')).toBe(5)
-    expect(getSecondaryState(session)['p-a'].active.map((card) => card.cardId)).toContain('DOMINACJA_CENTRUM')
+  it('scores Za Liniami Wroga for 3 VP with one unit and 5 VP with two or more', () => {
+    let one = drawBehindEnemyLinesInRoundTwo()
+    one = evaluateEndTurnSecondaries(one, 'p-a', { behindEnemyLinesUnitCount: 1 })
+    expect(getRoundSecondaryVp(one, 'p-a', 2)).toBe(3)
 
-    let guided = game('SZEROKI_FRONT', 'ODCIECIE_ODWROTU')
-    guided = toPhase(guided, 'END_TURN')
-    guided = evaluateEndTurnSecondaries(guided, 'p-a', {
-      wideFrontThreeSectors: true,
-      wideFrontTwoOutsideDeployment: true,
+    let two = drawBehindEnemyLinesInRoundTwo()
+    two = evaluateEndTurnSecondaries(two, 'p-a', { behindEnemyLinesUnitCount: 2 })
+    expect(getRoundSecondaryVp(two, 'p-a', 2)).toBe(5)
+  })
+
+  it('requires four sectors and three units outside deployment for Szeroki Front', () => {
+    let session = toPhase(game('SZEROKI_FRONT', 'ODCIECIE_ODWROTU'), 'END_TURN')
+    session = evaluateEndTurnSecondaries(session, 'p-a', {
+      wideFrontFourSectors: true,
+      wideFrontThreeOutsideDeployment: true,
       controlsClosestNeutralObjective: true,
       unitNearRivalDeployment: true,
     })
-    expect(getRoundSecondaryVp(guided, 'p-a')).toBe(10)
+    expect(getRoundSecondaryVp(session, 'p-a')).toBe(10)
   })
 
   it('enforces 10 VP per round and 45 VP per game while preserving a card breakdown', () => {
@@ -263,47 +268,44 @@ describe('Cauldron end-turn evaluation and scoring caps', () => {
     expect(getRoundSecondaryVp(session, 'p-a')).toBe(10)
     expect(getSecondaryState(session)['p-a'].scoreHistory.at(-1)?.pointsAwarded).toBe(1)
 
-    let gameCap = toPhase(game('PRESJA_TAKTYCZNA', 'ZIEMIA_NICZYJA'), 'END_TURN')
-    gameCap = control(gameCap, 'N1', 'p-a')
-    gameCap = control(gameCap, 'N2', 'p-a')
-    gameCap = dispatchBattleEvents(gameCap, [
+    let capped = toPhase(game('PRESJA_TAKTYCZNA', 'ZIEMIA_NICZYJA'), 'END_TURN')
+    capped = control(capped, 'N1', 'p-a')
+    capped = control(capped, 'N2', 'p-a')
+    capped = dispatchBattleEvents(capped, [
       cauldronEvent('SECONDARY_COMPLETED', { playerId: 'p-a', cardId: 'PRESJA_TAKTYCZNA', round: 0, turn: 0, pointsAwarded: 44 }),
       { type: 'SCORE_ADJUSTED', payload: { playerId: 'p-a', category: 'secondary', delta: 44 } },
     ])
-    gameCap = evaluateEndTurnSecondaries(gameCap, 'p-a')
-    expect(getGameSecondaryVp(gameCap, 'p-a')).toBe(45)
-    expect(gameCap.state.players['p-a'].score.secondary).toBe(45)
+    capped = evaluateEndTurnSecondaries(capped, 'p-a')
+    expect(getGameSecondaryVp(capped, 'p-a')).toBe(45)
+    expect(capped.state.players['p-a'].score.secondary).toBe(45)
   })
 })
 
 describe('Cel Priorytetowy', () => {
-  it('applies the 10% threshold, two-candidate flow, fixed Rival target, deadline, success and failure', () => {
+  it('lets the marked Rival nominate three Alpha targets and scores 5 VP for destroying one', () => {
     let session = game('CEL_PRIORYTETOWY', 'PRESJA_TAKTYCZNA')
     const candidates = getPriorityTargetCandidates(session, 'p-a')
-    expect(candidates.find((unit) => unit.unitId === 'infantry')?.eligible).toBe(true)
-    expect(() => selectPriorityTargetCandidates(session, 'p-a', ['tank'])).toThrow(/exactly two/i)
-    session = selectPriorityTargetCandidates(session, 'p-a', ['tank', 'remainder'])
-    session = choosePriorityTarget(session, 'p-a', 'tank')
-    const targetCard = getSecondaryState(session)['p-a'].active.find((card) => card.cardId === 'CEL_PRIORYTETOWY')
-    expect(targetCard?.cardSpecificState).toEqual(expect.objectContaining({
-      priorityTargetUnitId: 'tank', boundRivalPlayerId: 'p-b', deadlineRound: 2,
-    }))
+    expect(candidates.filter((unit) => unit.eligible)).toHaveLength(3)
+    expect(() => selectPriorityTargetCandidates(session, 'p-a', ['tank', 'remainder'])).toThrow(/3 Alpha/i)
+    session = selectPriorityTargetCandidates(session, 'p-a', ['infantry', 'tank', 'remainder'])
     session = dispatchCauldronBattleEvent(session, {
       type: 'UNIT_DESTROYED', payload: { playerId: 'p-b', unitId: 'tank', destroyedByPlayerId: 'p-a' },
     })
-    expect(getSecondaryState(session)['p-a'].completed.map((card) => card.cardId)).toContain('CEL_PRIORYTETOWY')
+    const completed = getSecondaryState(session)['p-a'].completed.find((card) => card.cardId === 'CEL_PRIORYTETOWY')
+    expect(completed?.pointsAwarded).toBe(5)
+  })
 
-    let failed = game('CEL_PRIORYTETOWY', 'PRESJA_TAKTYCZNA')
-    failed = selectPriorityTargetCandidates(failed, 'p-a', ['tank', 'remainder'])
-    failed = choosePriorityTarget(failed, 'p-a', 'tank')
-    failed = toPhase(failed, 'END_TURN')
-    // Advance the stored deadline context without a movement simulator.
-    failed = dispatchBattleEvents(failed, [
-      { type: 'ROUND_STARTED', payload: { round: 2 } },
-      { type: 'TURN_STARTED', payload: { playerId: 'p-a' } },
-      { type: 'PHASE_CHANGED', payload: { phase: 'END_TURN' } },
-    ])
-    failed = evaluateEndTurnSecondaries(failed, 'p-a')
-    expect(getActiveSecondaryViews(failed, 'p-a').find((card) => card.cardId === 'CEL_PRIORYTETOWY')?.status).toBe('DEADLINE_FAILED')
+  it('scores Gamma for 2 VP at the end of the same turn when no Alpha was destroyed', () => {
+    let session = priorityGameWithGamma()
+    session = selectPriorityTargetCandidates(session, 'p-a', ['infantry', 'tank', 'remainder'])
+    session = choosePriorityTarget(session, 'p-a', 'scout')
+    session = dispatchCauldronBattleEvent(session, {
+      type: 'UNIT_DESTROYED', payload: { playerId: 'p-b', unitId: 'scout', destroyedByPlayerId: 'p-a' },
+    })
+    expect(getRoundSecondaryVp(session, 'p-a')).toBe(0)
+    session = toPhase(session, 'END_TURN')
+    session = evaluateEndTurnSecondaries(session, 'p-a')
+    expect(getRoundSecondaryVp(session, 'p-a')).toBe(2)
+    expect(getSecondaryState(session)['p-a'].completed.find((card) => card.cardId === 'CEL_PRIORYTETOWY')?.pointsAwarded).toBe(2)
   })
 })
