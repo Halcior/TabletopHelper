@@ -1,10 +1,8 @@
 import { dispatchBattleEvents } from '../../domain/battle/engine'
 import type { BattleSession } from '../../domain/battle/types'
 import { createPrimaryTurnCommitEvents } from './primary'
-import {
-  createEndTurnSecondaryEvents,
-  type EndTurnSecondaryConfirmations,
-} from './secondary'
+import { createEndTurnSecondaryEvents } from './secondary'
+import type { EndTurnSecondaryConfirmations } from './secondaryTypes'
 
 export * from './secondary'
 
