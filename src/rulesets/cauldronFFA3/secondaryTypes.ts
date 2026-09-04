@@ -26,6 +26,7 @@ export type SecondaryTiming = 'UNIT_DESTROYED' | 'END_TURN' | 'MISSION_ACTION' |
 export type SecondaryDefinition = Readonly<{
   id: SecondaryId
   name: string
+  /** Maximum VP shown on the card. Variable-value cards can award less during resolution. */
   vp: 3 | 4 | 5
   category: SecondaryCategory
   description: string
@@ -41,9 +42,16 @@ export type SecondaryCardStatus =
   | 'COMPLETED_ARCHIVE'
 
 export type SecondaryCardSpecificState = {
+  /** Hotfix 2.1.1: Alpha targets selected by the marked Rival. Kept under the old field name for save compatibility. */
   priorityCandidateUnitIds?: string[]
+  /** Hotfix 2.1.1: Gamma target selected by the card owner. Kept under the old field name for save compatibility. */
   priorityTargetUnitId?: string
   boundRivalPlayerId?: string
+  priorityAlphaDestroyed?: boolean
+  priorityGammaDestroyed?: boolean
+  priorityAlphaReplacementNeeded?: boolean
+  priorityGammaReplacementNeeded?: boolean
+  /** Legacy 2.1 fields retained so old local saves can still rehydrate safely. */
   deadlineRound?: number
   deadlineTurn?: number
   deadlineFailed?: boolean
@@ -96,7 +104,13 @@ export type SecondaryState = Record<string, PlayerSecondaryState>
 
 export type EndTurnSecondaryConfirmations = {
   centreOcByPlayer?: Record<string, number>
+  /** Number of own units wholly inside the marked Rival deployment zone. */
+  behindEnemyLinesUnitCount?: number
+  /** Legacy boolean accepted as one qualifying unit for old UI/state compatibility. */
   behindEnemyLines?: boolean
+  wideFrontFourSectors?: boolean
+  wideFrontThreeOutsideDeployment?: boolean
+  /** Legacy 2.1 confirmation fields retained for old stored UI state. */
   wideFrontThreeSectors?: boolean
   wideFrontTwoOutsideDeployment?: boolean
   noEnemyInOwnDeployment?: boolean
@@ -125,4 +139,3 @@ export type EndTurnReview = {
   gameCap: 45
   incompleteCards: Array<{ cardId: SecondaryId; name: string }>
 }
-
