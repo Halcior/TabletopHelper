@@ -116,6 +116,10 @@ export type EndTurnSecondaryConfirmations = {
   noEnemyInOwnDeployment?: boolean
   unitNearRivalDeployment?: boolean
   controlsClosestNeutralObjective?: boolean
+  /** Operational Plan confirmations share the same end-turn review in hotfix 2.1.1. */
+  zwiadHasFourSectors?: boolean
+  zwiadHasThreeOutsideDeployment?: boolean
+  twierdzaNoEnemyAtObjectives?: boolean
 }
 
 export type ActiveSecondaryView = {
