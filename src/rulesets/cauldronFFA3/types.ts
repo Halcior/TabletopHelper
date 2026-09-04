@@ -60,9 +60,17 @@ export type CauldronTurnSnapshot = {
 }
 
 export type PlanConfirmation = {
-  zwiadHasThreeSectors?: boolean
-  zwiadHasTwoOutsideDeployment?: boolean
+  zwiadHasFourSectors?: boolean
+  zwiadHasThreeOutsideDeployment?: boolean
+  twierdzaNoEnemyAtObjectives?: boolean
   sabotageMissionActionCompleted?: boolean
+}
+
+export type OperationalPlanTurnTarget = {
+  playerId: string
+  planId: 'DECYDUJACE_NATARCIE' | 'TWIERDZA'
+  round: number
+  objectiveId: string
 }
 
 export type PlanEvaluation = {
@@ -98,6 +106,20 @@ export type PrimaryRoundResult = {
   planEvaluation: PlanEvaluation
   roundPrimary: number
   capped: boolean
+}
+
+export type PrimaryTurnCommit = {
+  round: number
+  playerId: string
+  review: PrimaryRoundResult
+  pointsAwarded: number
+}
+
+export type DeferredWyniszczenieCommit = {
+  round: number
+  playerId: string
+  completed: boolean
+  pointsAwarded: number
 }
 
 export type CasualtyRecord = {
