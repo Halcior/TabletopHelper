@@ -1,5 +1,10 @@
 import { useState } from 'react'
 import type { BattleSession } from '../../domain/battle/types'
+import {
+  buildPrimaryTurnReview,
+  getOperationalPlanState,
+  getPrimaryTurnCommit,
+} from '../../rulesets/cauldronFFA3'
 import { getEndTurnReview, getSecondaryState } from '../../rulesets/cauldronFFA3/secondary'
 import type { EndTurnSecondaryConfirmations, SecondaryId } from '../../rulesets/cauldronFFA3/secondaryTypes'
 
@@ -24,14 +29,21 @@ export function SecondaryEndTurnReview({
   const player = session.state.players[playerId]
   const activeCards = getSecondaryState(session)[playerId].active
   const activeIds = new Set(activeCards.map((card) => card.cardId))
+  const planId = getOperationalPlanState(session, playerId).planId
   const [evaluated, setEvaluated] = useState(false)
   const [historyStart] = useState(() => getSecondaryState(session)[playerId].scoreHistory.length)
   const [missionPositions, setMissionPositions] = useState<Record<string, boolean>>({})
   const [confirmations, setConfirmations] = useState<EndTurnSecondaryConfirmations>({
     centreOcByPlayer: Object.fromEntries(session.state.turnOrder.map((id) => [id, 0])),
+    behindEnemyLinesUnitCount: 0,
+    zwiadHasFourSectors: false,
+    zwiadHasThreeOutsideDeployment: false,
+    twierdzaNoEnemyAtObjectives: false,
   })
   const [discardIds, setDiscardIds] = useState<SecondaryId[]>([])
   const review = getEndTurnReview(session, playerId)
+  const primaryCommit = getPrimaryTurnCommit(session, playerId, session.state.round)
+  const primaryPreview = primaryCommit?.review ?? buildPrimaryTurnReview(session, playerId, confirmations)
   const newScores = getSecondaryState(session)[playerId].scoreHistory.slice(historyStart)
   const activeActions = Object.values(session.state.missionActions).filter((action) => (
     action.playerId === playerId && action.status === 'ACTIVE'
@@ -48,6 +60,13 @@ export function SecondaryEndTurnReview({
         ...current.centreOcByPlayer,
         [targetPlayerId]: Math.max(0, (current.centreOcByPlayer?.[targetPlayerId] ?? 0) + delta),
       },
+    }))
+  }
+
+  function adjustBehindEnemyLines(delta: number) {
+    setConfirmations((current) => ({
+      ...current,
+      behindEnemyLinesUnitCount: Math.max(0, Math.min(2, (current.behindEnemyLinesUnitCount ?? 0) + delta)),
     }))
   }
 
@@ -69,7 +88,7 @@ export function SecondaryEndTurnReview({
   }
 
   return <main className="battle-content secondary-turn-review">
-    <div className="round-review__intro"><span className="eyebrow">{player.name}</span><h1>End Turn Review</h1><p>Resolve Mission Actions and Secondary scoring before advancing to the next player.</p></div>
+    <div className="round-review__intro"><span className="eyebrow">{player.name}</span><h1>End Turn Review</h1><p>Resolve Mission Actions, Secondary scoring and your own Primary before advancing to the next player.</p></div>
 
     {!evaluated && <>
       {activeActions.length > 0 && <section className="panel turn-review-section">
@@ -86,24 +105,50 @@ export function SecondaryEndTurnReview({
       </section>}
 
       <section className="panel turn-review-section">
-        <div className="section-heading"><div><span className="eyebrow">Physical conditions</span><h2>Quick confirmation</h2></div></div>
-        {activeIds.has('ZA_LINIAMI_WROGA') && <ConfirmationRow label="A qualifying unit is completely inside the Rival deployment zone." checked={confirmations.behindEnemyLines ?? false} onChange={(value) => setConfirmation('behindEnemyLines', value)} />}
+        <div className="section-heading"><div><span className="eyebrow">Secondary physical conditions</span><h2>Quick confirmation</h2></div></div>
+        {activeIds.has('ZA_LINIAMI_WROGA') && <div className="centre-oc-row">
+          <span><strong>Za Liniami Wroga</strong><small>Units wholly inside the current Rival deployment zone.</small></span>
+          <div className="stepper"><button onClick={() => adjustBehindEnemyLines(-1)}>−</button><strong>{confirmations.behindEnemyLinesUnitCount ?? 0}</strong><button onClick={() => adjustBehindEnemyLines(1)}>+</button></div>
+        </div>}
         {activeIds.has('SZEROKI_FRONT') && <>
-          <ConfirmationRow label="OC>0 units are in three battlefield sectors." checked={confirmations.wideFrontThreeSectors ?? false} onChange={(value) => setConfirmation('wideFrontThreeSectors', value)} />
-          <ConfirmationRow label="At least two qualifying units are outside your deployment zone." checked={confirmations.wideFrontTwoOutsideDeployment ?? false} onChange={(value) => setConfirmation('wideFrontTwoOutsideDeployment', value)} />
+          <ConfirmationRow label="OC>0 units are in at least four battlefield sectors." checked={confirmations.wideFrontFourSectors ?? false} onChange={(value) => setConfirmation('wideFrontFourSectors', value)} />
+          <ConfirmationRow label="At least three qualifying units are outside your deployment zone." checked={confirmations.wideFrontThreeOutsideDeployment ?? false} onChange={(value) => setConfirmation('wideFrontThreeOutsideDeployment', value)} />
         </>}
         {activeIds.has('UTRZYMAJ_BAZE') && <ConfirmationRow label="No enemy unit is inside your deployment zone." checked={confirmations.noEnemyInOwnDeployment ?? false} onChange={(value) => setConfirmation('noEnemyInOwnDeployment', value)} />}
         {activeIds.has('ODCIECIE_ODWROTU') && <>
           <ConfirmationRow label="You control a qualifying neutral objective closest to the Rival deployment zone." checked={confirmations.controlsClosestNeutralObjective ?? false} onChange={(value) => setConfirmation('controlsClosestNeutralObjective', value)} />
           <ConfirmationRow label="An OC>0 unit is within 9″ of the Rival deployment zone." checked={confirmations.unitNearRivalDeployment ?? false} onChange={(value) => setConfirmation('unitNearRivalDeployment', value)} />
         </>}
-        {!['DOMINACJA_CENTRUM', 'ZA_LINIAMI_WROGA', 'SZEROKI_FRONT', 'UTRZYMAJ_BAZE', 'ODCIECIE_ODWROTU'].some((id) => activeIds.has(id as SecondaryId)) && <p className="context-note">No additional physical-state confirmation is required.</p>}
+        {!['DOMINACJA_CENTRUM', 'ZA_LINIAMI_WROGA', 'SZEROKI_FRONT', 'UTRZYMAJ_BAZE', 'ODCIECIE_ODWROTU'].some((id) => activeIds.has(id as SecondaryId)) && <p className="context-note">No additional Secondary physical-state confirmation is required.</p>}
+      </section>
+
+      {(planId === 'ZWIAD_OPERACYJNY' || planId === 'TWIERDZA') && session.state.round >= 2 && <section className="panel turn-review-section">
+        <div className="section-heading"><div><span className="eyebrow">Operational Plan</span><h2>{primaryPreview.planEvaluation.name}</h2></div><strong>up to +5 VP</strong></div>
+        {planId === 'ZWIAD_OPERACYJNY' && <>
+          <ConfirmationRow label="OC>0 units are in at least four sectors." checked={confirmations.zwiadHasFourSectors ?? false} onChange={(value) => setConfirmation('zwiadHasFourSectors', value)} />
+          <ConfirmationRow label="At least three qualifying units are outside your deployment zone." checked={confirmations.zwiadHasThreeOutsideDeployment ?? false} onChange={(value) => setConfirmation('zwiadHasThreeOutsideDeployment', value)} />
+        </>}
+        {planId === 'TWIERDZA' && <ConfirmationRow label="No enemy unit is in range of either your HOME or the marked neutral objective." checked={confirmations.twierdzaNoEnemyAtObjectives ?? false} onChange={(value) => setConfirmation('twierdzaNoEnemyAtObjectives', value)} />}
+      </section>}
+
+      <section className="panel turn-review-section">
+        <div className="section-heading"><div><span className="eyebrow">Primary · Hotfix 2.1.1</span><h2>Score at the end of your turn</h2></div><strong>{primaryPreview.roundPrimary} VP</strong></div>
+        {[primaryPreview.neutralObjective, primaryPreview.twoObjectives, primaryPreview.operationalPlan].map((condition) => <div className="primary-condition" key={condition.label}>
+          <span className={condition.completed ? 'condition-mark complete' : 'condition-mark'}>{condition.completed ? '✓' : '×'}</span>
+          <span>{condition.label}</span><strong>+{condition.vp}</strong>
+        </div>)}
+        {planId === 'WYNISZCZENIE' && <p className="context-note">Wyniszczenie is intentionally not included here. It is checked after the third player finishes the Battle Round.</p>}
       </section>
 
       <div className="review-actions"><button onClick={onCancel}>Back to turn</button><button className="button--gold" onClick={evaluate}>Apply scoring</button></div>
     </>}
 
     {evaluated && <>
+      <section className="panel turn-review-section">
+        <div className="section-heading"><div><span className="eyebrow">Resolved</span><h2>Primary</h2></div></div>
+        <div className="review-result review-result--completed"><span>✓</span><div><strong>End-turn Primary committed</strong><small>Round {session.state.round} · this score will not be recalculated after later players move.</small></div><strong>+{primaryCommit?.pointsAwarded ?? primaryPreview.roundPrimary} VP</strong></div>
+        {planId === 'WYNISZCZENIE' && <p className="context-note">Wyniszczenie remains pending until the end of the Battle Round.</p>}
+      </section>
       <section className="panel turn-review-section">
         <div className="section-heading"><div><span className="eyebrow">Resolved</span><h2>Mission Actions</h2></div></div>
         {review.missionActions.length === 0
