@@ -147,7 +147,11 @@ export function ContextCommandCentre({
   const selectedPriorityCandidates = priorityCard?.cardSpecificState?.priorityCandidateUnitIds ?? []
   const priorityTargetId = priorityCard?.cardSpecificState?.priorityTargetUnitId
   const priorityCandidates = getPriorityTargetCandidates(session, playerId).filter((candidate) => candidate.eligible)
-  const priorityWaitingForRival = selectedPriorityCandidates.length === 2 && !priorityTargetId
+  const requiredAlphaCount = Math.min(3, priorityCandidates.length)
+  const priorityNeedsAlpha = Boolean(priorityCard && selectedPriorityCandidates.length !== requiredAlphaCount)
+  const gammaCandidates = priorityCandidates.filter((candidate) => !selectedPriorityCandidates.includes(candidate.unitId))
+  const priorityNeedsGamma = Boolean(priorityCard && !priorityNeedsAlpha && !priorityTargetId && gammaCandidates.length > 0)
+  const prioritySelectionResolved = Boolean(priorityCard && !priorityNeedsAlpha && !priorityNeedsGamma)
   const availableSections = useMemo(() => context.sections.map((section) => ({
     ...section,
     items: section.items.filter((item) => !dismissed.has(item.id) && !hideQuietReaction(item)),
@@ -192,12 +196,15 @@ export function ContextCommandCentre({
   function toggleCandidate(unitId: string) {
     setCandidateIds((current) => current.includes(unitId)
       ? current.filter((id) => id !== unitId)
-      : current.length < 2 ? [...current, unitId] : current)
+      : current.length < requiredAlphaCount ? [...current, unitId] : current)
   }
 
   function viewerCanUseAction(itemAction: ContextAction): boolean {
-    if (itemAction.type === 'SELECT_PRIORITY_TARGET' && priorityWaitingForRival) {
+    if (itemAction.type === 'SELECT_PRIORITY_TARGET' && priorityNeedsAlpha) {
       return !sharedMode || viewerPlayerId === rivalPlayerId
+    }
+    if (itemAction.type === 'SELECT_PRIORITY_TARGET' && priorityNeedsGamma) {
+      return !sharedMode || viewerPlayerId === playerId
     }
     return canViewerUseAction(itemAction, playerId, sharedMode, viewerPlayerId)
   }
@@ -222,7 +229,10 @@ export function ContextCommandCentre({
       }); break
       case 'CHECK_SECONDARY_CONDITION':
       case 'END_TURN': onOpenEndTurn(); break
-      case 'SELECT_PRIORITY_TARGET': setPanel({ type: 'priority' }); break
+      case 'SELECT_PRIORITY_TARGET':
+        setCandidateIds(selectedPriorityCandidates)
+        setPanel({ type: 'priority' })
+        break
       case 'RESOLVE_ELIMINATION_CHOICE': setPanel({ type: 'elimination' }); break
       case 'MULLIGAN_SECONDARY': setPanel({ type: 'mulligan' }); break
       case 'CHANGE_OPERATIONAL_PLAN': setPanel({ type: 'plan' }); break
@@ -273,7 +283,7 @@ export function ContextCommandCentre({
           {item.details && item.details.length > 0 && <ul>{item.details.map((detail) => <li key={detail}>{detail.replace('confirm timing', 'timing unverified')}</li>)}</ul>}
           {item.actions.length > 0 && <div className="context-item__actions">{item.actions.map((itemAction) => {
             const allowed = viewerCanUseAction(itemAction)
-            const priorityOwner = itemAction.type === 'SELECT_PRIORITY_TARGET' && priorityWaitingForRival
+            const priorityOwner = itemAction.type === 'SELECT_PRIORITY_TARGET' && priorityNeedsAlpha
               ? session.state.players[rivalPlayerId]?.name ?? 'the current Rival'
               : session.state.players[playerId]?.name ?? 'the active player'
             return <button
@@ -282,7 +292,7 @@ export function ContextCommandCentre({
               title={!allowed ? `This action belongs to ${priorityOwner} or another responding player.` : undefined}
               key={itemAction.id}
               onClick={() => handleAction(item, itemAction)}
-            >{itemAction.type === 'SELECT_PRIORITY_TARGET' && priorityWaitingForRival && !allowed ? `Waiting for ${priorityOwner}` : itemAction.label}</button>
+            >{itemAction.type === 'SELECT_PRIORITY_TARGET' && !allowed ? `Waiting for ${priorityOwner}` : itemAction.label}</button>
           })}</div>}
         </article>
       })}</div>
@@ -322,13 +332,39 @@ export function ContextCommandCentre({
     {panel?.type === 'elimination' && <ContextOverlay title="Choose one Secondary" eyebrow="One kill · one card" onClose={() => setPanel(null)}>
       {pendingChoice ? <><p>{pendingChoice.destroyedUnitName} can complete multiple cards.</p><div className="context-choice-list">{pendingChoice.options.map((option) => <button className="button--gold" key={option.cardId} onClick={() => { onResolveEliminationChoice(playerId, option.cardId); setPanel(null) }}>{option.name}<span>{option.vp} VP</span></button>)}</div></> : <p className="context-note">The decision is no longer pending.</p>}
     </ContextOverlay>}
-    {panel?.type === 'priority' && <ContextOverlay title="Priority Target" eyebrow={priorityWaitingForRival ? 'Current Rival decision' : 'Choose candidate targets'} onClose={() => setPanel(null)}>
-      {!priorityCard || priorityTargetId ? <p className="context-note">Priority Target selection is already resolved.</p>
-        : selectedPriorityCandidates.length !== 2 ? <>
-          <p>Select two eligible Rival units worth at least 10% of their starting army.</p>
-          <div className="priority-target-list">{priorityCandidates.map((candidate) => <label key={candidate.unitId}><input type="checkbox" checked={candidateIds.includes(candidate.unitId)} onChange={() => toggleCandidate(candidate.unitId)} /><span><strong>{candidate.name}</strong><small>{candidate.points} pts</small></span></label>)}</div>
-          <button className="button--gold button--wide" disabled={candidateIds.length !== 2} onClick={() => onSelectPriorityCandidates(playerId, candidateIds)}>Confirm two targets</button>
-        </> : <><p>{session.state.players[rivalPlayerId]?.name ?? 'The current Rival'} chooses one target on their device.</p><div className="context-choice-list">{priorityCandidates.filter((candidate) => selectedPriorityCandidates.includes(candidate.unitId)).map((candidate) => <button key={candidate.unitId} onClick={() => { onChoosePriorityTarget(playerId, candidate.unitId); setPanel(null) }}>{candidate.name}<span>{candidate.points} pts</span></button>)}</div></>}
+    {panel?.type === 'priority' && <ContextOverlay
+      title="Cel Priorytetowy"
+      eyebrow={priorityNeedsAlpha ? 'Rival chooses Alpha' : priorityNeedsGamma ? 'Choose Gamma' : 'Targets locked'}
+      onClose={() => setPanel(null)}
+    >
+      {!priorityCard ? <p className="context-note">Cel Priorytetowy is no longer active.</p>
+        : priorityNeedsAlpha ? <>
+          <p><strong>{session.state.players[rivalPlayerId]?.name ?? 'The marked Rival'}</strong> selects {requiredAlphaCount} Alpha target{requiredAlphaCount === 1 ? '' : 's'} from their living units.</p>
+          {sharedMode && viewerPlayerId !== rivalPlayerId && <p className="context-note">Waiting for the marked Rival to nominate Alpha targets on their device.</p>}
+          <div className="priority-target-list">{priorityCandidates.map((candidate) => <label key={candidate.unitId}>
+            <input
+              type="checkbox"
+              disabled={sharedMode && viewerPlayerId !== rivalPlayerId}
+              checked={candidateIds.includes(candidate.unitId)}
+              onChange={() => toggleCandidate(candidate.unitId)}
+            />
+            <span><strong>{candidate.name}</strong><small>{candidate.points} pts</small></span>
+          </label>)}</div>
+          <button
+            className="button--gold button--wide"
+            disabled={candidateIds.length !== requiredAlphaCount || (sharedMode && viewerPlayerId !== rivalPlayerId)}
+            onClick={() => onSelectPriorityCandidates(playerId, candidateIds)}
+          >Confirm {requiredAlphaCount} Alpha target{requiredAlphaCount === 1 ? '' : 's'}</button>
+        </> : priorityNeedsGamma ? <>
+          <p>Now <strong>{session.state.players[playerId]?.name ?? 'the active player'}</strong> selects one different living unit as Gamma.</p>
+          {sharedMode && viewerPlayerId !== playerId && <p className="context-note">Waiting for the active player to choose Gamma on their device.</p>}
+          <div className="context-choice-list">{gammaCandidates.map((candidate) => <button
+            disabled={sharedMode && viewerPlayerId !== playerId}
+            key={candidate.unitId}
+            onClick={() => { onChoosePriorityTarget(playerId, candidate.unitId); setPanel(null) }}
+          >{candidate.name}<span>{candidate.points} pts</span></button>)}</div>
+        </> : prioritySelectionResolved ? <p className="context-note">Alpha targets are locked{priorityTargetId ? ' and Gamma is selected' : '; no separate Gamma target is available'}. Score this card at the end of the current turn.</p>
+          : <p className="context-note">Target selection is already resolved.</p>}
     </ContextOverlay>}
     {panel?.type === 'stratagems' && <ContextOverlay title="Stratagems in this phase" eyebrow={`${phaseLabel(context.phase)} phase`} onClose={() => setPanel(null)}>
       {!viewerControlsTurn && <p className="context-note">You can review these Stratagems, but only {session.state.players[playerId]?.name ?? 'the active player'} can spend CP on their turn.</p>}
