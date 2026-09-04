@@ -15,6 +15,7 @@ import {
   OPERATIONAL_PLAN_IDS,
 } from './constants'
 import { cauldronEvent } from './events'
+import { getPrimaryTurnCommit } from './primary'
 import { addSnapshotEvents, captureRoundSnapshot, captureTurnSnapshot } from './snapshots'
 import {
   addSecondaryRefillEvents,
@@ -61,6 +62,7 @@ export function createCauldronGame(input: CauldronGameInput): BattleSession {
     deploymentZone: player.deploymentZone,
     turnPosition: player.turnPosition,
   }))
+  // Hotfix 2.1.1: this order is fixed for all five Battle Rounds. No later initiative reroll exists.
   const turnOrder = [...input.players]
     .sort((left, right) => left.turnPosition - right.turnPosition)
     .map((player) => player.id)
@@ -90,7 +92,9 @@ export function isCauldronEndOfRound(session: BattleSession): boolean {
 }
 
 export function advanceCauldronPhase(session: BattleSession): BattleSession {
-  if (isCauldronEndOfRound(session)) throw new Error('Review and confirm Cauldron Primary before ending the Battle Round.')
+  if (isCauldronEndOfRound(session)) {
+    throw new Error('Review the final turn and resolve end-of-round Wyniszczenie before ending the Battle Round.')
+  }
   const secondaryState = getSecondaryState(session)[session.state.activePlayerId]
   if (secondaryState?.pendingEliminationChoice) {
     throw new Error('Resolve the pending Secondary scoring choice before continuing.')
@@ -100,6 +104,9 @@ export function advanceCauldronPhase(session: BattleSession): BattleSession {
     if (Object.values(session.state.missionActions).some((action) => (
       action.playerId === session.state.activePlayerId && action.status === 'ACTIVE'
     ))) throw new Error('Resolve active Mission Actions before ending the turn.')
+    if (!getPrimaryTurnCommit(session, session.state.activePlayerId, session.state.round)) {
+      throw new Error('Resolve this player’s end-turn Primary before ending the turn.')
+    }
     secondaryEvents = createEndTurnSecondaryEvents(session, session.state.activePlayerId)
   }
   const transitions = getPhaseTransitionEvents(session)
