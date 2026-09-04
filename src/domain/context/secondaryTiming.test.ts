@@ -26,16 +26,14 @@ function secondaryItem(session: BattleSession, cardId: SecondaryId) {
 
 describe('manual end-turn Secondary context', () => {
   it('keeps end-turn-only checks informational during live phases', () => {
-    const item = secondaryItem(game('UTRZYMAJ_BAZE', 'SZEROKI_FRONT'), 'UTRZYMAJ_BAZE')
-
+    const item = secondaryItem(game('SZEROKI_FRONT', 'ODCIECIE_ODWROTU'), 'SZEROKI_FRONT')
     expect(item?.status).toBe('INFO')
     expect(item?.actions.some((action) => action.type === 'CHECK_SECONDARY_CONDITION')).toBe(false)
   })
 
   it('offers scoring review only in End Turn', () => {
-    const item = secondaryItem(toEndTurn(game('UTRZYMAJ_BAZE', 'SZEROKI_FRONT')), 'UTRZYMAJ_BAZE')
+    const item = secondaryItem(toEndTurn(game('SZEROKI_FRONT', 'ODCIECIE_ODWROTU')), 'SZEROKI_FRONT')
     const reviewAction = item?.actions.find((action) => action.type === 'CHECK_SECONDARY_CONDITION')
-
     expect(item?.status).toBe('AVAILABLE')
     expect(reviewAction?.label).toBe('Review scoring')
   })
