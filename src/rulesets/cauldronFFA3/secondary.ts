@@ -53,10 +53,9 @@ export function getSecondaryState(session: BattleSession): SecondaryState {
     if (!player) continue
     switch (event.payload.action) {
       case 'SECONDARY_DECK_SHUFFLED': {
+        // 2.1.1 only uses this for the initial deck. Discarded cards never return to the deck.
         const deckOrder = (data as { deckOrder: SecondaryId[] }).deckOrder
         player.deck = [...deckOrder]
-        const returning = new Set(deckOrder)
-        player.discarded = player.discarded.filter((card) => !returning.has(card.cardId))
         break
       }
       case 'SECONDARY_DRAWN': {
@@ -151,17 +150,46 @@ function rivalUnits(session: BattleSession, playerId: string, round: number): Un
   return armyId ? session.setup.armies[armyId]?.units ?? [] : []
 }
 
-function isInvalidForCurrentRival(session: BattleSession, playerId: string, cardId: SecondaryId, round: number): boolean {
+function aliveRivalUnits(session: BattleSession, playerId: string, round: number): UnitDefinition[] {
+  const rivalId = getCurrentRivalPlayerId(session, playerId, round)
+  return rivalUnits(session, playerId, round).filter((unit) => !session.state.players[rivalId]?.units[unit.id]?.destroyed)
+}
+
+function rivalControlledAnyAtTurnStart(session: BattleSession, playerId: string, round: number): boolean {
+  const rivalId = getCurrentRivalPlayerId(session, playerId, round)
+  const snapshot = getCauldronTurnStartSnapshot(session, playerId, round)
+  const objectiveStates = snapshot?.objectiveStates ?? session.state.objectives
+  return Object.keys(session.state.objectives).some((objectiveId) => objectiveStates[objectiveId]?.controllerPlayerId === rivalId)
+}
+
+function invalidOnDrawReason(
+  session: BattleSession,
+  playerId: string,
+  cardId: SecondaryId,
+  round: number,
+): string | undefined {
+  if (round === 1 && (cardId === 'ZA_LINIAMI_WROGA' || cardId === 'UTRZYMAJ_BAZE')) {
+    return 'Hotfix 2.1.1: this card is replaced automatically in Battle Round 1.'
+  }
   if (cardId === 'ZNISZCZ_KOLOSA') {
-    return !rivalUnits(session, playerId, round).some((unit) => {
+    const valid = aliveRivalUnits(session, playerId, round).some((unit) => {
       const traits = normalizedTraits(unit)
       return traits.includes('VEHICLE') || traits.includes('MONSTER')
     })
+    if (!valid) return 'Current Rival has no living VEHICLE or MONSTER target.'
   }
   if (cardId === 'ELIMINACJA_DOWODCY') {
-    return !rivalUnits(session, playerId, round).some((unit) => normalizedTraits(unit).includes('CHARACTER'))
+    if (!aliveRivalUnits(session, playerId, round).some((unit) => normalizedTraits(unit).includes('CHARACTER'))) {
+      return 'Current Rival has no living CHARACTER target.'
+    }
   }
-  return false
+  if (cardId === 'SZTURM_NA_POZYCJE' && !rivalControlledAnyAtTurnStart(session, playerId, round)) {
+    return 'Current Rival controls no objective at the start of this turn.'
+  }
+  if (cardId === 'CEL_PRIORYTETOWY' && aliveRivalUnits(session, playerId, round).length === 0) {
+    return 'Marked Rival has no unit on the battlefield.'
+  }
+  return undefined
 }
 
 type MutableDrawState = Pick<PlayerSecondaryState, 'deck' | 'active' | 'discarded'>
@@ -173,19 +201,10 @@ function drawEvents(
   targetCount: number,
   round: number,
   turn: number,
-  random: () => number,
+  _random: () => number,
 ): BattleEventInput[] {
   const events: BattleEventInput[] = []
-  const attempted = new Set<SecondaryId>()
-  while (mutable.active.length < targetCount) {
-    if (mutable.deck.length === 0) {
-      const eligibleDiscarded = mutable.discarded.filter((card) => !attempted.has(card.cardId))
-      if (eligibleDiscarded.length === 0) break
-      const deckOrder = shuffle(eligibleDiscarded.map((card) => card.cardId), random)
-      mutable.deck = [...deckOrder]
-      mutable.discarded = mutable.discarded.filter((card) => !deckOrder.includes(card.cardId))
-      events.push(cauldronEvent('SECONDARY_DECK_SHUFFLED', { playerId, deckOrder }))
-    }
+  while (mutable.active.length < targetCount && mutable.deck.length > 0) {
     const cardId = mutable.deck.shift()
     if (!cardId) break
     const card: SecondaryCardState = {
@@ -198,8 +217,9 @@ function drawEvents(
     }
     mutable.active.push(card)
     events.push(cauldronEvent('SECONDARY_DRAWN', { playerId, cardId, round, turn }))
-    if (isInvalidForCurrentRival(session, playerId, cardId, round)) {
-      attempted.add(cardId)
+
+    const invalidReason = invalidOnDrawReason(session, playerId, cardId, round)
+    if (invalidReason) {
       removeCard(mutable.active, cardId)
       mutable.discarded.push({ ...card, status: 'DISCARDED_INCOMPLETE', discardedRound: round, discardedTurn: turn })
       events.push(cauldronEvent('SECONDARY_DISCARDED', {
@@ -207,10 +227,23 @@ function drawEvents(
         cardId,
         round,
         turn,
-        reason: 'Current Rival has no eligible unit; card replaced automatically.',
+        reason: invalidReason,
       }))
+      continue
+    }
+
+    if (cardId === 'CEL_PRIORYTETOWY') {
+      const patch: SecondaryCardSpecificState = {
+        boundRivalPlayerId: getCurrentRivalPlayerId(session, playerId, round),
+        deadlineFailed: false,
+        priorityAlphaDestroyed: false,
+        priorityGammaDestroyed: false,
+      }
+      card.cardSpecificState = patch
+      events.push(cauldronEvent('SECONDARY_CARD_STATE_UPDATED', { playerId, cardId, patch }))
     }
   }
+  // Hotfix 2.1.1: deck exhaustion is final. Discarded cards are never reshuffled.
   return events
 }
 
@@ -340,13 +373,15 @@ function completionInputs(
   playerId: string,
   cardIds: readonly SecondaryId[],
   specifics: Partial<Record<SecondaryId, SecondaryCardSpecificState>> = {},
+  awardOverrides: Partial<Record<SecondaryId, number>> = {},
 ): BattleEventInput[] {
   let roundRemaining = Math.max(0, ROUND_SECONDARY_CAP - getRoundSecondaryVp(session, playerId))
   let gameRemaining = Math.max(0, GAME_SECONDARY_CAP - getGameSecondaryVp(session, playerId))
   const turn = getPlayerTurnNumber(session, playerId)
   const inputs: BattleEventInput[] = []
   for (const cardId of cardIds) {
-    const award = Math.min(CAULDRON_SECONDARY_BY_ID[cardId].vp, roundRemaining, gameRemaining)
+    const requested = awardOverrides[cardId] ?? CAULDRON_SECONDARY_BY_ID[cardId].vp
+    const award = Math.min(requested, roundRemaining, gameRemaining)
     roundRemaining -= award
     gameRemaining -= award
     inputs.push(cauldronEvent('SECONDARY_COMPLETED', {
@@ -375,6 +410,24 @@ function isUnitDestroyedByEvent(session: BattleSession, event: BattleEventInput)
   return false
 }
 
+function destructionDetails(session: BattleSession, event: BattleEventInput): {
+  destroyedPlayerId: string
+  destroyedUnitId: string
+  destroyedByPlayerId?: string
+  unit: UnitDefinition
+} | undefined {
+  if (!isUnitDestroyedByEvent(session, event)) return undefined
+  if (event.type !== 'UNIT_DESTROYED' && event.type !== 'UNIT_WOUNDS_CHANGED' && event.type !== 'UNIT_MODEL_DESTROYED') return undefined
+  const unit = getUnitDefinition(session, event.payload.playerId, event.payload.unitId)
+  if (!unit) return undefined
+  return {
+    destroyedPlayerId: event.payload.playerId,
+    destroyedUnitId: event.payload.unitId,
+    destroyedByPlayerId: event.payload.destroyedByPlayerId ?? undefined,
+    unit,
+  }
+}
+
 function eliminationMatches(session: BattleSession, event: BattleEventInput): {
   playerId: string
   destroyedPlayerId: string
@@ -382,15 +435,13 @@ function eliminationMatches(session: BattleSession, event: BattleEventInput): {
   unit: UnitDefinition
   matchingCardIds: SecondaryId[]
 } | undefined {
-  if (!isUnitDestroyedByEvent(session, event)) return undefined
-  if (event.type !== 'UNIT_DESTROYED' && event.type !== 'UNIT_WOUNDS_CHANGED' && event.type !== 'UNIT_MODEL_DESTROYED') return undefined
-  const playerId = event.payload.destroyedByPlayerId ?? undefined
-  if (!playerId || playerId === event.payload.playerId) return undefined
-  if (getCurrentRivalPlayerId(session, playerId) !== event.payload.playerId) return undefined
-  const unit = getUnitDefinition(session, event.payload.playerId, event.payload.unitId)
-  if (!unit) return undefined
+  const destroyed = destructionDetails(session, event)
+  if (!destroyed) return undefined
+  const playerId = destroyed.destroyedByPlayerId
+  if (!playerId || playerId === destroyed.destroyedPlayerId) return undefined
+  if (getCurrentRivalPlayerId(session, playerId) !== destroyed.destroyedPlayerId) return undefined
   const active = getSecondaryState(session)[playerId]?.active ?? []
-  const traits = normalizedTraits(unit)
+  const traits = normalizedTraits(destroyed.unit)
   const matchingCardIds = active.flatMap((card): SecondaryId[] => {
     if (card.cardId === 'SILA_OGNIA' && session.state.phase === 'SHOOTING') return [card.cardId]
     if (card.cardId === 'WALKA_W_ZWARCIU' && session.state.phase === 'FIGHT') return [card.cardId]
@@ -398,21 +449,67 @@ function eliminationMatches(session: BattleSession, event: BattleEventInput): {
     if (card.cardId === 'ELIMINACJA_DOWODCY' && traits.includes('CHARACTER')) return [card.cardId]
     if (
       card.cardId === 'CEL_PRIORYTETOWY'
-      && card.cardSpecificState?.priorityTargetUnitId === unit.id
-      && card.cardSpecificState.boundRivalPlayerId === event.payload.playerId
-      && session.state.round <= (card.cardSpecificState.deadlineRound ?? 0)
+      && card.cardSpecificState?.boundRivalPlayerId === destroyed.destroyedPlayerId
+      && card.cardSpecificState?.priorityCandidateUnitIds?.includes(destroyed.destroyedUnitId)
+      && !card.cardSpecificState?.deadlineFailed
     ) return [card.cardId]
     return []
   })
   return matchingCardIds.length > 0
-    ? { playerId, destroyedPlayerId: event.payload.playerId, destroyedUnitId: event.payload.unitId, unit, matchingCardIds }
+    ? { playerId, destroyedPlayerId: destroyed.destroyedPlayerId, destroyedUnitId: destroyed.destroyedUnitId, unit: destroyed.unit, matchingCardIds }
     : undefined
+}
+
+function priorityTargetConsequenceEvents(session: BattleSession, event: BattleEventInput): BattleEventInput[] {
+  const destroyed = destructionDetails(session, event)
+  if (!destroyed) return []
+  const events: BattleEventInput[] = []
+  for (const ownerId of session.state.turnOrder) {
+    const card = getSecondaryState(session)[ownerId]?.active.find((active) => active.cardId === 'CEL_PRIORYTETOWY')
+    const specific = card?.cardSpecificState
+    if (!card || !specific || specific.boundRivalPlayerId !== destroyed.destroyedPlayerId || specific.deadlineFailed) continue
+    const alphaIds = specific.priorityCandidateUnitIds ?? []
+    const isAlpha = alphaIds.includes(destroyed.destroyedUnitId)
+    const isGamma = specific.priorityTargetUnitId === destroyed.destroyedUnitId
+    if (!isAlpha && !isGamma) continue
+
+    if (destroyed.destroyedByPlayerId === ownerId) {
+      if (isGamma) events.push(cauldronEvent('SECONDARY_CARD_STATE_UPDATED', {
+        playerId: ownerId,
+        cardId: 'CEL_PRIORYTETOWY',
+        patch: { priorityGammaDestroyed: true },
+      }))
+      // Alpha scoring is handled by eliminationMatches so it can still participate in the existing
+      // one-kill/multiple-elimination-card choice flow.
+      continue
+    }
+
+    // A third player destroying a marked target never scores the card. Instead flag the same-kind
+    // replacement so the table can immediately select another valid target if one exists.
+    if (isAlpha) events.push(cauldronEvent('SECONDARY_CARD_STATE_UPDATED', {
+      playerId: ownerId,
+      cardId: 'CEL_PRIORYTETOWY',
+      patch: {
+        priorityCandidateUnitIds: alphaIds.filter((id) => id !== destroyed.destroyedUnitId),
+        priorityAlphaReplacementNeeded: true,
+      },
+    }))
+    if (isGamma) events.push(cauldronEvent('SECONDARY_CARD_STATE_UPDATED', {
+      playerId: ownerId,
+      cardId: 'CEL_PRIORYTETOWY',
+      patch: {
+        priorityTargetUnitId: undefined,
+        priorityGammaReplacementNeeded: true,
+      },
+    }))
+  }
+  return events
 }
 
 /** Dispatches a normal Battle event and attaches any automatic Cauldron Secondary consequence to the same undo action. */
 export function dispatchCauldronBattleEvent(session: BattleSession, event: BattleEventInput): BattleSession {
   const match = eliminationMatches(session, event)
-  const inputs: BattleEventInput[] = [event]
+  const inputs: BattleEventInput[] = [event, ...priorityTargetConsequenceEvents(session, event)]
   if (match?.matchingCardIds.length === 1) {
     inputs.push(...completionInputs(session, match.playerId, match.matchingCardIds))
   } else if (match && match.matchingCardIds.length > 1) {
@@ -449,19 +546,20 @@ export function getPriorityTargetCandidates(
   session: BattleSession,
   playerId: string,
 ): Array<{ unitId: string; name: string; points: number; eligible: boolean }> {
-  const rivalId = getCurrentRivalPlayerId(session, playerId)
+  const card = getSecondaryState(session)[playerId]?.active.find((active) => active.cardId === 'CEL_PRIORYTETOWY')
+  const rivalId = card?.cardSpecificState?.boundRivalPlayerId ?? getCurrentRivalPlayerId(session, playerId)
   const rival = session.setup.players.find((player) => player.id === rivalId)
   const army = rival?.armyId ? session.setup.armies[rival.armyId] : undefined
   if (!army) return []
-  const threshold = army.totalPoints * 0.1
   return army.units.map((unit) => ({
     unitId: unit.id,
     name: unit.name,
     points: unit.points,
-    eligible: unit.points >= threshold && !session.state.players[rivalId]?.units[unit.id]?.destroyed,
+    eligible: !session.state.players[rivalId]?.units[unit.id]?.destroyed,
   }))
 }
 
+/** Hotfix 2.1.1: these are the Alpha targets selected by the marked Rival. */
 export function selectPriorityTargetCandidates(
   session: BattleSession,
   playerId: string,
@@ -469,32 +567,41 @@ export function selectPriorityTargetCandidates(
 ): BattleSession {
   const card = getSecondaryState(session)[playerId]?.active.find((active) => active.cardId === 'CEL_PRIORYTETOWY')
   if (!card) throw new Error('Cel Priorytetowy is not active.')
-  if (unitIds.length !== 2 || new Set(unitIds).size !== 2) throw new Error('Select exactly two different eligible units.')
-  const eligible = new Set(getPriorityTargetCandidates(session, playerId).filter((unit) => unit.eligible).map((unit) => unit.unitId))
-  if (unitIds.some((id) => !eligible.has(id))) throw new Error('Every selected target must be worth at least 10% of the Rival army.')
+  if (card.cardSpecificState?.deadlineFailed) throw new Error('The scoring window for Cel Priorytetowy has already ended.')
+  const alive = getPriorityTargetCandidates(session, playerId).filter((unit) => unit.eligible)
+  const gammaId = card.cardSpecificState?.priorityTargetUnitId
+  const eligible = new Set(alive.filter((unit) => unit.unitId !== gammaId).map((unit) => unit.unitId))
+  const required = Math.min(3, eligible.size)
+  if (unitIds.length !== required || new Set(unitIds).size !== unitIds.length) {
+    throw new Error(`The marked Rival must select ${required} Alpha target${required === 1 ? '' : 's'}.`)
+  }
+  if (unitIds.some((id) => !eligible.has(id))) throw new Error('Every Alpha target must be a living unit of the marked Rival.')
   return dispatchBattleEvents(session, [cauldronEvent('SECONDARY_CARD_STATE_UPDATED', {
     playerId,
     cardId: 'CEL_PRIORYTETOWY',
     patch: {
       priorityCandidateUnitIds: [...unitIds],
-      boundRivalPlayerId: getCurrentRivalPlayerId(session, playerId),
+      boundRivalPlayerId: card.cardSpecificState?.boundRivalPlayerId ?? getCurrentRivalPlayerId(session, playerId),
+      priorityAlphaReplacementNeeded: false,
     },
   })], { actorPlayerId: playerId })
 }
 
+/** Hotfix 2.1.1: the card owner selects one Gamma target that is not an Alpha target, if available. */
 export function choosePriorityTarget(session: BattleSession, playerId: string, unitId: string): BattleSession {
   const card = getSecondaryState(session)[playerId]?.active.find((active) => active.cardId === 'CEL_PRIORYTETOWY')
-  const candidates = card?.cardSpecificState?.priorityCandidateUnitIds
-  if (!card || !candidates?.includes(unitId)) throw new Error('The Rival must choose one of the two selected candidates.')
+  if (!card) throw new Error('Cel Priorytetowy is not active.')
+  const alphaIds = card.cardSpecificState?.priorityCandidateUnitIds ?? []
+  const candidate = getPriorityTargetCandidates(session, playerId).find((unit) => unit.unitId === unitId && unit.eligible)
+  if (!candidate || alphaIds.includes(unitId)) throw new Error('Gamma must be a living marked-Rival unit that is not an Alpha target.')
   return dispatchBattleEvents(session, [cauldronEvent('SECONDARY_CARD_STATE_UPDATED', {
     playerId,
     cardId: 'CEL_PRIORYTETOWY',
     patch: {
       priorityTargetUnitId: unitId,
-      deadlineRound: session.state.round + 1,
-      deadlineTurn: getPlayerTurnNumber(session, playerId) + 1,
+      priorityGammaReplacementNeeded: false,
     },
-  })], { actorPlayerId: getCurrentRivalPlayerId(session, playerId) })
+  })], { actorPlayerId: playerId })
 }
 
 function completedMissionActions(session: BattleSession, playerId: string): MissionActionState[] {
@@ -511,12 +618,18 @@ function controlledCount(session: BattleSession, playerId: string): number {
   return Object.values(session.state.objectives).filter((objective) => objective.controllerPlayerId === playerId).length
 }
 
+type EndTurnCardResult = {
+  complete: boolean
+  pointsAwarded?: number
+  patch?: SecondaryCardSpecificState
+}
+
 function evaluateEndTurnCard(
   session: BattleSession,
   playerId: string,
   card: SecondaryCardState,
   confirmation: EndTurnSecondaryConfirmations,
-): { complete: boolean; patch?: SecondaryCardSpecificState } {
+): EndTurnCardResult {
   const rivalId = getCurrentRivalPlayerId(session, playerId)
   const objectives = Object.values(session.state.objectives)
   switch (card.cardId) {
@@ -536,20 +649,24 @@ function evaluateEndTurnCard(
       const highestOther = Math.max(...Object.entries(values).filter(([id]) => id !== playerId).map(([, oc]) => oc))
       return { complete: own > highestOther, patch: { centreOcByPlayer: { ...values }, lastConfirmation: own > highestOther ? 'Highest centre OC confirmed' : 'Centre OC did not qualify' } }
     }
-    case 'ZA_LINIAMI_WROGA':
+    case 'ZA_LINIAMI_WROGA': {
+      const count = Math.max(0, confirmation.behindEnemyLinesUnitCount ?? (confirmation.behindEnemyLines ? 1 : 0))
       return {
-        complete: confirmation.behindEnemyLines === true,
-        patch: confirmation.behindEnemyLines === undefined
-          ? undefined
-          : { lastConfirmation: confirmation.behindEnemyLines ? 'Qualifying unit confirmed' : 'Condition not confirmed' },
+        complete: count >= 1,
+        pointsAwarded: count >= 2 ? 5 : count === 1 ? 3 : 0,
+        patch: { lastConfirmation: `${count} qualifying unit${count === 1 ? '' : 's'} confirmed` },
       }
-    case 'SZEROKI_FRONT':
+    }
+    case 'SZEROKI_FRONT': {
+      const fourSectors = confirmation.wideFrontFourSectors ?? confirmation.wideFrontThreeSectors
+      const threeOutside = confirmation.wideFrontThreeOutsideDeployment ?? confirmation.wideFrontTwoOutsideDeployment
       return {
-        complete: confirmation.wideFrontThreeSectors === true && confirmation.wideFrontTwoOutsideDeployment === true,
-        patch: confirmation.wideFrontThreeSectors === undefined || confirmation.wideFrontTwoOutsideDeployment === undefined
+        complete: fourSectors === true && threeOutside === true,
+        patch: fourSectors === undefined || threeOutside === undefined
           ? undefined
-          : { lastConfirmation: 'Sector positions checked' },
+          : { lastConfirmation: 'Four sectors and three units outside deployment checked' },
       }
+    }
     case 'ZABEZPIECZ_DANE':
       return { complete: completedMissionActions(session, playerId).some((action) => (
         action.type === 'SECURE_DATA'
@@ -569,6 +686,11 @@ function evaluateEndTurnCard(
         patch: confirmation.noEnemyInOwnDeployment === undefined ? undefined : { lastConfirmation: 'Enemy presence checked' },
       }
     }
+    case 'CEL_PRIORYTETOWY':
+      return {
+        complete: card.cardSpecificState?.priorityGammaDestroyed === true,
+        pointsAwarded: card.cardSpecificState?.priorityGammaDestroyed ? 2 : 0,
+      }
     case 'PRESJA_TAKTYCZNA': {
       const own = controlledCount(session, playerId)
       return { complete: own >= 2 && own > controlledCount(session, rivalId) }
@@ -596,25 +718,20 @@ export function createEndTurnSecondaryEvents(
   const state = getSecondaryState(session)[playerId]
   const completed: SecondaryId[] = []
   const specifics: Partial<Record<SecondaryId, SecondaryCardSpecificState>> = {}
+  const awardOverrides: Partial<Record<SecondaryId, number>> = {}
   const stateEvents: BattleEventInput[] = []
   for (const card of state.active) {
-    if (card.cardId === 'CEL_PRIORYTETOWY') {
-      const specific = card.cardSpecificState
-      if (
-        specific?.priorityTargetUnitId
-        && !specific.deadlineFailed
-        && getPlayerTurnNumber(session, playerId) >= (specific.deadlineTurn ?? Number.POSITIVE_INFINITY)
-      ) {
-        stateEvents.push(cauldronEvent('SECONDARY_CARD_STATE_UPDATED', {
-          playerId, cardId: card.cardId, patch: { deadlineFailed: true },
-        }))
-      }
-      continue
-    }
     const result = evaluateEndTurnCard(session, playerId, card, confirmation)
     if (result.complete) {
       completed.push(card.cardId)
       if (result.patch) specifics[card.cardId] = { ...card.cardSpecificState, ...result.patch }
+      if (result.pointsAwarded !== undefined) awardOverrides[card.cardId] = result.pointsAwarded
+    } else if (card.cardId === 'CEL_PRIORYTETOWY') {
+      stateEvents.push(cauldronEvent('SECONDARY_CARD_STATE_UPDATED', {
+        playerId,
+        cardId: card.cardId,
+        patch: { deadlineFailed: true },
+      }))
     } else if (result.patch) {
       stateEvents.push(cauldronEvent('SECONDARY_CARD_STATE_UPDATED', {
         playerId, cardId: card.cardId, patch: result.patch,
@@ -623,7 +740,7 @@ export function createEndTurnSecondaryEvents(
   }
   return [
     ...stateEvents,
-    ...completionInputs(session, playerId, completed, specifics),
+    ...completionInputs(session, playerId, completed, specifics, awardOverrides),
   ]
 }
 
@@ -637,23 +754,29 @@ export function evaluateEndTurnSecondaries(
 }
 
 function progressForCard(session: BattleSession, playerId: string, card: SecondaryCardState): string {
-  const rivalId = getCurrentRivalPlayerId(session, playerId)
+  const rivalId = card.cardSpecificState?.boundRivalPlayerId ?? getCurrentRivalPlayerId(session, playerId)
   const rivalName = session.state.players[rivalId]?.name ?? 'Current Rival'
   switch (card.cardId) {
     case 'SILA_OGNIA': return `No qualifying Shooting kill yet. Current Rival: ${rivalName}.`
     case 'WALKA_W_ZWARCIU': return `No qualifying Fight kill yet. Current Rival: ${rivalName}.`
-    case 'ZNISZCZ_KOLOSA': return `${rivalUnits(session, playerId, session.state.round).filter((unit) => normalizedTraits(unit).some((trait) => trait === 'VEHICLE' || trait === 'MONSTER')).length} qualifying Rival targets.`
-    case 'ELIMINACJA_DOWODCY': return `${rivalUnits(session, playerId, session.state.round).filter((unit) => normalizedTraits(unit).includes('CHARACTER')).length} qualifying Rival targets.`
+    case 'ZNISZCZ_KOLOSA': return `${aliveRivalUnits(session, playerId, session.state.round).filter((unit) => normalizedTraits(unit).some((trait) => trait === 'VEHICLE' || trait === 'MONSTER')).length} living qualifying Rival targets.`
+    case 'ELIMINACJA_DOWODCY': return `${aliveRivalUnits(session, playerId, session.state.round).filter((unit) => normalizedTraits(unit).includes('CHARACTER')).length} living qualifying Rival targets.`
     case 'ZIEMIA_NICZYJA': return `${Object.values(session.state.objectives).filter((objective) => objective.type === 'neutral' && objective.controllerPlayerId === playerId).length} / 2 neutral objectives.`
     case 'PRESJA_TAKTYCZNA': return `You ${controlledCount(session, playerId)}; Rival ${controlledCount(session, rivalId)} objectives.`
     case 'CEL_PRIORYTETOWY': {
-      const targetId = card.cardSpecificState?.priorityTargetUnitId
-      const target = targetId ? getUnitDefinition(session, card.cardSpecificState?.boundRivalPlayerId ?? rivalId, targetId) : undefined
-      if (card.cardSpecificState?.deadlineFailed) return 'Deadline passed; card remains incomplete and may be discarded.'
-      if (target) return `Target: ${target.name}. Deadline: end of your turn in Round ${card.cardSpecificState?.deadlineRound}.`
-      const count = card.cardSpecificState?.priorityCandidateUnitIds?.length ?? 0
-      return count === 2 ? 'Two candidates selected; the Rival must choose one.' : 'Select two eligible Rival units.'
+      if (card.cardSpecificState?.deadlineFailed) return 'This turn’s scoring window ended; the card is incomplete and may be discarded.'
+      const alphaIds = card.cardSpecificState?.priorityCandidateUnitIds ?? []
+      const gammaId = card.cardSpecificState?.priorityTargetUnitId
+      if (card.cardSpecificState?.priorityAlphaReplacementNeeded) return 'A third player destroyed an Alpha. The marked Rival must nominate a replacement if possible.'
+      if (card.cardSpecificState?.priorityGammaReplacementNeeded) return 'A third player destroyed Gamma. Choose a replacement Gamma if possible.'
+      if (alphaIds.length === 0) return `Marked Rival ${rivalName} must select up to three Alpha targets.`
+      if (!gammaId && getPriorityTargetCandidates(session, playerId).some((unit) => unit.eligible && !alphaIds.includes(unit.unitId))) {
+        return `${alphaIds.length} Alpha target${alphaIds.length === 1 ? '' : 's'} selected. Choose one different Gamma target.`
+      }
+      return `${alphaIds.length} Alpha target${alphaIds.length === 1 ? '' : 's'}${gammaId ? ' and Gamma selected' : '; no Gamma is available'}. Score at end of this turn.`
     }
+    case 'ZA_LINIAMI_WROGA': return 'At end of turn confirm 1 unit for 3 VP or 2+ units for 5 VP.'
+    case 'SZEROKI_FRONT': return 'At end of turn confirm 4 sectors and at least 3 qualifying units outside deployment.'
     case 'ZABEZPIECZ_DANE': return 'Complete the action on a neutral objective, then control it.'
     case 'SKANOWANIE_SYGNALU': return 'Complete a scanning action near the battlefield centre.'
     default: return 'Condition is checked at the end of your turn.'
