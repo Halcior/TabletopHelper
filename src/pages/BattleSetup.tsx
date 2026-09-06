@@ -132,7 +132,7 @@ export default function BattleSetup() {
           throw new Error(useSharedSessionStore.getState().backendCheckMessage ?? 'Supabase connection check failed.')
         }
       }
-      const battleId = await startCauldronBattle(activePlayers, selectedArmies, guidance, mode)
+      const battleId = await startCauldronBattle(activePlayers, selectedArmies, guidance)
       if (sharedMode) {
         const membership = await hostCurrentBattle(hostPlayerId)
         navigate(`/shared?room=${membership.roomCode}`)
