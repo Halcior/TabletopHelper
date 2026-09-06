@@ -16,10 +16,16 @@ import {
 } from '../rulesets/cauldronFFA3'
 import {
   DUEL_DEFAULT_OBJECTIVE_COUNT,
+  DUEL_FIXED_SECONDARY_CARDS,
+  DUEL_FORCE_DISPOSITIONS,
   DUEL_MAX_OBJECTIVES,
   DUEL_MIN_OBJECTIVES,
+  getDuelPrimaryMissionCard,
   randomDuelTurnPositions,
+  type DuelLayoutVariant,
   type DuelPlayerInput,
+  type DuelPlayerMissionConfig,
+  type DuelSecondaryMode,
   type DuelTurnPosition,
 } from '../rulesets/duel1v1'
 import { useBattleStore } from '../stores/battleStore'
@@ -33,6 +39,12 @@ const DEFAULT_PLAYERS: PlayerDraft[] = [
   { id: 'player-c', name: 'Player III', armyId: '', deploymentZone: 'C', turnPosition: 3, operationalPlanId: 'TWIERDZA' },
 ]
 
+const DEFAULT_DUEL_MISSIONS: Record<string, DuelPlayerMissionConfig> = {
+  'player-a': { forceDispositionId: 'take-and-hold', secondaryMode: 'tactical', fixedSecondaryIds: [], battleReady: true },
+  'player-b': { forceDispositionId: 'purge-the-foe', secondaryMode: 'tactical', fixedSecondaryIds: [], battleReady: true },
+  'player-c': { forceDispositionId: 'take-and-hold', secondaryMode: 'tactical', fixedSecondaryIds: [], battleReady: true },
+}
+
 export default function BattleSetup() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
@@ -41,8 +53,11 @@ export default function BattleSetup() {
   const [mode, setMode] = useState<BattleMode>(initialMode)
   const [armies, setArmies] = useState<Army[]>([])
   const [players, setPlayers] = useState<PlayerDraft[]>(DEFAULT_PLAYERS)
+  const [duelMissions, setDuelMissions] = useState<Record<string, DuelPlayerMissionConfig>>(DEFAULT_DUEL_MISSIONS)
   const [guidance, setGuidance] = useState<GuidanceLevel>('guided')
   const [objectiveCount, setObjectiveCount] = useState(DUEL_DEFAULT_OBJECTIVE_COUNT)
+  const [attackerPlayerId, setAttackerPlayerId] = useState(DEFAULT_PLAYERS[0].id)
+  const [layoutVariant, setLayoutVariant] = useState<DuelLayoutVariant>('A')
   const [hostPlayerId, setHostPlayerId] = useState(DEFAULT_PLAYERS[0].id)
   const [loadingArmies, setLoadingArmies] = useState(true)
   const [sharedWorking, setSharedWorking] = useState(false)
@@ -70,12 +85,36 @@ export default function BattleSetup() {
 
   useEffect(() => {
     if (!activePlayers.some((player) => player.id === hostPlayerId)) setHostPlayerId(activePlayers[0]?.id ?? '')
-  }, [activePlayers, hostPlayerId])
+    if (!activePlayers.some((player) => player.id === attackerPlayerId)) setAttackerPlayerId(activePlayers[0]?.id ?? '')
+  }, [activePlayers, attackerPlayerId, hostPlayerId])
 
   function updatePlayer<K extends keyof PlayerDraft>(index: number, key: K, value: PlayerDraft[K]) {
     setPlayers((current) => current.map((player, playerIndex) => (
       playerIndex === index ? { ...player, [key]: value } : player
     )))
+  }
+
+  function updateDuelMission(playerId: string, patch: Partial<DuelPlayerMissionConfig>) {
+    setDuelMissions((current) => ({
+      ...current,
+      [playerId]: { ...current[playerId], ...patch },
+    }))
+  }
+
+  function changeDuelSecondaryMode(playerId: string, secondaryMode: DuelSecondaryMode) {
+    updateDuelMission(playerId, {
+      secondaryMode,
+      fixedSecondaryIds: secondaryMode === 'fixed'
+        ? DUEL_FIXED_SECONDARY_CARDS.slice(0, 2).map((card) => card.id)
+        : [],
+    })
+  }
+
+  function setFixedSecondary(playerId: string, slot: 0 | 1, cardId: string) {
+    const current = duelMissions[playerId]?.fixedSecondaryIds ?? []
+    const next = [current[0] ?? '', current[1] ?? '']
+    next[slot] = cardId
+    updateDuelMission(playerId, { fixedSecondaryIds: next.filter(Boolean) })
   }
 
   function changeMode(nextMode: BattleMode) {
@@ -128,6 +167,16 @@ export default function BattleSetup() {
       return
     }
 
+    if (mode === 'duel') {
+      for (const player of activePlayers) {
+        const config = duelMissions[player.id]
+        if (config.secondaryMode === 'fixed' && (config.fixedSecondaryIds.length !== 2 || new Set(config.fixedSecondaryIds).size !== 2)) {
+          setLocalError(`${player.name}: select two different Fixed Secondaries.`)
+          return
+        }
+      }
+    }
+
     const selectedArmies = [...new Set(activePlayers.map((player) => player.armyId))]
       .map((id) => armies.find((army) => army.id === id))
       .filter((army): army is Army => Boolean(army))
@@ -143,12 +192,20 @@ export default function BattleSetup() {
       }
 
       const battleId = mode === 'duel'
-        ? await startDuelBattle(activePlayers.map((player): DuelPlayerInput => ({
-          id: player.id,
-          name: player.name,
-          armyId: player.armyId,
-          turnPosition: player.turnPosition as DuelTurnPosition,
-        })), selectedArmies, guidance, objectiveCount)
+        ? await startDuelBattle(
+          activePlayers.map((player): DuelPlayerInput => ({
+            id: player.id,
+            name: player.name,
+            armyId: player.armyId,
+            turnPosition: player.turnPosition as DuelTurnPosition,
+          })),
+          selectedArmies,
+          guidance,
+          objectiveCount,
+          Object.fromEntries(activePlayers.map((player) => [player.id, duelMissions[player.id]])),
+          attackerPlayerId,
+          layoutVariant,
+        )
         : await startCauldronBattle(activePlayers, selectedArmies, guidance)
 
       if (sharedMode) {
@@ -171,20 +228,28 @@ export default function BattleSetup() {
   </div></div>
 
   const duel = mode === 'duel'
+  const duelPrimaryNames = duel ? Object.fromEntries(activePlayers.map((player) => {
+    const opponent = activePlayers.find((candidate) => candidate.id !== player.id)
+    const ownConfig = duelMissions[player.id]
+    const opponentConfig = opponent ? duelMissions[opponent.id] : undefined
+    return [player.id, opponentConfig
+      ? getDuelPrimaryMissionCard(ownConfig.forceDispositionId, opponentConfig.forceDispositionId)?.name ?? 'Primary mission unavailable'
+      : 'Primary mission unavailable']
+  })) : {}
 
   return (
     <div className="page-shell setup-page">
       <section className="page-intro">
         <span className="eyebrow">Battle mode</span>
-        <h1>{duel ? 'New Duel 1v1' : 'New Cauldron FFA 3 battle'}</h1>
+        <h1>{duel ? 'New Duel 1v1 · 11th Edition' : 'New Cauldron FFA 3 battle'}</h1>
         <p>{duel
-          ? 'Two commanders, fixed turn order for five Battle Rounds, full army/CP/phase/reaction tracking and manual VP scoring. The objective counter is configurable for the mission you are playing.'
+          ? 'Chapter Approved 11th Edition: choose Force Dispositions, resolve each player’s directional Primary, and play either Tactical or Fixed Secondaries with the official 45/45 scoring caps.'
           : 'Assign three saved armies, deployment zones, fixed turn positions, and Operational Plans. Army definitions are stored once; every player receives an independent battle state.'}</p>
       </section>
 
       <div className="setup-mode-picker panel" role="group" aria-label="Battle mode">
         <button type="button" className={duel ? 'button--gold' : ''} aria-pressed={duel} onClick={() => changeMode('duel')}>
-          <strong>Duel 1v1</strong><span>2 players · standard battle companion</span>
+          <strong>Duel 1v1</strong><span>2 players · Warhammer 40,000 11th Edition</span>
         </button>
         <button type="button" className={!duel ? 'button--gold' : ''} aria-pressed={!duel} onClick={() => changeMode('cauldron')}>
           <strong>Cauldron FFA 3</strong><span>3 players · Cauldron missions and cards</span>
@@ -198,8 +263,23 @@ export default function BattleSetup() {
           <button type="button" onClick={randomizeTurns}>Randomize turn order</button>
         </div>
 
-        <div className="cauldron-player-grid">{activePlayers.map((player, index) => (
-          <section className="panel player-setup-card" key={player.id}>
+        {duel && <section className="panel duel-mission-global-setup">
+          <div><span className="eyebrow">Chapter Approved setup</span><strong>Deployment & layout</strong></div>
+          <label>Attacker<select value={attackerPlayerId} onChange={(event) => setAttackerPlayerId(event.target.value)}>
+            {activePlayers.map((player) => <option key={player.id} value={player.id}>{player.name}</option>)}
+          </select></label>
+          <label>Terrain layout variant<select value={layoutVariant} onChange={(event) => setLayoutVariant(event.target.value as DuelLayoutVariant)}>
+            {(['A', 'B', 'C'] as DuelLayoutVariant[]).map((variant) => <option key={variant}>{variant}</option>)}
+          </select></label>
+          <label>Objective markers<select value={objectiveCount} onChange={(event) => setObjectiveCount(Number(event.target.value))}>
+            {Array.from({ length: DUEL_MAX_OBJECTIVES - DUEL_MIN_OBJECTIVES + 1 }, (_, index) => DUEL_MIN_OBJECTIVES + index)
+              .map((count) => <option key={count} value={count}>{count}</option>)}
+          </select></label>
+        </section>}
+
+        <div className={`cauldron-player-grid${duel ? ' cauldron-player-grid--duel' : ''}`}>{activePlayers.map((player, index) => {
+          const missionConfig = duelMissions[player.id]
+          return <section className="panel player-setup-card" key={player.id}>
             <div className="player-setup-card__title">
               <span>Player {index + 1}</span>
               <strong>{duel ? `Turn ${player.turnPosition}` : `Zone ${player.deploymentZone} · Turn ${player.turnPosition}`}</strong>
@@ -216,28 +296,41 @@ export default function BattleSetup() {
                 {(duel ? [1, 2] : [1, 2, 3]).map((position) => <option key={position}>{position}</option>)}
               </select></label>
             </div>
-            {!duel && <>
+
+            {duel ? <div className="duel-player-missions">
+              <label>Force Disposition<select value={missionConfig.forceDispositionId} onChange={(event) => updateDuelMission(player.id, { forceDispositionId: event.target.value as DuelPlayerMissionConfig['forceDispositionId'] })}>
+                {DUEL_FORCE_DISPOSITIONS.map((disposition) => <option key={disposition.id} value={disposition.id}>{disposition.name}</option>)}
+              </select></label>
+              <div className="duel-primary-preview"><span>Primary</span><strong>{duelPrimaryNames[player.id]}</strong></div>
+              <label>Secondary approach<select value={missionConfig.secondaryMode} onChange={(event) => changeDuelSecondaryMode(player.id, event.target.value as DuelSecondaryMode)}>
+                <option value="tactical">Tactical — draw 2 each Command phase</option>
+                <option value="fixed">Fixed — choose 2 for the battle</option>
+              </select></label>
+              {missionConfig.secondaryMode === 'fixed' && <div className="setup-pair">
+                {([0, 1] as const).map((slot) => <label key={slot}>Fixed Secondary {slot + 1}<select value={missionConfig.fixedSecondaryIds[slot] ?? ''} onChange={(event) => setFixedSecondary(player.id, slot, event.target.value)}>
+                  <option value="">Select…</option>
+                  {DUEL_FIXED_SECONDARY_CARDS.map((card) => <option key={card.id} value={card.id}>{card.name}</option>)}
+                </select></label>)}
+              </div>}
+              <label className="duel-battle-ready"><input type="checkbox" checked={missionConfig.battleReady} onChange={(event) => updateDuelMission(player.id, { battleReady: event.target.checked })} /> Battle Ready (+10 VP)</label>
+            </div> : <>
               <label>Operational Plan<select value={player.operationalPlanId} onChange={(event) => updatePlayer(index, 'operationalPlanId', event.target.value as OperationalPlanId)}>
                 {OPERATIONAL_PLAN_IDS.map((planId) => <option key={planId} value={planId}>{OPERATIONAL_PLAN_DEFINITIONS[planId].name}</option>)}
               </select></label>
               <p className="plan-description">{OPERATIONAL_PLAN_DEFINITIONS[player.operationalPlanId].description}</p>
             </>}
           </section>
-        ))}</div>
+        })}</div>
 
         <section className="panel setup-footer setup-footer--battle-mode">
           <label>Guidance level<select value={guidance} onChange={(event) => setGuidance(event.target.value as GuidanceLevel)}>
             <option value="guided">Guided — full contextual reminders</option>
             <option value="fast">Fast — essential reminders only</option>
           </select></label>
-          {duel && <label>Objective markers<select value={objectiveCount} onChange={(event) => setObjectiveCount(Number(event.target.value))}>
-            {Array.from({ length: DUEL_MAX_OBJECTIVES - DUEL_MIN_OBJECTIVES + 1 }, (_, index) => DUEL_MIN_OBJECTIVES + index)
-              .map((count) => <option key={count} value={count}>{count}</option>)}
-          </select></label>}
           <label>Shared host seat<select value={hostPlayerId} onChange={(event) => setHostPlayerId(event.target.value)}>
             {activePlayers.map((player) => <option key={player.id} value={player.id}>{player.name}</option>)}
           </select></label>
-          {duel && <p className="context-note">Duel 1v1 does not automate a specific tournament mission pack yet. Use the scoreboard for VP and the objective panel for board control; army state, CP, phases, Stratagem timing and reactions are fully tracked.</p>}
+          {duel && <p className="context-note">The app tracks the full 11th Edition Secondary deck, directional Primary missions, 15 VP round caps, 45 VP game caps, Fixed/Tactical behavior and Battle Ready. Position-dependent conditions are confirmed by the players because the app does not know physical model positions.</p>}
           {(localError || error) && <div className="alert alert--danger">{localError ?? error}</div>}
           <div className="setup-submit-actions">
             <button className="button" type="submit" value="local" disabled={loading || sharedWorking}>{loading && !sharedWorking ? 'Preparing…' : 'Start locally'}</button>
