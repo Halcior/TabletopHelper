@@ -1,0 +1,42 @@
+.setup-mode-picker {
+  margin-bottom: 14px;
+  padding: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.setup-mode-picker > button {
+  min-height: 76px;
+  padding: 14px 16px;
+  display: grid;
+  justify-items: start;
+  align-content: center;
+  gap: 4px;
+  text-align: left;
+}
+
+.setup-mode-picker > button strong {
+  font-size: 1rem;
+}
+
+.setup-mode-picker > button span {
+  color: var(--muted);
+  font-size: .75rem;
+  font-weight: 650;
+}
+
+.setup-mode-picker > button.button--gold span {
+  color: rgb(23 20 13 / 72%);
+}
+
+.cauldron-player-grid:has(> .player-setup-card:nth-child(2):last-child) {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 760px) {
+  .setup-mode-picker,
+  .cauldron-player-grid:has(> .player-setup-card:nth-child(2):last-child) {
+    grid-template-columns: 1fr;
+  }
+}
