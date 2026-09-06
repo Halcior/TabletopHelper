@@ -106,6 +106,7 @@ export default function SharedSessions() {
 
   const lobbySession = inspection?.room.sessionSnapshot ?? latestBattle
   const lobbyPlayerIds = lobbySession?.state.turnOrder ?? []
+  const seatTarget = lobbyPlayerIds.length
   const lobbySummary = useMemo(
     () => summarizeSharedLobby(lobbyPlayerIds, participants, clock),
     [clock, lobbyPlayerIds, participants],
@@ -215,8 +216,8 @@ export default function SharedSessions() {
       <div className="shared-room-focus__code"><span>{roomStartedAt ? 'Battle room' : 'Waiting room'}</span><strong>{membership.roomCode}</strong></div>
       <div className="shared-room-focus__status shared-lobby__counters">
         <div><span>Sync</span><strong>{connectionStatus}</strong></div>
-        <div><span>Online</span><strong>{lobbySummary.onlineCount}/3</strong></div>
-        <div><span>Ready</span><strong>{lobbySummary.readyCount}/3</strong></div>
+        <div><span>Online</span><strong>{lobbySummary.onlineCount}/{seatTarget}</strong></div>
+        <div><span>Ready</span><strong>{lobbySummary.readyCount}/{seatTarget}</strong></div>
         <div><span>Last</span><strong>{syncTime(lastSyncedAt)}</strong></div>
       </div>
 
@@ -260,7 +261,7 @@ export default function SharedSessions() {
         </button>
         {membership.isHost
           ? <button className="button--gold" disabled={working || !canStart || backendCheckStatus !== 'ready'} onClick={() => void startBattle()}>
-              {working ? 'Starting…' : canStart ? 'Start battle' : `Waiting · ${lobbySummary.readyCount}/3 ready`}
+              {working ? 'Starting…' : canStart ? 'Start battle' : `Waiting · ${lobbySummary.readyCount}/${seatTarget} ready`}
             </button>
           : <div className="shared-lobby__waiting">{lobbySummary.allReady ? 'Everyone is ready. Waiting for the host.' : 'Mark ready and wait for all commanders.'}</div>}
       </div>}

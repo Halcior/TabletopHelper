@@ -12,6 +12,13 @@ export function getCurrentRival(playerSlot: DeploymentZone, battleRound: number)
 
 export function getCurrentRivalPlayerId(session: BattleSession, playerId: string, battleRound = session.state.round): string {
   const config = getCauldronConfig(session)
+  const configuredPlayerIds = Object.keys(config.playerConfigs)
+  if (configuredPlayerIds.length === 2) {
+    const opponent = configuredPlayerIds.find((candidate) => candidate !== playerId)
+    if (!opponent) throw new Error(`Player ${playerId} has no Cauldron Duel opponent.`)
+    return opponent
+  }
+
   const playerSlot = config.playerConfigs[playerId]?.deploymentZone
   if (!playerSlot) throw new Error(`Player ${playerId} has no Cauldron deployment zone.`)
   const rivalSlot = getCurrentRival(playerSlot, battleRound)

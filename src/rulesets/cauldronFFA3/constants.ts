@@ -4,6 +4,7 @@ import type { OperationalPlanId } from './types'
 export const CAULDRON_RULESET_ID = 'cauldron-ffa-3'
 export const CAULDRON_RULESET_VERSION = '2.1.1'
 export const CAULDRON_PLAYER_COUNT = 3
+export const CAULDRON_DUEL_PLAYER_COUNT = 2
 export const CAULDRON_BATTLE_ROUNDS = 5
 export const CAULDRON_PRIMARY_CAP = 45
 export const CAULDRON_PRIMARY_ROUND_CAP = 15
@@ -20,6 +21,18 @@ export const CAULDRON_OBJECTIVES: ObjectiveDefinition[] = [
   { id: 'N2', name: 'N2', type: 'neutral' },
   { id: 'N3', name: 'N3', type: 'neutral' },
 ]
+
+export const CAULDRON_DUEL_OBJECTIVES: ObjectiveDefinition[] = [
+  { id: 'A-HOME', name: 'A-HOME', type: 'home' },
+  { id: 'B-HOME', name: 'B-HOME', type: 'home' },
+  { id: 'N1', name: 'N1', type: 'neutral' },
+  { id: 'N2', name: 'N2', type: 'neutral' },
+  { id: 'N3', name: 'N3', type: 'neutral' },
+]
+
+export function cauldronObjectivesForPlayerCount(playerCount: number): ObjectiveDefinition[] {
+  return playerCount === CAULDRON_DUEL_PLAYER_COUNT ? CAULDRON_DUEL_OBJECTIVES : CAULDRON_OBJECTIVES
+}
 
 export const OPERATIONAL_PLAN_IDS: OperationalPlanId[] = [
   'WYNISZCZENIE',

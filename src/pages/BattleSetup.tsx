@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import type { Army } from '../domain/army/types'
 import type { GuidanceLevel } from '../domain/battle/types'
@@ -8,6 +8,7 @@ import {
   OPERATIONAL_PLAN_IDS,
   randomDeploymentZones,
   randomTurnPositions,
+  type CauldronMode,
   type CauldronPlayerInput,
   type DeploymentZone,
   type OperationalPlanId,
@@ -28,6 +29,7 @@ export default function BattleSetup() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
   const preferredArmyId = params.get('armyId')
+  const [mode, setMode] = useState<CauldronMode>(params.get('mode') === 'ffa3' ? 'ffa3' : 'duel')
   const [armies, setArmies] = useState<Army[]>([])
   const [players, setPlayers] = useState<PlayerDraft[]>(DEFAULT_PLAYERS)
   const [guidance, setGuidance] = useState<GuidanceLevel>('guided')
@@ -39,6 +41,7 @@ export default function BattleSetup() {
   const sharedConfigured = useSharedSessionStore((state) => state.configured)
   const checkBackend = useSharedSessionStore((state) => state.checkBackend)
   const hostCurrentBattle = useSharedSessionStore((state) => state.hostCurrentBattle)
+  const activePlayers = useMemo(() => mode === 'duel' ? players.slice(0, 2) : players, [mode, players])
 
   useEffect(() => {
     void listArmies().then((stored) => {
@@ -55,20 +58,42 @@ export default function BattleSetup() {
     })
   }, [preferredArmyId])
 
+  useEffect(() => {
+    if (!activePlayers.some((player) => player.id === hostPlayerId)) setHostPlayerId(activePlayers[0]?.id ?? '')
+  }, [activePlayers, hostPlayerId])
+
   function updatePlayer<K extends keyof PlayerDraft>(index: number, key: K, value: PlayerDraft[K]) {
     setPlayers((current) => current.map((player, playerIndex) => (
       playerIndex === index ? { ...player, [key]: value } : player
     )))
   }
 
+  function changeMode(nextMode: CauldronMode) {
+    setLocalError(null)
+    setMode(nextMode)
+    if (nextMode === 'duel') {
+      setPlayers((current) => current.map((player, index) => index < 2
+        ? {
+          ...player,
+          deploymentZone: (index === 0 ? 'A' : 'B') as DeploymentZone,
+          turnPosition: (index + 1) as TurnPosition,
+        }
+        : player))
+    }
+  }
+
   function randomizeZones() {
-    const zones = randomDeploymentZones()
-    setPlayers((current) => current.map((player, index) => ({ ...player, deploymentZone: zones[index] })))
+    const zones = randomDeploymentZones(mode === 'duel' ? 2 : 3)
+    setPlayers((current) => current.map((player, index) => (
+      index < zones.length ? { ...player, deploymentZone: zones[index] } : player
+    )))
   }
 
   function randomizeTurns() {
-    const positions = randomTurnPositions()
-    setPlayers((current) => current.map((player, index) => ({ ...player, turnPosition: positions[index] })))
+    const positions = randomTurnPositions(mode === 'duel' ? 2 : 3)
+    setPlayers((current) => current.map((player, index) => (
+      index < positions.length ? { ...player, turnPosition: positions[index] } : player
+    )))
   }
 
   async function submit(event: FormEvent) {
@@ -76,15 +101,26 @@ export default function BattleSetup() {
     setLocalError(null)
     const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null
     const sharedMode = submitter?.value === 'shared'
-    if (new Set(players.map((player) => player.deploymentZone)).size !== 3) {
-      setLocalError('Assign deployment zones A, B, and C exactly once.')
+    const expectedCount = mode === 'duel' ? 2 : 3
+    const allowedZones: DeploymentZone[] = mode === 'duel' ? ['A', 'B'] : ['A', 'B', 'C']
+    const allowedTurns: TurnPosition[] = mode === 'duel' ? [1, 2] : [1, 2, 3]
+
+    if (new Set(activePlayers.map((player) => player.deploymentZone)).size !== expectedCount
+      || activePlayers.some((player) => !allowedZones.includes(player.deploymentZone))) {
+      setLocalError(mode === 'duel'
+        ? 'Assign deployment zones A and B exactly once.'
+        : 'Assign deployment zones A, B, and C exactly once.')
       return
     }
-    if (new Set(players.map((player) => player.turnPosition)).size !== 3) {
-      setLocalError('Assign turn positions 1, 2, and 3 exactly once.')
+    if (new Set(activePlayers.map((player) => player.turnPosition)).size !== expectedCount
+      || activePlayers.some((player) => !allowedTurns.includes(player.turnPosition))) {
+      setLocalError(mode === 'duel'
+        ? 'Assign turn positions 1 and 2 exactly once.'
+        : 'Assign turn positions 1, 2, and 3 exactly once.')
       return
     }
-    const selectedArmies = [...new Set(players.map((player) => player.armyId))]
+
+    const selectedArmies = [...new Set(activePlayers.map((player) => player.armyId))]
       .map((id) => armies.find((army) => army.id === id))
       .filter((army): army is Army => Boolean(army))
     try {
@@ -96,7 +132,7 @@ export default function BattleSetup() {
           throw new Error(useSharedSessionStore.getState().backendCheckMessage ?? 'Supabase connection check failed.')
         }
       }
-      const battleId = await startCauldronBattle(players, selectedArmies, guidance)
+      const battleId = await startCauldronBattle(activePlayers, selectedArmies, guidance)
       if (sharedMode) {
         const membership = await hostCurrentBattle(hostPlayerId)
         navigate(`/shared?room=${membership.roomCode}`)
@@ -112,22 +148,38 @@ export default function BattleSetup() {
 
   if (loadingArmies) return <div className="page-shell"><div className="loading-state">Loading saved armies…</div></div>
   if (armies.length === 0) return <div className="page-shell"><div className="empty-state">
-    <h1>No saved armies</h1><p>Import at least one army. The same army may temporarily be assigned to all three players.</p>
+    <h1>No saved armies</h1><p>Import at least one army. The same army may temporarily be assigned to multiple players.</p>
     <Link className="button button--gold" to="/army-import">Import army</Link>
   </div></div>
 
+  const duel = mode === 'duel'
+
   return (
     <div className="page-shell setup-page">
-      <section className="page-intro"><span className="eyebrow">Cauldron FFA 3</span><h1>New Cauldron battle</h1>
-        <p>Assign three saved armies, deployment zones, fixed turn positions, and Operational Plans. Army definitions are stored once; every player receives an independent battle state.</p>
+      <section className="page-intro">
+        <span className="eyebrow">Cauldron v2.1.1</span>
+        <h1>{duel ? 'New Cauldron Duel' : 'New Cauldron FFA 3 battle'}</h1>
+        <p>{duel
+          ? 'The same Cauldron rules, Primary, Secondary cards and Operational Plans you already know — adapted for two players. Your Rival is simply the other commander for the entire battle.'
+          : 'Assign three saved armies, deployment zones, fixed turn positions, and Operational Plans. Rival rotation remains unchanged.'}</p>
       </section>
+
+      <div className="setup-mode-picker panel" role="group" aria-label="Cauldron battle mode">
+        <button type="button" className={duel ? 'button--gold' : ''} aria-pressed={duel} onClick={() => changeMode('duel')}>
+          <strong>Duel 1v1</strong><span>2 players · same Cauldron rules</span>
+        </button>
+        <button type="button" className={!duel ? 'button--gold' : ''} aria-pressed={!duel} onClick={() => changeMode('ffa3')}>
+          <strong>FFA 3</strong><span>3 players · rotating Rival</span>
+        </button>
+      </div>
+
       <form onSubmit={(event) => void submit(event)}>
         <div className="setup-toolbar panel">
           <div><span className="eyebrow">Assignment tools</span><strong>Manual or randomized</strong></div>
           <button type="button" onClick={randomizeZones}>Randomize zones</button>
           <button type="button" onClick={randomizeTurns}>Randomize turn order</button>
         </div>
-        <div className="cauldron-player-grid">{players.map((player, index) => (
+        <div className={`cauldron-player-grid${duel ? ' cauldron-player-grid--duel' : ''}`}>{activePlayers.map((player, index) => (
           <section className="panel player-setup-card" key={player.id}>
             <div className="player-setup-card__title"><span>Player {index + 1}</span><strong>Zone {player.deploymentZone} · Turn {player.turnPosition}</strong></div>
             <label>Player name<input value={player.name} required onChange={(event) => updatePlayer(index, 'name', event.target.value)} /></label>
@@ -136,10 +188,10 @@ export default function BattleSetup() {
             </select></label>
             <div className="setup-pair">
               <label>Deployment zone<select value={player.deploymentZone} onChange={(event) => updatePlayer(index, 'deploymentZone', event.target.value as DeploymentZone)}>
-                {(['A', 'B', 'C'] as DeploymentZone[]).map((zone) => <option key={zone}>{zone}</option>)}
+                {(duel ? ['A', 'B'] : ['A', 'B', 'C']).map((zone) => <option key={zone}>{zone}</option>)}
               </select></label>
               <label>Turn position<select value={player.turnPosition} onChange={(event) => updatePlayer(index, 'turnPosition', Number(event.target.value) as TurnPosition)}>
-                {([1, 2, 3] as TurnPosition[]).map((position) => <option key={position}>{position}</option>)}
+                {(duel ? [1, 2] : [1, 2, 3]).map((position) => <option key={position}>{position}</option>)}
               </select></label>
             </div>
             <label>Operational Plan<select value={player.operationalPlanId} onChange={(event) => updatePlayer(index, 'operationalPlanId', event.target.value as OperationalPlanId)}>
@@ -154,13 +206,14 @@ export default function BattleSetup() {
             <option value="fast">Fast — essential reminders only</option>
           </select></label>
           <label>Shared host seat<select value={hostPlayerId} onChange={(event) => setHostPlayerId(event.target.value)}>
-            {players.map((player) => <option key={player.id} value={player.id}>{player.name}</option>)}
+            {activePlayers.map((player) => <option key={player.id} value={player.id}>{player.name}</option>)}
           </select></label>
+          {duel && <p className="context-note">Duel changes only the player topology: 2 turns per Battle Round, A/B HOME objectives, and a permanent Rival. Primary, Secondary, Operational Plans and scoring caps stay on the Cauldron 2.1.1 rules you already use.</p>}
           {(localError || error) && <div className="alert alert--danger">{localError ?? error}</div>}
           <div className="setup-submit-actions">
             <button className="button" type="submit" value="local" disabled={loading || sharedWorking}>{loading && !sharedWorking ? 'Preparing…' : 'Start locally'}</button>
             <button className="button button--gold" type="submit" value="shared" disabled={loading || sharedWorking || !sharedConfigured} title={sharedConfigured ? undefined : 'Configure Supabase first'}>
-              {sharedWorking ? 'Checking Supabase…' : 'Create shared lobby'}
+              {sharedWorking ? 'Checking Supabase…' : `Create ${duel ? '2-player' : '3-player'} lobby`}
             </button>
           </div>
         </section>

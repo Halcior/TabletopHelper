@@ -3,7 +3,8 @@ import type { SharedParticipant } from './types'
 import { canStartSharedLobby, sharedBattleHasStarted, summarizeSharedLobby } from './sharedLobby'
 
 const NOW = Date.parse('2026-09-03T12:00:00.000Z')
-const PLAYERS = ['player-a', 'player-b', 'player-c']
+const FFA_PLAYERS = ['player-a', 'player-b', 'player-c']
+const DUEL_PLAYERS = ['player-a', 'player-b']
 
 function phone(playerId: string, ready = false, seenAt = NOW): SharedParticipant {
   return {
@@ -18,7 +19,7 @@ function phone(playerId: string, ready = false, seenAt = NOW): SharedParticipant
   }
 }
 
-describe('three-phone shared lobby', () => {
+describe('shared lobby', () => {
   it('keeps the battle blocked until the start state is known and confirmed', () => {
     expect(sharedBattleHasStarted(undefined)).toBe(false)
     expect(sharedBattleHasStarted(null)).toBe(false)
@@ -26,9 +27,9 @@ describe('three-phone shared lobby', () => {
     expect(sharedBattleHasStarted('2026-09-03T12:00:00.000Z')).toBe(true)
   })
 
-  it('starts only after all three online phones are ready and survives a reconnect', () => {
-    const joined = PLAYERS.map((playerId) => phone(playerId))
-    expect(summarizeSharedLobby(PLAYERS, joined, NOW)).toMatchObject({
+  it('starts FFA only after all three online phones are ready and survives a reconnect', () => {
+    const joined = FFA_PLAYERS.map((playerId) => phone(playerId))
+    expect(summarizeSharedLobby(FFA_PLAYERS, joined, NOW)).toMatchObject({
       seatCount: 3,
       onlineCount: 3,
       readyCount: 0,
@@ -36,13 +37,13 @@ describe('three-phone shared lobby', () => {
     })
 
     const ready = joined.map((participant) => ({ ...participant, isReady: true }))
-    expect(canStartSharedLobby(true, PLAYERS, ready, NOW)).toBe(true)
-    expect(canStartSharedLobby(false, PLAYERS, ready, NOW)).toBe(false)
+    expect(canStartSharedLobby(true, FFA_PLAYERS, ready, NOW)).toBe(true)
+    expect(canStartSharedLobby(false, FFA_PLAYERS, ready, NOW)).toBe(false)
 
     const disconnected = ready.map((participant) => participant.playerId === 'player-c'
       ? { ...participant, lastSeenAt: new Date(NOW - 21_000).toISOString() }
       : participant)
-    expect(summarizeSharedLobby(PLAYERS, disconnected, NOW)).toMatchObject({
+    expect(summarizeSharedLobby(FFA_PLAYERS, disconnected, NOW)).toMatchObject({
       onlineCount: 2,
       readyCount: 2,
       allSeatsOnline: false,
@@ -52,6 +53,18 @@ describe('three-phone shared lobby', () => {
     const reconnected = disconnected.map((participant) => participant.playerId === 'player-c'
       ? { ...participant, lastSeenAt: new Date(NOW).toISOString() }
       : participant)
-    expect(canStartSharedLobby(true, PLAYERS, reconnected, NOW)).toBe(true)
+    expect(canStartSharedLobby(true, FFA_PLAYERS, reconnected, NOW)).toBe(true)
+  })
+
+  it('starts a Duel as soon as both online seats are ready', () => {
+    const ready = DUEL_PLAYERS.map((playerId) => phone(playerId, true))
+    expect(summarizeSharedLobby(DUEL_PLAYERS, ready, NOW)).toMatchObject({
+      seatCount: 2,
+      onlineCount: 2,
+      readyCount: 2,
+      allSeatsOnline: true,
+      allReady: true,
+    })
+    expect(canStartSharedLobby(true, DUEL_PLAYERS, ready, NOW)).toBe(true)
   })
 })
