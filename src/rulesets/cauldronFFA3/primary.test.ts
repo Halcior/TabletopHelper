@@ -1,13 +1,20 @@
 import { describe, expect, it } from 'vitest'
-import { dispatchBattleEvent } from '../../domain/battle/engine'
+import { dispatchBattleEvent, dispatchBattleEvents } from '../../domain/battle/engine'
+import { cauldronEvent } from './events'
 import { testCauldronGame } from './cauldronTestUtils'
 import { calculatePrimaryRound } from './primary'
+import { captureTurnSnapshot } from './snapshots'
 
 function roundTwo() {
-  return dispatchBattleEvent(
+  let session = dispatchBattleEvents(
     testCauldronGame({ plans: ['SABOTAZ', 'WYNISZCZENIE', 'WYNISZCZENIE'] }),
-    { type: 'ROUND_STARTED', payload: { round: 2 } },
+    [
+      { type: 'ROUND_STARTED', payload: { round: 2 } },
+      { type: 'TURN_STARTED', payload: { playerId: 'p-a' } },
+    ],
   )
+  session = dispatchBattleEvent(session, cauldronEvent('TURN_SNAPSHOT_CAPTURED', captureTurnSnapshot(session, 'p-a', 2)))
+  return session
 }
 
 function control(session: ReturnType<typeof roundTwo>, objectiveId: string) {
@@ -33,7 +40,7 @@ describe('Cauldron Primary', () => {
     let session = testCauldronGame({ plans: ['SABOTAZ', 'WYNISZCZENIE', 'WYNISZCZENIE'] })
     session = control(session as ReturnType<typeof roundTwo>, 'N1')
     session = control(session as ReturnType<typeof roundTwo>, 'A-HOME')
-    expect(calculatePrimaryRound(session, 'p-a', 1, { sabotageMissionActionCompleted: true }).roundPrimary).toBe(0)
+    expect(calculatePrimaryRound(session, 'p-a', 1).roundPrimary).toBe(0)
   })
 
   it('awards 5 for a neutral objective only', () => {
@@ -52,7 +59,7 @@ describe('Cauldron Primary', () => {
     expect(result.roundPrimary).toBe(10)
   })
 
-  it('awards 15 when both objective conditions and the Plan are complete', () => {
+  it('awards 15 when both objective conditions and Sabotaż are complete', () => {
     let session = control(roundTwo(), 'N1')
     session = control(session, 'A-HOME')
     const result = calculatePrimaryRound(withCompletedSabotage(session), 'p-a', 2)

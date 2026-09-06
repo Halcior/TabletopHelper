@@ -4,6 +4,7 @@ import type { SecondaryId } from './secondaryTypes'
 
 export type DeploymentZone = 'A' | 'B' | 'C'
 export type TurnPosition = 1 | 2 | 3
+export type CauldronMode = 'duel' | 'ffa3'
 export type OperationalPlanId =
   | 'WYNISZCZENIE'
   | 'DECYDUJACE_NATARCIE'
@@ -26,6 +27,7 @@ export type CauldronGameInput = {
   players: CauldronPlayerInput[]
   armies: Army[]
   guidanceLevel: 'guided' | 'fast'
+  mode?: CauldronMode
   gameId?: string
   createdAt?: string
   /** Optional deterministic order for tests/dev tools. Normal games shuffle every player's complete deck. */
@@ -40,6 +42,8 @@ export type CauldronPlayerConfig = {
 
 export type CauldronConfig = {
   version: 1
+  mode?: CauldronMode
+  playerCount?: 2 | 3
   battleRounds: number
   primaryCap: number
   secondaryCap: number
@@ -60,9 +64,20 @@ export type CauldronTurnSnapshot = {
 }
 
 export type PlanConfirmation = {
+  zwiadHasFourSectors?: boolean
+  zwiadHasThreeOutsideDeployment?: boolean
+  twierdzaNoEnemyAtObjectives?: boolean
+  sabotageMissionActionCompleted?: boolean
+  /** Legacy 2.1 aliases kept so persisted review state and older tests can still rehydrate. */
   zwiadHasThreeSectors?: boolean
   zwiadHasTwoOutsideDeployment?: boolean
-  sabotageMissionActionCompleted?: boolean
+}
+
+export type OperationalPlanTurnTarget = {
+  playerId: string
+  planId: 'DECYDUJACE_NATARCIE' | 'TWIERDZA'
+  round: number
+  objectiveId: string
 }
 
 export type PlanEvaluation = {
@@ -98,6 +113,20 @@ export type PrimaryRoundResult = {
   planEvaluation: PlanEvaluation
   roundPrimary: number
   capped: boolean
+}
+
+export type PrimaryTurnCommit = {
+  round: number
+  playerId: string
+  review: PrimaryRoundResult
+  pointsAwarded: number
+}
+
+export type DeferredWyniszczenieCommit = {
+  round: number
+  playerId: string
+  completed: boolean
+  pointsAwarded: number
 }
 
 export type CasualtyRecord = {

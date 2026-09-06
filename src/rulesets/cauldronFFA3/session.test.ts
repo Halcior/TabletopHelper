@@ -1,20 +1,39 @@
 import { describe, expect, it } from 'vitest'
 import { dispatchBattleEvent, undoLastAction } from '../../domain/battle/engine'
-import { completeMissionAction, startMissionAction } from '../../domain/battle/missionActions'
 import { getCurrentRivalPlayerId } from './rivalRotation'
 import { getCauldronRoundStartSnapshot, getCauldronTurnStartSnapshot } from './snapshots'
 import { advanceCauldronPhase, createCauldronGame, isCauldronEndOfRound } from './session'
 import { confirmCauldronEndRound } from './roundEnd'
+import { evaluateEndTurnSecondaries } from './secondary211'
+import { dispatchCauldronBattleEvent } from './secondary'
 import { testArmy, testCauldronGame } from './cauldronTestUtils'
 
-function advance(current: ReturnType<typeof testCauldronGame>, count: number) {
+function toEndTurn(current: ReturnType<typeof testCauldronGame>) {
   let session = current
-  for (let index = 0; index < count; index += 1) session = advanceCauldronPhase(session)
+  while (session.state.phase !== 'END_TURN') session = advanceCauldronPhase(session)
+  return session
+}
+
+function scoreActiveTurn(current: ReturnType<typeof testCauldronGame>) {
+  const session = toEndTurn(current)
+  return evaluateEndTurnSecondaries(session, session.state.activePlayerId)
+}
+
+function finishActiveTurn(current: ReturnType<typeof testCauldronGame>) {
+  let session = scoreActiveTurn(current)
+  if (isCauldronEndOfRound(session)) return confirmCauldronEndRound(session)
+  return advanceCauldronPhase(session)
+}
+
+function finishRound(current: ReturnType<typeof testCauldronGame>) {
+  let session = current
+  const round = session.state.round
+  while (session.state.round === round) session = finishActiveTurn(session)
   return session
 }
 
 describe('Cauldron session integration', () => {
-  it('stores three independent player army states while deduplicating definitions by army ID', () => {
+  it('keeps the pre-battle turn positions fixed while storing independent player army states', () => {
     const army = testArmy('shared-army')
     const session = createCauldronGame({
       armies: [army],
@@ -26,32 +45,24 @@ describe('Cauldron session integration', () => {
       ],
     })
     expect(Object.keys(session.setup.armies)).toHaveLength(1)
-    expect(session.setup.players.every((player) => Boolean(player.armyId))).toBe(true)
+    expect(session.state.turnOrder).toEqual(['p-b', 'p-c', 'p-a'])
     expect(session.state.players['p-a'].units.infantry).not.toBe(session.state.players['p-b'].units.infantry)
     expect(session.state.activePlayerId).toBe('p-b')
-    expect(getCurrentRivalPlayerId(session, 'p-b')).toBe('p-c')
   })
 
-  it('captures immutable Round and Turn snapshots with Rival mapping automatically', () => {
-    const session = testCauldronGame()
+  it('commits Round 1 as zero, starts Round 2 with the same order and rotated Rivals, and remains undoable', () => {
+    let session = testCauldronGame()
     expect(getCauldronRoundStartSnapshot(session, 1)?.rivalPlayerIds).toEqual({
       'p-a': 'p-b', 'p-b': 'p-c', 'p-c': 'p-a',
     })
     expect(getCauldronTurnStartSnapshot(session, 'p-a', 1)?.objectiveStates.N1.controllerPlayerId).toBeNull()
-  })
 
-  it('requires an end-round review, commits Round 1 as zero, and starts Round 2 with rotated Rivals', () => {
-    let session = testCauldronGame()
-    session = advance(session, 6)
-    session = advance(session, 6)
-    session = advance(session, 5)
-    expect(isCauldronEndOfRound(session)).toBe(true)
-    expect(() => advanceCauldronPhase(session)).toThrow(/review/i)
-
-    session = confirmCauldronEndRound(session)
+    session = finishRound(session)
     expect(session.state.round).toBe(2)
+    expect(session.state.turnOrder).toEqual(['p-a', 'p-b', 'p-c'])
     expect(session.state.activePlayerId).toBe('p-a')
     expect(session.state.players['p-a'].score.primary).toBe(0)
+    expect(getCurrentRivalPlayerId(session, 'p-a')).toBe('p-c')
     expect(getCauldronRoundStartSnapshot(session, 2)?.rivalPlayerIds).toEqual({
       'p-a': 'p-c', 'p-b': 'p-a', 'p-c': 'p-b',
     })
@@ -62,29 +73,41 @@ describe('Cauldron session integration', () => {
     expect(session.state.activePlayerId).toBe('p-c')
   })
 
-  it('commits calculated Primary automatically after the Round 2 review', () => {
-    let session = testCauldronGame({ plans: ['SABOTAZ', 'WYNISZCZENIE', 'WYNISZCZENIE'] })
-    session = advance(session, 6)
-    session = advance(session, 6)
-    session = advance(session, 5)
-    session = confirmCauldronEndRound(session)
+  it('locks player 1 Primary after their own turn even if later players change the objectives', () => {
+    let session = finishRound(testCauldronGame())
     for (const objectiveId of ['N1', 'A-HOME']) {
       session = dispatchBattleEvent(session, {
         type: 'OBJECTIVE_CONTROL_CHANGED', payload: { objectiveId, controllerPlayerId: 'p-a' },
       })
     }
-    session = advance(session, 1)
-    session = startMissionAction(session, {
-      id: 'sabotage-round-2', playerId: 'p-a', unitId: 'infantry', type: 'SABOTAGE', name: 'Sabotage',
-      targetObjectiveId: 'N1', locationType: 'NEUTRAL_OBJECTIVE', unknownConditionsConfirmed: true,
+    session = scoreActiveTurn(session)
+    expect(session.state.players['p-a'].score.primary).toBe(10)
+    session = advanceCauldronPhase(session)
+
+    for (const objectiveId of ['N1', 'A-HOME']) {
+      session = dispatchBattleEvent(session, {
+        type: 'OBJECTIVE_CONTROL_CHANGED', payload: { objectiveId, controllerPlayerId: 'p-b' },
+      })
+    }
+    expect(session.state.players['p-a'].score.primary).toBe(10)
+  })
+
+  it('defers Wyniszczenie until the third player finishes the Battle Round', () => {
+    let session = finishRound(testCauldronGame())
+    session = dispatchCauldronBattleEvent(session, {
+      type: 'UNIT_DESTROYED',
+      payload: { playerId: 'p-c', unitId: 'tank', destroyedByPlayerId: 'p-a' },
     })
-    session = advance(session, 4)
-    session = completeMissionAction(session, 'sabotage-round-2', true)
-    session = advance(session, 1)
-    session = advance(session, 6)
-    session = advance(session, 5)
+    session = scoreActiveTurn(session)
+    expect(session.state.players['p-a'].score.primary).toBe(0)
+    session = advanceCauldronPhase(session)
+    session = finishActiveTurn(session)
+
+    session = scoreActiveTurn(session)
+    expect(isCauldronEndOfRound(session)).toBe(true)
+    expect(session.state.players['p-a'].score.primary).toBe(0)
     session = confirmCauldronEndRound(session)
-    expect(session.state.players['p-a'].score.primary).toBe(15)
+    expect(session.state.players['p-a'].score.primary).toBe(5)
     expect(session.state.round).toBe(3)
   })
 })

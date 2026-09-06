@@ -6,15 +6,17 @@ import {
 import type { BattleSession } from '../../domain/battle/types'
 import {
   CAULDRON_BATTLE_ROUNDS,
-  CAULDRON_OBJECTIVES,
+  CAULDRON_DUEL_PLAYER_COUNT,
   CAULDRON_PLAYER_COUNT,
   CAULDRON_PRIMARY_CAP,
   CAULDRON_RULESET_ID,
   CAULDRON_SECONDARY_CAP,
   CAULDRON_TOTAL_CAP,
   OPERATIONAL_PLAN_IDS,
+  cauldronObjectivesForPlayerCount,
 } from './constants'
 import { cauldronEvent } from './events'
+import { getPrimaryTurnCommit } from './primary'
 import { addSnapshotEvents, captureRoundSnapshot, captureTurnSnapshot } from './snapshots'
 import {
   addSecondaryRefillEvents,
@@ -25,24 +27,35 @@ import {
 import type { CauldronConfig, CauldronGameInput, DeploymentZone, TurnPosition } from './types'
 
 function validateCauldronInput(input: CauldronGameInput): void {
-  if (input.players.length !== CAULDRON_PLAYER_COUNT) throw new Error('Cauldron FFA 3 requires exactly three players.')
+  const playerCount = input.players.length
+  if (playerCount !== CAULDRON_DUEL_PLAYER_COUNT && playerCount !== CAULDRON_PLAYER_COUNT) {
+    throw new Error('Cauldron requires either two players (Duel) or three players (FFA 3).')
+  }
   const armyIds = new Set(input.armies.map((army) => army.id))
   const playerIds = input.players.map((player) => player.id)
-  if (new Set(playerIds).size !== CAULDRON_PLAYER_COUNT) throw new Error('Cauldron player IDs must be unique.')
+  if (new Set(playerIds).size !== playerCount) throw new Error('Cauldron player IDs must be unique.')
   for (const player of input.players) {
     if (!armyIds.has(player.armyId)) throw new Error(`${player.name} has no saved army assigned.`)
     if (!OPERATIONAL_PLAN_IDS.includes(player.operationalPlanId)) throw new Error(`${player.name} has an invalid Operational Plan.`)
   }
   const zones = input.players.map((player) => player.deploymentZone)
   const turns = input.players.map((player) => player.turnPosition)
-  if (new Set(zones).size !== CAULDRON_PLAYER_COUNT) throw new Error('Deployment zones A, B, and C must each be assigned once.')
-  if (new Set(turns).size !== CAULDRON_PLAYER_COUNT) throw new Error('Turn positions 1, 2, and 3 must each be assigned once.')
+  if (new Set(zones).size !== playerCount) throw new Error('Every Cauldron player needs a unique deployment zone.')
+  if (new Set(turns).size !== playerCount) throw new Error('Every Cauldron player needs a unique turn position.')
+  if (playerCount === 2) {
+    if (zones.some((zone) => zone !== 'A' && zone !== 'B')) throw new Error('Cauldron Duel uses deployment zones A and B.')
+    if (turns.some((turn) => turn !== 1 && turn !== 2)) throw new Error('Cauldron Duel uses turn positions 1 and 2.')
+  }
 }
 
 export function createCauldronGame(input: CauldronGameInput): BattleSession {
   validateCauldronInput(input)
+  const playerCount = input.players.length as 2 | 3
+  const mode = input.mode ?? (playerCount === 2 ? 'duel' : 'ffa3')
   const config: CauldronConfig = {
     version: 1,
+    mode,
+    playerCount,
     battleRounds: CAULDRON_BATTLE_ROUNDS,
     primaryCap: CAULDRON_PRIMARY_CAP,
     secondaryCap: CAULDRON_SECONDARY_CAP,
@@ -61,6 +74,7 @@ export function createCauldronGame(input: CauldronGameInput): BattleSession {
     deploymentZone: player.deploymentZone,
     turnPosition: player.turnPosition,
   }))
+  // Hotfix 2.1.1: this order is fixed for all five Battle Rounds. No later initiative reroll exists.
   const turnOrder = [...input.players]
     .sort((left, right) => left.turnPosition - right.turnPosition)
     .map((player) => player.id)
@@ -71,7 +85,7 @@ export function createCauldronGame(input: CauldronGameInput): BattleSession {
     players,
     armies: [...new Map(input.armies.map((army) => [army.id, army])).values()],
     turnOrder,
-    objectives: CAULDRON_OBJECTIVES,
+    objectives: cauldronObjectivesForPlayerCount(playerCount),
     maxRounds: CAULDRON_BATTLE_ROUNDS,
     guidanceLevel: input.guidanceLevel,
     rulesetConfig: config,
@@ -90,7 +104,9 @@ export function isCauldronEndOfRound(session: BattleSession): boolean {
 }
 
 export function advanceCauldronPhase(session: BattleSession): BattleSession {
-  if (isCauldronEndOfRound(session)) throw new Error('Review and confirm Cauldron Primary before ending the Battle Round.')
+  if (isCauldronEndOfRound(session)) {
+    throw new Error('Review the final turn and resolve end-of-round Wyniszczenie before ending the Battle Round.')
+  }
   const secondaryState = getSecondaryState(session)[session.state.activePlayerId]
   if (secondaryState?.pendingEliminationChoice) {
     throw new Error('Resolve the pending Secondary scoring choice before continuing.')
@@ -100,6 +116,9 @@ export function advanceCauldronPhase(session: BattleSession): BattleSession {
     if (Object.values(session.state.missionActions).some((action) => (
       action.playerId === session.state.activePlayerId && action.status === 'ACTIVE'
     ))) throw new Error('Resolve active Mission Actions before ending the turn.')
+    if (!getPrimaryTurnCommit(session, session.state.activePlayerId, session.state.round)) {
+      throw new Error('Resolve this player’s end-turn Primary before ending the turn.')
+    }
     secondaryEvents = createEndTurnSecondaryEvents(session, session.state.activePlayerId)
   }
   const transitions = getPhaseTransitionEvents(session)
@@ -112,12 +131,12 @@ export function advanceCauldronPhase(session: BattleSession): BattleSession {
     })
 }
 
-export function randomDeploymentZones(): DeploymentZone[] {
-  return shuffle(['A', 'B', 'C'])
+export function randomDeploymentZones(playerCount: 2 | 3 = 3): DeploymentZone[] {
+  return shuffle(playerCount === 2 ? ['A', 'B'] : ['A', 'B', 'C'])
 }
 
-export function randomTurnPositions(): TurnPosition[] {
-  return shuffle([1, 2, 3])
+export function randomTurnPositions(playerCount: 2 | 3 = 3): TurnPosition[] {
+  return shuffle(playerCount === 2 ? [1, 2] : [1, 2, 3])
 }
 
 function shuffle<T>(values: T[]): T[] {

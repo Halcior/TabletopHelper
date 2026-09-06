@@ -59,12 +59,13 @@ function rulesetPlayerId(event: BattleEvent): string | undefined {
   return typeof playerId === 'string' ? playerId : undefined
 }
 
-function isPriorityTargetRivalChoice(event: BattleEvent): boolean {
+/** Hotfix 2.1.1: the marked Rival, not the card owner, nominates Alpha targets. */
+function isPriorityAlphaRivalChoice(event: BattleEvent): boolean {
   if (event.type !== 'RULESET_EVENT' || event.payload.action !== 'SECONDARY_CARD_STATE_UPDATED') return false
   const data = event.payload.data
   if (!data || typeof data !== 'object') return false
   const patch = (data as { patch?: unknown }).patch
-  return Boolean(patch && typeof patch === 'object' && 'priorityTargetUnitId' in patch)
+  return Boolean(patch && typeof patch === 'object' && 'priorityCandidateUnitIds' in patch)
 }
 
 function hasPrimaryCommit(events: BattleEvent[]): boolean {
@@ -167,7 +168,7 @@ export function authorizeSharedAction(
       if (event.payload.action === 'PRIMARY_COMMITTED') continue
       const target = rulesetPlayerId(event)
       if (target && target !== viewerPlayerId) {
-        if (isPriorityTargetRivalChoice(event)) continue
+        if (isPriorityAlphaRivalChoice(event)) continue
         if (progression && viewerPlayerId === sessionBefore.state.activePlayerId) continue
         return deny('This ruleset action belongs to another commander.')
       }
