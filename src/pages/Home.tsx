@@ -11,11 +11,18 @@ import {
   type StoredBattle,
 } from '../persistence/database'
 import { CAULDRON_RULESET_ID } from '../rulesets/cauldronFFA3'
+import { DUEL_RULESET_ID } from '../rulesets/duel1v1'
 
 function statusLabel(status: StoredBattle['status']): string {
   if (status === 'completed') return 'Completed'
   if (status === 'abandoned') return 'Abandoned'
   return 'Active'
+}
+
+function rulesetLabel(rulesetId: string): string {
+  if (rulesetId === CAULDRON_RULESET_ID) return 'Cauldron FFA 3'
+  if (rulesetId === DUEL_RULESET_ID) return 'Duel 1v1'
+  return rulesetId
 }
 
 function HomeActionContent({ icon, label, title, detail }: { icon: AppIconName; label: string; title: string; detail: string }) {
@@ -74,17 +81,17 @@ export default function Home() {
 
         <div className="home-command-actions">
           {activeBattle && <Link className="home-action home-action--primary" to={`/battle/${activeBattle.setup.gameId}`}>
-            <HomeActionContent icon="overview" label="Continue" title="Resume battle" detail={`Round ${activeBattle.state.round} · ${activeBattle.state.phase.replaceAll('_', ' ')}`} />
+            <HomeActionContent icon="overview" label="Continue" title="Resume battle" detail={`${rulesetLabel(activeBattle.setup.rulesetId)} · Round ${activeBattle.state.round} · ${activeBattle.state.phase.replaceAll('_', ' ')}`} />
           </Link>}
 
           {armies.length > 0 ? <Link className={`home-action${activeBattle ? '' : ' home-action--primary'}`} to="/battle/setup">
-            <HomeActionContent icon="objectives" label="Play" title="New battle" detail="Set up Cauldron FFA 3" />
+            <HomeActionContent icon="objectives" label="Play" title="New battle" detail="Duel 1v1 or Cauldron FFA 3" />
           </Link> : <Link className="home-action home-action--primary" to="/army-import">
             <HomeActionContent icon="import" label="First step" title="Import army" detail="Add a New Recruit roster" />
           </Link>}
 
           <Link className="home-action" to="/shared">
-            <HomeActionContent icon="shared" label="Multiplayer" title="Host or join" detail="Use a shared room code" />
+            <HomeActionContent icon="shared" label="Multiplayer" title="Host or join" detail="2-player or 3-player shared room" />
           </Link>
 
           {armies.length > 0 && <Link className="home-action" to="/army-import">
@@ -110,7 +117,7 @@ export default function Home() {
           {recentBattles.map((entry) => <article className={`panel recent-battle-card recent-battle-card--${entry.status}`} key={entry.id}>
             <div className="recent-battle-card__heading">
               <div><span className="eyebrow">{statusLabel(entry.status)}</span><h3>Battle Round {entry.session.state.round}</h3></div>
-              <span>{entry.session.setup.rulesetId === CAULDRON_RULESET_ID ? 'Cauldron FFA 3' : entry.session.setup.rulesetId}</span>
+              <span>{rulesetLabel(entry.session.setup.rulesetId)}</span>
             </div>
             <div className="recent-battle-card__scores">
               {entry.session.state.turnOrder.map((id) => {
