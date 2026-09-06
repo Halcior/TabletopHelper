@@ -47,6 +47,7 @@ import {
   type PlanConfirmation,
   type SecondaryId,
 } from '../rulesets/cauldronFFA3'
+import { createDuelGame, type DuelPlayerInput } from '../rulesets/duel1v1'
 
 type BattleStore = {
   session: BattleSession | null
@@ -56,6 +57,12 @@ type BattleStore = {
     players: CauldronPlayerInput[],
     armies: Army[],
     guidanceLevel: GuidanceLevel,
+  ) => Promise<string>
+  startDuelBattle: (
+    players: DuelPlayerInput[],
+    armies: Army[],
+    guidanceLevel: GuidanceLevel,
+    objectiveCount?: number,
   ) => Promise<string>
   loadBattle: (id: string) => Promise<void>
   resumeLatest: () => Promise<string | null>
@@ -132,6 +139,20 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
     set({ loading: true, error: null })
     try {
       const session = createCauldronGame({ players, armies, guidanceLevel })
+      await saveBattle(session)
+      set({ session, loading: false })
+      return session.setup.gameId
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error)
+      set({ loading: false, error: message })
+      throw error
+    }
+  },
+
+  async startDuelBattle(players, armies, guidanceLevel, objectiveCount) {
+    set({ loading: true, error: null })
+    try {
+      const session = createDuelGame({ players, armies, guidanceLevel, objectiveCount })
       await saveBattle(session)
       set({ session, loading: false })
       return session.setup.gameId
