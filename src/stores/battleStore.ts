@@ -47,7 +47,19 @@ import {
   type PlanConfirmation,
   type SecondaryId,
 } from '../rulesets/cauldronFFA3'
-import { createDuelGame, type DuelPlayerInput } from '../rulesets/duel1v1'
+import {
+  advanceDuelPhase,
+  createDuelGame,
+  discardDuelSecondariesAtEndTurn,
+  DUEL_RULESET_ID,
+  mulliganDuelSecondary as mulliganDuelSecondaryInBattle,
+  redrawDuelSecondary as redrawDuelSecondaryInBattle,
+  scoreDuelSecondary as scoreDuelSecondaryInBattle,
+  setDuelPrimaryForRound,
+  type DuelLayoutVariant,
+  type DuelPlayerInput,
+  type DuelPlayerMissionConfig,
+} from '../rulesets/duel1v1'
 
 type BattleStore = {
   session: BattleSession | null
@@ -63,6 +75,9 @@ type BattleStore = {
     armies: Army[],
     guidanceLevel: GuidanceLevel,
     objectiveCount?: number,
+    missionConfigs?: Record<string, DuelPlayerMissionConfig>,
+    attackerPlayerId?: string,
+    layoutVariant?: DuelLayoutVariant,
   ) => Promise<string>
   loadBattle: (id: string) => Promise<void>
   resumeLatest: () => Promise<string | null>
@@ -82,6 +97,11 @@ type BattleStore = {
   resolveEliminationChoice: (playerId: string, cardId: SecondaryId) => void
   selectPriorityTargetCandidates: (playerId: string, unitIds: string[]) => void
   choosePriorityTarget: (playerId: string, unitId: string) => void
+  scoreDuelSecondary: (playerId: string, cardId: string, vp: number, endOfBattle?: boolean) => void
+  setDuelPrimary: (playerId: string, vp: number) => void
+  discardDuelSecondaries: (playerId: string, cardIds: string[]) => void
+  mulliganDuelSecondary: (playerId: string, cardId: string) => void
+  redrawDuelSecondary: (playerId: string, cardId: string) => void
   applyCorrection: (correction: BattleCorrection, reason: string) => void
   nextPhase: () => void
   changePlan: (playerId: string, planId: OperationalPlanId) => void
@@ -149,10 +169,18 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
     }
   },
 
-  async startDuelBattle(players, armies, guidanceLevel, objectiveCount) {
+  async startDuelBattle(players, armies, guidanceLevel, objectiveCount, missionConfigs, attackerPlayerId, layoutVariant) {
     set({ loading: true, error: null })
     try {
-      const session = createDuelGame({ players, armies, guidanceLevel, objectiveCount })
+      const session = createDuelGame({
+        players,
+        armies,
+        guidanceLevel,
+        objectiveCount,
+        missionConfigs,
+        attackerPlayerId,
+        layoutVariant,
+      })
       await saveBattle(session)
       set({ session, loading: false })
       return session.setup.gameId
@@ -306,6 +334,26 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
     applySessionUpdate(get().session, (session) => choosePriorityTargetInBattle(session, playerId, unitId), set)
   },
 
+  scoreDuelSecondary(playerId, cardId, vp, endOfBattle = false) {
+    applySessionUpdate(get().session, (session) => scoreDuelSecondaryInBattle(session, playerId, cardId, vp, { endOfBattle }), set)
+  },
+
+  setDuelPrimary(playerId, vp) {
+    applySessionUpdate(get().session, (session) => setDuelPrimaryForRound(session, playerId, vp), set)
+  },
+
+  discardDuelSecondaries(playerId, cardIds) {
+    applySessionUpdate(get().session, (session) => discardDuelSecondariesAtEndTurn(session, playerId, cardIds), set)
+  },
+
+  mulliganDuelSecondary(playerId, cardId) {
+    applySessionUpdate(get().session, (session) => mulliganDuelSecondaryInBattle(session, playerId, cardId), set)
+  },
+
+  redrawDuelSecondary(playerId, cardId) {
+    applySessionUpdate(get().session, (session) => redrawDuelSecondaryInBattle(session, playerId, cardId), set)
+  },
+
   applyCorrection(correction, reason) {
     applySessionUpdate(get().session, (session) => dispatchBattleEvent(session, {
       type: 'STATE_CORRECTED',
@@ -314,9 +362,11 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
   },
 
   nextPhase() {
-    applySessionUpdate(get().session, (session) => (
-      session.setup.rulesetId === CAULDRON_RULESET_ID ? advanceCauldronPhase(session) : advancePhase(session)
-    ), set)
+    applySessionUpdate(get().session, (session) => {
+      if (session.setup.rulesetId === CAULDRON_RULESET_ID) return advanceCauldronPhase(session)
+      if (session.setup.rulesetId === DUEL_RULESET_ID) return advanceDuelPhase(session)
+      return advancePhase(session)
+    }, set)
   },
 
   changePlan(playerId, planId) {
