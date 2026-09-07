@@ -161,37 +161,46 @@ export function SecondaryEndTurnReview({
           <div><span>Secondary</span><strong>+{turnSummary.secondaryGained} VP</strong><small>{turnSummary.completedSecondaries.length} completed</small></div>
           <div><span>Enemy units destroyed</span><strong>{turnSummary.kills.length}</strong><small>Kills credited to {player.name}</small></div>
         </div>
-        {turnSummary.completedSecondaries.length > 0 && <div className="turn-handoff-summary__list">
-          <span className="eyebrow">Completed Secondaries</span>
-          {turnSummary.completedSecondaries.map((entry, index) => <div className="turn-handoff-summary__row" key={`${entry.cardId}-${index}`}><span>✓ {entry.name}</span><strong>+{entry.pointsAwarded} VP</strong></div>)}
-        </div>}
-        {turnSummary.kills.length > 0 && <div className="turn-handoff-summary__list">
-          <span className="eyebrow">Destroyed this turn</span>
-          {turnSummary.kills.map((kill) => <div className="turn-handoff-summary__row" key={`${kill.victimPlayerId}-${kill.unitId}`}><span>{kill.unitName}<small>{kill.victimPlayerName}</small></span><strong>Destroyed</strong></div>)}
-        </div>}
+        {(turnSummary.completedSecondaries.length > 0 || turnSummary.kills.length > 0) && <details className="turn-handoff-summary__details">
+          <summary><span>Recorded this turn</span><strong>{turnSummary.completedSecondaries.length} missions · {turnSummary.kills.length} destroyed</strong></summary>
+          {turnSummary.completedSecondaries.length > 0 && <div className="turn-handoff-summary__list">
+            <span className="eyebrow">Completed Secondaries</span>
+            {turnSummary.completedSecondaries.map((entry, index) => <div className="turn-handoff-summary__row" key={`${entry.cardId}-${index}`}><span>✓ {entry.name}</span><strong>+{entry.pointsAwarded} VP</strong></div>)}
+          </div>}
+          {turnSummary.kills.length > 0 && <div className="turn-handoff-summary__list">
+            <span className="eyebrow">Destroyed this turn</span>
+            {turnSummary.kills.map((kill) => <div className="turn-handoff-summary__row" key={`${kill.victimPlayerId}-${kill.unitId}`}><span>{kill.unitName}<small>{kill.victimPlayerName}</small></span><strong>Destroyed</strong></div>)}
+          </div>}
+        </details>}
       </section>
 
-      <section className="panel turn-review-section">
-        <div className="section-heading"><div><span className="eyebrow">Resolved</span><h2>Primary</h2></div></div>
-        <div className="review-result review-result--completed"><span>✓</span><div><strong>End-turn Primary committed</strong><small>Round {session.state.round} · this score will not be recalculated after later players move.</small></div><strong>+{primaryCommit?.pointsAwarded ?? primaryPreview.roundPrimary} VP</strong></div>
-        {planId === 'WYNISZCZENIE' && <p className="context-note">Wyniszczenie remains pending until the end of the Battle Round.</p>}
-      </section>
-      <section className="panel turn-review-section">
-        <div className="section-heading"><div><span className="eyebrow">Resolved</span><h2>Mission Actions</h2></div></div>
-        {review.missionActions.length === 0
-          ? <p className="context-note">No Mission Actions this turn.</p>
-          : review.missionActions.map((action) => <div className={`review-result review-result--${action.status.toLowerCase()}`} key={`${action.name}-${action.unitName}`}><span>{action.status === 'COMPLETED' ? '✓' : action.status === 'FAILED' ? '✕' : '○'}</span><div><strong>{action.name}</strong><small>{action.unitName} · {action.detail}</small></div></div>)}
-      </section>
-      <section className="panel turn-review-section">
-        <div className="section-heading"><div><span className="eyebrow">Secondary</span><h2>{review.roundSecondaryVp} / {review.roundCap} VP this round</h2></div><strong>{review.gameSecondaryVp} / {review.gameCap}</strong></div>
-        {turnSummary.completedSecondaries.map((entry, index) => <div className="review-result review-result--completed" key={`${entry.cardId}-${index}`}><span>✓</span><div><strong>{entry.name}</strong><small>Completed this turn</small></div><strong>+{entry.pointsAwarded} VP</strong></div>)}
-        {turnSummary.completedSecondaries.length === 0 && <p className="context-note">No Secondary was completed this turn.</p>}
-      </section>
-      <section className="panel turn-review-section">
+      <details className="panel turn-review-details">
+        <summary>
+          <span><span className="eyebrow">Optional details</span><strong>Scoring and Mission Action audit</strong></span>
+          <small>Primary +{turnSummary.primaryGained} · Secondary +{turnSummary.secondaryGained}</small>
+        </summary>
+        <div className="turn-review-details__body">
+          <section className="turn-review-details__group">
+            <div className="section-heading"><div><span className="eyebrow">Resolved</span><h2>Primary</h2></div></div>
+            <div className="review-result review-result--completed"><span>✓</span><div><strong>End-turn Primary committed</strong><small>Round {session.state.round} · this score will not be recalculated after later players move.</small></div><strong>+{primaryCommit?.pointsAwarded ?? primaryPreview.roundPrimary} VP</strong></div>
+            {planId === 'WYNISZCZENIE' && <p className="context-note">Wyniszczenie remains pending until the end of the Battle Round.</p>}
+          </section>
+          <section className="turn-review-details__group">
+            <div className="section-heading"><div><span className="eyebrow">Resolved</span><h2>Mission Actions</h2></div></div>
+            {review.missionActions.length === 0
+              ? <p className="context-note">No Mission Actions this turn.</p>
+              : review.missionActions.map((action) => <div className={`review-result review-result--${action.status.toLowerCase()}`} key={`${action.name}-${action.unitName}`}><span>{action.status === 'COMPLETED' ? '✓' : action.status === 'FAILED' ? '✕' : '○'}</span><div><strong>{action.name}</strong><small>{action.unitName} · {action.detail}</small></div></div>)}
+          </section>
+          <section className="turn-review-details__group">
+            <div className="section-heading"><div><span className="eyebrow">Secondary</span><h2>{review.roundSecondaryVp} / {review.roundCap} VP this round</h2></div><strong>{review.gameSecondaryVp} / {review.gameCap}</strong></div>
+            {turnSummary.completedSecondaries.map((entry, index) => <div className="review-result review-result--completed" key={`${entry.cardId}-${index}`}><span>✓</span><div><strong>{entry.name}</strong><small>Completed this turn</small></div><strong>+{entry.pointsAwarded} VP</strong></div>)}
+            {turnSummary.completedSecondaries.length === 0 && <p className="context-note">No Secondary was completed this turn.</p>}
+          </section>
+        </div>
+      </details>
+      {review.incompleteCards.length > 0 && <section className="panel turn-review-section turn-review-carryover">
         <div className="section-heading"><div><span className="eyebrow">Incomplete cards</span><h2>Choose what carries over</h2></div></div>
-        {review.incompleteCards.length === 0
-          ? <p className="context-note">No incomplete cards remain.</p>
-          : review.incompleteCards.map((card) => {
+        {review.incompleteCards.map((card) => {
             const discarding = discardIds.includes(card.cardId)
             return <div className={`discard-choice${discarding ? ' discard-choice--discarding' : ''}`} key={card.cardId}>
               <div><strong>{card.name}</strong><small>{discarding ? 'Will be discarded at the end of this review.' : 'Will remain active for your next turn.'}</small></div>
@@ -202,7 +211,7 @@ export function SecondaryEndTurnReview({
               >{discarding ? 'Keep card' : 'Discard card'}</button>
             </div>
           })}
-      </section>
+      </section>}
       <div className="turn-handoff-next">
         <span className="eyebrow">Next</span>
         <strong>{lastTurnOfRound ? `Finish Round ${session.state.round}` : `${nextPlayer?.name ?? 'Next player'} · Command phase`}</strong>

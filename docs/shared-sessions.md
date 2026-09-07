@@ -6,8 +6,8 @@ The shared-session layer keeps the existing event-driven Battle Engine and repli
 
 - A battle can create a shared lobby directly from setup or from the battle header.
 - The host claims one player seat and receives a six-character room code plus a scannable QR invite.
-- Two other devices claim the remaining seats, then all three commanders confirm readiness.
-- The host can start only when all three seats are online and ready; the backend enforces the same rule.
+- One or two other devices claim the remaining seats, then every commander confirms readiness.
+- The host can start only when all two or three configured seats are online and ready; the backend derives that number from the room snapshot.
 - Starting the lobby moves all connected phones into the shared battle.
 - New Battle Events are uploaded to the shared room and consumed in server sequence order.
 - Remote clients rebuild the local `BattleSession` from the creation snapshot plus canonical events.
@@ -67,13 +67,15 @@ VITE_SUPABASE_PUBLISHABLE_KEY=YOUR_SUPABASE_PUBLISHABLE_KEY
 
 6. Restart Vite after changing environment variables.
 
-For an existing development database, apply the repository migrations instead of rerunning the bootstrap schema blindly. If the original shared-session schema is already installed, run the newest migration in SQL Editor:
+For an existing development database, apply the cumulative compatibility migration instead of rerunning the bootstrap schema blindly. It adds missing readiness fields, restores explicit Data API grants, installs the dynamic 2/3-seat trigger, and exposes schema version 5. Run:
 
 ```text
-supabase/migrations/20260903113330_shared_lobby_readiness.sql
+supabase/migrations/20260907110311_stabilize_shared_schema.sql
 ```
 
-The Shared page runs a read-only backend preflight and reports if the URL, publishable key, tables, or lobby columns are missing.
+The migration is idempotent. The Shared page checks `shared_schema_version()` before touching a room and reports this exact file when the backend is older than the app. New projects should still run the complete `supabase/shared_sessions.sql` bootstrap once.
+
+The schema explicitly grants only the required table, sequence, and RPC privileges to `anon`, then uses RLS and the room/client capability headers to scope rows. This remains private-play capability security, not authenticated public identity.
 
 ## Test on three phones on one Wi-Fi network
 
@@ -93,11 +95,20 @@ Windows Firewall may ask to allow Node/Vite on private networks. The app uses a 
 
 ### Functional test flow
 
-The deterministic lobby, permissions, synchronization, offline retry, and reconnect scenario can be run without phones first:
+The deterministic logic tests can be run without phones first:
 
 ```powershell
 npm run test:three-phones
 ```
+
+The browser suite starts mobile Chromium contexts and a deterministic Supabase REST double. It verifies a local Duel plus a three-phone lobby, cross-phone CP synchronization, offline editing, reconnect, and a repeated event submission after a lost acknowledgement:
+
+```powershell
+npm run test:e2e:install
+npm run test:e2e
+```
+
+The browser double checks application behavior but does not replace one final smoke test against the real hosted Supabase project.
 
 1. Create a shared lobby, scan its QR code on the other phones, and join all three player seats.
 2. Mark all three phones ready; verify that the host cannot start early and that all phones enter the battle after start.

@@ -4,7 +4,7 @@ import type { BattleEvent, BattleSession } from '../domain/battle/types'
 import { saveBattle } from '../persistence/database'
 import { useBattleStore } from '../stores/battleStore'
 import { participantIsActive } from './presence'
-import { canStartSharedLobby } from './sharedLobby'
+import { canStartSharedLobby, sharedLobbyNotReadyMessage } from './sharedLobby'
 import { classifySeatRestore, shouldPreserveHostClaim } from './seatOwnership'
 import { setSharedRuntimeMembership } from './sharedRuntime'
 import { findRetryableLocalEvents, mergeCanonicalEnvelopes } from './sharedSync'
@@ -18,6 +18,7 @@ import type {
   SharedRoomInspection,
 } from './types'
 import { createPortableUuid } from './uuid'
+import { sharedBackendMessage } from './sharedBackend'
 
 const MEMBERSHIP_KEY = 'tabletop-companion.shared-membership'
 const CLIENT_KEY = 'tabletop-companion.client-id'
@@ -40,14 +41,6 @@ let preflightPromise: Promise<boolean> | null = null
 
 function message(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
-}
-
-function backendMessage(error: unknown): string {
-  const detail = message(error)
-  if (detail.includes('started_at') || detail.includes('is_ready') || detail.includes('start_shared_room')) {
-    return 'Supabase is connected, but the shared-lobby migration is missing. Run supabase/migrations/20260903113330_shared_lobby_readiness.sql in SQL Editor.'
-  }
-  return `Supabase connection check failed. ${detail}`
 }
 
 function storage(): Storage | null {
@@ -380,7 +373,7 @@ export const useSharedSessionStore = create<SharedSessionStore>((set, get) => ({
         set({ backendCheckStatus: 'ready', backendCheckMessage: 'Supabase and the shared-room schema are ready.', backendCheckedAt: Date.now() })
         return true
       }).catch((error: unknown) => {
-        set({ backendCheckStatus: 'failed', backendCheckMessage: backendMessage(error), backendCheckedAt: null })
+        set({ backendCheckStatus: 'failed', backendCheckMessage: sharedBackendMessage(error), backendCheckedAt: null })
         return false
       })
       return await preflightPromise
@@ -553,7 +546,7 @@ export const useSharedSessionStore = create<SharedSessionStore>((set, get) => ({
     }
     const playerIds = current.inspection.room.sessionSnapshot.state.turnOrder
     if (!canStartSharedLobby(true, playerIds, current.participants)) {
-      throw new Error('All three player seats must be online and ready before starting.')
+      throw new Error(sharedLobbyNotReadyMessage(playerIds))
     }
     set({ error: null })
     try {

@@ -146,11 +146,23 @@ begin
 end;
 $$;
 
+create or replace function public.shared_schema_version()
+returns integer
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  select 5;
+$$;
+
 revoke all on function public.start_shared_room(uuid) from public;
+revoke all on function public.shared_schema_version() from public;
 
 grant execute on function public.request_shared_room_code() to anon;
 grant execute on function public.request_shared_client_id() to anon;
 grant execute on function public.start_shared_room(uuid) to anon;
+grant execute on function public.shared_schema_version() to anon;
 
 drop policy if exists "shared rooms read" on public.shared_rooms;
 drop policy if exists "shared rooms create" on public.shared_rooms;

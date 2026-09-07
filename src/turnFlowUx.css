@@ -80,6 +80,71 @@
   border-top: 1px solid rgba(255, 255, 255, .08);
 }
 
+.turn-handoff-summary__details {
+  margin-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, .08);
+}
+
+.turn-handoff-summary__details > summary,
+.turn-review-details > summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  color: var(--muted);
+}
+
+.turn-handoff-summary__details > summary strong {
+  color: var(--text);
+  font-size: .78rem;
+}
+
+.turn-handoff-summary__details[open] > summary,
+.turn-review-details[open] > summary {
+  border-bottom: 1px solid rgba(255, 255, 255, .08);
+}
+
+.turn-review-details {
+  margin-bottom: 12px;
+  padding: 0 clamp(16px, 3vw, 22px);
+}
+
+.turn-review-details > summary {
+  padding: 12px 0;
+  list-style-position: inside;
+}
+
+.turn-review-details > summary > span {
+  display: grid;
+  gap: 2px;
+}
+
+.turn-review-details > summary > small {
+  flex: 0 0 auto;
+}
+
+.turn-review-details__body {
+  display: grid;
+  gap: 14px;
+  padding: 14px 0 16px;
+}
+
+.turn-review-details__group + .turn-review-details__group {
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.turn-review-details__group .section-heading {
+  margin-bottom: 8px;
+}
+
+.turn-review-details__group h2 {
+  margin: 2px 0 0;
+  font-size: 1rem;
+}
+
 .turn-handoff-summary__row {
   display: flex;
   align-items: center;
@@ -213,6 +278,16 @@
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     padding: 8px 9px;
+  }
+
+  .turn-handoff-summary__details > summary,
+  .turn-review-details > summary {
+    align-items: flex-start;
+  }
+
+  .turn-review-details > summary {
+    flex-direction: column;
+    gap: 4px;
   }
 
   .turn-handoff-summary__stats small {

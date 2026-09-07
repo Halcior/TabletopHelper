@@ -55,13 +55,25 @@ function casualtyAttribution(event: BattleEvent): { victimPlayerId: string; unit
   }
 }
 
+function casualtyAttributionReset(event: BattleEvent): { playerId: string; unitId: string } | undefined {
+  if (event.type === 'UNIT_MODEL_RESTORED') return event.payload
+  if (event.type !== 'STATE_CORRECTED') return undefined
+  const correction = event.payload.correction
+  if (correction.kind !== 'UNIT_MODELS' && correction.kind !== 'UNIT_WOUNDS') return undefined
+  return { playerId: correction.playerId, unitId: correction.unitId }
+}
+
 export function buildCauldronTurnSummary(session: BattleSession, playerId: string): CauldronTurnSummary {
   const events = currentTurnEvents(session, playerId)
   let primaryGained = 0
   let secondaryGained = 0
   let pointsGained = 0
   const completedSecondaries: TurnCompletedSecondary[] = []
-  const damagedUnits = new Map<string, { victimPlayerId: string; unitId: string }>()
+  const latestCasualtyByUnit = new Map<string, {
+    victimPlayerId: string
+    unitId: string
+    attackerPlayerId?: string
+  }>()
 
   for (const event of events) {
     if (event.type === 'SCORE_ADJUSTED' && event.payload.playerId === playerId) {
@@ -90,16 +102,21 @@ export function buildCauldronTurnSummary(session: BattleSession, playerId: strin
       }
     }
 
+    const reset = casualtyAttributionReset(event)
+    if (reset) latestCasualtyByUnit.delete(`${reset.playerId}:${reset.unitId}`)
+
     const casualty = casualtyAttribution(event)
-    if (casualty?.attackerPlayerId === playerId && casualty.victimPlayerId !== playerId) {
-      damagedUnits.set(`${casualty.victimPlayerId}:${casualty.unitId}`, {
+    if (casualty) {
+      latestCasualtyByUnit.set(`${casualty.victimPlayerId}:${casualty.unitId}`, {
         victimPlayerId: casualty.victimPlayerId,
         unitId: casualty.unitId,
+        attackerPlayerId: casualty.attackerPlayerId,
       })
     }
   }
 
-  const kills = [...damagedUnits.values()].flatMap(({ victimPlayerId, unitId }): TurnKill[] => {
+  const kills = [...latestCasualtyByUnit.values()].flatMap(({ victimPlayerId, unitId, attackerPlayerId }): TurnKill[] => {
+    if (attackerPlayerId !== playerId || victimPlayerId === playerId) return []
     if (!session.state.players[victimPlayerId]?.units[unitId]?.destroyed) return []
     return [{
       victimPlayerId,

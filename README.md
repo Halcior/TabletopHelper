@@ -1,20 +1,23 @@
 # Tabletop Companion
 
-An offline-first tabletop battle co-pilot built with React, strict TypeScript, Vite, Zustand, Zod, Dexie, and Vitest.
+An offline-first tabletop battle co-pilot built with React, strict TypeScript, Vite, Zustand, Zod, Dexie, Vitest, and Playwright.
 
 Current capabilities:
 
 - import real New Recruit JSON into an internal army model;
 - preview and persist imported armies locally;
-- configure a Cauldron FFA 3 battle with three saved armies, deployment zones, fixed turn order, and Operational Plans;
+- configure either a two-player Cauldron Duel or three-player FFA battle with saved armies, deployment zones, fixed turn order, and Operational Plans;
 - track automatic Rival rotation, snapshots, phases, turns, rounds, CP, objectives, attributed casualties, wounds, abilities, and an event log;
 - manage all 15 Cauldron Secondaries and Mission Actions, including automatic Sabotaż evaluation;
-- review and automatically commit Cauldron Primary scoring, with a detailed scoring audit;
-- share one battle across three commander devices with offline retry and host-only recorded corrections;
+- reveal newly drawn Secondaries, use the free mulligan, and automatically commit Primary/Secondary scoring;
+- hand the phone over from a compact end-turn summary while keeping the full scoring audit available on demand;
+- record damage against any opponent while keeping Rival-specific scoring separate and crediting the final casualty correctly;
+- share one battle across two or three commander devices with a readiness lobby, QR invite, offline retry, reconnect, and host-only recorded corrections;
 - export a privacy-safe diagnostic report when a playtest problem occurs;
 - install the hosted build as a PWA and reopen the previously visited app shell offline;
 - use a one-handed phone battle surface with one-tap Fast Mode progression, collapsed reminders, readable objective ownership, and recent-unit damage controls;
 - use a restrained tactical-console visual system with semantic player colours, icon-led navigation, accessible state contrast, and reduced-motion support;
+- verify Duel and synchronized three-phone flows in mobile Chromium through Playwright;
 - undo/redo actions and resume active battles from IndexedDB.
 
 ## Visual language
@@ -28,7 +31,9 @@ Development commands:
 3. `npm run generate:rules-data` after updating `@alpaca-software/40kdc-data`
 4. `npx tsc --noEmit`
 5. `npm test -- --run`
-6. `npm run build`
+6. `npm run test:e2e:install` once on a new development machine
+7. `npm run test:e2e`
+8. `npm run build`
 
 ## Remote playtesting
 
@@ -36,6 +41,6 @@ The app is intended to be testable through a hosted Vercel URL as well as locall
 
 When the GitHub repository is connected to Vercel, pushes to feature branches can be shared as Vercel Preview Deployments. Testers should normally open the app from the root URL and create/import their own local data. Battle sessions and imported armies are stored in IndexedDB on each browser/device, so sending somebody a `/battle/<id>` URL does not transfer that battle state to another device.
 
-The shared-session flow is different: one player creates a shared lobby directly from battle setup or the battle header. The other phones scan its QR invite (or enter the six-character code), claim their seats, mark ready, and enter the synchronized battle together when the host starts it.
+The shared-session flow is different: one player creates a two- or three-seat lobby directly from battle setup or the battle header. The other phones scan its QR invite (or enter the six-character code), claim their seats, mark ready, and enter the synchronized battle together when the host starts it. See `docs/shared-sessions.md` for the cumulative Supabase migration and the physical-phone checklist.
 
 The files in `test-data/` are immutable external New Recruit fixtures.

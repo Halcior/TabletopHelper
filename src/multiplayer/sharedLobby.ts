@@ -42,3 +42,7 @@ export function canStartSharedLobby(
   const summary = summarizeSharedLobby(playerIds, participants, now)
   return isHost && summary.allSeatsOnline && summary.allReady
 }
+
+export function sharedLobbyNotReadyMessage(playerIds: string[]): string {
+  return `All ${playerIds.length} player seats must be online and ready before starting.`
+}

@@ -45,4 +45,54 @@ describe('Cauldron turn summary', () => {
     expect(summary.kills).toEqual([])
     expect(summary.pointsGained).toBe(0)
   })
+
+  it('only credits a destroyed unit when the summarized player recorded the final casualty', () => {
+    let session = testCauldronGame()
+    session = dispatchCauldronBattleEvent(session, {
+      type: 'UNIT_MODEL_DESTROYED',
+      payload: { playerId: 'p-b', unitId: 'infantry', amount: 2, destroyedByPlayerId: 'p-a' },
+    })
+    session = dispatchCauldronBattleEvent(session, {
+      type: 'UNIT_MODEL_DESTROYED',
+      payload: { playerId: 'p-b', unitId: 'infantry', amount: 2, destroyedByPlayerId: 'p-c' },
+    })
+
+    expect(buildCauldronTurnSummary(session, 'p-a').kills).toEqual([])
+
+    let creditedSession = testCauldronGame()
+    creditedSession = dispatchCauldronBattleEvent(creditedSession, {
+      type: 'UNIT_MODEL_DESTROYED',
+      payload: { playerId: 'p-b', unitId: 'infantry', amount: 2, destroyedByPlayerId: 'p-c' },
+    })
+    creditedSession = dispatchCauldronBattleEvent(creditedSession, {
+      type: 'UNIT_MODEL_DESTROYED',
+      payload: { playerId: 'p-b', unitId: 'infantry', amount: 2, destroyedByPlayerId: 'p-a' },
+    })
+
+    expect(buildCauldronTurnSummary(creditedSession, 'p-a').kills).toEqual([
+      expect.objectContaining({ victimPlayerId: 'p-b', unitId: 'infantry' }),
+    ])
+  })
+
+  it('clears casualty credit after a model restoration or exact state correction', () => {
+    let session = testCauldronGame()
+    session = dispatchCauldronBattleEvent(session, {
+      type: 'UNIT_DESTROYED',
+      payload: { playerId: 'p-b', unitId: 'infantry', destroyedByPlayerId: 'p-a' },
+    })
+    session = dispatchCauldronBattleEvent(session, {
+      type: 'UNIT_MODEL_RESTORED',
+      payload: { playerId: 'p-b', unitId: 'infantry', amount: 1 },
+    })
+    expect(buildCauldronTurnSummary(session, 'p-a').kills).toEqual([])
+
+    session = dispatchCauldronBattleEvent(session, {
+      type: 'STATE_CORRECTED',
+      payload: {
+        correction: { kind: 'UNIT_MODELS', playerId: 'p-b', unitId: 'infantry', value: 0 },
+        reason: 'Corrected at the table',
+      },
+    })
+    expect(buildCauldronTurnSummary(session, 'p-a').kills).toEqual([])
+  })
 })

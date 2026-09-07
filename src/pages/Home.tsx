@@ -78,7 +78,7 @@ export default function Home() {
           </Link>}
 
           {armies.length > 0 ? <Link className={`home-action${activeBattle ? '' : ' home-action--primary'}`} to="/battle/setup">
-            <HomeActionContent icon="objectives" label="Play" title="New battle" detail="Set up Cauldron FFA 3" />
+            <HomeActionContent icon="objectives" label="Play" title="New battle" detail="Choose Duel 1v1 or FFA 3" />
           </Link> : <Link className="home-action home-action--primary" to="/army-import">
             <HomeActionContent icon="import" label="First step" title="Import army" detail="Add a New Recruit roster" />
           </Link>}
@@ -110,7 +110,9 @@ export default function Home() {
           {recentBattles.map((entry) => <article className={`panel recent-battle-card recent-battle-card--${entry.status}`} key={entry.id}>
             <div className="recent-battle-card__heading">
               <div><span className="eyebrow">{statusLabel(entry.status)}</span><h3>Battle Round {entry.session.state.round}</h3></div>
-              <span>{entry.session.setup.rulesetId === CAULDRON_RULESET_ID ? 'Cauldron FFA 3' : entry.session.setup.rulesetId}</span>
+              <span>{entry.session.setup.rulesetId === CAULDRON_RULESET_ID
+                ? entry.session.state.turnOrder.length === 2 ? 'Cauldron Duel 1v1' : 'Cauldron FFA 3'
+                : entry.session.setup.rulesetId}</span>
             </div>
             <div className="recent-battle-card__scores">
               {entry.session.state.turnOrder.map((id) => {

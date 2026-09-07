@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { SharedParticipant } from './types'
-import { canStartSharedLobby, sharedBattleHasStarted, summarizeSharedLobby } from './sharedLobby'
+import { canStartSharedLobby, sharedBattleHasStarted, sharedLobbyNotReadyMessage, summarizeSharedLobby } from './sharedLobby'
 
 const NOW = Date.parse('2026-09-03T12:00:00.000Z')
 const FFA_PLAYERS = ['player-a', 'player-b', 'player-c']
@@ -66,5 +66,7 @@ describe('shared lobby', () => {
       allReady: true,
     })
     expect(canStartSharedLobby(true, DUEL_PLAYERS, ready, NOW)).toBe(true)
+    expect(sharedLobbyNotReadyMessage(DUEL_PLAYERS)).toBe('All 2 player seats must be online and ready before starting.')
+    expect(sharedLobbyNotReadyMessage(FFA_PLAYERS)).toBe('All 3 player seats must be online and ready before starting.')
   })
 })

@@ -44,6 +44,7 @@ import {
   cauldronReactionPolicy,
   getCurrentRivalPlayerId,
   getPendingEliminationChoice,
+  getCauldronConfig,
   isCauldronEndOfRound,
 } from '../rulesets/cauldronFFA3'
 import type { SecondaryId } from '../rulesets/cauldronFFA3/secondaryTypes'
@@ -182,6 +183,9 @@ export default function BattleDashboard() {
   const viewerPlayerId = sharedPermissions.viewerPlayerId
   const viewer = viewerPlayerId ? session.state.players[viewerPlayerId] : null
   const cauldron = session.setup.rulesetId === CAULDRON_RULESET_ID
+  const cauldronModeLabel = cauldron && getCauldronConfig(session).mode === 'duel'
+    ? 'Cauldron Duel 1v1'
+    : 'Cauldron FFA 3'
   const reactionPolicy = cauldron ? cauldronReactionPolicy : undefined
   const dashboardTabs: DashboardTab[] = cauldron
     ? ['overview', 'army', 'objectives', 'cards', 'log']
@@ -444,7 +448,7 @@ export default function BattleDashboard() {
         <div className="battle-context">
           {battleActive && rival && <div className="rival-callout"><span>Current Rival</span><strong>{rival.name}</strong></div>}
           {battleActive && <span className={`mode-badge mode-badge--${guidanceLevel}`}>{guidanceLevel} mode</span>}
-          {cauldron && <span className="ruleset-label">Cauldron FFA 3</span>}
+          {cauldron && <span className="ruleset-label">{cauldronModeLabel}</span>}
           <SharedSessionStatus battleId={session.setup.gameId} />
           {battleActive && <BattleMenu
             session={session}

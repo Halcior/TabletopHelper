@@ -8,6 +8,7 @@ import type {
   SharedSessionTransport,
 } from './types'
 import { createPortableUuid } from './uuid'
+import { assertSharedSchemaVersion } from './sharedBackend'
 
 type SupabaseRoomRow = {
   id: string
@@ -80,6 +81,11 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
 
   async preflight(): Promise<void> {
     const probeCode = 'AAAAAA'
+    const schemaVersion = await this.request<number>('rpc/shared_schema_version', {
+      method: 'POST',
+      body: '{}',
+    }, probeCode, 'preflight')
+    assertSharedSchemaVersion(schemaVersion)
     await this.request<Pick<SupabaseRoomRow, 'id' | 'started_at'>[]>(
       'shared_rooms?select=id,started_at&limit=1',
       {},

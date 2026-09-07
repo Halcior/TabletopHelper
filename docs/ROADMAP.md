@@ -10,9 +10,9 @@
 - compact generated `40kdc-data` runtime snapshot and route-level code splitting;
 - installable PWA shell with same-origin runtime caching.
 
-## Completed Cauldron FFA 3 core
+## Completed Cauldron core
 
-- three-player A/B/C setup, fixed turn order, automatic Rival rotation, and all five Operational Plans;
+- two-player Duel and three-player FFA setup, fixed turn order, automatic/permanent Rival selection, and all five Operational Plans;
 - automatic Round/Turn Start snapshots, casualty attribution, Wyniszczenie, Primary review, caps, and plan changes;
 - all 15 Secondary cards, deck lifecycle, automatic/assisted evaluators, and scoring history;
 - Mission Actions for Secure Data, Scan Signal, and automatic Sabotaż plan evaluation;
@@ -27,11 +27,22 @@
 - deterministic three-client convergence test covering permissions, automatic scoring, offline retry, and corrections;
 - QR deep-link invites, a synchronized three-seat readiness lobby, direct shared start, backend preflight, and visible sync-loss warnings;
 - deterministic three-phone lobby coverage for readiness, disconnect, reconnect, and host-only start.
+- browser-level mobile Chromium coverage for Duel and three independent shared clients;
+- browser-level offline queue, lost acknowledgement, duplicate retry, and reconnect coverage;
+- versioned Supabase preflight plus one cumulative migration for old shared-room schemas.
+
+## Completed phone-flow stabilization
+
+- newly drawn Secondary reveal and free-mulligan decision at the start of the commander's turn;
+- damage entry against any FFA opponent with immediate result feedback and quick undo;
+- compact end-turn handoff with the full scoring and Mission Action audit collapsed by default;
+- final-casualty attribution in the turn summary instead of crediting any earlier attacker;
+- explicit Duel/FFA labels in the battle header and history.
 
 ## Next milestone: live playtest findings
 
 - run the documented three-phone tabletop flow and turn findings into reproducible tests;
-- add browser-level Playwright coverage against a disposable Supabase project when test credentials are available;
+- run the same browser flow against a disposable Supabase project when CI test credentials are available;
 - add synchronized inverse/compensating actions if host corrections prove too slow for common mistakes;
 - improve result and post-game statistics based on real playtest needs.
 

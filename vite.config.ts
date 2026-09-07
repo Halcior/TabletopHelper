@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 
 const buildSha = process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.GITHUB_SHA ?? 'local'
@@ -10,5 +10,8 @@ export default defineConfig({
   },
   server: {
     port: 5173
-  }
+  },
+  test: {
+    include: ['src/**/*.{test,spec}.{ts,tsx}'],
+  },
 })
