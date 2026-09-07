@@ -1,15 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { participantIsOnline } from '../../multiplayer/presence'
 import { useSharedSessionStore } from '../../multiplayer/sharedSessionStore'
+import { useBattleStore } from '../../stores/battleStore'
 
-export function SharedSyncWarning({
-  battleId,
-  expectedPlayerCount,
-}: {
-  battleId: string
-  expectedPlayerCount: number
-}) {
+export function SharedSyncWarning({ battleId }: { battleId: string }) {
   const [clock, setClock] = useState(() => Date.now())
+  const expectedPlayerCount = useBattleStore((state) => (
+    state.session?.setup.gameId === battleId ? state.session.state.turnOrder.length : 3
+  ))
   const {
     membership,
     participants,
