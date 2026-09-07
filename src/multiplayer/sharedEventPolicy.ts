@@ -92,6 +92,38 @@ function isAutomaticCasualtyConsequence(event: BattleEvent, beneficiaryPlayerId:
     && rulesetPlayerId(event) === beneficiaryPlayerId
 }
 
+function currentUnitWounds(session: BattleSession, playerId: string, unitId: string): number | undefined {
+  const state = session.state.players[playerId]?.units[unitId]
+  if (!state) return undefined
+  if (typeof state.woundsRemaining === 'number') return state.woundsRemaining
+  const setupPlayer = session.setup.players.find((player) => player.id === playerId)
+  const army = setupPlayer?.armyId ? session.setup.armies[setupPlayer.armyId] : undefined
+  return army?.units.find((unit) => unit.id === unitId)?.stats?.wounds
+}
+
+/**
+ * During their own turn a commander may record losses they just inflicted on an
+ * opponent. This is deliberately narrower than general opponent-army editing:
+ * restoring models, healing wounds, Battle-shock, abilities and other state
+ * remain owned by that army's commander.
+ */
+function isActiveAttackerCasualty(
+  event: BattleEvent,
+  session: BattleSession,
+  viewerPlayerId: string,
+): boolean {
+  if (viewerPlayerId !== session.state.activePlayerId) return false
+  if (event.type !== 'UNIT_MODEL_DESTROYED' && event.type !== 'UNIT_WOUNDS_CHANGED' && event.type !== 'UNIT_DESTROYED') return false
+  if (event.payload.playerId === viewerPlayerId) return false
+  if (event.payload.destroyedByPlayerId !== viewerPlayerId) return false
+
+  if (event.type === 'UNIT_WOUNDS_CHANGED') {
+    const current = currentUnitWounds(session, event.payload.playerId, event.payload.unitId)
+    return current !== undefined && event.payload.woundsRemaining < current
+  }
+  return true
+}
+
 export function authorizeSharedAction(
   sessionBefore: BattleSession,
   events: BattleEvent[],
@@ -157,11 +189,12 @@ export function authorizeSharedAction(
     }
 
     if (isAutomaticCasualtyConsequence(event, automaticBeneficiary)) continue
+    if (isActiveAttackerCasualty(event, sessionBefore, viewerPlayerId)) continue
 
     const targetPlayerId = playerScopedTarget(event, sessionBefore)
     if (targetPlayerId && targetPlayerId !== viewerPlayerId) {
       if (event.type === 'SCORE_ADJUSTED' && primaryCommit && viewerPlayerId === sessionBefore.state.activePlayerId) continue
-      return deny('A shared commander can only change their own player or army state.')
+      return deny('A shared commander can only change their own player or army state, except casualties they inflict during their own turn.')
     }
 
     if (event.type === 'RULESET_EVENT') {
