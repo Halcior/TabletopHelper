@@ -13,6 +13,7 @@ import {
 import type { ActiveSecondaryView, SecondaryId } from '../../rulesets/cauldronFFA3/secondaryTypes'
 import { MissionActionLauncher } from './MissionActionLauncher'
 import { QuickObjectiveControls } from './QuickObjectiveControls'
+import { SecondaryDrawReveal } from './SecondaryDrawReveal'
 
 type SecondaryPanelProps = {
   session: BattleSession
@@ -89,6 +90,7 @@ export function SecondaryPanel({
 
   return (
     <section className="panel secondary-panel">
+      <SecondaryDrawReveal session={session} playerId={playerId} onMulligan={onMulligan} />
       <div className="section-heading secondary-heading">
         <div><span className="eyebrow">Current objectives</span><h2>Secondary Missions</h2></div>
         <div className="secondary-score"><strong>{getRoundSecondaryVp(session, playerId)} / 10</strong><span>round</span><small>{getGameSecondaryVp(session, playerId)} / 45 game</small></div>
