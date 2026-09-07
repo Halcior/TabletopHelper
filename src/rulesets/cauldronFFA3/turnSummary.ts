@@ -51,7 +51,7 @@ function casualtyAttribution(event: BattleEvent): { victimPlayerId: string; unit
   return {
     victimPlayerId: event.payload.playerId,
     unitId: event.payload.unitId,
-    attackerPlayerId: event.payload.destroyedByPlayerId,
+    attackerPlayerId: event.payload.destroyedByPlayerId ?? undefined,
   }
 }
 
