@@ -1,9 +1,12 @@
 import { totalScore } from '../../domain/battle/selectors'
 import type { BattleSession } from '../../domain/battle/types'
 import { getCurrentReactionWindow } from '../../domain/stratagems/battleIntegration'
-import { selectActiveMissionActions, selectActiveSecondaries } from '../../domain/context/selectors'
+import { selectActiveMissionActions } from '../../domain/context/selectors'
 import { CAULDRON_RULESET_ID, getCurrentRivalPlayerId } from '../../rulesets/cauldronFFA3'
 import { evaluateOperationalPlan } from '../../rulesets/cauldronFFA3/operationalPlans'
+import { getActiveSecondaryViews } from '../../rulesets/cauldronFFA3/secondary'
+import { useBattleStore } from '../../stores/battleStore'
+import { RivalDamagePanel } from './RivalDamagePanel'
 
 type SharedPlayerPerspectiveProps = {
   session: BattleSession
@@ -14,6 +17,16 @@ type SharedPlayerPerspectiveProps = {
   onOpenCards: () => void
   onOpenObjectives?: () => void
   showCards: boolean
+}
+
+function secondaryStatus(status: ReturnType<typeof getActiveSecondaryViews>[number]['status']): string {
+  switch (status) {
+    case 'COMPLETED': return 'Completed'
+    case 'INPUT_REQUIRED': return 'Input required'
+    case 'DECISION_REQUIRED': return 'Decision required'
+    case 'DEADLINE_FAILED': return 'Failed'
+    default: return 'In progress'
+  }
 }
 
 export function SharedPlayerPerspective({
@@ -28,6 +41,7 @@ export function SharedPlayerPerspective({
 }: SharedPlayerPerspectiveProps) {
   const viewer = session.state.players[viewerPlayerId]
   const active = session.state.players[session.state.activePlayerId]
+  const dispatch = useBattleStore((store) => store.dispatch)
   if (!viewer || !active) return null
 
   const ownTurn = viewerPlayerId === active.id
@@ -38,7 +52,7 @@ export function SharedPlayerPerspective({
   const viewerRival = viewerRivalId ? session.state.players[viewerRivalId] : null
   const reactionWindow = getCurrentReactionWindow(session)
   const reactionPending = reactionWindow?.responses[viewerPlayerId]?.status === 'PENDING'
-  const activeSecondaries = showCards ? selectActiveSecondaries(session, viewerPlayerId) : []
+  const activeSecondaries = showCards ? getActiveSecondaryViews(session, viewerPlayerId) : []
   const missionActions = selectActiveMissionActions(session, viewerPlayerId)
   const plan = showCards ? evaluateOperationalPlan(session, viewerPlayerId) : null
   const planProgress = plan?.progress
@@ -82,13 +96,26 @@ export function SharedPlayerPerspective({
     {plan && <div className="player-focus-line"><span>Plan</span><strong>{plan.name} · {planProgress}</strong></div>}
     {missionActions.length > 0 && <div className="player-focus-line"><span>Action</span><strong>{missionActions.map((item) => item.name).join(' · ')}</strong></div>}
 
-    {showCards && <div className="player-focus-secondary-list" aria-label="My active Secondary missions">
+    {showCards && <section className={`shared-secondary-focus${ownTurn ? ' shared-secondary-focus--active' : ''}`} aria-label="My active Secondary missions">
+      <div className="shared-secondary-focus__heading">
+        <div><span className="eyebrow">{ownTurn ? 'Your current turn' : 'Your missions'}</span><h3>Secondary Missions</h3></div>
+        <button type="button" onClick={onOpenCards}>Details</button>
+      </div>
       {activeSecondaries.length === 0
-        ? <div className="player-focus-line"><span>Secondaries</span><strong>None active</strong></div>
-        : activeSecondaries.map((card) => <div className="player-focus-secondary" key={card.cardId}>
-          <strong>{card.name}</strong><span>{card.vp} VP</span><small>{card.progress}</small>
-        </div>)}
-    </div>}
+        ? <div className="shared-secondary-focus__empty"><strong>None active</strong><span>Cards refill at the next Command phase.</span></div>
+        : <div className="shared-secondary-focus__list">{activeSecondaries.map((card) => <article className={`shared-secondary-card shared-secondary-card--${card.status.toLowerCase()}`} key={card.cardId}>
+          <div className="shared-secondary-card__top"><div><span>{secondaryStatus(card.status)}</span><strong>{card.name}</strong></div><b>{card.vp} VP</b></div>
+          <p>{card.objective}</p>
+          <div className="shared-secondary-card__progress"><span>Progress</span><strong>{card.progress}</strong></div>
+        </article>)}</div>}
+    </section>}
+
+    {ownTurn && viewerRivalId && <RivalDamagePanel
+      session={session}
+      attackerPlayerId={viewerPlayerId}
+      victimPlayerId={viewerRivalId}
+      dispatch={dispatch}
+    />}
 
     <div className="shared-perspective__actions">
       <button onClick={onOpenArmy}>Army</button>
