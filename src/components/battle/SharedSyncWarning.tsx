@@ -2,7 +2,13 @@ import { useEffect, useMemo, useState } from 'react'
 import { participantIsOnline } from '../../multiplayer/presence'
 import { useSharedSessionStore } from '../../multiplayer/sharedSessionStore'
 
-export function SharedSyncWarning({ battleId }: { battleId: string }) {
+export function SharedSyncWarning({
+  battleId,
+  expectedPlayerCount,
+}: {
+  battleId: string
+  expectedPlayerCount: number
+}) {
   const [clock, setClock] = useState(() => Date.now())
   const {
     membership,
@@ -26,10 +32,11 @@ export function SharedSyncWarning({ battleId }: { battleId: string }) {
   )
   if (!membership || membership.battleId !== battleId) return null
 
+  const requiredPlayers = Math.max(2, expectedPlayerCount)
   const lastSyncMs = lastSyncedAt ? clock - Date.parse(lastSyncedAt) : 0
   const stale = connectionStatus === 'connected' && lastSyncedAt !== null && lastSyncMs > 8_000
   const ownConnectionLost = connectionStatus === 'offline' || connectionStatus === 'reconnecting' || connectionStatus === 'error' || stale
-  const commanderMissing = connectionStatus === 'connected' && onlineCount < 3
+  const commanderMissing = connectionStatus === 'connected' && onlineCount < requiredPlayers
   const hasQueue = pendingEventCount > 0
   if (!ownConnectionLost && !commanderMissing && !hasQueue && connectionStatus !== 'connecting') return null
 
@@ -40,7 +47,7 @@ export function SharedSyncWarning({ battleId }: { battleId: string }) {
       : stale
         ? 'No recent confirmation from Supabase'
         : commanderMissing
-          ? `Only ${onlineCount}/3 phones are online`
+          ? `Only ${onlineCount}/${requiredPlayers} phones are online`
           : 'Connecting to the shared room'
   const detail = ownConnectionLost
     ? `Your changes stay on this phone${pendingEventCount > 0 ? ` (${pendingEventCount} queued)` : ''} and will retry automatically.`
