@@ -32,7 +32,7 @@ describe('shared event policy', () => {
     expect(authorizeSharedMutation(before, after, membership('p-b')).allowed).toBe(true)
   })
 
-  it('blocks edits to another commander army state', () => {
+  it('blocks edits to another commander army state outside the active attacker flow', () => {
     const before = testCauldronGame()
     const after = dispatchBattleEvent(before, {
       type: 'UNIT_MODEL_DESTROYED',
@@ -42,6 +42,36 @@ describe('shared event policy', () => {
     const decision = authorizeSharedMutation(before, after, membership('p-b'))
     expect(decision.allowed).toBe(false)
     expect(decision.reason).toMatch(/own player or army state/i)
+  })
+
+  it('allows the active commander to record casualties inflicted on an opponent', () => {
+    const before = testCauldronGame()
+    const modelLoss = dispatchBattleEvent(before, {
+      type: 'UNIT_MODEL_DESTROYED',
+      payload: { playerId: 'p-b', unitId: 'infantry', amount: 1, destroyedByPlayerId: 'p-a' },
+    }, { actorPlayerId: 'p-a' })
+    const woundLoss = dispatchBattleEvent(before, {
+      type: 'UNIT_WOUNDS_CHANGED',
+      payload: { playerId: 'p-b', unitId: 'tank', woundsRemaining: 11, destroyedByPlayerId: 'p-a' },
+    }, { actorPlayerId: 'p-a' })
+
+    expect(authorizeSharedMutation(before, modelLoss, membership('p-a')).allowed).toBe(true)
+    expect(authorizeSharedMutation(before, woundLoss, membership('p-a')).allowed).toBe(true)
+  })
+
+  it('does not let the active commander heal or restore an opponent unit', () => {
+    const before = testCauldronGame()
+    const attemptedHeal = dispatchBattleEvent(before, {
+      type: 'UNIT_WOUNDS_CHANGED',
+      payload: { playerId: 'p-b', unitId: 'tank', woundsRemaining: 15, destroyedByPlayerId: 'p-a' },
+    }, { actorPlayerId: 'p-a' })
+    const attemptedRestore = dispatchBattleEvent(before, {
+      type: 'UNIT_MODEL_RESTORED',
+      payload: { playerId: 'p-b', unitId: 'infantry', amount: 1 },
+    }, { actorPlayerId: 'p-a' })
+
+    expect(authorizeSharedMutation(before, attemptedHeal, membership('p-a')).allowed).toBe(false)
+    expect(authorizeSharedMutation(before, attemptedRestore, membership('p-a')).allowed).toBe(false)
   })
 
   it('lets a commander record only their own Battle-shock test result', () => {
@@ -75,6 +105,19 @@ describe('shared event policy', () => {
     expect(generated.some((event) => event.type === 'RULESET_EVENT' && event.payload.action === 'SECONDARY_COMPLETED')).toBe(true)
     expect(generated.some((event) => event.type === 'SCORE_ADJUSTED' && event.payload.playerId === 'p-a')).toBe(true)
     expect(authorizeSharedMutation(before, after, membership('p-b')).allowed).toBe(true)
+  })
+
+  it('allows the active attacker casualty to trigger their own automatic Secondary score', () => {
+    const deck: SecondaryId[] = ['SILA_OGNIA', ...CAULDRON_SECONDARY_IDS.filter((id) => id !== 'SILA_OGNIA')]
+    let before = testCauldronGame({ secondaryDeckOrders: { 'p-a': deck } })
+    before = advanceCauldronPhase(before)
+    before = advanceCauldronPhase(before)
+    const after = dispatchCauldronBattleEvent(before, {
+      type: 'UNIT_DESTROYED',
+      payload: { playerId: 'p-b', unitId: 'infantry', destroyedByPlayerId: 'p-a' },
+    })
+
+    expect(authorizeSharedMutation(before, after, membership('p-a')).allowed).toBe(true)
   })
 
   it('blocks a non-active commander from advancing the phase', () => {
