@@ -1,0 +1,69 @@
+.rival-damage-panel__targets {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 6px;
+  margin: 9px 0 7px;
+}
+
+.rival-damage-panel__targets button {
+  min-width: 0;
+  min-height: 48px;
+  padding: 7px 9px;
+  display: grid;
+  justify-items: start;
+  align-content: center;
+  gap: 2px;
+  text-align: left;
+}
+
+.rival-damage-panel__targets button.selected {
+  border-color: rgba(224, 190, 92, .85);
+  background: rgba(224, 190, 92, .1);
+  box-shadow: inset 3px 0 0 rgba(224, 190, 92, .9);
+}
+
+.rival-damage-panel__targets button strong {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rival-damage-panel__targets button span {
+  font-size: .72rem;
+  opacity: .7;
+}
+
+.rival-damage-panel__scoring-note {
+  margin: 7px 0;
+  padding: 7px 8px;
+  display: grid;
+  gap: 2px;
+  border: 1px solid rgba(255, 255, 255, .1);
+  background: rgba(255, 255, 255, .025);
+}
+
+.rival-damage-panel__scoring-note.is-rival {
+  border-color: rgba(224, 190, 92, .65);
+  background: rgba(224, 190, 92, .06);
+}
+
+.rival-damage-panel__scoring-note strong {
+  font-size: .78rem;
+}
+
+.rival-damage-panel__scoring-note span {
+  font-size: .74rem;
+  line-height: 1.3;
+  opacity: .76;
+}
+
+@media (max-width: 430px) {
+  .rival-damage-panel__targets {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .rival-damage-panel__targets button {
+    padding: 6px 7px;
+  }
+}

@@ -110,10 +110,10 @@ export function SharedPlayerPerspective({
         </article>)}</div>}
     </section>}
 
-    {ownTurn && viewerRivalId && <RivalDamagePanel
+    {ownTurn && <RivalDamagePanel
       session={session}
       attackerPlayerId={viewerPlayerId}
-      victimPlayerId={viewerRivalId}
+      currentRivalPlayerId={viewerRivalId}
       dispatch={dispatch}
     />}
 
