@@ -5,6 +5,7 @@ import type { SecondaryId } from './secondaryTypes'
 export type DeploymentZone = 'A' | 'B' | 'C'
 export type TurnPosition = 1 | 2 | 3
 export type CauldronMode = 'duel' | 'ffa3'
+export type CauldronObjectiveLayout = 'classic-6' | 'expanded-7'
 export type OperationalPlanId =
   | 'WYNISZCZENIE'
   | 'DECYDUJACE_NATARCIE'
@@ -28,6 +29,7 @@ export type CauldronGameInput = {
   armies: Army[]
   guidanceLevel: 'guided' | 'fast'
   mode?: CauldronMode
+  objectiveLayout?: CauldronObjectiveLayout
   gameId?: string
   createdAt?: string
   /** Optional deterministic order for tests/dev tools. Normal games shuffle every player's complete deck. */
@@ -44,6 +46,7 @@ export type CauldronConfig = {
   version: 1
   mode?: CauldronMode
   playerCount?: 2 | 3
+  objectiveLayout?: CauldronObjectiveLayout
   battleRounds: number
   primaryCap: number
   secondaryCap: number
