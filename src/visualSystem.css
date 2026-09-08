@@ -1,0 +1,24 @@
+/*
+ * One visual entrypoint with an explicit cascade contract.
+ * Feature styles own component layout; responsive styles compact it; the
+ * tactical theme is the final presentation layer.
+ */
+@layer foundation, feature, focus, responsive, polish;
+
+@import './styles.css' layer(foundation);
+
+@import './lifecycle.css' layer(feature);
+@import './contextPolish.css' layer(feature);
+@import './sharedSessions.css' layer(feature);
+@import './reactionHold.css' layer(feature);
+@import './duelMode.css' layer(feature);
+
+@import './uiSimplify.css' layer(focus);
+@import './uiFocus.css' layer(focus);
+
+@import './mobileBattle.css' layer(responsive);
+@import './mobileBattleUx.css' layer(responsive);
+@import './ffaDamageTarget.css' layer(responsive);
+@import './turnFlowUx.css' layer(responsive);
+
+@import './tacticalTheme.css' layer(polish);

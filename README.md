@@ -22,7 +22,7 @@ Current capabilities:
 
 ## Visual language
 
-The interface uses a dark tactical-console theme rather than decorative parchment or heavy glow. Gold is reserved for the current phase and primary action; red marks blockers, green confirms completed state, and gold/blue/red consistently identify the three commanders. Operational screens use compact system typography and 44px-or-larger mobile controls. `src/tacticalTheme.css` is the canonical final visual layer over the feature-specific stylesheets.
+The interface uses a dark tactical-console theme rather than decorative parchment or heavy glow. Gold is reserved for the current phase and primary action; red marks blockers, green confirms completed state, and gold/blue/red consistently identify the three commanders. Operational screens use compact system typography and 44px-or-larger mobile controls. `src/visualSystem.css` is the single CSS entry point: it orders the foundation, feature, focus, responsive, and final polish layers, with `src/tacticalTheme.css` providing the canonical visual finish.
 
 Development commands:
 

@@ -35,13 +35,13 @@ export function Scoreboard({
         return (
           <article className={`score-card score-card--player-${playerIndex}${active ? ' is-active' : ''}${rival ? ' is-rival' : ''}${viewer ? ' is-viewer' : ''}`} key={playerId}>
             <div className="score-card__identity">
-              <div className="score-card__name">{player.name}</div>
+              <div className="score-card__name"><i aria-hidden="true" />{player.name}</div>
               {player.faction && <small>{player.faction}</small>}
-              <span>{role}</span>
+              <span className="score-card__role">{role}</span>
             </div>
             <div className="score-card__numbers">
-              <div><strong>{totalScore(player)}</strong><span>VP</span></div>
-              <div><strong>{player.cp}</strong><span>CP</span></div>
+              <div className="score-card__metric score-card__metric--vp"><strong>{totalScore(player)}</strong><span>VP</span></div>
+              <div className="score-card__metric score-card__metric--cp"><strong>{player.cp}</strong><span>CP</span></div>
             </div>
             {canEditCp && <div className={`compact-controls${cauldron ? ' compact-controls--cp' : ''}`}>
               {!cauldron && <button

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { participantIsOnline } from '../../multiplayer/presence'
 import { useSharedSessionStore } from '../../multiplayer/sharedSessionStore'
 import { useBattleStore } from '../../stores/battleStore'
+import { AppIcon } from '../AppIcon'
 
 export function SharedSessionStatus({ battleId }: { battleId: string }) {
   const navigate = useNavigate()
@@ -42,11 +43,11 @@ export function SharedSessionStatus({ battleId }: { battleId: string }) {
   }
 
   if (membership && membership.battleId !== battleId) {
-    return <Link className="shared-status shared-status--idle" to={`/shared?room=${membership.roomCode}`}><span>Other room</span><strong>{membership.roomCode}</strong></Link>
+    return <Link aria-label={`Open other room ${membership.roomCode}`} className="shared-status shared-status--idle" to={`/shared?room=${membership.roomCode}`}><AppIcon name="shared" /><span className="shared-status__copy"><span>Other room</span><strong>{membership.roomCode}</strong></span></Link>
   }
 
   if (!membership) return configured
-    ? <button className="shared-status shared-status--idle" disabled={working} onClick={() => void createLobby()} title={error ?? 'Create a shared lobby from this battle'}><span>Multiplayer</span><strong>{working ? 'Creating…' : 'Create room'}</strong></button>
+    ? <button aria-label={working ? 'Creating shared room' : 'Create shared room'} className="shared-status shared-status--idle" disabled={working} onClick={() => void createLobby()} title={error ?? 'Create a shared lobby from this battle'}><AppIcon name="shared" /><span className="shared-status__copy"><span>Multiplayer</span><strong>{working ? 'Creating…' : 'Create room'}</strong></span></button>
     : null
 
   const statusText = roomStartedAt === null
@@ -57,8 +58,8 @@ export function SharedSessionStatus({ battleId }: { battleId: string }) {
         ? `${connectionStatus} · ${pendingEventCount} queued`
         : connectionStatus
 
-  return <Link className={`shared-status shared-status--${connectionStatus}`} to={`/shared?room=${membership.roomCode}`} title={error ?? undefined}>
-    <span>Room {membership.roomCode}</span>
-    <strong>{statusText}</strong>
+  return <Link aria-label={`Room ${membership.roomCode}, ${statusText}`} className={`shared-status shared-status--${connectionStatus}`} to={`/shared?room=${membership.roomCode}`} title={error ?? undefined}>
+    <AppIcon name={connectionStatus === 'connected' ? 'signal' : 'shared'} />
+    <span className="shared-status__copy"><span>Room {membership.roomCode}</span><strong>{statusText}</strong></span>
   </Link>
 }

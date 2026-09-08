@@ -444,7 +444,14 @@ export default function BattleDashboard() {
     <div className="battle-page">
       <header className={`battle-status battle-status--player-${activePlayerIndex}`}>
         <div className="battle-round"><span>Battle round</span><strong>{session.state.round}<small>/ {session.state.maxRounds}</small></strong></div>
-        <div className="battle-turn"><span>{battleActive ? `${active.name} turn` : 'Session status'}</span><h1>{headerTitle}</h1></div>
+        <div className="battle-turn">
+          <span>{battleActive ? `${active.name} turn` : 'Session status'}</span>
+          <h1>{headerTitle}</h1>
+          {battleActive && <div className="battle-turn__mobile-meta" aria-label={`Active commander ${active.name}${rival ? `, Rival ${rival.name}` : ''}`}>
+            <strong>{active.name}</strong>
+            {rival && <span>Rival · {rival.name}</span>}
+          </div>}
+        </div>
         <div className="battle-context">
           {battleActive && rival && <div className="rival-callout"><span>Current Rival</span><strong>{rival.name}</strong></div>}
           {battleActive && <span className={`mode-badge mode-badge--${guidanceLevel}`}>{guidanceLevel} mode</span>}
