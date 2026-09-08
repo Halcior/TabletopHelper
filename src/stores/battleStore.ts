@@ -41,6 +41,7 @@ import {
   mulliganSecondary as mulliganSecondaryInBattle,
   resolveEliminationChoice as resolveEliminationChoiceInBattle,
   selectPriorityTargetCandidates as selectPriorityTargetCandidatesInBattle,
+  type CauldronObjectiveLayout,
   type CauldronPlayerInput,
   type EndTurnSecondaryConfirmations,
   type OperationalPlanId,
@@ -56,6 +57,7 @@ type BattleStore = {
     players: CauldronPlayerInput[],
     armies: Army[],
     guidanceLevel: GuidanceLevel,
+    objectiveLayout?: CauldronObjectiveLayout,
   ) => Promise<string>
   loadBattle: (id: string) => Promise<void>
   resumeLatest: () => Promise<string | null>
@@ -128,10 +130,10 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
   loading: false,
   error: null,
 
-  async startCauldronBattle(players, armies, guidanceLevel) {
+  async startCauldronBattle(players, armies, guidanceLevel, objectiveLayout) {
     set({ loading: true, error: null })
     try {
-      const session = createCauldronGame({ players, armies, guidanceLevel })
+      const session = createCauldronGame({ players, armies, guidanceLevel, objectiveLayout })
       await saveBattle(session)
       set({ session, loading: false })
       return session.setup.gameId
