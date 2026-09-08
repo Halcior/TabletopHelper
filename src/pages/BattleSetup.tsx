@@ -9,6 +9,7 @@ import {
   randomDeploymentZones,
   randomTurnPositions,
   type CauldronMode,
+  type CauldronObjectiveLayout,
   type CauldronPlayerInput,
   type DeploymentZone,
   type OperationalPlanId,
@@ -30,6 +31,7 @@ export default function BattleSetup() {
   const navigate = useNavigate()
   const preferredArmyId = params.get('armyId')
   const [mode, setMode] = useState<CauldronMode>(params.get('mode') === 'ffa3' ? 'ffa3' : 'duel')
+  const [objectiveLayout, setObjectiveLayout] = useState<CauldronObjectiveLayout>('expanded-7')
   const [armies, setArmies] = useState<Army[]>([])
   const [players, setPlayers] = useState<PlayerDraft[]>(DEFAULT_PLAYERS)
   const [guidance, setGuidance] = useState<GuidanceLevel>('guided')
@@ -132,7 +134,12 @@ export default function BattleSetup() {
           throw new Error(useSharedSessionStore.getState().backendCheckMessage ?? 'Supabase connection check failed.')
         }
       }
-      const battleId = await startCauldronBattle(activePlayers, selectedArmies, guidance)
+      const battleId = await startCauldronBattle(
+        activePlayers,
+        selectedArmies,
+        guidance,
+        mode === 'duel' ? 'classic-6' : objectiveLayout,
+      )
       if (sharedMode) {
         const membership = await hostCurrentBattle(hostPlayerId)
         navigate(`/shared?room=${membership.roomCode}`)
@@ -161,7 +168,7 @@ export default function BattleSetup() {
         <h1>{duel ? 'New Cauldron Duel' : 'New Cauldron FFA 3 battle'}</h1>
         <p>{duel
           ? 'The same Cauldron rules, Primary, Secondary cards and Operational Plans you already know — adapted for two players. Your Rival is simply the other commander for the entire battle.'
-          : 'Assign three saved armies, deployment zones, fixed turn positions, and Operational Plans. Rival rotation remains unchanged.'}</p>
+          : 'Assign three saved armies, deployment zones, fixed turn positions, Operational Plans, and the objective layout used on your table. Rival rotation remains unchanged.'}</p>
       </section>
 
       <div className="setup-mode-picker panel" role="group" aria-label="Cauldron battle mode">
@@ -205,10 +212,16 @@ export default function BattleSetup() {
             <option value="guided">Guided — full contextual reminders</option>
             <option value="fast">Fast — essential reminders only</option>
           </select></label>
+          {!duel && <label>Objective layout<select value={objectiveLayout} onChange={(event) => setObjectiveLayout(event.target.value as CauldronObjectiveLayout)}>
+            <option value="expanded-7">7 objectives — 3 HOME + N1/N2/N3 + CENTER</option>
+            <option value="classic-6">6 objectives — 3 HOME + N1/N2/N3</option>
+          </select></label>}
           <label>Shared host seat<select value={hostPlayerId} onChange={(event) => setHostPlayerId(event.target.value)}>
             {activePlayers.map((player) => <option key={player.id} value={player.id}>{player.name}</option>)}
           </select></label>
-          {duel && <p className="context-note">Duel changes only the player topology: 2 turns per Battle Round, A/B HOME objectives, and a permanent Rival. Primary, Secondary, Operational Plans and scoring caps stay on the Cauldron 2.1.1 rules you already use.</p>}
+          {duel
+            ? <p className="context-note">Duel changes only the player topology: 2 turns per Battle Round, A/B HOME objectives, and a permanent Rival. Primary, Secondary, Operational Plans and scoring caps stay on the Cauldron 2.1.1 rules you already use.</p>
+            : <p className="context-note">The 7-objective layout treats CENTER as a normal neutral objective, so it counts for Primary, objective Secondaries, Mission Actions and Operational Plans exactly like N1/N2/N3.</p>}
           {(localError || error) && <div className="alert alert--danger">{localError ?? error}</div>}
           <div className="setup-submit-actions">
             <button className="button" type="submit" value="local" disabled={loading || sharedWorking}>{loading && !sharedWorking ? 'Preparing…' : 'Start locally'}</button>
