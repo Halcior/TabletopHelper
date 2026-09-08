@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
+import { AppIcon } from '../AppIcon'
 import { getPlayerTurnNumber } from '../../domain/battle/missionActions'
 import type { BattleSession } from '../../domain/battle/types'
 import { getActiveSecondaryViews, getSecondaryState, isMulliganAvailable } from '../../rulesets/cauldronFFA3/secondary'
 import type { SecondaryId } from '../../rulesets/cauldronFFA3/secondaryTypes'
 import { useSharedSessionStore } from '../../multiplayer/sharedSessionStore'
+import { getSecondaryPresentation } from './secondaryPresentation'
 
 function revealStorageKey(session: BattleSession, playerId: string, turnNumber: number): string {
   return `secondary-reveal:${session.setup.gameId}:${playerId}:${turnNumber}`
@@ -87,13 +89,14 @@ export function SecondaryDrawReveal({
       <div className="secondary-draw-reveal__cards">
         {views.map((card, index) => {
           const highlighted = stage === 'replacement' ? replacementIds.has(card.cardId) : newCardIds.has(card.cardId)
+          const visual = getSecondaryPresentation(card)
           return <article
-            className={`secondary-draw-reveal__card${highlighted ? ' secondary-draw-reveal__card--new' : ''}`}
+            className={`secondary-draw-reveal__card secondary-draw-reveal__card--${visual.kind}${highlighted ? ' secondary-draw-reveal__card--new' : ''}`}
             key={card.cardId}
             style={{ animationDelay: `${Math.min(index, 2) * 110}ms` }}
           >
             <div className="secondary-draw-reveal__card-top">
-              <span>{highlighted && stage === 'replacement' ? 'Replacement' : 'Secondary'}</span>
+              <div><span className="secondary-draw-reveal__card-icon"><AppIcon name={visual.icon} /></span><span>{highlighted && stage === 'replacement' ? 'Replacement' : visual.label}</span></div>
               <strong>{card.vp} VP</strong>
             </div>
             <h3>{card.name}</h3>

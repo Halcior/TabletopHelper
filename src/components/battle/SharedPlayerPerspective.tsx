@@ -6,7 +6,9 @@ import { CAULDRON_RULESET_ID, getCurrentRivalPlayerId } from '../../rulesets/cau
 import { evaluateOperationalPlan } from '../../rulesets/cauldronFFA3/operationalPlans'
 import { getActiveSecondaryViews } from '../../rulesets/cauldronFFA3/secondary'
 import { useBattleStore } from '../../stores/battleStore'
+import { AppIcon } from '../AppIcon'
 import { RivalDamagePanel } from './RivalDamagePanel'
+import { getSecondaryPresentation } from './secondaryPresentation'
 
 type SharedPlayerPerspectiveProps = {
   session: BattleSession
@@ -103,11 +105,14 @@ export function SharedPlayerPerspective({
       </div>
       {activeSecondaries.length === 0
         ? <div className="shared-secondary-focus__empty"><strong>None active</strong><span>Cards refill at the next Command phase.</span></div>
-        : <div className="shared-secondary-focus__list">{activeSecondaries.map((card) => <article className={`shared-secondary-card shared-secondary-card--${card.status.toLowerCase()}`} key={card.cardId}>
-          <div className="shared-secondary-card__top"><div><span>{secondaryStatus(card.status)}</span><strong>{card.name}</strong></div><b>{card.vp} VP</b></div>
-          <p>{card.objective}</p>
-          <div className="shared-secondary-card__progress"><span>Progress</span><strong>{card.progress}</strong></div>
-        </article>)}</div>}
+        : <div className="shared-secondary-focus__list">{activeSecondaries.map((card) => {
+          const visual = getSecondaryPresentation(card)
+          return <article className={`shared-secondary-card shared-secondary-card--${card.status.toLowerCase()} shared-secondary-card--${visual.kind}`} key={card.cardId}>
+            <div className="shared-secondary-card__top"><div className="shared-secondary-card__identity"><span className="shared-secondary-card__icon"><AppIcon name={visual.icon} /></span><span><small>{visual.label} · {secondaryStatus(card.status)}</small><strong>{card.name}</strong></span></div><b>{card.vp} VP</b></div>
+            <p>{card.objective}</p>
+            <div className="shared-secondary-card__progress"><span>Progress</span><strong>{card.progress}</strong></div>
+          </article>
+        })}</div>}
     </section>}
 
     {ownTurn && <RivalDamagePanel

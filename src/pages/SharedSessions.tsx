@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { AppIcon } from '../components/AppIcon'
 import type { BattleSession } from '../domain/battle/types'
 import { canStartSharedLobby, summarizeSharedLobby } from '../multiplayer/sharedLobby'
 import { participantIsActive, participantIsOnline, secondsUntilSeatReclaim } from '../multiplayer/presence'
@@ -24,6 +25,7 @@ export default function SharedSessions() {
   const [joinPlayerId, setJoinPlayerId] = useState('')
   const [working, setWorking] = useState(false)
   const [inviteStatus, setInviteStatus] = useState<'idle' | 'copied'>('idle')
+  const [qrExpanded, setQrExpanded] = useState(false)
   const [clock, setClock] = useState(() => Date.now())
   const previousStartedAt = useRef<string | null | undefined>(undefined)
   const loadBattle = useBattleStore((state) => state.loadBattle)
@@ -96,6 +98,15 @@ export default function SharedSessions() {
     const timer = window.setInterval(() => setClock(Date.now()), 1000)
     return () => window.clearInterval(timer)
   }, [inspection, membership])
+
+  useEffect(() => {
+    if (!qrExpanded) return
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setQrExpanded(false)
+    }
+    window.addEventListener('keydown', closeOnEscape)
+    return () => window.removeEventListener('keydown', closeOnEscape)
+  }, [qrExpanded])
 
   useEffect(() => {
     if (previousStartedAt.current === null && roomStartedAt && membership) {
@@ -228,28 +239,42 @@ export default function SharedSessions() {
             const occupant = participants.find((participant) => participant.playerId === playerId)
             const online = occupant ? participantIsOnline(occupant, clock) : false
             const mine = occupant?.clientId === membership.clientId
-            return <article className={`shared-lobby-seat shared-lobby-seat--player-${index}${mine ? ' is-mine' : ''}`} key={playerId}>
+            const seatState = !occupant ? 'empty' : !online ? 'offline' : occupant.isReady ? 'ready' : 'online'
+            return <article className={`shared-lobby-seat shared-lobby-seat--player-${index} is-${seatState}${mine ? ' is-mine' : ''}`} key={playerId}>
+              <div className="shared-lobby-seat__marker"><span>{String(index + 1).padStart(2, '0')}</span></div>
               <div className="shared-lobby-seat__identity">
-                <span>Seat {index + 1}{occupant?.isHost ? ' · host' : ''}</span>
+                <span>Commander {index + 1}{occupant?.isHost ? ' · host' : ''}</span>
                 <strong>{player?.name ?? occupant?.displayName ?? `Player ${index + 1}`}</strong>
                 <small>{player?.faction ?? 'Commander'}{mine ? ' · this phone' : ''}</small>
               </div>
               <div className="shared-lobby-seat__state">
-                <span className={online ? 'is-online' : 'is-offline'}>{online ? 'Online' : occupant ? 'Disconnected' : 'Empty'}</span>
-                <strong className={online && occupant?.isReady ? 'is-ready' : ''}>{online && occupant?.isReady ? 'Ready' : 'Not ready'}</strong>
+                {occupant?.isHost && <span className="shared-lobby-seat__host"><AppIcon name="host" /> Host</span>}
+                <span className={online ? 'is-online' : 'is-offline'}><i aria-hidden="true" />{online ? 'Online' : occupant ? 'Disconnected' : 'Empty seat'}</span>
+                <strong className={online && occupant?.isReady ? 'is-ready' : ''}>{online && occupant?.isReady ? <><AppIcon name="ready" /> Ready</> : 'Not ready'}</strong>
               </div>
             </article>
           })}
         </div>
 
         <aside className="shared-lobby__invite">
-          <div className="shared-lobby__qr"><QRCodeSVG value={inviteUrl} size={164} marginSize={2} /></div>
-          <strong>Scan to join</strong>
+          <button className="shared-lobby__qr" type="button" aria-label="Enlarge QR invite" onClick={() => setQrExpanded(true)}><QRCodeSVG value={inviteUrl} size={164} marginSize={2} /></button>
+          <strong><AppIcon name="qr" /> Scan to join</strong>
           <span>The room code is already included.</span>
           {localOnlyInvite && <small>Open the lobby using the PC's Wi-Fi IP address before scanning. A localhost link works only on this device.</small>}
           <button onClick={() => void shareInvite()}>{inviteStatus === 'copied' ? 'Invite copied' : 'Share invite'}</button>
         </aside>
       </div>
+
+      {qrExpanded && <div className="shared-invite-overlay" role="dialog" aria-modal="true" aria-label="QR room invite" onClick={() => setQrExpanded(false)}>
+        <div className="shared-invite-overlay__panel" onClick={(event) => event.stopPropagation()}>
+          <button className="shared-invite-overlay__close" type="button" aria-label="Close QR invite" onClick={() => setQrExpanded(false)}>×</button>
+          <span className="eyebrow">Join battle room</span>
+          <strong>{membership.roomCode}</strong>
+          <div className="shared-invite-overlay__qr"><QRCodeSVG value={inviteUrl} size={280} marginSize={2} /></div>
+          <p>Scan with another commander's phone.</p>
+          <button className="button--gold" type="button" onClick={() => void shareInvite()}>{inviteStatus === 'copied' ? 'Invite copied' : 'Share invite'}</button>
+        </div>
+      </div>}
 
       {pendingEventCount > 0 && <div className="alert alert--warning shared-room-focus__queue">{pendingEventCount} local change{pendingEventCount === 1 ? '' : 's'} waiting to sync.</div>}
       {backendCheckStatus === 'failed' && <div className="alert alert--danger shared-room-focus__queue">{backendCheckMessage}</div>}

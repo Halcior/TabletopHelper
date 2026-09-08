@@ -2,12 +2,16 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 const theme = readFileSync(new URL('./tacticalTheme.css', import.meta.url), 'utf8')
+const visualSystem = readFileSync(new URL('./visualSystem.css', import.meta.url), 'utf8')
 const entry = readFileSync(new URL('./main.tsx', import.meta.url), 'utf8')
 const icon = readFileSync(new URL('../public/icons/icon.svg', import.meta.url), 'utf8')
 
 describe('tactical visual system contract', () => {
-  it('loads the canonical theme after the feature styles', () => {
-    expect(entry.indexOf("./tacticalTheme.css")).toBeGreaterThan(entry.indexOf("./reactionHold.css"))
+  it('loads one layered visual entrypoint with polish last', () => {
+    expect(entry).toContain("./visualSystem.css")
+    expect(entry).not.toContain("./tacticalTheme.css")
+    expect(visualSystem).toContain('@layer foundation, feature, focus, responsive, polish;')
+    expect(visualSystem.indexOf("./tacticalTheme.css")).toBeGreaterThan(visualSystem.indexOf("./mobileBattle.css"))
   })
 
   it('defines distinct semantic player and battle-state colours', () => {
@@ -31,5 +35,13 @@ describe('tactical visual system contract', () => {
     expect(icon).toContain('#d3ad56')
     expect(icon).toContain('#67a8d5')
     expect(icon).toContain('#ce716a')
+  })
+
+  it('defines the visual language for missions, lobby seats and turn handoff', () => {
+    expect(theme).toContain('.secondary-card--elimination')
+    expect(theme).toContain('.shared-lobby-seat__marker')
+    expect(theme).toContain('.shared-invite-overlay')
+    expect(theme).toContain('.turn-handoff-summary__marker')
+    expect(theme).toContain('.battle-turn__mobile-meta')
   })
 })

@@ -29,3 +29,20 @@ export async function dismissSecondaryReveal(page: Page): Promise<void> {
   const keep = page.getByRole('button', { name: 'Keep cards' })
   if (await keep.isVisible().catch(() => false)) await keep.click()
 }
+
+export async function resolvePriorityTargetIfNeeded(page: Page): Promise<void> {
+  const selectTarget = page.getByRole('button', { name: 'Select target', exact: true })
+  if (!await selectTarget.isVisible().catch(() => false)) return
+
+  await selectTarget.click()
+  const panel = page.locator('.quick-panel')
+  const confirmAlpha = panel.getByRole('button', { name: /^Confirm \d+ Alpha target/ })
+  await expect(confirmAlpha).toBeVisible()
+  const count = Number((await confirmAlpha.textContent())?.match(/\d+/)?.[0] ?? 0)
+  const candidates = panel.locator('.priority-target-list input[type="checkbox"]:not(:disabled)')
+  for (let index = 0; index < count; index += 1) await candidates.nth(index).check()
+  await confirmAlpha.click()
+
+  const gamma = panel.locator('.context-choice-list button:not(:disabled)').first()
+  if (await gamma.isVisible().catch(() => false)) await gamma.click()
+}

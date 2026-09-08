@@ -70,6 +70,11 @@ export default function Home() {
           <span className="eyebrow">Tabletop Companion</span>
           <h1>Ready to play?</h1>
           <p>Pick what you want to do. Everything else stays out of the way.</p>
+          <div className="home-command-hub__meta" aria-label="Application capabilities">
+            <span><i aria-hidden="true" /> Local-first</span>
+            <span><i aria-hidden="true" /> 2–3 commanders</span>
+            <span><i aria-hidden="true" /> Shared sync</span>
+          </div>
         </div>
 
         <div className="home-command-actions">
@@ -98,10 +103,11 @@ export default function Home() {
       {error && <div className="alert alert--danger">Local storage error: {error}</div>}
 
       {activeBattle && <section className="home-current-score" aria-label="Active battle score">
-        {activeBattle.state.turnOrder.map((id) => {
+        <div className="home-current-score__heading"><span>Active battle</span><strong>Round {activeBattle.state.round} · {activeBattle.state.phase.replaceAll('_', ' ')}</strong></div>
+        <div className="home-current-score__players">{activeBattle.state.turnOrder.map((id, index) => {
           const player = activeBattle.state.players[id]
-          return <span key={id}>{player.name}<strong>{totalScore(player)} VP</strong></span>
-        })}
+          return <span className={`home-current-score__player home-current-score__player--${index}`} key={id}>{player.name}<strong>{totalScore(player)} VP</strong></span>
+        })}</div>
       </section>}
 
       {recentBattles.length > 0 && <section className="section-block recent-battles">

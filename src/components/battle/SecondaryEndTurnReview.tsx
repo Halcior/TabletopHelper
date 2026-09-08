@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { AppIcon } from '../AppIcon'
 import type { BattleSession } from '../../domain/battle/types'
 import {
   buildCauldronTurnSummary,
@@ -52,6 +53,7 @@ export function SecondaryEndTurnReview({
   const lastTurnOfRound = activePlayerIndex === session.state.turnOrder.length - 1
   const nextPlayerId = session.state.turnOrder[(activePlayerIndex + 1) % session.state.turnOrder.length]
   const nextPlayer = session.state.players[nextPlayerId]
+  const nextPlayerIndex = session.state.turnOrder.indexOf(nextPlayerId)
   const finishLabel = lastTurnOfRound
     ? 'Continue to Battle Round review'
     : `End turn → ${nextPlayer?.name ?? 'next player'}`
@@ -151,9 +153,12 @@ export function SecondaryEndTurnReview({
     </>}
 
     {evaluated && <>
-      <section className="panel turn-handoff-summary" aria-label="Turn summary">
+      <section className={`panel turn-handoff-summary turn-handoff-summary--player-${activePlayerIndex}`} aria-label="Turn summary">
         <div className="turn-handoff-summary__heading">
-          <div><span className="eyebrow">Turn complete</span><h2>{player.name} · Round {session.state.round}</h2><p>Everything recorded this turn is collected here before control passes on.</p></div>
+          <div className="turn-handoff-summary__identity">
+            <span className="turn-handoff-summary__marker" aria-hidden="true">{player.name.trim().charAt(0).toUpperCase()}</span>
+            <div><span className="eyebrow">Turn complete</span><h2>{player.name} · Round {session.state.round}</h2><p>Everything recorded this turn is collected here before control passes on.</p></div>
+          </div>
           <div className="turn-handoff-summary__score"><span>{turnSummary.scoreBefore} VP</span><b>→</b><strong>{turnSummary.scoreAfter} VP</strong><small>+{turnSummary.pointsGained} this turn</small></div>
         </div>
         <div className="turn-handoff-summary__stats">
@@ -212,12 +217,11 @@ export function SecondaryEndTurnReview({
             </div>
           })}
       </section>}
-      <div className="turn-handoff-next">
-        <span className="eyebrow">Next</span>
-        <strong>{lastTurnOfRound ? `Finish Round ${session.state.round}` : `${nextPlayer?.name ?? 'Next player'} · Command phase`}</strong>
-        <small>{lastTurnOfRound ? 'Resolve deferred end-of-round effects before the next Battle Round.' : 'The next commander will immediately see their newly drawn Secondary cards.'}</small>
+      <div className={`turn-handoff-next turn-handoff-next--player-${nextPlayerIndex}`}>
+        <span className="turn-handoff-next__icon"><AppIcon name={lastTurnOfRound ? 'objectives' : 'next'} /></span>
+        <span><span className="eyebrow">Next command</span><strong>{lastTurnOfRound ? `Finish Round ${session.state.round}` : `${nextPlayer?.name ?? 'Next player'} · Command phase`}</strong><small>{lastTurnOfRound ? 'Resolve deferred end-of-round effects before the next Battle Round.' : 'The next commander will immediately see their newly drawn Secondary cards.'}</small></span>
       </div>
-      <div className="review-actions review-actions--final"><button className="button--gold" onClick={finish}>{finishLabel}</button></div>
+      <div className="review-actions review-actions--final"><button className="button--gold" onClick={finish}><span>{finishLabel}</span><AppIcon name="next" /></button></div>
     </>}
   </main>
 }

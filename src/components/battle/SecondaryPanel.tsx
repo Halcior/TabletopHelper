@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { AppIcon } from '../AppIcon'
 import type { StartMissionActionInput } from '../../domain/battle/missionActions'
 import type { BattleEventInput, BattleSession } from '../../domain/battle/types'
 import {
@@ -14,6 +15,7 @@ import type { ActiveSecondaryView, SecondaryId } from '../../rulesets/cauldronFF
 import { MissionActionLauncher } from './MissionActionLauncher'
 import { QuickObjectiveControls } from './QuickObjectiveControls'
 import { SecondaryDrawReveal } from './SecondaryDrawReveal'
+import { getSecondaryPresentation } from './secondaryPresentation'
 
 type SecondaryPanelProps = {
   session: BattleSession
@@ -101,20 +103,29 @@ export function SecondaryPanel({
         <div>{pendingChoice.options.map((option) => <button className="button--gold" key={option.cardId} onClick={() => onResolveEliminationChoice(playerId, option.cardId)}>{option.name}<span>{option.vp} VP</span></button>)}</div>
       </div>}
       <div className="secondary-card-grid">
-        {cards.map((card) => <article className={`secondary-card secondary-card--${card.status.toLowerCase()}`} key={card.cardId}>
-          <div className="secondary-card__heading"><div><span>{statusLabel(card.status)}</span><h3>{card.name}</h3></div><strong>{card.vp} VP</strong></div>
-          <p className="secondary-card__objective">{card.objective}</p>
-          <p className="secondary-card__progress">{card.progress}</p>
-          {card.action && <button
-            className={card.status === 'DECISION_REQUIRED' ? 'button--danger' : ''}
-            disabled={card.action === 'CHECK_CONDITION' && session.state.phase !== 'END_TURN'}
-            onClick={() => runAction(card)}
-          >{card.action === 'CHECK_CONDITION' && session.state.phase !== 'END_TURN'
-              ? 'Check at End Turn'
-              : card.action === 'OPEN_RIVAL_ARMY' && ['ZNISZCZ_KOLOSA', 'ELIMINACJA_DOWODCY'].includes(card.cardId)
-                ? 'Show Rival targets'
-                : ACTION_LABELS[card.action]}</button>}
-        </article>)}
+        {cards.map((card) => {
+          const visual = getSecondaryPresentation(card)
+          return <article className={`secondary-card secondary-card--${card.status.toLowerCase()} secondary-card--${visual.kind}`} key={card.cardId}>
+            <div className="secondary-card__heading">
+              <div className="secondary-card__identity">
+                <span className="secondary-card__icon"><AppIcon name={visual.icon} /></span>
+                <div><span>{visual.label} · {statusLabel(card.status)}</span><h3>{card.name}</h3></div>
+              </div>
+              <div className="secondary-card__vp"><strong>{card.vp}</strong><span>VP</span></div>
+            </div>
+            <p className="secondary-card__objective">{card.objective}</p>
+            <p className="secondary-card__progress"><i aria-hidden="true" />{card.progress}</p>
+            {card.action && <button
+              className={card.status === 'DECISION_REQUIRED' ? 'button--danger' : ''}
+              disabled={card.action === 'CHECK_CONDITION' && session.state.phase !== 'END_TURN'}
+              onClick={() => runAction(card)}
+            >{card.action === 'CHECK_CONDITION' && session.state.phase !== 'END_TURN'
+                ? 'Check at End Turn'
+                : card.action === 'OPEN_RIVAL_ARMY' && ['ZNISZCZ_KOLOSA', 'ELIMINACJA_DOWODCY'].includes(card.cardId)
+                  ? 'Show Rival targets'
+                  : ACTION_LABELS[card.action]}</button>}
+          </article>
+        })}
       </div>
       {cards.length === 0 && <p className="context-note">No active Secondary cards. Cards refill automatically at the start of your next Command phase.</p>}
 

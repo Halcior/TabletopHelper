@@ -1,5 +1,7 @@
 import type { BattleSession } from '../../domain/battle/types'
 import { getActiveSecondaryViews, getRoundSecondaryVp } from '../../rulesets/cauldronFFA3/secondary'
+import { AppIcon } from '../AppIcon'
+import { getSecondaryPresentation } from './secondaryPresentation'
 
 function statusCopy(status: ReturnType<typeof getActiveSecondaryViews>[number]['status']): string {
   switch (status) {
@@ -35,14 +37,17 @@ export function TurnSecondaryFocus({
 
     {cards.length === 0
       ? <div className="turn-secondary-focus__empty"><strong>No active Secondary</strong><span>Cards refill at the start of your next Command phase.</span></div>
-      : <div className="turn-secondary-focus__cards">{cards.map((card) => <article className={`turn-secondary-focus__card turn-secondary-focus__card--${card.status.toLowerCase()}`} key={card.cardId}>
-        <div className="turn-secondary-focus__card-top">
-          <div><span>{statusCopy(card.status)}</span><h3>{card.name}</h3></div>
-          <strong>{card.vp} VP</strong>
-        </div>
-        <p>{card.objective}</p>
-        <div className="turn-secondary-focus__progress"><span>Progress</span><strong>{card.progress}</strong></div>
-      </article>)}</div>}
+      : <div className="turn-secondary-focus__cards">{cards.map((card) => {
+        const visual = getSecondaryPresentation(card)
+        return <article className={`turn-secondary-focus__card turn-secondary-focus__card--${card.status.toLowerCase()} turn-secondary-focus__card--${visual.kind}`} key={card.cardId}>
+          <div className="turn-secondary-focus__card-top">
+            <div><span className="turn-secondary-focus__card-icon"><AppIcon name={visual.icon} /></span><span>{visual.label} · {statusCopy(card.status)}</span><h3>{card.name}</h3></div>
+            <strong>{card.vp} VP</strong>
+          </div>
+          <p>{card.objective}</p>
+          <div className="turn-secondary-focus__progress"><span>Progress</span><strong>{card.progress}</strong></div>
+        </article>
+      })}</div>}
 
     <button className="turn-secondary-focus__open" type="button" onClick={onOpenCards}>Open Secondary details</button>
   </section>
