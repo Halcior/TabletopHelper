@@ -50,6 +50,25 @@ describe('Cauldron session integration', () => {
     expect(session.state.activePlayerId).toBe('p-b')
   })
 
+  it('supports the expanded FFA layout with three HOME, three between-player and one central objective', () => {
+    const armies = [testArmy('army-a'), testArmy('army-b'), testArmy('army-c')]
+    const session = createCauldronGame({
+      armies,
+      guidanceLevel: 'guided',
+      objectiveLayout: 'expanded-7',
+      players: [
+        { id: 'p-a', name: 'Alpha', armyId: armies[0].id, deploymentZone: 'A', turnPosition: 1, operationalPlanId: 'WYNISZCZENIE' },
+        { id: 'p-b', name: 'Bravo', armyId: armies[1].id, deploymentZone: 'B', turnPosition: 2, operationalPlanId: 'WYNISZCZENIE' },
+        { id: 'p-c', name: 'Charlie', armyId: armies[2].id, deploymentZone: 'C', turnPosition: 3, operationalPlanId: 'WYNISZCZENIE' },
+      ],
+    })
+
+    expect(Object.keys(session.state.objectives)).toEqual([
+      'A-HOME', 'B-HOME', 'C-HOME', 'N1', 'N2', 'N3', 'CENTER',
+    ])
+    expect(session.state.objectives.CENTER.type).toBe('neutral')
+  })
+
   it('commits Round 1 as zero, starts Round 2 with the same order and rotated Rivals, and remains undoable', () => {
     let session = testCauldronGame()
     expect(getCauldronRoundStartSnapshot(session, 1)?.rivalPlayerIds).toEqual({
