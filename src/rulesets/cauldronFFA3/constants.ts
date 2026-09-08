@@ -1,5 +1,5 @@
 import type { ObjectiveDefinition } from '../../domain/battle/types'
-import type { OperationalPlanId } from './types'
+import type { CauldronObjectiveLayout, OperationalPlanId } from './types'
 
 export const CAULDRON_RULESET_ID = 'cauldron-ffa-3'
 export const CAULDRON_RULESET_VERSION = '2.1.1'
@@ -22,6 +22,11 @@ export const CAULDRON_OBJECTIVES: ObjectiveDefinition[] = [
   { id: 'N3', name: 'N3', type: 'neutral' },
 ]
 
+export const CAULDRON_EXPANDED_OBJECTIVES: ObjectiveDefinition[] = [
+  ...CAULDRON_OBJECTIVES,
+  { id: 'CENTER', name: 'CENTER', type: 'neutral' },
+]
+
 export const CAULDRON_DUEL_OBJECTIVES: ObjectiveDefinition[] = [
   { id: 'A-HOME', name: 'A-HOME', type: 'home' },
   { id: 'B-HOME', name: 'B-HOME', type: 'home' },
@@ -30,8 +35,12 @@ export const CAULDRON_DUEL_OBJECTIVES: ObjectiveDefinition[] = [
   { id: 'N3', name: 'N3', type: 'neutral' },
 ]
 
-export function cauldronObjectivesForPlayerCount(playerCount: number): ObjectiveDefinition[] {
-  return playerCount === CAULDRON_DUEL_PLAYER_COUNT ? CAULDRON_DUEL_OBJECTIVES : CAULDRON_OBJECTIVES
+export function cauldronObjectivesForPlayerCount(
+  playerCount: number,
+  objectiveLayout: CauldronObjectiveLayout = 'classic-6',
+): ObjectiveDefinition[] {
+  if (playerCount === CAULDRON_DUEL_PLAYER_COUNT) return CAULDRON_DUEL_OBJECTIVES
+  return objectiveLayout === 'expanded-7' ? CAULDRON_EXPANDED_OBJECTIVES : CAULDRON_OBJECTIVES
 }
 
 export const OPERATIONAL_PLAN_IDS: OperationalPlanId[] = [

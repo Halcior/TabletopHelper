@@ -52,10 +52,14 @@ export function createCauldronGame(input: CauldronGameInput): BattleSession {
   validateCauldronInput(input)
   const playerCount = input.players.length as 2 | 3
   const mode = input.mode ?? (playerCount === 2 ? 'duel' : 'ffa3')
+  const objectiveLayout = playerCount === CAULDRON_DUEL_PLAYER_COUNT
+    ? 'classic-6'
+    : input.objectiveLayout ?? 'classic-6'
   const config: CauldronConfig = {
     version: 1,
     mode,
     playerCount,
+    objectiveLayout,
     battleRounds: CAULDRON_BATTLE_ROUNDS,
     primaryCap: CAULDRON_PRIMARY_CAP,
     secondaryCap: CAULDRON_SECONDARY_CAP,
@@ -85,7 +89,7 @@ export function createCauldronGame(input: CauldronGameInput): BattleSession {
     players,
     armies: [...new Map(input.armies.map((army) => [army.id, army])).values()],
     turnOrder,
-    objectives: cauldronObjectivesForPlayerCount(playerCount),
+    objectives: cauldronObjectivesForPlayerCount(playerCount, objectiveLayout),
     maxRounds: CAULDRON_BATTLE_ROUNDS,
     guidanceLevel: input.guidanceLevel,
     rulesetConfig: config,
