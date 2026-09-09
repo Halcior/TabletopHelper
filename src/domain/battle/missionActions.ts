@@ -154,6 +154,9 @@ export function startMissionAction(session: BattleSession, input: StartMissionAc
   if (!input.unknownConditionsConfirmed) {
     throw new Error('Confirm shooting eligibility, movement, engagement range, and required position.')
   }
+  if (input.type === 'SABOTAGE' && input.linkedSecondaryCardId) {
+    throw new Error('One Mission Action cannot complete both Sabotage and a Secondary. Choose one scoring purpose.')
+  }
   if (input.targetObjectiveId && !session.state.objectives[input.targetObjectiveId]) {
     throw new Error(`Unknown objective: ${input.targetObjectiveId}`)
   }

@@ -1,5 +1,6 @@
 import type { BattleEventInput, BattleSession } from '../../domain/battle/types'
 import {
+  CAULDRON_BATTLE_ROUNDS,
   CAULDRON_PRIMARY_CAP,
   CAULDRON_PRIMARY_ROUND_CAP,
 } from './constants'
@@ -56,7 +57,7 @@ export function calculatePrimaryRound(
   const isWyniszczenie = planEvaluation.planId === 'WYNISZCZENIE'
   const planCompleted = planEvaluation.status === 'COMPLETED'
     && (!isWyniszczenie || includeDeferredWyniszczenie)
-  const eligible = battleRound >= 2
+  const eligible = battleRound >= 2 && battleRound <= CAULDRON_BATTLE_ROUNDS
   const rawScore = eligible
     ? Number(controlsNeutral) * 5 + Number(controlsTwo) * 5 + Number(planCompleted) * 5
     : 0
@@ -68,8 +69,8 @@ export function calculatePrimaryRound(
   return {
     playerId,
     round: battleRound,
-    neutralObjective: { completed: eligible && controlsNeutral, vp: eligible && controlsNeutral ? 5 : 0, label: 'Neutral objective' },
-    twoObjectives: { completed: eligible && controlsTwo, vp: eligible && controlsTwo ? 5 : 0, label: 'Two objectives total' },
+    neutralObjective: { completed: eligible && controlsNeutral, vp: eligible && controlsNeutral ? 5 : 0, label: 'At least one neutral objective' },
+    twoObjectives: { completed: eligible && controlsTwo, vp: eligible && controlsTwo ? 5 : 0, label: 'At least two objectives total' },
     operationalPlan: { completed: eligible && planCompleted, vp: eligible && planCompleted ? 5 : 0, label: 'Operational Plan' },
     planEvaluation,
     roundPrimary,
@@ -77,7 +78,7 @@ export function calculatePrimaryRound(
   }
 }
 
-/** Hotfix 2.1.1 scoring window: objective Primary and non-Wyniszczenie Plans score at the end of this player's turn. */
+/** Balance patch 2.1.2: objective Primary and non-Wyniszczenie Plans score at the end of this player's turn. */
 export function buildPrimaryTurnReview(
   session: BattleSession,
   playerId: string,
@@ -145,7 +146,9 @@ export function createDeferredWyniszczenieEvents(
     if (getDeferredWyniszczenieCommit(session, playerId, session.state.round)) continue
 
     const evaluation = evaluateOperationalPlan(session, playerId, session.state.round)
-    const completed = session.state.round >= 2 && evaluation.status === 'COMPLETED'
+    const completed = session.state.round >= 2
+      && session.state.round <= CAULDRON_BATTLE_ROUNDS
+      && evaluation.status === 'COMPLETED'
     const currentPrimary = session.state.players[playerId]?.score.primary ?? 0
     const remainingGame = Math.max(0, CAULDRON_PRIMARY_CAP - currentPrimary)
     const remainingRound = Math.max(0, CAULDRON_PRIMARY_ROUND_CAP - getPrimaryAwardedInRound(session, playerId, session.state.round))

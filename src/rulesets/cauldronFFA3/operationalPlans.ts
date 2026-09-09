@@ -34,6 +34,7 @@ export type OperationalPlanTargetOption = {
   objectiveId: string
   name: string
   fallbackClosestNeutral: boolean
+  fallbackRivalHome: boolean
 }
 
 export function getOperationalPlanState(session: BattleSession, playerId: string): OperationalPlanState {
@@ -75,7 +76,12 @@ export function getOperationalPlanTargetOptions(
         objective.type === 'neutral'
         && snapshot.objectiveStates[objective.id]?.controllerPlayerId === playerId
       ))
-      .map((objective) => ({ objectiveId: objective.id, name: objective.name, fallbackClosestNeutral: false }))
+      .map((objective) => ({
+        objectiveId: objective.id,
+        name: objective.name,
+        fallbackClosestNeutral: false,
+        fallbackRivalHome: false,
+      }))
   }
 
   const rivalPlayerId = getCurrentRivalPlayerId(session, playerId, round)
@@ -86,16 +92,31 @@ export function getOperationalPlanTargetOptions(
       objectiveId: objective.id,
       name: objective.name,
       fallbackClosestNeutral: false,
+      fallbackRivalHome: false,
     }))
   }
 
-  return Object.values(session.state.objectives)
-    .filter((objective) => objective.type === 'neutral')
+  const uncontrolledNeutral = Object.values(session.state.objectives)
+    .filter((objective) => (
+      objective.type === 'neutral'
+      && snapshot.objectiveStates[objective.id]?.controllerPlayerId !== playerId
+    ))
     .map((objective) => ({
       objectiveId: objective.id,
       name: objective.name,
       fallbackClosestNeutral: true,
+      fallbackRivalHome: false,
     }))
+  if (uncontrolledNeutral.length > 0) return uncontrolledNeutral
+
+  const rivalZone = getCauldronConfig(session).playerConfigs[rivalPlayerId]?.deploymentZone
+  const rivalHome = rivalZone ? session.state.objectives[`${rivalZone}-HOME`] : undefined
+  return rivalHome ? [{
+    objectiveId: rivalHome.id,
+    name: rivalHome.name,
+    fallbackClosestNeutral: false,
+    fallbackRivalHome: true,
+  }] : []
 }
 
 export function markOperationalPlanObjective(
@@ -193,10 +214,10 @@ export function evaluateOperationalPlan(
       return result(planId, 'INCOMPLETE', 'Control your HOME and the marked neutral objective at the end of your turn.')
     }
     if (confirmation.twierdzaNoEnemyAtObjectives === undefined) {
-      return result(planId, 'REQUIRES_CONFIRMATION', 'Enemy model ranges are not tracked automatically.', {
+      return result(planId, 'REQUIRES_CONFIRMATION', 'Enemy OC and physical ranges are not tracked automatically.', {
         confirmation: {
           key: 'twierdzaNoEnemyAtObjectives',
-          prompt: 'Are there no enemy units in range of either your HOME or the marked neutral objective?',
+          prompt: 'Are there no enemy OC>0 units in range of your HOME and none within 6″ of the marked neutral objective?',
         },
       })
     }
@@ -204,8 +225,8 @@ export function evaluateOperationalPlan(
       planId,
       confirmation.twierdzaNoEnemyAtObjectives ? 'COMPLETED' : 'INCOMPLETE',
       confirmation.twierdzaNoEnemyAtObjectives
-        ? 'Both objectives are controlled and clear of enemy units.'
-        : 'An enemy unit is in range of at least one required objective.',
+        ? 'Both objectives are controlled and clear of enemy OC>0 units at the required ranges.'
+        : 'An enemy OC>0 unit blocks the HOME or marked-objective condition.',
     )
   }
 
@@ -221,20 +242,21 @@ export function evaluateOperationalPlan(
     if (!confirmation.zwiadHasFourSectors) {
       return result(planId, 'INCOMPLETE', 'Fewer than four battlefield sectors contain qualifying units.')
     }
-    if (confirmation.zwiadHasThreeOutsideDeployment === undefined) {
+    const twoOutside = confirmation.zwiadHasTwoOutsideDeployment ?? confirmation.zwiadHasThreeOutsideDeployment
+    if (twoOutside === undefined) {
       return result(planId, 'REQUIRES_CONFIRMATION', 'The number outside your deployment zone is still required.', {
         confirmation: {
-          key: 'zwiadHasThreeOutsideDeployment',
-          prompt: 'Are at least 3 qualifying units outside your deployment zone?',
+          key: 'zwiadHasTwoOutsideDeployment',
+          prompt: 'Are at least 2 of the qualifying non-AIRCRAFT units outside your deployment zone?',
         },
       })
     }
     return result(
       planId,
-      confirmation.zwiadHasThreeOutsideDeployment ? 'COMPLETED' : 'INCOMPLETE',
-      confirmation.zwiadHasThreeOutsideDeployment
-        ? 'Four sectors and three units outside deployment were confirmed.'
-        : 'Fewer than three qualifying units are outside your deployment zone.',
+      twoOutside ? 'COMPLETED' : 'INCOMPLETE',
+      twoOutside
+        ? 'Four sectors and two qualifying units outside deployment were confirmed.'
+        : 'Fewer than two qualifying units are outside your deployment zone.',
     )
   }
 
@@ -242,6 +264,7 @@ export function evaluateOperationalPlan(
     if (
       action.playerId !== playerId
       || action.type !== 'SABOTAGE'
+      || Boolean(action.linkedSecondaryCardId)
       || action.status !== 'COMPLETED'
       || action.endedRound !== battleRound
       || !action.targetObjectiveId
@@ -266,10 +289,7 @@ export function canChangeOperationalPlan(session: BattleSession, playerId: strin
   if (getOperationalPlanState(session, playerId).changed) {
     return { available: false, reason: 'This player has already changed their Operational Plan.' }
   }
-  if (session.state.players[playerId]?.cp < 1) {
-    return { available: false, reason: 'Changing plan requires 1 CP.' }
-  }
-  return { available: true, reason: 'Spend 1 CP to change plan. The new plan cannot score this round.' }
+  return { available: true, reason: 'Free once per battle. No Operational Plan can score in the change round.' }
 }
 
 export function changeOperationalPlan(
@@ -282,13 +302,11 @@ export function changeOperationalPlan(
   if (!availability.available) throw new Error(availability.reason)
   const previousPlanId = getOperationalPlanState(session, playerId).planId
   if (previousPlanId === newPlanId) throw new Error('Select a different Operational Plan.')
-  return dispatchBattleEvents(session, [
-    { type: 'CP_SPENT', payload: { playerId, amount: 1 } },
-    cauldronEvent('PLAN_CHANGED', {
-      playerId,
-      previousPlanId,
-      newPlanId,
-      round: session.state.round,
-    } satisfies PlanChangeEvent),
+  return dispatchBattleEvents(session, [cauldronEvent('PLAN_CHANGED', {
+    playerId,
+    previousPlanId,
+    newPlanId,
+    round: session.state.round,
+  } satisfies PlanChangeEvent),
   ], { actorPlayerId: playerId })
 }

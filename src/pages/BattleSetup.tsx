@@ -4,6 +4,7 @@ import type { Army } from '../domain/army/types'
 import type { GuidanceLevel } from '../domain/battle/types'
 import { listArmies } from '../persistence/database'
 import {
+  CAULDRON_RULESET_VERSION,
   OPERATIONAL_PLAN_DEFINITIONS,
   OPERATIONAL_PLAN_IDS,
   randomDeploymentZones,
@@ -164,7 +165,7 @@ export default function BattleSetup() {
   return (
     <div className="page-shell setup-page">
       <section className="page-intro">
-        <span className="eyebrow">Cauldron v2.1.1</span>
+        <span className="eyebrow">Cauldron v{CAULDRON_RULESET_VERSION}</span>
         <h1>{duel ? 'New Cauldron Duel' : 'New Cauldron FFA 3 battle'}</h1>
         <p>{duel
           ? 'The same Cauldron rules, Primary, Secondary cards and Operational Plans you already know — adapted for two players. Your Rival is simply the other commander for the entire battle.'
@@ -220,7 +221,7 @@ export default function BattleSetup() {
             {activePlayers.map((player) => <option key={player.id} value={player.id}>{player.name}</option>)}
           </select></label>
           {duel
-            ? <p className="context-note">Duel changes only the player topology: 2 turns per Battle Round, A/B HOME objectives, and a permanent Rival. Primary, Secondary, Operational Plans and scoring caps stay on the Cauldron 2.1.1 rules you already use.</p>
+            ? <p className="context-note">Duel changes only the player topology: 2 turns per Battle Round, A/B HOME objectives, and a permanent Rival. Primary, Secondary, Operational Plans and scoring caps use the Cauldron {CAULDRON_RULESET_VERSION} balance rules.</p>
             : <p className="context-note">The 7-objective layout treats CENTER as a normal neutral objective, so it counts for Primary, objective Secondaries, Mission Actions and Operational Plans exactly like N1/N2/N3.</p>}
           {(localError || error) && <div className="alert alert--danger">{localError ?? error}</div>}
           <div className="setup-submit-actions">

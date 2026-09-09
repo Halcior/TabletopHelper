@@ -21,7 +21,7 @@ export function EndRoundReview({
       <div className="round-review__intro">
         <span className="eyebrow">End Battle Round {session.state.round}</span>
         <h1>Wyniszczenie review</h1>
-        <p>Hotfix 2.1.1 already locked each player&apos;s objective Primary at the end of their own turn. Only Wyniszczenie is resolved here.</p>
+        <p>Objective Primary was already locked at the end of each player&apos;s own turn. Only Wyniszczenie is resolved here.</p>
       </div>
       <div className="round-review-grid">{session.state.turnOrder.map((playerId) => {
         const player = session.state.players[playerId]

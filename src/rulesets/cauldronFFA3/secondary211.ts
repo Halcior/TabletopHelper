@@ -7,7 +7,7 @@ import type { EndTurnSecondaryConfirmations } from './secondaryTypes'
 export * from './secondary'
 
 /**
- * Hotfix 2.1.1 uses one end-turn scoring window. Secondary and the active player's
+ * Cauldron uses one end-turn scoring window. Secondary and the active player's
  * Primary are committed together after Mission Actions/end-turn effects are resolved.
  */
 export function evaluateEndTurnSecondaries(

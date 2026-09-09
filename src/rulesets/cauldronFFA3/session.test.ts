@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dispatchBattleEvent, undoLastAction } from '../../domain/battle/engine'
+import { dispatchBattleEvent, dispatchBattleEvents, getPhaseTransitionEvents, undoLastAction } from '../../domain/battle/engine'
 import { getCurrentRivalPlayerId } from './rivalRotation'
 import { getCauldronRoundStartSnapshot, getCauldronTurnStartSnapshot } from './snapshots'
 import { advanceCauldronPhase, createCauldronGame, isCauldronEndOfRound } from './session'
@@ -48,6 +48,28 @@ describe('Cauldron session integration', () => {
     expect(session.state.turnOrder).toEqual(['p-b', 'p-c', 'p-a'])
     expect(session.state.players['p-a'].units.infantry).not.toBe(session.state.players['p-b'].units.infantry)
     expect(session.state.activePlayerId).toBe('p-b')
+  })
+
+  it('keeps the fixed order in Round 5 and ends only after the final player turn', () => {
+    let session = dispatchBattleEvents(testCauldronGame(), [
+      { type: 'ROUND_STARTED', payload: { round: 5 } },
+      { type: 'TURN_STARTED', payload: { playerId: 'p-a' } },
+      { type: 'PHASE_CHANGED', payload: { phase: 'END_TURN' } },
+    ])
+    expect(getPhaseTransitionEvents(session)).toEqual([
+      { type: 'TURN_ENDED', payload: { playerId: 'p-a' } },
+      { type: 'TURN_STARTED', payload: { playerId: 'p-b' } },
+    ])
+
+    session = dispatchBattleEvents(session, [
+      { type: 'TURN_STARTED', payload: { playerId: 'p-c' } },
+      { type: 'PHASE_CHANGED', payload: { phase: 'END_TURN' } },
+    ])
+    expect(getPhaseTransitionEvents(session)).toEqual([
+      { type: 'TURN_ENDED', payload: { playerId: 'p-c' } },
+      { type: 'ROUND_ENDED', payload: { round: 5 } },
+      { type: 'GAME_ENDED', payload: {} },
+    ])
   })
 
   it('supports the expanded FFA layout with three HOME, three between-player and one central objective', () => {
