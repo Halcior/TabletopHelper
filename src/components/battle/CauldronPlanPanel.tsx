@@ -36,6 +36,7 @@ export function CauldronPlanPanel({
   const number = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 })
   const needsMarkedObjective = state.planId === 'DECYDUJACE_NATARCIE' || state.planId === 'TWIERDZA'
   const fallbackChoice = targetOptions.some((option) => option.fallbackClosestNeutral)
+  const rivalHomeFallback = targetOptions.some((option) => option.fallbackRivalHome)
 
   function markObjective() {
     if (!selectedObjectiveId || target || session.state.phase !== 'COMMAND') return
@@ -72,12 +73,13 @@ export function CauldronPlanPanel({
           <button className="button--gold" disabled={!selectedObjectiveId} onClick={markObjective}>Mark objective</button>
         </div> : <p className="plan-change-unavailable">No valid objective can be marked from the Turn Start state.</p>}
         {fallbackChoice && <small>The Rival controlled no objective at Turn Start. Select the neutral objective physically closest to their deployment zone.</small>}
+        {rivalHomeFallback && <small>The Rival controlled no objective and you controlled every neutral objective at Turn Start, so their HOME is the required target.</small>}
       </div>}
       {target && <p className="spent-note">Marked this turn: {session.state.objectives[target.objectiveId]?.name ?? target.objectiveId}.</p>}
 
       {!state.changed && session.state.phase === 'COMMAND' && (availability.available
         ? <details className="plan-change">
-          <summary>Change plan <span>1 CP · once per battle</span></summary>
+          <summary>Change plan <span>Free · once per battle</span></summary>
           <div className="plan-change__controls">
             <select aria-label="New Operational Plan" value={selectedPlan} onChange={(event) => setSelectedPlan(event.target.value as OperationalPlanId)}>
               {OPERATIONAL_PLAN_IDS.map((planId) => <option key={planId} value={planId}>{OPERATIONAL_PLAN_DEFINITIONS[planId].name}</option>)}
@@ -85,7 +87,7 @@ export function CauldronPlanPanel({
             <button
               disabled={selectedPlan === state.planId}
               onClick={() => onChangePlan(playerId, selectedPlan)}
-            >Confirm change · 1 CP</button>
+            >Confirm free change</button>
           </div>
           <small>{availability.reason}</small>
         </details>

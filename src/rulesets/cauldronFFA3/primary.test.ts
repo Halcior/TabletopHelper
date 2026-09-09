@@ -50,13 +50,21 @@ describe('Cauldron Primary', () => {
     expect(result.roundPrimary).toBe(5)
   })
 
-  it('awards 10 for controlling two objectives including a neutral', () => {
+  it('allows the same neutral objective to satisfy both control conditions', () => {
     let session = control(roundTwo(), 'N1')
     session = control(session, 'A-HOME')
     const result = calculatePrimaryRound(session, 'p-a', 2)
     expect(result.neutralObjective.vp).toBe(5)
     expect(result.twoObjectives.vp).toBe(5)
     expect(result.roundPrimary).toBe(10)
+  })
+
+  it('scores only in Battle Rounds 2 through 5', () => {
+    let session = control(roundTwo(), 'N1')
+    session = control(session, 'A-HOME')
+
+    expect(calculatePrimaryRound(session, 'p-a', 5).roundPrimary).toBe(10)
+    expect(calculatePrimaryRound(session, 'p-a', 6).roundPrimary).toBe(0)
   })
 
   it('awards 15 when both objective conditions and Sabotaż are complete', () => {

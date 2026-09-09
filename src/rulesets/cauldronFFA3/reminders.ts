@@ -36,7 +36,7 @@ export function getCauldronReminders(session: BattleSession): GuidanceReminder[]
     if (!plan.changed) reminders.push({
       id: 'change-plan',
       title: 'Change Operational Plan',
-      detail: '1 CP · once per battle',
+      detail: 'Free · once per battle · no Plan VP this round',
       state: 'action',
       status: 'Available',
     })

@@ -68,12 +68,12 @@ export type CauldronTurnSnapshot = {
 
 export type PlanConfirmation = {
   zwiadHasFourSectors?: boolean
-  zwiadHasThreeOutsideDeployment?: boolean
+  zwiadHasTwoOutsideDeployment?: boolean
   twierdzaNoEnemyAtObjectives?: boolean
   sabotageMissionActionCompleted?: boolean
-  /** Legacy 2.1 aliases kept so persisted review state and older tests can still rehydrate. */
+  /** Legacy aliases kept so persisted review state and older tests can still rehydrate. */
   zwiadHasThreeSectors?: boolean
-  zwiadHasTwoOutsideDeployment?: boolean
+  zwiadHasThreeOutsideDeployment?: boolean
 }
 
 export type OperationalPlanTurnTarget = {

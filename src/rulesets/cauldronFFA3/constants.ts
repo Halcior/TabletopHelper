@@ -2,7 +2,7 @@ import type { ObjectiveDefinition } from '../../domain/battle/types'
 import type { CauldronObjectiveLayout, OperationalPlanId } from './types'
 
 export const CAULDRON_RULESET_ID = 'cauldron-ffa-3'
-export const CAULDRON_RULESET_VERSION = '2.1.1'
+export const CAULDRON_RULESET_VERSION = '2.1.2'
 export const CAULDRON_PLAYER_COUNT = 3
 export const CAULDRON_DUEL_PLAYER_COUNT = 2
 export const CAULDRON_BATTLE_ROUNDS = 5
@@ -61,18 +61,18 @@ export const OPERATIONAL_PLAN_DEFINITIONS: Record<OperationalPlanId, {
   },
   DECYDUJACE_NATARCIE: {
     name: 'Decydujące Natarcie',
-    description: 'At the start of your turn mark an objective controlled by the current Rival. If they control none, mark the neutral objective closest to their deployment zone. Control the marked objective at the end of your turn.',
+    description: 'At the start of your turn mark an objective controlled by the current Rival. If they control none, mark the closest neutral objective you do not control; if you control every neutral objective, mark the Rival HOME. Control the marked objective at the end of your turn.',
   },
   TWIERDZA: {
     name: 'Twierdza',
-    description: 'At the start of your turn mark a neutral objective you control. At the end of your turn control your HOME and the marked objective, with no enemy unit in range of either objective.',
+    description: 'At the start of your turn mark a neutral objective you control. At the end of your turn control your HOME and the marked objective. No enemy OC>0 unit may be in range of your HOME or within 6″ of the marked objective.',
   },
   ZWIAD_OPERACYJNY: {
     name: 'Zwiad Operacyjny',
-    description: 'At the end of your turn have qualifying OC>0 units in at least four sectors, with at least three units outside your deployment zone. One unit counts for one sector.',
+    description: 'At the end of your turn have non-AIRCRAFT OC>0 units in at least four sectors, with at least two of those units outside your deployment zone. One unit counts for one sector.',
   },
   SABOTAZ: {
     name: 'Sabotaż',
-    description: 'Complete a Mission Action on a neutral objective you did not control at the start of your turn.',
+    description: 'Complete a Mission Action on a neutral objective you did not control at the start of your turn. The action must be assigned to this Plan and cannot also complete a Secondary.',
   },
 }

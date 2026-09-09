@@ -38,7 +38,7 @@ export function SecondaryEndTurnReview({
     centreOcByPlayer: Object.fromEntries(session.state.turnOrder.map((id) => [id, 0])),
     behindEnemyLinesUnitCount: 0,
     zwiadHasFourSectors: false,
-    zwiadHasThreeOutsideDeployment: false,
+    zwiadHasTwoOutsideDeployment: false,
     twierdzaNoEnemyAtObjectives: false,
   })
   const [discardIds, setDiscardIds] = useState<SecondaryId[]>([])
@@ -134,14 +134,14 @@ export function SecondaryEndTurnReview({
       {(planId === 'ZWIAD_OPERACYJNY' || planId === 'TWIERDZA') && session.state.round >= 2 && <section className="panel turn-review-section">
         <div className="section-heading"><div><span className="eyebrow">Operational Plan</span><h2>{primaryPreview.planEvaluation.name}</h2></div><strong>up to +5 VP</strong></div>
         {planId === 'ZWIAD_OPERACYJNY' && <>
-          <ConfirmationRow label="OC>0 units are in at least four sectors." checked={confirmations.zwiadHasFourSectors ?? false} onChange={(value) => setConfirmation('zwiadHasFourSectors', value)} />
-          <ConfirmationRow label="At least three qualifying units are outside your deployment zone." checked={confirmations.zwiadHasThreeOutsideDeployment ?? false} onChange={(value) => setConfirmation('zwiadHasThreeOutsideDeployment', value)} />
+          <ConfirmationRow label="Non-AIRCRAFT OC>0 units are in at least four different sectors; each unit counts once." checked={confirmations.zwiadHasFourSectors ?? false} onChange={(value) => setConfirmation('zwiadHasFourSectors', value)} />
+          <ConfirmationRow label="At least two of those qualifying units are outside your deployment zone." checked={confirmations.zwiadHasTwoOutsideDeployment ?? false} onChange={(value) => setConfirmation('zwiadHasTwoOutsideDeployment', value)} />
         </>}
-        {planId === 'TWIERDZA' && <ConfirmationRow label="No enemy unit is in range of either your HOME or the marked neutral objective." checked={confirmations.twierdzaNoEnemyAtObjectives ?? false} onChange={(value) => setConfirmation('twierdzaNoEnemyAtObjectives', value)} />}
+        {planId === 'TWIERDZA' && <ConfirmationRow label="No enemy OC>0 unit is in range of your HOME or within 6″ of the marked neutral objective. Battle-shocked units do not block this." checked={confirmations.twierdzaNoEnemyAtObjectives ?? false} onChange={(value) => setConfirmation('twierdzaNoEnemyAtObjectives', value)} />}
       </section>}
 
       <section className="panel turn-review-section">
-        <div className="section-heading"><div><span className="eyebrow">Primary · Hotfix 2.1.1</span><h2>Score at the end of your turn</h2></div><strong>{primaryPreview.roundPrimary} VP</strong></div>
+        <div className="section-heading"><div><span className="eyebrow">Primary · Balance patch 2.1.2</span><h2>Score at the end of your turn</h2></div><strong>{primaryPreview.roundPrimary} VP</strong></div>
         {[primaryPreview.neutralObjective, primaryPreview.twoObjectives, primaryPreview.operationalPlan].map((condition) => <div className="primary-condition" key={condition.label}>
           <span className={condition.completed ? 'condition-mark complete' : 'condition-mark'}>{condition.completed ? '✓' : '×'}</span>
           <span>{condition.label}</span><strong>+{condition.vp}</strong>
