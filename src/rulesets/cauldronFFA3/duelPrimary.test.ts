@@ -96,6 +96,15 @@ describe('11th edition official duel', () => {
     expect(session.state.round).toBe(2)
   })
 
+  it('does not score Punishment before that commander has condemned any units at the start of their first turn', () => {
+    let session = game('disruption', 'purge-the-foe')
+    session = dispatchBattleEvents(session, [{ type: 'PHASE_CHANGED', payload: { phase: 'END_TURN' } }])
+    expect(getDuelConditions(session, 'p-b', 'turn')).toEqual([])
+    expect(() => reviewDuelPrimary(session, 'p-b', 'turn', { condemned: 1 })).toThrow(/no opponent-turn Primary/)
+    session = dispatchBattleEvents(session, [{ type: 'TURN_STARTED', payload: { playerId: 'p-b' } }])
+    expect(getDuelConditions(session, 'p-b', 'turn').some((condition) => condition.id === 'condemned')).toBe(true)
+  })
+
   it('lets a shared player confirm only their own opponent-turn Primary', () => {
     let session = game('purge-the-foe', 'disruption')
     session = dispatchBattleEvents(session, [{ type: 'TURN_STARTED', payload: { playerId: 'p-b' } }, { type: 'PHASE_CHANGED', payload: { phase: 'END_TURN' } }])

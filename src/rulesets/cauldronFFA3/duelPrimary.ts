@@ -101,12 +101,14 @@ export function hasDuelOwnTurnCommit(session: BattleSession, playerId: string): 
 export function getDuelConditions(session: BattleSession, playerId: string, window: DuelReviewWindow): DuelCondition[] {
   const round = session.state.round
   const own = session.state.activePlayerId === playerId
+  const hasStartedOwnTurn = own || session.state.turnOrder[0] === playerId
+    || session.state.events.some((event) => event.type === 'TURN_STARTED' && event.payload.playerId === playerId)
   return getDuelMission(session, playerId).conditions.filter((condition) => (
     round >= (condition.from ?? 1) && round <= (condition.through ?? 5)
     && (window === 'battle' ? condition.window === 'battle'
       : window === 'command' ? own && condition.window === 'command' && round < 5
         : (own && (condition.window === 'turn' || (round === 5 && condition.window === 'command')))
-          || condition.window === 'either')
+          || (condition.window === 'either' && hasStartedOwnTurn))
   ))
 }
 export function duelPrimaryPreview(session: BattleSession, playerId: string, window: DuelReviewWindow, selections: Record<string, number>) {
