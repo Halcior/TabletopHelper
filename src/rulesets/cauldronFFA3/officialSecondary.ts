@@ -4,7 +4,7 @@ import type { BattleSession } from '../../domain/battle/types'
 import { cauldronEvent, getCauldronEventData } from './events'
 import { OFFICIAL_SECONDARY_BY_ID, type OfficialSecondaryDefinition } from './officialSecondaryDefinitions'
 import { getCurrentRivalPlayerId } from './rivalRotation'
-import { getCauldronConfig } from './sessionConfig'
+import { secondaryStrategyFor } from './sessionConfig'
 import { getGameSecondaryVp, getRoundSecondaryVp, getSecondaryState, isOfficialSecondary, officialDrawEvents } from './secondary'
 import type { OfficialSecondaryId } from './secondaryTypes'
 
@@ -30,7 +30,7 @@ export function canScoreOfficialSecondary(session: BattleSession, playerId: stri
   if (definition.scoreAt === 'either' && !ownTurn && getCurrentRivalPlayerId(session, playerId) !== session.state.activePlayerId) return false
   if (cardId === 'OFFICIAL_DEFEND_STRONGHOLD' && session.state.round === 1) return false
   if ((cardId === 'OFFICIAL_CLEANSE' || cardId === 'OFFICIAL_PLUNDER') && officialActionCount(session, playerId, cardId) === 0) return false
-  if (getCauldronConfig(session).officialSecondaryStrategy === 'fixed') {
+  if (secondaryStrategyFor(session, playerId) === 'fixed') {
     if (getSecondaryState(session)[playerId].scoreHistory.filter((entry) => entry.cardId === cardId).reduce((sum, entry) => sum + entry.pointsAwarded, 0) >= 20) return false
     return !getSecondaryState(session)[playerId].scoreHistory.some((entry) => entry.cardId === cardId && entry.turnKey === officialTurnKey(session))
   }
@@ -39,7 +39,7 @@ export function canScoreOfficialSecondary(session: BattleSession, playerId: stri
 
 export function officialAwards(session: BattleSession, playerId: string, cardId: OfficialSecondaryId): number[] {
   const definition = OFFICIAL_SECONDARY_BY_ID[cardId]
-  if (getCauldronConfig(session).officialSecondaryStrategy !== 'fixed') {
+  if (secondaryStrategyFor(session, playerId) !== 'fixed') {
     if (cardId === 'OFFICIAL_DISPLAY_OF_MIGHT') return [session.state.activePlayerId === playerId ? 2 : 5]
     if (cardId === 'OFFICIAL_CLEANSE') return officialActionCount(session, playerId, cardId) >= 2 ? [2, 5] : [2]
     return [...definition.awards]
@@ -106,7 +106,7 @@ export function scoreOfficialSecondary(session: BattleSession, playerId: string,
   assertOfficial(session)
   if (!canScoreOfficialSecondary(session, playerId, cardId)) throw new Error('This card cannot score at this turn end or has already scored this turn.')
   if (!officialAwards(session, playerId, cardId).includes(requestedVp)) throw new Error('Choose a valid VP award for this card.')
-  const strategy = getCauldronConfig(session).officialSecondaryStrategy ?? 'tactical'
+  const strategy = secondaryStrategyFor(session, playerId)
   const state = getSecondaryState(session)[playerId]
   const cardAlready = state.scoreHistory.filter((entry) => entry.cardId === cardId).reduce((sum, entry) => sum + entry.pointsAwarded, 0)
   const award = Math.max(0, Math.min(requestedVp, 15 - getRoundSecondaryVp(session, playerId), 45 - getGameSecondaryVp(session, playerId), strategy === 'fixed' ? 20 - cardAlready : 5))
@@ -126,7 +126,7 @@ function isNewDraw(session: BattleSession, playerId: string, cardId: OfficialSec
 }
 
 export function officialRedrawReason(session: BattleSession, playerId: string, cardId: OfficialSecondaryId): string | undefined {
-  if (!isOfficialSecondary(session) || getCauldronConfig(session).officialSecondaryStrategy === 'fixed'
+  if (!isOfficialSecondary(session) || secondaryStrategyFor(session, playerId) === 'fixed'
     || session.state.activePlayerId !== playerId || session.state.phase !== 'COMMAND'
     || !isNewDraw(session, playerId, cardId) || getSecondaryState(session)[playerId].deck.length === 0) return undefined
   const definition: OfficialSecondaryDefinition = OFFICIAL_SECONDARY_BY_ID[cardId]
@@ -139,7 +139,7 @@ export function officialRedrawReason(session: BattleSession, playerId: string, c
 
 export function replaceOfficialSecondary(session: BattleSession, playerId: string, cardId: OfficialSecondaryId, newOrders = false): BattleSession {
   assertOfficial(session)
-  if (getCauldronConfig(session).officialSecondaryStrategy === 'fixed') throw new Error('Fixed cards cannot be redrawn.')
+  if (secondaryStrategyFor(session, playerId) === 'fixed') throw new Error('Fixed cards cannot be redrawn.')
   if (session.state.phase !== 'COMMAND' || session.state.activePlayerId !== playerId) throw new Error('Replace a card in your Command phase.')
   const state = getSecondaryState(session)[playerId]
   if (!state.active.some((card) => card.cardId === cardId) || state.deck.length === 0) throw new Error('No active card or deck card is available.')
@@ -163,7 +163,7 @@ export function replaceOfficialSecondary(session: BattleSession, playerId: strin
 
 export function discardOfficialAtEndTurn(session: BattleSession, playerId: string, cardIds: readonly OfficialSecondaryId[]): BattleSession {
   assertOfficial(session)
-  if (getCauldronConfig(session).officialSecondaryStrategy === 'fixed') throw new Error('Fixed cards cannot be discarded.')
+  if (secondaryStrategyFor(session, playerId) === 'fixed') throw new Error('Fixed cards cannot be discarded.')
   if (session.state.phase !== 'END_TURN' || session.state.activePlayerId !== playerId) throw new Error('Discard at the end of your own turn.')
   const unique = [...new Set(cardIds)]
   const active = getSecondaryState(session)[playerId].active

@@ -56,7 +56,7 @@ export function SharedPlayerPerspective({
   const reactionPending = reactionWindow?.responses[viewerPlayerId]?.status === 'PENDING'
   const activeSecondaries = showCards ? getActiveSecondaryViews(session, viewerPlayerId) : []
   const missionActions = selectActiveMissionActions(session, viewerPlayerId)
-  const plan = showCards && !(session.setup.rulesetId === CAULDRON_RULESET_ID && getCauldronConfig(session).primaryDeck === 'chapter-approved-ffa')
+  const plan = showCards && !(session.setup.rulesetId === CAULDRON_RULESET_ID && (getCauldronConfig(session).primaryDeck ?? 'cauldron') !== 'cauldron')
     ? evaluateOperationalPlan(session, viewerPlayerId) : null
   const planProgress = plan?.progress
     ? `${plan.progress.current}/${plan.progress.target} ${plan.progress.unit}`

@@ -35,6 +35,16 @@ export const CAULDRON_DUEL_OBJECTIVES: ObjectiveDefinition[] = [
   { id: 'N3', name: 'N3', type: 'neutral' },
 ]
 
+// Generic labels for the physical Chapter Approved layout chosen from the Event Companion.
+export const OFFICIAL_DUEL_OBJECTIVES: ObjectiveDefinition[] = [
+  { id: 'A-HOME', name: 'A-HOME', type: 'home' },
+  { id: 'B-HOME', name: 'B-HOME', type: 'home' },
+  { id: 'CENTER-1', name: 'CENTER-1', type: 'neutral' },
+  { id: 'CENTER-2', name: 'CENTER-2', type: 'neutral' },
+  { id: 'EXPANSION-1', name: 'EXPANSION-1', type: 'neutral' },
+  { id: 'EXPANSION-2', name: 'EXPANSION-2', type: 'neutral' },
+]
+
 export function cauldronObjectivesForPlayerCount(
   playerCount: number,
   objectiveLayout: CauldronObjectiveLayout = 'classic-6',

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { totalScore } from '../../domain/battle/selectors'
 import type { BattleSession } from '../../domain/battle/types'
+import { duelBattleReadyVp, isDuelPrimary } from '../../rulesets/cauldronFFA3/duelPrimary'
 
 type BattleSummaryProps = {
   session: BattleSession
@@ -33,6 +34,7 @@ export function BattleSummary({
   const highest = players[0]?.total ?? 0
   const winners = players.filter(({ total }) => total === highest)
   const completed = session.state.status === 'completed'
+  const officialDuel = session.setup.rulesetId === 'cauldron-ffa-3' && isDuelPrimary(session)
 
   return <section className="panel battle-summary">
     <div className="battle-summary__heading">
@@ -56,8 +58,9 @@ export function BattleSummary({
         <div className="battle-summary__breakdown">
           <span>Primary <strong>{player.score.primary}</strong></span>
           <span>Secondary <strong>{player.score.secondary}</strong></span>
-          <span>Plan <strong>{player.score.plan}</strong></span>
-          {player.score.adjustment !== 0 && <span>Adjustment <strong>{player.score.adjustment}</strong></span>}
+          {!officialDuel && <span>Plan <strong>{player.score.plan}</strong></span>}
+          {officialDuel && <span>Battle Ready <strong>{duelBattleReadyVp(session, player.id)}</strong></span>}
+          {player.score.adjustment - (officialDuel ? duelBattleReadyVp(session, player.id) : 0) !== 0 && <span>Adjustment <strong>{player.score.adjustment - (officialDuel ? duelBattleReadyVp(session, player.id) : 0)}</strong></span>}
         </div>
       </article>)}
     </div>

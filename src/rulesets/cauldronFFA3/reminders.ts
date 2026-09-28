@@ -2,6 +2,7 @@ import type { BattleSession } from '../../domain/battle/types'
 import type { GuidanceReminder } from '../generic/guidance'
 import { getOperationalPlanState } from './operationalPlans'
 import { getOfficialPrimaryId, isOfficialPrimary, OFFICIAL_PRIMARY_MISSIONS } from './officialPrimary'
+import { getDuelMission, isDuelPrimary } from './duelPrimary'
 import { getCurrentRivalPlayerId } from './rivalRotation'
 import { isCauldronEndOfRound } from './session'
 
@@ -22,7 +23,7 @@ export function getCauldronReminders(session: BattleSession): GuidanceReminder[]
   const activeId = session.state.activePlayerId
   const rivalId = getCurrentRivalPlayerId(session, activeId)
   const rival = session.state.players[rivalId]
-  const officialPrimary = isOfficialPrimary(session)
+  const officialPrimary = isOfficialPrimary(session) || isDuelPrimary(session)
   const plan = officialPrimary ? null : getOperationalPlanState(session, activeId)
   const guided = session.setup.guidanceLevel === 'guided'
 
@@ -58,7 +59,7 @@ export function getCauldronReminders(session: BattleSession): GuidanceReminder[]
     ]
     : [{ id: 'movement-checks', title: 'Reserves and Mission Actions', state: 'action', status: 'Check now' }]
   if (session.state.phase === 'SHOOTING') return [
-    ...(officialPrimary ? [{ id: 'primary-action', title: OFFICIAL_PRIMARY_MISSIONS[getOfficialPrimaryId(session, activeId)].name, detail: 'Check any Primary Objective Actions in this phase and record completed actions at turn end.', state: 'info' as const, status: 'Information' }] : []),
+    ...(officialPrimary ? [{ id: 'primary-action', title: isDuelPrimary(session) ? getDuelMission(session, activeId).name : OFFICIAL_PRIMARY_MISSIONS[getOfficialPrimaryId(session, activeId)].name, detail: 'Check any Primary Objective Actions in this phase and confirm completed actions at turn end.', state: 'info' as const, status: 'Information' }] : []),
     ...(!officialPrimary ? [{ id: 'shooting-rival', title: `Casualties against ${rival.name} advance Wyniszczenie`, detail: 'Only current Rival casualties count this round.', state: 'attention' as const, status: 'Important' }] : []),
     { id: 'shooting-record', title: 'Record casualties after rolling', detail: 'Use the Army tab for models, wounds, or destroyed units.', state: 'action', status: 'Player action' },
   ]

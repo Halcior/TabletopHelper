@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { BattleSession } from '../../domain/battle/types'
-import { getCauldronConfig } from '../../rulesets/cauldronFFA3/sessionConfig'
+import { getCauldronConfig, secondaryStrategyFor } from '../../rulesets/cauldronFFA3/sessionConfig'
 import { OFFICIAL_SECONDARY_BY_ID } from '../../rulesets/cauldronFFA3/officialSecondaryDefinitions'
 import {
   canScoreOfficialSecondary, officialActionCount, officialAwards, officialRedrawReason,
@@ -18,7 +18,7 @@ export function OfficialSecondaryPanel({ session, playerId, editable }: { sessio
   const { scoreOfficialSecondary, replaceOfficialSecondary, discardOfficialAtEndTurn, noteOfficialTarget, startOfficialSecondaryAction, acknowledgeOfficialWindow } = useBattleStore()
   const state = getSecondaryState(session)[playerId]
   const config = getCauldronConfig(session)
-  const fixed = config.officialSecondaryStrategy === 'fixed'
+  const fixed = secondaryStrategyFor(session, playerId) === 'fixed'
   const ownTurn = session.state.activePlayerId === playerId
   const command = session.state.phase === 'COMMAND' && ownTurn
   const endTurn = session.state.phase === 'END_TURN'

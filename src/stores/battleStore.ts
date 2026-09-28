@@ -53,6 +53,7 @@ import {
   type SecondaryId,
 } from '../rulesets/cauldronFFA3'
 import { acknowledgeOfficialWindow, discardOfficialAtEndTurn, noteOfficialTarget, replaceOfficialSecondary, scoreOfficialSecondary, startOfficialSecondaryAction } from '../rulesets/cauldronFFA3/officialSecondary'
+import { confirmDuelBattleReady, reviewDuelPrimary, type DuelReviewWindow } from '../rulesets/cauldronFFA3/duelPrimary'
 
 type BattleStore = {
   session: BattleSession | null
@@ -67,6 +68,8 @@ type BattleStore = {
     officialSecondaryStrategy?: OfficialSecondaryStrategy,
     fixedSecondarySelections?: Record<string, [OfficialSecondaryId, OfficialSecondaryId]>,
     primaryDeck?: PrimaryDeck,
+    officialSecondaryStrategies?: Record<string, OfficialSecondaryStrategy>,
+    officialLayout?: 1 | 2 | 3,
   ) => Promise<string>
   loadBattle: (id: string) => Promise<void>
   resumeLatest: () => Promise<string | null>
@@ -87,6 +90,8 @@ type BattleStore = {
   noteOfficialTarget: (playerId: string, cardId: OfficialSecondaryId, note: string) => void
   startOfficialSecondaryAction: (playerId: string, cardId: OfficialSecondaryId, unit: string, target: string) => void
   acknowledgeOfficialWindow: (playerId: string) => void
+  reviewDuelPrimary: (playerId: string, window: DuelReviewWindow, selections: Record<string, number>) => void
+  confirmDuelBattleReady: (playerId: string, ready: boolean) => void
   discardSecondaryCards: (playerId: string, cardIds: SecondaryId[]) => void
   evaluateEndTurnSecondaries: (playerId: string, confirmations?: EndTurnSecondaryConfirmations) => void
   resolveEliminationChoice: (playerId: string, cardId: SecondaryId) => void
@@ -145,10 +150,10 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
   loading: false,
   error: null,
 
-  async startCauldronBattle(players, armies, guidanceLevel, objectiveLayout, secondaryDeck, officialSecondaryStrategy, fixedSecondarySelections, primaryDeck) {
+  async startCauldronBattle(players, armies, guidanceLevel, objectiveLayout, secondaryDeck, officialSecondaryStrategy, fixedSecondarySelections, primaryDeck, officialSecondaryStrategies, officialLayout) {
     set({ loading: true, error: null })
     try {
-      const session = createCauldronGame({ players, armies, guidanceLevel, objectiveLayout, secondaryDeck, officialSecondaryStrategy, fixedSecondarySelections, primaryDeck })
+      const session = createCauldronGame({ players, armies, guidanceLevel, objectiveLayout, secondaryDeck, officialSecondaryStrategy, fixedSecondarySelections, primaryDeck, officialSecondaryStrategies, officialLayout })
       await saveBattle(session)
       set({ session, loading: false })
       return session.setup.gameId
@@ -300,6 +305,14 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
 
   acknowledgeOfficialWindow(playerId) {
     applySessionUpdate(get().session, (session) => acknowledgeOfficialWindow(session, playerId), set)
+  },
+
+  reviewDuelPrimary(playerId, window, selections) {
+    applySessionUpdate(get().session, (session) => reviewDuelPrimary(session, playerId, window, selections), set)
+  },
+
+  confirmDuelBattleReady(playerId, ready) {
+    applySessionUpdate(get().session, (session) => confirmDuelBattleReady(session, playerId, ready), set)
   },
 
   discardSecondaryCards(playerId, cardIds) {

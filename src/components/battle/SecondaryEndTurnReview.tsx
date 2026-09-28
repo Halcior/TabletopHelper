@@ -7,12 +7,16 @@ import {
   getOperationalPlanState,
   getPrimaryTurnCommit,
   isOfficialPrimary,
+  isDuelPrimary,
+  getDuelConditions,
+  getDuelPrimaryCommit,
 } from '../../rulesets/cauldronFFA3'
 import { getEndTurnReview, getSecondaryState } from '../../rulesets/cauldronFFA3/secondary'
 import { isOfficialSecondary } from '../../rulesets/cauldronFFA3/secondary'
 import { officialPendingReviewPlayers } from '../../rulesets/cauldronFFA3/officialSecondary'
 import { OfficialSecondaryPanel } from './OfficialSecondaryPanel'
 import { OfficialPrimaryInputs } from './OfficialPrimaryInputs'
+import { DuelPrimaryPanel } from './DuelPrimaryPanel'
 import type { EndTurnSecondaryConfirmations, SecondaryId } from '../../rulesets/cauldronFFA3/secondaryTypes'
 import { useBattleStore } from '../../stores/battleStore'
 
@@ -26,7 +30,36 @@ type SecondaryEndTurnReviewProps = {
   sharedBattle?: boolean
 }
 
-export function SecondaryEndTurnReview({
+export function SecondaryEndTurnReview(props: SecondaryEndTurnReviewProps) {
+  if (isDuelPrimary(props.session)) return <DuelEndTurnReview {...props} />
+  return <CauldronEndTurnReview {...props} />
+}
+
+function DuelEndTurnReview({ session, onCompleteMissionAction, onFinish, onCancel, sharedBattle = false }: SecondaryEndTurnReviewProps) {
+  const [missionPositions, setMissionPositions] = useState<Record<string, boolean>>({})
+  const playerId = session.state.activePlayerId
+  const otherId = session.state.turnOrder.find((id) => id !== playerId)!
+  const opponentHasEither = getDuelConditions(session, otherId, 'turn').some((condition) => condition.window === 'either')
+  const ownCommit = getDuelPrimaryCommit(session, playerId, 'turn')
+  const otherCommit = opponentHasEither ? getDuelPrimaryCommit(session, otherId, 'turn') : true
+  const pendingSecondaries = officialPendingReviewPlayers(session)
+  const activeActions = Object.values(session.state.missionActions).filter((action) => action.playerId === playerId && action.status === 'ACTIVE')
+  const last = session.state.turnOrder.at(-1) === playerId
+  const next = session.state.players[otherId]
+  const canFinish = Boolean(ownCommit && otherCommit && !pendingSecondaries.length && !activeActions.length)
+
+  return <main className="battle-content secondary-turn-review">
+    <div className="round-review__intro"><span className="eyebrow">{session.state.players[playerId].name}</span><h1>End Turn · Chapter Approved</h1><p>Resolve actions, review Primary at this turn end, then both players check their eligible Secondary cards. If the opponent has Punishment, they also review its turn-end condition.</p></div>
+    {activeActions.length > 0 && <section className="panel turn-review-section"><h2>Complete Mission Actions</h2>{activeActions.map((action) => <div key={action.id} className="review-check-row"><label><input type="checkbox" checked={missionPositions[action.id] ?? false} onChange={(event) => setMissionPositions((current) => ({ ...current, [action.id]: event.target.checked }))} /> {action.name} · final position confirmed</label><button type="button" onClick={() => onCompleteMissionAction(action.id, missionPositions[action.id] ?? false)}>Resolve</button></div>)}</section>}
+    <DuelPrimaryPanel session={session} playerId={playerId} window="turn" editable />
+    {opponentHasEither && (sharedBattle ? <section className="panel turn-review-section"><strong>{session.state.players[otherId].name} · Punishment</strong><p>The other commander must review their Primary on their own device before this turn can end.</p></section> : <DuelPrimaryPanel session={session} playerId={otherId} window="turn" editable />)}
+    {(sharedBattle ? [playerId] : session.state.turnOrder).map((id) => <OfficialSecondaryPanel key={id} session={session} playerId={id} editable />)}
+    {pendingSecondaries.length > 0 && <p className="context-note">Secondary review pending: {pendingSecondaries.map((id) => session.state.players[id].name).join(', ')}.</p>}
+    <div className="review-actions"><button type="button" onClick={onCancel}>Back to turn</button><button className="button--gold" type="button" disabled={!canFinish} onClick={onFinish}>{last ? 'Continue to Battle Round review' : `End turn → ${next.name}`}</button></div>
+  </main>
+}
+
+function CauldronEndTurnReview({
   session,
   onCompleteMissionAction,
   onEvaluate,

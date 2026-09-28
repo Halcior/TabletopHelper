@@ -7,7 +7,8 @@ export type TurnPosition = 1 | 2 | 3
 export type CauldronMode = 'duel' | 'ffa3'
 export type CauldronObjectiveLayout = 'classic-6' | 'expanded-7'
 export type SecondaryDeck = 'cauldron' | 'chapter-approved'
-export type PrimaryDeck = 'cauldron' | 'chapter-approved-ffa'
+export type PrimaryDeck = 'cauldron' | 'chapter-approved-ffa' | 'chapter-approved-duel'
+import type { ForceDisposition } from './duelPrimary'
 export type OfficialPrimaryId = 'battlefield-dominance' | 'meatgrinder' | 'gather-intel' | 'sabotage' | 'outmanoeuvre'
 export type OfficialSecondaryStrategy = 'tactical' | 'fixed'
 export type OperationalPlanId =
@@ -27,6 +28,7 @@ export type CauldronPlayerInput = {
   turnPosition: TurnPosition
   operationalPlanId: OperationalPlanId
   officialPrimaryId?: OfficialPrimaryId
+  forceDisposition?: ForceDisposition
 }
 
 export type CauldronGameInput = {
@@ -38,6 +40,8 @@ export type CauldronGameInput = {
   primaryDeck?: PrimaryDeck
   secondaryDeck?: SecondaryDeck
   officialSecondaryStrategy?: OfficialSecondaryStrategy
+  officialSecondaryStrategies?: Record<string, OfficialSecondaryStrategy>
+  officialLayout?: 1 | 2 | 3
   fixedSecondarySelections?: Record<string, [OfficialSecondaryId, OfficialSecondaryId]>
   gameId?: string
   createdAt?: string
@@ -50,6 +54,7 @@ export type CauldronPlayerConfig = {
   turnPosition: TurnPosition
   initialOperationalPlanId: OperationalPlanId
   officialPrimaryId?: OfficialPrimaryId
+  forceDisposition?: ForceDisposition
 }
 
 export type CauldronConfig = {
@@ -60,6 +65,8 @@ export type CauldronConfig = {
   primaryDeck?: PrimaryDeck
   secondaryDeck?: SecondaryDeck
   officialSecondaryStrategy?: OfficialSecondaryStrategy
+  officialSecondaryStrategies?: Record<string, OfficialSecondaryStrategy>
+  officialLayout?: 1 | 2 | 3
   fixedSecondarySelections?: Record<string, [OfficialSecondaryId, OfficialSecondaryId]>
   battleRounds: number
   primaryCap: number

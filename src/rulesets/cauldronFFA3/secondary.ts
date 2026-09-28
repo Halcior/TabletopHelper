@@ -4,7 +4,8 @@ import { getPlayerTurnNumber, getUnitDefinition } from '../../domain/battle/miss
 import type { BattleEventInput, BattleSession, MissionActionState } from '../../domain/battle/types'
 import { cauldronEvent } from './events'
 import { getCurrentRivalPlayerId } from './rivalRotation'
-import { getCauldronConfig } from './sessionConfig'
+import { getCauldronConfig, secondaryStrategyFor } from './sessionConfig'
+import { isDuelPrimary } from './duelPrimary'
 import { getCauldronTurnStartSnapshot } from './snapshots'
 import { CAULDRON_SECONDARY_BY_ID, CAULDRON_SECONDARY_IDS } from './secondaryDefinitions'
 import { OFFICIAL_SECONDARY_BY_ID, OFFICIAL_SECONDARY_IDS } from './officialSecondaryDefinitions'
@@ -281,23 +282,22 @@ export function createSecondaryInitializationEvents(
   random: () => number = Math.random,
 ): BattleEventInput[] {
   if (isOfficialSecondary(session)) {
-    const config = getCauldronConfig(session)
-    if (config.officialSecondaryStrategy === 'fixed') return session.setup.players.flatMap((player) => {
-      const selected = config.fixedSecondarySelections?.[player.id]
-      if (!selected || selected.length !== 2 || new Set(selected).size !== 2 || selected.some((id) => !OFFICIAL_SECONDARY_BY_ID[id]?.fixed)) {
-        throw new Error(`Choose two different Fixed Secondaries for ${player.name}.`)
-      }
-      return [cauldronEvent('SECONDARY_DECK_SHUFFLED', { playerId: player.id, deckOrder: [] }), ...selected.map((cardId) => (
-        cauldronEvent('SECONDARY_DRAWN', { playerId: player.id, cardId, round: 1, turn: 1 })
-      ))]
-    })
     return session.setup.players.flatMap((player) => {
+      if (secondaryStrategyFor(session, player.id) === 'fixed') {
+        const selected = getCauldronConfig(session).fixedSecondarySelections?.[player.id]
+        if (!selected || selected.length !== 2 || new Set(selected).size !== 2 || selected.some((id) => !OFFICIAL_SECONDARY_BY_ID[id]?.fixed)) {
+          throw new Error(`Choose two different Fixed Secondaries for ${player.name}.`)
+        }
+        return [cauldronEvent('SECONDARY_DECK_SHUFFLED', { playerId: player.id, deckOrder: [] }), ...selected.map((cardId) => (
+          cauldronEvent('SECONDARY_DRAWN', { playerId: player.id, cardId, round: 1, turn: 1 })
+        ))]
+      }
       const order = deckOrders[player.id] ? [...deckOrders[player.id]!] : shuffle(OFFICIAL_SECONDARY_IDS, random)
       if (order.length !== 18 || new Set(order).size !== 18 || order.some((id) => !(id in OFFICIAL_SECONDARY_BY_ID))) {
         throw new Error('The Chapter Approved Tactical deck must contain all 18 unique cards.')
       }
       return [cauldronEvent('SECONDARY_DECK_SHUFFLED', { playerId: player.id, deckOrder: order }),
-        ...officialDrawEvents(player.id, order, 2, 1, 1)]
+        ...(isDuelPrimary(session) && player.id !== session.state.activePlayerId ? [] : officialDrawEvents(player.id, order, 2, 1, 1))]
     })
   }
   return session.setup.players.flatMap((player) => {
@@ -334,9 +334,9 @@ export function createSecondaryRefillEvents(
   const current = getSecondaryState(session)[playerId]
   if (!current) throw new Error(`Unknown player: ${playerId}`)
   if (isOfficialSecondary(session)) {
-    if (getCauldronConfig(session).officialSecondaryStrategy === 'fixed') return []
-    // Both players received their first two cards during setup, before their first turns begin.
-    if (round === 1 && getPlayerTurnNumber(session, playerId) === 0) return []
+    if (secondaryStrategyFor(session, playerId) === 'fixed') return []
+    // Legacy FFA draws for all players at setup; official duel draws at the beginning of each own Command.
+    if (!isDuelPrimary(session) && round === 1 && getPlayerTurnNumber(session, playerId) === 0) return []
     return officialDrawEvents(playerId, current.deck, 2, round, getPlayerTurnNumber(session, playerId) + 1)
   }
   const mutable: MutableDrawState = {
@@ -867,7 +867,7 @@ export function getActiveSecondaryViews(session: BattleSession, playerId: string
       vp: definition.vp,
       objective: definition.description,
       status: 'INPUT_REQUIRED',
-      progress: getCauldronConfig(session).officialSecondaryStrategy === 'fixed'
+      progress: secondaryStrategyFor(session, playerId) === 'fixed'
         ? 'Fixed: score whenever the condition is met, up to 20 VP for this card.'
         : `Tactical: confirm at the end of ${definition.scoreAt === 'either' ? 'either turn' : definition.scoreAt === 'own' ? 'your turn' : 'the Rival turn'}.`,
       pointsAwarded: state.scoreHistory.filter((entry) => entry.cardId === card.cardId).reduce((sum, entry) => sum + entry.pointsAwarded, 0),
