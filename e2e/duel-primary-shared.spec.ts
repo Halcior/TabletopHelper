@@ -3,6 +3,7 @@ import { importTestArmy, phone, scoreCard } from './helpers'
 import { MockSupabase } from './mockSupabase'
 
 test('two phones review their own asymmetric Primary, including opponent-turn Punishment', async ({ browser }) => {
+  test.setTimeout(90_000)
   const backend = new MockSupabase()
   const alpha = await phone(browser, backend)
   const bravo = await phone(browser, backend)
@@ -27,9 +28,12 @@ test('two phones review their own asymmetric Primary, including opponent-turn Pu
     await alpha.page.getByRole('button', { name: /Confirm end of turn/ }).click()
     for (const page of [alpha.page, bravo.page]) {
       const acknowledge = page.getByRole('button', { name: /Finished reviewing Player I’s turn/ })
-      if (await acknowledge.isVisible().catch(() => false)) await acknowledge.click()
+      await expect(acknowledge).toBeVisible()
+      await acknowledge.click()
     }
+    await expect(alpha.page.getByRole('button', { name: /End turn →/ })).toBeEnabled()
     await alpha.page.getByRole('button', { name: /End turn →/ }).click()
+    await expect(bravo.page.locator('.battle-turn__mobile-meta')).toContainText('Player II')
     for (let i = 0; i < 6; i += 1) await bravo.page.locator('.next-phase').click()
     await expect(bravo.page.getByRole('heading', { name: 'End Turn · Chapter Approved' })).toBeVisible()
     const punishment = alpha.page.locator('.duel-primary-panel').filter({ hasText: 'Punishment' }).first()
