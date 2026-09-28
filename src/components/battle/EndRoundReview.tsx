@@ -4,6 +4,9 @@ import {
   getOperationalPlanState,
   getPrimaryAwardedInRound,
   getPrimaryTurnCommit,
+  isOfficialPrimary,
+  OFFICIAL_PRIMARY_MISSIONS,
+  getOfficialPrimaryId,
   type PlanConfirmation,
 } from '../../rulesets/cauldronFFA3'
 
@@ -16,17 +19,18 @@ export function EndRoundReview({
   onCancel: () => void
   onConfirm: (confirmations: Record<string, PlanConfirmation>) => void
 }) {
+  const officialPrimary = isOfficialPrimary(session)
   return (
     <main className="battle-content round-review">
       <div className="round-review__intro">
         <span className="eyebrow">End Battle Round {session.state.round}</span>
-        <h1>Wyniszczenie review</h1>
-        <p>Objective Primary was already locked at the end of each player&apos;s own turn. Only Wyniszczenie is resolved here.</p>
+        <h1>{officialPrimary ? 'Primary round review' : 'Wyniszczenie review'}</h1>
+        <p>{officialPrimary ? 'Each player’s own Primary was locked at the end of their turn. No Operational Plans score in this mode.' : 'Objective Primary was already locked at the end of each player’s own turn. Only Wyniszczenie is resolved here.'}</p>
       </div>
       <div className="round-review-grid">{session.state.turnOrder.map((playerId) => {
         const player = session.state.players[playerId]
         const turnCommit = getPrimaryTurnCommit(session, playerId, session.state.round)
-        const planId = getOperationalPlanState(session, playerId).planId
+        const planId = officialPrimary ? null : getOperationalPlanState(session, playerId).planId
         const evaluation = planId === 'WYNISZCZENIE'
           ? evaluateOperationalPlan(session, playerId, session.state.round)
           : null
@@ -39,7 +43,7 @@ export function EndRoundReview({
             <span className="condition-mark complete">✓</span>
             <span>Primary locked after own turn</span><strong>+{turnCommit?.pointsAwarded ?? 0}</strong>
           </div>
-          {planId === 'WYNISZCZENIE' ? <div className="review-plan">
+          {officialPrimary ? <p className="context-note">{OFFICIAL_PRIMARY_MISSIONS[getOfficialPrimaryId(session, playerId)].name} · up to 15 VP this round, 45 VP total.</p> : planId === 'WYNISZCZENIE' ? <div className="review-plan">
             <strong>Wyniszczenie</strong>
             <span className={`plan-status plan-status--${evaluation?.status.toLowerCase()}`}>{evaluation?.status.replace('_', ' ')}</span>
             <p>{evaluation?.reason}</p>

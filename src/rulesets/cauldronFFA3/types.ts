@@ -7,6 +7,8 @@ export type TurnPosition = 1 | 2 | 3
 export type CauldronMode = 'duel' | 'ffa3'
 export type CauldronObjectiveLayout = 'classic-6' | 'expanded-7'
 export type SecondaryDeck = 'cauldron' | 'chapter-approved'
+export type PrimaryDeck = 'cauldron' | 'chapter-approved-ffa'
+export type OfficialPrimaryId = 'battlefield-dominance' | 'meatgrinder' | 'gather-intel' | 'sabotage' | 'outmanoeuvre'
 export type OfficialSecondaryStrategy = 'tactical' | 'fixed'
 export type OperationalPlanId =
   | 'WYNISZCZENIE'
@@ -24,6 +26,7 @@ export type CauldronPlayerInput = {
   deploymentZone: DeploymentZone
   turnPosition: TurnPosition
   operationalPlanId: OperationalPlanId
+  officialPrimaryId?: OfficialPrimaryId
 }
 
 export type CauldronGameInput = {
@@ -32,6 +35,7 @@ export type CauldronGameInput = {
   guidanceLevel: 'guided' | 'fast'
   mode?: CauldronMode
   objectiveLayout?: CauldronObjectiveLayout
+  primaryDeck?: PrimaryDeck
   secondaryDeck?: SecondaryDeck
   officialSecondaryStrategy?: OfficialSecondaryStrategy
   fixedSecondarySelections?: Record<string, [OfficialSecondaryId, OfficialSecondaryId]>
@@ -45,6 +49,7 @@ export type CauldronPlayerConfig = {
   deploymentZone: DeploymentZone
   turnPosition: TurnPosition
   initialOperationalPlanId: OperationalPlanId
+  officialPrimaryId?: OfficialPrimaryId
 }
 
 export type CauldronConfig = {
@@ -52,6 +57,7 @@ export type CauldronConfig = {
   mode?: CauldronMode
   playerCount?: 2 | 3
   objectiveLayout?: CauldronObjectiveLayout
+  primaryDeck?: PrimaryDeck
   secondaryDeck?: SecondaryDeck
   officialSecondaryStrategy?: OfficialSecondaryStrategy
   fixedSecondarySelections?: Record<string, [OfficialSecondaryId, OfficialSecondaryId]>
@@ -82,6 +88,21 @@ export type PlanConfirmation = {
   /** Legacy aliases kept so persisted review state and older tests can still rehydrate. */
   zwiadHasThreeSectors?: boolean
   zwiadHasThreeOutsideDeployment?: boolean
+  officialPrimary?: OfficialPrimaryConfirmation
+}
+
+export type OfficialPrimaryAction = { objectiveId: string; unitName: string; enemyTerritory?: boolean }
+export type OfficialPrimaryConfirmation = {
+  actions?: OfficialPrimaryAction[]
+  enemyUnitsDestroyedThisTurn?: number
+  friendlyUnitsDestroyedSinceLastTurn?: number
+}
+
+export type OfficialPrimaryReview = {
+  missionId: OfficialPrimaryId
+  missionName: string
+  conditions: PrimaryCondition[]
+  operationMarkerObjectiveIds: string[]
 }
 
 export type OperationalPlanTurnTarget = {
@@ -122,6 +143,7 @@ export type PrimaryRoundResult = {
   twoObjectives: PrimaryCondition
   operationalPlan: PrimaryCondition
   planEvaluation: PlanEvaluation
+  official?: OfficialPrimaryReview
   roundPrimary: number
   capped: boolean
 }

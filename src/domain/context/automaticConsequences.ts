@@ -1,5 +1,6 @@
 import type { BattleSession } from '../battle/types'
 import { CAULDRON_RULESET_ID } from '../../rulesets/cauldronFFA3/constants'
+import { isOfficialPrimary } from '../../rulesets/cauldronFFA3/officialPrimary'
 import { evaluateOperationalPlan, getOperationalPlanState } from '../../rulesets/cauldronFFA3/operationalPlans'
 import { getRoundSecondaryVp, getSecondaryRoundCap, isOfficialSecondary } from '../../rulesets/cauldronFFA3/secondary'
 import { CAULDRON_SECONDARY_BY_ID } from '../../rulesets/cauldronFFA3/secondaryDefinitions'
@@ -69,8 +70,8 @@ export function buildLatestAutomaticConsequence(session: BattleSession): Context
       `Round Secondary → ${roundSecondaryVp} / ${getSecondaryRoundCap(session)} VP.`,
     ]
 
-    const planState = getOperationalPlanState(session, data.playerId)
-    if (planState.planId === 'WYNISZCZENIE') {
+    const planState = isOfficialPrimary(session) ? null : getOperationalPlanState(session, data.playerId)
+    if (planState?.planId === 'WYNISZCZENIE') {
       const evaluation = evaluateOperationalPlan(session, data.playerId)
       if (evaluation.progress) {
         details.push(`Wyniszczenie → ${evaluation.progress.current} / ${evaluation.progress.target} ${evaluation.progress.unit}.`)

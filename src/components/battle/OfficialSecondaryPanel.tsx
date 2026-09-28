@@ -41,7 +41,7 @@ export function OfficialSecondaryPanel({ session, playerId, editable }: { sessio
     {config.mode === 'ffa3' && <p className="context-note">FFA adaptation: “opponent” and “enemy” mean your current Rival, including their units, home objective and deployment zone. Confirm battlefield zones and physical distances at the table.</p>}
     <p className="context-note">{fixed
       ? 'Your two Fixed cards stay active. Each can score up to 20 VP during the battle; enter its award once per eligible turn.'
-      : 'Draw two new cards every own Command phase even if you already hold cards. Scored cards leave your hand. At the end of your turn, you may discard one or more cards to gain 1 CP total.'}</p>
+      : 'Draw two new cards every own Command phase even if you already hold cards. There is no free mulligan; New Orders can replace one card for 1 CP once per battle, and some cards have When Drawn replacements. Scored cards leave your hand. At the end of your turn, you may discard one or more cards to gain 1 CP total.'}</p>
     <div className="secondary-deck-counts">
       <div><strong>{state.active.length}</strong><span>Active</span></div>
       <div><strong>{state.deck.length}</strong><span>Deck</span></div>

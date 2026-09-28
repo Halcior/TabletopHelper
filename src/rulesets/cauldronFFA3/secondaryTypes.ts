@@ -126,6 +126,7 @@ export type PlayerSecondaryState = {
 export type SecondaryState = Record<string, PlayerSecondaryState>
 
 export type EndTurnSecondaryConfirmations = {
+  officialPrimary?: import('./types').OfficialPrimaryConfirmation
   centreOcByPlayer?: Record<string, number>
   /** Number of own units wholly inside the marked Rival deployment zone. */
   behindEnemyLinesUnitCount?: number

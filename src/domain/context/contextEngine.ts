@@ -1,6 +1,7 @@
 import type { BattlePhase, BattleSession } from '../battle/types'
 import { getCurrentReactionWindow } from '../stratagems/battleIntegration'
 import { CAULDRON_RULESET_ID } from '../../rulesets/cauldronFFA3'
+import { isOfficialPrimary } from '../../rulesets/cauldronFFA3/officialPrimary'
 import {
   canChangeOperationalPlan,
   evaluateOperationalPlan,
@@ -197,6 +198,7 @@ function missionActionItems(session: BattleSession): ContextItem[] {
 
 function planItems(session: BattleSession): ContextItem[] {
   if (session.setup.rulesetId !== CAULDRON_RULESET_ID) return []
+  if (isOfficialPrimary(session)) return []
   const playerId = session.state.activePlayerId
   const evaluation = evaluateOperationalPlan(session, playerId)
   const planState = getOperationalPlanState(session, playerId)

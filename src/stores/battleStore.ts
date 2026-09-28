@@ -42,6 +42,7 @@ import {
   resolveEliminationChoice as resolveEliminationChoiceInBattle,
   selectPriorityTargetCandidates as selectPriorityTargetCandidatesInBattle,
   type CauldronObjectiveLayout,
+  type PrimaryDeck,
   type SecondaryDeck,
   type OfficialSecondaryStrategy,
   type OfficialSecondaryId,
@@ -65,6 +66,7 @@ type BattleStore = {
     secondaryDeck?: SecondaryDeck,
     officialSecondaryStrategy?: OfficialSecondaryStrategy,
     fixedSecondarySelections?: Record<string, [OfficialSecondaryId, OfficialSecondaryId]>,
+    primaryDeck?: PrimaryDeck,
   ) => Promise<string>
   loadBattle: (id: string) => Promise<void>
   resumeLatest: () => Promise<string | null>
@@ -143,10 +145,10 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
   loading: false,
   error: null,
 
-  async startCauldronBattle(players, armies, guidanceLevel, objectiveLayout, secondaryDeck, officialSecondaryStrategy, fixedSecondarySelections) {
+  async startCauldronBattle(players, armies, guidanceLevel, objectiveLayout, secondaryDeck, officialSecondaryStrategy, fixedSecondarySelections, primaryDeck) {
     set({ loading: true, error: null })
     try {
-      const session = createCauldronGame({ players, armies, guidanceLevel, objectiveLayout, secondaryDeck, officialSecondaryStrategy, fixedSecondarySelections })
+      const session = createCauldronGame({ players, armies, guidanceLevel, objectiveLayout, secondaryDeck, officialSecondaryStrategy, fixedSecondarySelections, primaryDeck })
       await saveBattle(session)
       set({ session, loading: false })
       return session.setup.gameId

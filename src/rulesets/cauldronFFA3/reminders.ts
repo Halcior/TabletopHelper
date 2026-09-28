@@ -1,6 +1,7 @@
 import type { BattleSession } from '../../domain/battle/types'
 import type { GuidanceReminder } from '../generic/guidance'
 import { getOperationalPlanState } from './operationalPlans'
+import { getOfficialPrimaryId, isOfficialPrimary, OFFICIAL_PRIMARY_MISSIONS } from './officialPrimary'
 import { getCurrentRivalPlayerId } from './rivalRotation'
 import { isCauldronEndOfRound } from './session'
 
@@ -21,7 +22,8 @@ export function getCauldronReminders(session: BattleSession): GuidanceReminder[]
   const activeId = session.state.activePlayerId
   const rivalId = getCurrentRivalPlayerId(session, activeId)
   const rival = session.state.players[rivalId]
-  const plan = getOperationalPlanState(session, activeId)
+  const officialPrimary = isOfficialPrimary(session)
+  const plan = officialPrimary ? null : getOperationalPlanState(session, activeId)
   const guided = session.setup.guidanceLevel === 'guided'
 
   if (session.state.phase === 'COMMAND') {
@@ -33,7 +35,7 @@ export function getCauldronReminders(session: BattleSession): GuidanceReminder[]
       state: cpRecorded ? 'complete' : 'action',
       status: cpRecorded ? 'Done' : 'Player action',
     }]
-    if (!plan.changed) reminders.push({
+    if (plan && !plan.changed) reminders.push({
       id: 'change-plan',
       title: 'Change Operational Plan',
       detail: 'Free · once per battle · no Plan VP this round',
@@ -56,7 +58,8 @@ export function getCauldronReminders(session: BattleSession): GuidanceReminder[]
     ]
     : [{ id: 'movement-checks', title: 'Reserves and Mission Actions', state: 'action', status: 'Check now' }]
   if (session.state.phase === 'SHOOTING') return [
-    { id: 'shooting-rival', title: `Casualties against ${rival.name} advance Wyniszczenie`, detail: 'Only current Rival casualties count this round.', state: 'attention', status: 'Important' },
+    ...(officialPrimary ? [{ id: 'primary-action', title: OFFICIAL_PRIMARY_MISSIONS[getOfficialPrimaryId(session, activeId)].name, detail: 'Check any Primary Objective Actions in this phase and record completed actions at turn end.', state: 'info' as const, status: 'Information' }] : []),
+    ...(!officialPrimary ? [{ id: 'shooting-rival', title: `Casualties against ${rival.name} advance Wyniszczenie`, detail: 'Only current Rival casualties count this round.', state: 'attention' as const, status: 'Important' }] : []),
     { id: 'shooting-record', title: 'Record casualties after rolling', detail: 'Use the Army tab for models, wounds, or destroyed units.', state: 'action', status: 'Player action' },
   ]
   if (session.state.phase === 'CHARGE') return [{ id: 'charge-resolve', title: 'Resolve charges and Charge abilities', state: 'action', status: 'Player action' }]
@@ -64,7 +67,9 @@ export function getCauldronReminders(session: BattleSession): GuidanceReminder[]
     { id: 'fight-casualties', title: 'Attribute casualties to the correct attacker', detail: `${rival.name} is the current Rival.`, state: 'attention', status: 'Important' },
     { id: 'fight-abilities', title: 'Check Fight and once-per-battle abilities', state: 'action', status: 'Player action' },
   ]
-  return isCauldronEndOfRound(session)
+  return officialPrimary
+    ? [{ id: 'primary-review', title: 'Review your 11th edition Primary', detail: 'Score the selected mission at the end of your turn.', state: 'attention', status: 'Required' }]
+    : isCauldronEndOfRound(session)
     ? [
       { id: 'round-review', title: 'Review objectives and Operational Plans', detail: 'Required before committing Primary score.', state: 'attention', status: 'Required' },
       { id: 'round-casualties', title: 'Confirm net Rival casualties', detail: 'Used for Wyniszczenie.', state: 'info', status: 'Information' },

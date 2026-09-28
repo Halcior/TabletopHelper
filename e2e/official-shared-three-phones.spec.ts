@@ -8,7 +8,7 @@ async function join(page: Page, roomCode: string, seat: string): Promise<void> {
   await page.getByRole('button', { name: 'Join lobby' }).click()
 }
 
-test('Chapter Approved FFA choice and Rival end-turn review synchronize on three phones', async ({ browser }) => {
+test('independent Primary and Chapter Approved Secondary synchronize on three phones', async ({ browser }) => {
   const backend = new MockSupabase()
   const alpha = await phone(browser, backend)
   const bravo = await phone(browser, backend)
@@ -16,6 +16,7 @@ test('Chapter Approved FFA choice and Rival end-turn review synchronize on three
   try {
     await importTestArmy(alpha.page)
     await alpha.page.getByRole('button', { name: /FFA 3/ }).click()
+    await alpha.page.getByLabel('Primary mode').selectOption('chapter-approved-ffa')
     await alpha.page.getByLabel('Guidance level').selectOption('fast')
     await alpha.page.getByLabel('Secondary deck').selectOption('chapter-approved')
     await alpha.page.getByLabel('Secondary strategy').selectOption('fixed')
@@ -29,9 +30,12 @@ test('Chapter Approved FFA choice and Rival end-turn review synchronize on three
     await Promise.all([alpha.page, bravo.page, charlie.page].map((page) => expect(page).toHaveURL(/\/battle\//)))
     await dismissSecondaryReveal(alpha.page)
     for (const page of [alpha.page, bravo.page, charlie.page]) {
-      await expect(page.locator('.ruleset-label').last()).toContainText('Fixed')
+      await expect(page.locator('.ruleset-label')).toContainText(['Cauldron FFA 3', 'Chapter Approved · Fixed', /Primary FFA/])
       await expect(page.locator('.official-secondary-panel').first()).toContainText('FFA adaptation')
     }
+    await expect(alpha.page.locator('.official-primary-panel h2').first()).toHaveText('Battlefield Dominance')
+    await expect(bravo.page.locator('.official-primary-panel h2').first()).toHaveText('Meatgrinder')
+    await expect(charlie.page.locator('.official-primary-panel h2').first()).toHaveText('Outmanoeuvre')
 
     for (let index = 0; index < 6; index += 1) await alpha.page.locator('.next-phase').click()
     await expect(alpha.page.getByRole('heading', { name: 'End Turn Review' })).toBeVisible()

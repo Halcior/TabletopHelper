@@ -40,6 +40,11 @@ test('chooses two Fixed cards for each commander', async ({ browser }) => {
     await expect(page.locator('.official-secondary-panel .secondary-card')).toHaveCount(2)
     await expect(page.locator('.official-secondary-panel').first()).toContainText('A Grievous Blow')
     await expect(page.locator('.official-secondary-panel').first()).toContainText('Engage on All Fronts')
+    const progress = page.locator('.official-secondary-panel .secondary-card__progress').first()
+    await expect(progress).toContainText('0 / 20 VP scored on this card')
+    expect(await progress.evaluate((element) => ({ display: getComputedStyle(element).display, width: element.getBoundingClientRect().width })))
+      .toEqual(expect.objectContaining({ display: 'block', width: expect.any(Number) }))
+    expect(await progress.evaluate((element) => element.getBoundingClientRect().width)).toBeGreaterThan(150)
   } finally {
     await context.close()
   }

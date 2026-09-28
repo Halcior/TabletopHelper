@@ -17,6 +17,7 @@ import {
 } from './constants'
 import { cauldronEvent } from './events'
 import { officialPendingReviewPlayers } from './officialSecondary'
+import { isOfficialPrimary, OFFICIAL_PRIMARY_MISSIONS } from './officialPrimary'
 import { getPrimaryTurnCommit } from './primary'
 import { addSnapshotEvents, captureRoundSnapshot, captureTurnSnapshot } from './snapshots'
 import {
@@ -38,6 +39,15 @@ function validateCauldronInput(input: CauldronGameInput): void {
   for (const player of input.players) {
     if (!armyIds.has(player.armyId)) throw new Error(`${player.name} has no saved army assigned.`)
     if (!OPERATIONAL_PLAN_IDS.includes(player.operationalPlanId)) throw new Error(`${player.name} has an invalid Operational Plan.`)
+    if (input.primaryDeck === 'chapter-approved-ffa' && (!player.officialPrimaryId || !OFFICIAL_PRIMARY_MISSIONS[player.officialPrimaryId])) {
+      throw new Error(`Choose an 11th edition Primary for ${player.name}.`)
+    }
+  }
+  if (input.primaryDeck === 'chapter-approved-ffa') {
+    if (playerCount !== 3) throw new Error('The 11th edition Primary FFA adaptation requires three players.')
+    if (input.players.some((player) => player.officialPrimaryId === 'gather-intel') && input.objectiveLayout !== 'expanded-7') {
+      throw new Error('Gather Intel needs the 7-objective layout with CENTER.')
+    }
   }
   const zones = input.players.map((player) => player.deploymentZone)
   const turns = input.players.map((player) => player.turnPosition)
@@ -61,6 +71,7 @@ export function createCauldronGame(input: CauldronGameInput): BattleSession {
     mode,
     playerCount,
     objectiveLayout,
+    primaryDeck: input.primaryDeck ?? 'cauldron',
     secondaryDeck: input.secondaryDeck ?? 'cauldron',
     officialSecondaryStrategy: input.officialSecondaryStrategy ?? 'tactical',
     fixedSecondarySelections: input.fixedSecondarySelections,
@@ -72,6 +83,7 @@ export function createCauldronGame(input: CauldronGameInput): BattleSession {
       deploymentZone: player.deploymentZone,
       turnPosition: player.turnPosition,
       initialOperationalPlanId: player.operationalPlanId,
+      officialPrimaryId: player.officialPrimaryId,
     }])),
   }
   const players = input.players.map((player) => ({
@@ -132,7 +144,10 @@ export function advanceCauldronPhase(session: BattleSession): BattleSession {
   }
   const transitions = getPhaseTransitionEvents(session)
   const withSnapshots = addSnapshotEvents(session, transitions)
-  const events = [...secondaryEvents, ...addSecondaryRefillEvents(session, withSnapshots)]
+  const commandSnapshot = isOfficialPrimary(session) && session.state.phase === 'COMMAND'
+    ? [cauldronEvent('PRIMARY_11TH_COMMAND_SNAPSHOT', captureTurnSnapshot(session, session.state.activePlayerId, session.state.round))]
+    : []
+  const events = [...secondaryEvents, ...commandSnapshot, ...addSecondaryRefillEvents(session, withSnapshots)]
   return transitions.length === 0
     ? session
     : dispatchBattleEvents(session, events, {

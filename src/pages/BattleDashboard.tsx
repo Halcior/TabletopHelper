@@ -16,6 +16,7 @@ import { Scoreboard } from '../components/battle/Scoreboard'
 import { SecondaryEndTurnReview } from '../components/battle/SecondaryEndTurnReview'
 import { SecondaryDetailPanel } from '../components/battle/SecondaryPanel'
 import { OfficialSecondaryPanel } from '../components/battle/OfficialSecondaryPanel'
+import { OfficialPrimaryPanel } from '../components/battle/OfficialPrimaryPanel'
 import { SharedPlayerPerspective } from '../components/battle/SharedPlayerPerspective'
 import { SharedSessionStatus } from '../components/battle/SharedSessionStatus'
 import { SharedSyncWarning } from '../components/battle/SharedSyncWarning'
@@ -47,6 +48,9 @@ import {
   getPendingEliminationChoice,
   getCauldronConfig,
   isCauldronEndOfRound,
+  isOfficialPrimary,
+  getOfficialPrimaryId,
+  OFFICIAL_PRIMARY_MISSIONS,
 } from '../rulesets/cauldronFFA3'
 import type { SecondaryId } from '../rulesets/cauldronFFA3/secondaryTypes'
 import { isOfficialSecondary } from '../rulesets/cauldronFFA3/secondary'
@@ -186,6 +190,7 @@ export default function BattleDashboard() {
   const viewer = viewerPlayerId ? session.state.players[viewerPlayerId] : null
   const cauldron = session.setup.rulesetId === CAULDRON_RULESET_ID
   const officialSecondary = cauldron && isOfficialSecondary(session)
+  const officialPrimary = cauldron && isOfficialPrimary(session)
   const cauldronModeLabel = cauldron && getCauldronConfig(session).mode === 'duel'
     ? 'Cauldron Duel 1v1'
     : 'Cauldron FFA 3'
@@ -460,6 +465,7 @@ export default function BattleDashboard() {
           {battleActive && <span className={`mode-badge mode-badge--${guidanceLevel}`}>{guidanceLevel} mode</span>}
           {cauldron && <span className="ruleset-label">{cauldronModeLabel}</span>}
           {officialSecondary && <span className="ruleset-label">Chapter Approved · {getCauldronConfig(session).officialSecondaryStrategy === 'fixed' ? 'Fixed' : 'Tactical'}</span>}
+          {officialPrimary && <span className="ruleset-label">Primary FFA · {OFFICIAL_PRIMARY_MISSIONS[getOfficialPrimaryId(session, active.id)].name}</span>}
           <SharedSessionStatus battleId={session.setup.gameId} />
           {battleActive && <BattleMenu
             session={session}
@@ -570,6 +576,7 @@ export default function BattleDashboard() {
                     setTab('army')
                   }}
                 />
+                {officialPrimary && <OfficialPrimaryPanel session={session} playerId={sharedBattle ? viewerPlayerId ?? active.id : active.id} />}
                 {officialSecondary && <OfficialSecondaryPanel session={session} playerId={sharedBattle ? viewerPlayerId ?? active.id : active.id} editable={!sharedBattle || viewerPlayerId === (viewerPlayerId ?? active.id)} />}
                 {rulesDataProvider && rulesDataAttribution
                   ? <a className="rules-data-attribution" href={rulesDataAttribution.url} target="_blank" rel="noreferrer">{rulesDataAttribution.label}</a>
@@ -614,9 +621,12 @@ export default function BattleDashboard() {
               onClearSecondaryTargetFilter={() => setArmySecondaryFilter(null)}
             />}
             {tab === 'objectives' && <ObjectivesPanel session={session} dispatch={dispatch} />}
-            {tab === 'cards' && cauldron && (officialSecondary
-              ? <OfficialSecondaryPanel session={session} playerId={sharedBattle ? viewerPlayerId ?? active.id : active.id} editable={!sharedBattle || Boolean(viewerPlayerId)} />
-              : <SecondaryDetailPanel session={session} playerId={sharedBattle ? viewerPlayerId ?? active.id : active.id} />)}
+            {tab === 'cards' && cauldron && <>
+              {officialPrimary && <OfficialPrimaryPanel session={session} playerId={sharedBattle ? viewerPlayerId ?? active.id : active.id} />}
+              {officialSecondary
+                ? <OfficialSecondaryPanel session={session} playerId={sharedBattle ? viewerPlayerId ?? active.id : active.id} editable={!sharedBattle || Boolean(viewerPlayerId)} />
+                : <SecondaryDetailPanel session={session} playerId={sharedBattle ? viewerPlayerId ?? active.id : active.id} />}
+            </>}
             {tab === 'log' && <BattleLog session={session} />}
           </main>
 

@@ -9,6 +9,8 @@ import {
   OPERATIONAL_PLAN_IDS,
   OFFICIAL_FIXED_IDS,
   OFFICIAL_SECONDARY_BY_ID,
+  OFFICIAL_PRIMARY_IDS,
+  OFFICIAL_PRIMARY_MISSIONS,
   randomDeploymentZones,
   randomTurnPositions,
   type CauldronMode,
@@ -20,6 +22,8 @@ import {
   type SecondaryDeck,
   type OfficialSecondaryStrategy,
   type OfficialSecondaryId,
+  type OfficialPrimaryId,
+  type PrimaryDeck,
 } from '../rulesets/cauldronFFA3'
 import { useSharedSessionStore } from '../multiplayer/sharedSessionStore'
 import { useBattleStore } from '../stores/battleStore'
@@ -27,9 +31,9 @@ import { useBattleStore } from '../stores/battleStore'
 type PlayerDraft = CauldronPlayerInput
 
 const DEFAULT_PLAYERS: PlayerDraft[] = [
-  { id: 'player-a', name: 'Player I', armyId: '', deploymentZone: 'A', turnPosition: 1, operationalPlanId: 'WYNISZCZENIE' },
-  { id: 'player-b', name: 'Player II', armyId: '', deploymentZone: 'B', turnPosition: 2, operationalPlanId: 'DECYDUJACE_NATARCIE' },
-  { id: 'player-c', name: 'Player III', armyId: '', deploymentZone: 'C', turnPosition: 3, operationalPlanId: 'TWIERDZA' },
+  { id: 'player-a', name: 'Player I', armyId: '', deploymentZone: 'A', turnPosition: 1, operationalPlanId: 'WYNISZCZENIE', officialPrimaryId: 'battlefield-dominance' },
+  { id: 'player-b', name: 'Player II', armyId: '', deploymentZone: 'B', turnPosition: 2, operationalPlanId: 'DECYDUJACE_NATARCIE', officialPrimaryId: 'meatgrinder' },
+  { id: 'player-c', name: 'Player III', armyId: '', deploymentZone: 'C', turnPosition: 3, operationalPlanId: 'TWIERDZA', officialPrimaryId: 'outmanoeuvre' },
 ]
 
 export default function BattleSetup() {
@@ -42,6 +46,7 @@ export default function BattleSetup() {
   const [players, setPlayers] = useState<PlayerDraft[]>(DEFAULT_PLAYERS)
   const [guidance, setGuidance] = useState<GuidanceLevel>('guided')
   const [secondaryDeck, setSecondaryDeck] = useState<SecondaryDeck>('cauldron')
+  const [primaryDeck, setPrimaryDeck] = useState<PrimaryDeck>('cauldron')
   const [officialStrategy, setOfficialStrategy] = useState<OfficialSecondaryStrategy>('tactical')
   const [fixedSelections, setFixedSelections] = useState<Record<string, [OfficialSecondaryId, OfficialSecondaryId]>>(
     Object.fromEntries(DEFAULT_PLAYERS.map((player) => [player.id, ['OFFICIAL_A_GRIEVOUS_BLOW', 'OFFICIAL_ENGAGE_ON_ALL_FRONTS']])) as Record<string, [OfficialSecondaryId, OfficialSecondaryId]>,
@@ -85,6 +90,7 @@ export default function BattleSetup() {
     setLocalError(null)
     setMode(nextMode)
     if (nextMode === 'duel') {
+      setPrimaryDeck('cauldron')
       setPlayers((current) => current.map((player, index) => index < 2
         ? {
           ...player,
@@ -132,6 +138,10 @@ export default function BattleSetup() {
         : 'Assign turn positions 1, 2, and 3 exactly once.')
       return
     }
+    if (primaryDeck === 'chapter-approved-ffa' && activePlayers.some((player) => player.officialPrimaryId === 'gather-intel') && objectiveLayout !== 'expanded-7') {
+      setLocalError('Gather Intel requires the 7-objective layout with CENTER.')
+      return
+    }
 
     const selectedArmies = [...new Set(activePlayers.map((player) => player.armyId))]
       .map((id) => armies.find((army) => army.id === id))
@@ -153,6 +163,7 @@ export default function BattleSetup() {
         secondaryDeck,
         officialStrategy,
         secondaryDeck === 'chapter-approved' && officialStrategy === 'fixed' ? fixedSelections : undefined,
+        primaryDeck,
       )
       if (sharedMode) {
         const membership = await hostCurrentBattle(hostPlayerId)
@@ -182,7 +193,7 @@ export default function BattleSetup() {
         <h1>{duel ? 'New Cauldron Duel' : 'New Cauldron FFA 3 battle'}</h1>
         <p>{duel
           ? 'The same Cauldron rules, Primary, Secondary cards and Operational Plans you already know — adapted for two players. Your Rival is simply the other commander for the entire battle.'
-          : 'Assign three saved armies, deployment zones, fixed turn positions, Operational Plans, and the objective layout used on your table. Rival rotation remains unchanged.'}</p>
+          : 'Assign three saved armies, zones and turns. Choose a Primary mode and Secondary deck independently for this battle.'}</p>
       </section>
 
       <div className="setup-mode-picker panel" role="group" aria-label="Cauldron battle mode">
@@ -195,6 +206,13 @@ export default function BattleSetup() {
       </div>
 
       <form onSubmit={(event) => void submit(event)}>
+        {!duel && <div className="panel setup-primary-picker">
+          <label>Primary mode<select value={primaryDeck} onChange={(event) => setPrimaryDeck(event.target.value as PrimaryDeck)}>
+            <option value="cauldron">Cauldron · objectives + Operational Plan</option>
+            <option value="chapter-approved-ffa">11th edition FFA · a different Primary for each player</option>
+          </select></label>
+          {primaryDeck === 'chapter-approved-ffa' && <p className="context-note">House-rule FFA adaptation of five 11th edition mirror cards. Each player selects a mission below for the whole battle. “Opponent” means either enemy; a comparison must beat both. Primary scores up to 15 VP per round and 45 VP per battle. Operational Plans do not score.</p>}
+        </div>}
         <div className="setup-toolbar panel">
           <div><span className="eyebrow">Assignment tools</span><strong>Manual or randomized</strong></div>
           <button type="button" onClick={randomizeZones}>Randomize zones</button>
@@ -215,10 +233,15 @@ export default function BattleSetup() {
                 {(duel ? [1, 2] : [1, 2, 3]).map((position) => <option key={position}>{position}</option>)}
               </select></label>
             </div>
-            <label>Operational Plan<select value={player.operationalPlanId} onChange={(event) => updatePlayer(index, 'operationalPlanId', event.target.value as OperationalPlanId)}>
+            {primaryDeck === 'chapter-approved-ffa' && !duel ? <>
+              <label>11th edition Primary<select value={player.officialPrimaryId} onChange={(event) => updatePlayer(index, 'officialPrimaryId', event.target.value as OfficialPrimaryId)}>
+                {OFFICIAL_PRIMARY_IDS.map((id) => <option key={id} value={id}>{OFFICIAL_PRIMARY_MISSIONS[id].name}</option>)}
+              </select></label>
+              {player.officialPrimaryId && <p className="plan-description">{OFFICIAL_PRIMARY_MISSIONS[player.officialPrimaryId].description} <a href={OFFICIAL_PRIMARY_MISSIONS[player.officialPrimaryId].url} target="_blank" rel="noreferrer">Read card</a></p>}
+            </> : <><label>Operational Plan<select value={player.operationalPlanId} onChange={(event) => updatePlayer(index, 'operationalPlanId', event.target.value as OperationalPlanId)}>
               {OPERATIONAL_PLAN_IDS.map((planId) => <option key={planId} value={planId}>{OPERATIONAL_PLAN_DEFINITIONS[planId].name}</option>)}
             </select></label>
-            <p className="plan-description">{OPERATIONAL_PLAN_DEFINITIONS[player.operationalPlanId].description}</p>
+            <p className="plan-description">{OPERATIONAL_PLAN_DEFINITIONS[player.operationalPlanId].description}</p></>}
             {secondaryDeck === 'chapter-approved' && officialStrategy === 'fixed' && <div className="setup-pair">
               {([0, 1] as const).map((slot) => <label key={slot}>Fixed Secondary {slot + 1}
                 <select value={fixedSelections[player.id][slot]} onChange={(event) => setFixedSelections((current) => ({
@@ -241,7 +264,9 @@ export default function BattleSetup() {
               <option value="tactical">Tactical · draw two each Command phase</option>
               <option value="fixed">Fixed · choose two eligible cards per player</option>
             </select></label>
-            <p className="context-note">Chapter Approved Secondary rules: 15 VP per round, 45 VP per battle; Fixed cards have a 20 VP limit each. Confirm physical positions and actions at the table. In FFA, opponent, enemy and opponent territory refer to your current Rival; other Cauldron scoring rules stay in effect.</p>
+            <p className="context-note">{officialStrategy === 'fixed'
+              ? 'Fixed: choose two eligible cards for each player. They remain active throughout the battle and each can score up to 20 VP.'
+              : 'Tactical: draw two cards at each own Command phase. There is no free general mulligan: once per battle New Orders replaces one card for 1 CP; specific When Drawn cards have their own replacement rules. At your turn end, discard active cards to gain 1 CP.'} Secondary scores up to 15 VP per round and 45 VP per battle. In FFA, opponent and enemy on Secondary cards refer to your current Rival.</p>
           </>}
           <label>Guidance level<select value={guidance} onChange={(event) => setGuidance(event.target.value as GuidanceLevel)}>
             <option value="guided">Guided — full contextual reminders</option>
@@ -256,7 +281,7 @@ export default function BattleSetup() {
           </select></label>
           {secondaryDeck === 'cauldron' && (duel
             ? <p className="context-note">Duel changes only the player topology: 2 turns per Battle Round, A/B HOME objectives, and a permanent Rival. Primary, Secondary, Operational Plans and scoring caps use the Cauldron {CAULDRON_RULESET_VERSION} balance rules.</p>
-            : <p className="context-note">The 7-objective layout treats CENTER as a normal neutral objective, so it counts for Primary, objective Secondaries, Mission Actions and Operational Plans exactly like N1/N2/N3.</p>)}
+            : <p className="context-note">The 7-objective layout treats CENTER as a neutral objective. Gather Intel requires CENTER.</p>)}
           {(localError || error) && <div className="alert alert--danger">{localError ?? error}</div>}
           <div className="setup-submit-actions">
             <button className="button" type="submit" value="local" disabled={loading || sharedWorking}>{loading && !sharedWorking ? 'Preparing…' : 'Start locally'}</button>

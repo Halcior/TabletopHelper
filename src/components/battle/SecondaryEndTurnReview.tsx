@@ -6,12 +6,15 @@ import {
   buildPrimaryTurnReview,
   getOperationalPlanState,
   getPrimaryTurnCommit,
+  isOfficialPrimary,
 } from '../../rulesets/cauldronFFA3'
 import { getEndTurnReview, getSecondaryState } from '../../rulesets/cauldronFFA3/secondary'
 import { isOfficialSecondary } from '../../rulesets/cauldronFFA3/secondary'
 import { officialPendingReviewPlayers } from '../../rulesets/cauldronFFA3/officialSecondary'
 import { OfficialSecondaryPanel } from './OfficialSecondaryPanel'
+import { OfficialPrimaryInputs } from './OfficialPrimaryInputs'
 import type { EndTurnSecondaryConfirmations, SecondaryId } from '../../rulesets/cauldronFFA3/secondaryTypes'
+import { useBattleStore } from '../../stores/battleStore'
 
 type SecondaryEndTurnReviewProps = {
   session: BattleSession
@@ -36,9 +39,10 @@ export function SecondaryEndTurnReview({
   const player = session.state.players[playerId]
   const activeCards = getSecondaryState(session)[playerId].active
   const official = isOfficialSecondary(session)
+  const officialPrimary = isOfficialPrimary(session)
   const pendingOfficial = official ? officialPendingReviewPlayers(session) : []
   const activeIds = new Set(activeCards.map((card) => card.cardId))
-  const planId = getOperationalPlanState(session, playerId).planId
+  const planId = officialPrimary ? null : getOperationalPlanState(session, playerId).planId
   const [evaluated, setEvaluated] = useState(false)
   const [missionPositions, setMissionPositions] = useState<Record<string, boolean>>({})
   const [confirmations, setConfirmations] = useState<EndTurnSecondaryConfirmations>({
@@ -87,8 +91,10 @@ export function SecondaryEndTurnReview({
   }
 
   function evaluate() {
+    if (confirmations.officialPrimary?.actions?.some((action) => !action.unitName.trim())) return
     for (const action of activeActions) onCompleteMissionAction(action.id, missionPositions[action.id] === true)
     onEvaluate(playerId, confirmations)
+    if (useBattleStore.getState().error) return
     setEvaluated(true)
   }
 
@@ -141,7 +147,7 @@ export function SecondaryEndTurnReview({
         {!['DOMINACJA_CENTRUM', 'ZA_LINIAMI_WROGA', 'SZEROKI_FRONT', 'UTRZYMAJ_BAZE', 'ODCIECIE_ODWROTU'].some((id) => activeIds.has(id as SecondaryId)) && <p className="context-note">No additional Secondary physical-state confirmation is required.</p>}
       </section>}
 
-      {(planId === 'ZWIAD_OPERACYJNY' || planId === 'TWIERDZA') && session.state.round >= 2 && <section className="panel turn-review-section">
+      {!officialPrimary && (planId === 'ZWIAD_OPERACYJNY' || planId === 'TWIERDZA') && session.state.round >= 2 && <section className="panel turn-review-section">
         <div className="section-heading"><div><span className="eyebrow">Operational Plan</span><h2>{primaryPreview.planEvaluation.name}</h2></div><strong>up to +5 VP</strong></div>
         {planId === 'ZWIAD_OPERACYJNY' && <>
           <ConfirmationRow label="Non-AIRCRAFT OC>0 units are in at least four different sectors; each unit counts once." checked={confirmations.zwiadHasFourSectors ?? false} onChange={(value) => setConfirmation('zwiadHasFourSectors', value)} />
@@ -151,15 +157,20 @@ export function SecondaryEndTurnReview({
       </section>}
 
       <section className="panel turn-review-section">
-        <div className="section-heading"><div><span className="eyebrow">Primary · Balance patch 2.1.2</span><h2>Score at the end of your turn</h2></div><strong>{primaryPreview.roundPrimary} VP</strong></div>
-        {[primaryPreview.neutralObjective, primaryPreview.twoObjectives, primaryPreview.operationalPlan].map((condition) => <div className="primary-condition" key={condition.label}>
+        <div className="section-heading"><div><span className="eyebrow">{officialPrimary ? '11th edition Primary · FFA' : 'Primary · Balance patch 2.1.2'}</span><h2>{primaryPreview.official?.missionName ?? 'Score at the end of your turn'}</h2></div><strong>{primaryPreview.roundPrimary} VP</strong></div>
+        {officialPrimary && <>
+          <p className="context-note">Command checks use control recorded when you left Command; in round 5 they use end-of-turn control. The score is saved now. Each condition can score only once, even if both enemies qualify.</p>
+          <OfficialPrimaryInputs session={session} playerId={playerId} value={confirmations.officialPrimary ?? {}} onChange={(value) => setConfirmations((current) => ({ ...current, officialPrimary: value }))} />
+        </>}
+        {(primaryPreview.official?.conditions ?? [primaryPreview.neutralObjective, primaryPreview.twoObjectives, primaryPreview.operationalPlan]).map((condition) => <div className="primary-condition" key={condition.label}>
           <span className={condition.completed ? 'condition-mark complete' : 'condition-mark'}>{condition.completed ? '✓' : '×'}</span>
           <span>{condition.label}</span><strong>+{condition.vp}</strong>
         </div>)}
+        {primaryPreview.capped && <p className="context-note">The total is limited to 15 VP this round and 45 VP in this battle.</p>}
         {planId === 'WYNISZCZENIE' && <p className="context-note">Wyniszczenie is intentionally not included here. It is checked after every player finishes the Battle Round.</p>}
       </section>
 
-      <div className="review-actions"><button onClick={onCancel}>Back to turn</button><button className="button--gold" onClick={evaluate}>{official ? 'Apply Primary scoring' : 'Apply scoring'}</button></div>
+      <div className="review-actions"><button onClick={onCancel}>Back to turn</button><button className="button--gold" disabled={confirmations.officialPrimary?.actions?.some((action) => !action.unitName.trim())} onClick={evaluate}>{official ? 'Apply Primary scoring' : 'Apply scoring'}</button></div>
     </>}
 
     {evaluated && <>
@@ -172,7 +183,7 @@ export function SecondaryEndTurnReview({
           <div className="turn-handoff-summary__score"><span>{turnSummary.scoreBefore} VP</span><b>→</b><strong>{turnSummary.scoreAfter} VP</strong><small>+{turnSummary.pointsGained} this turn</small></div>
         </div>
         <div className="turn-handoff-summary__stats">
-          <div><span>Primary</span><strong>+{turnSummary.primaryGained} VP</strong><small>{primaryCommit?.review.operationalPlan.completed ? 'Operational Plan scored' : 'End-turn scoring'}</small></div>
+          <div><span>Primary</span><strong>+{turnSummary.primaryGained} VP</strong><small>{officialPrimary ? primaryPreview.official?.missionName : primaryCommit?.review.operationalPlan.completed ? 'Operational Plan scored' : 'End-turn scoring'}</small></div>
           <div><span>Secondary</span><strong>+{turnSummary.secondaryGained} VP</strong><small>{turnSummary.completedSecondaries.length} completed</small></div>
           <div><span>Enemy units destroyed</span><strong>{turnSummary.kills.length}</strong><small>Kills credited to {player.name}</small></div>
         </div>

@@ -2,7 +2,7 @@ import { totalScore } from '../../domain/battle/selectors'
 import type { BattleSession } from '../../domain/battle/types'
 import { getCurrentReactionWindow } from '../../domain/stratagems/battleIntegration'
 import { selectActiveMissionActions } from '../../domain/context/selectors'
-import { CAULDRON_RULESET_ID, getCurrentRivalPlayerId } from '../../rulesets/cauldronFFA3'
+import { CAULDRON_RULESET_ID, getCauldronConfig, getCurrentRivalPlayerId } from '../../rulesets/cauldronFFA3'
 import { evaluateOperationalPlan } from '../../rulesets/cauldronFFA3/operationalPlans'
 import { getActiveSecondaryViews } from '../../rulesets/cauldronFFA3/secondary'
 import { useBattleStore } from '../../stores/battleStore'
@@ -56,7 +56,8 @@ export function SharedPlayerPerspective({
   const reactionPending = reactionWindow?.responses[viewerPlayerId]?.status === 'PENDING'
   const activeSecondaries = showCards ? getActiveSecondaryViews(session, viewerPlayerId) : []
   const missionActions = selectActiveMissionActions(session, viewerPlayerId)
-  const plan = showCards ? evaluateOperationalPlan(session, viewerPlayerId) : null
+  const plan = showCards && !(session.setup.rulesetId === CAULDRON_RULESET_ID && getCauldronConfig(session).primaryDeck === 'chapter-approved-ffa')
+    ? evaluateOperationalPlan(session, viewerPlayerId) : null
   const planProgress = plan?.progress
     ? `${plan.progress.current}/${plan.progress.target} ${plan.progress.unit}`
     : plan?.status === 'COMPLETED'
