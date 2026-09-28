@@ -15,6 +15,7 @@ import { ReactionHoldControl } from '../components/battle/ReactionHoldControl'
 import { Scoreboard } from '../components/battle/Scoreboard'
 import { SecondaryEndTurnReview } from '../components/battle/SecondaryEndTurnReview'
 import { SecondaryDetailPanel } from '../components/battle/SecondaryPanel'
+import { OfficialSecondaryPanel } from '../components/battle/OfficialSecondaryPanel'
 import { SharedPlayerPerspective } from '../components/battle/SharedPlayerPerspective'
 import { SharedSessionStatus } from '../components/battle/SharedSessionStatus'
 import { SharedSyncWarning } from '../components/battle/SharedSyncWarning'
@@ -48,6 +49,7 @@ import {
   isCauldronEndOfRound,
 } from '../rulesets/cauldronFFA3'
 import type { SecondaryId } from '../rulesets/cauldronFFA3/secondaryTypes'
+import { isOfficialSecondary } from '../rulesets/cauldronFFA3/secondary'
 import { useBattleStore } from '../stores/battleStore'
 
 type DashboardTab = 'overview' | 'army' | 'objectives' | 'cards' | 'log'
@@ -183,6 +185,7 @@ export default function BattleDashboard() {
   const viewerPlayerId = sharedPermissions.viewerPlayerId
   const viewer = viewerPlayerId ? session.state.players[viewerPlayerId] : null
   const cauldron = session.setup.rulesetId === CAULDRON_RULESET_ID
+  const officialSecondary = cauldron && isOfficialSecondary(session)
   const cauldronModeLabel = cauldron && getCauldronConfig(session).mode === 'duel'
     ? 'Cauldron Duel 1v1'
     : 'Cauldron FFA 3'
@@ -456,6 +459,7 @@ export default function BattleDashboard() {
           {battleActive && rival && <div className="rival-callout"><span>Current Rival</span><strong>{rival.name}</strong></div>}
           {battleActive && <span className={`mode-badge mode-badge--${guidanceLevel}`}>{guidanceLevel} mode</span>}
           {cauldron && <span className="ruleset-label">{cauldronModeLabel}</span>}
+          {officialSecondary && <span className="ruleset-label">Chapter Approved · {getCauldronConfig(session).officialSecondaryStrategy === 'fixed' ? 'Fixed' : 'Tactical'}</span>}
           <SharedSessionStatus battleId={session.setup.gameId} />
           {battleActive && <BattleMenu
             session={session}
@@ -507,6 +511,7 @@ export default function BattleDashboard() {
           onConfirm={(confirmations) => { if (canControlTurn) confirmRound(confirmations); setReviewOpen(false) }}
         /> : turnReviewOpen && cauldron ? <SecondaryEndTurnReview
           session={session}
+          sharedBattle={sharedBattle}
           onCompleteMissionAction={completeMissionAction}
           onEvaluate={evaluateEndTurnSecondaries}
           onDiscard={discardSecondaryCards}
@@ -565,6 +570,7 @@ export default function BattleDashboard() {
                     setTab('army')
                   }}
                 />
+                {officialSecondary && <OfficialSecondaryPanel session={session} playerId={sharedBattle ? viewerPlayerId ?? active.id : active.id} editable={!sharedBattle || viewerPlayerId === (viewerPlayerId ?? active.id)} />}
                 {rulesDataProvider && rulesDataAttribution
                   ? <a className="rules-data-attribution" href={rulesDataAttribution.url} target="_blank" rel="noreferrer">{rulesDataAttribution.label}</a>
                   : rulesDataError
@@ -608,7 +614,9 @@ export default function BattleDashboard() {
               onClearSecondaryTargetFilter={() => setArmySecondaryFilter(null)}
             />}
             {tab === 'objectives' && <ObjectivesPanel session={session} dispatch={dispatch} />}
-            {tab === 'cards' && cauldron && <SecondaryDetailPanel session={session} playerId={sharedBattle ? viewerPlayerId ?? active.id : active.id} />}
+            {tab === 'cards' && cauldron && (officialSecondary
+              ? <OfficialSecondaryPanel session={session} playerId={sharedBattle ? viewerPlayerId ?? active.id : active.id} editable={!sharedBattle || Boolean(viewerPlayerId)} />
+              : <SecondaryDetailPanel session={session} playerId={sharedBattle ? viewerPlayerId ?? active.id : active.id} />)}
             {tab === 'log' && <BattleLog session={session} />}
           </main>
 

@@ -42,12 +42,16 @@ import {
   resolveEliminationChoice as resolveEliminationChoiceInBattle,
   selectPriorityTargetCandidates as selectPriorityTargetCandidatesInBattle,
   type CauldronObjectiveLayout,
+  type SecondaryDeck,
+  type OfficialSecondaryStrategy,
+  type OfficialSecondaryId,
   type CauldronPlayerInput,
   type EndTurnSecondaryConfirmations,
   type OperationalPlanId,
   type PlanConfirmation,
   type SecondaryId,
 } from '../rulesets/cauldronFFA3'
+import { acknowledgeOfficialWindow, discardOfficialAtEndTurn, noteOfficialTarget, replaceOfficialSecondary, scoreOfficialSecondary, startOfficialSecondaryAction } from '../rulesets/cauldronFFA3/officialSecondary'
 
 type BattleStore = {
   session: BattleSession | null
@@ -58,6 +62,9 @@ type BattleStore = {
     armies: Army[],
     guidanceLevel: GuidanceLevel,
     objectiveLayout?: CauldronObjectiveLayout,
+    secondaryDeck?: SecondaryDeck,
+    officialSecondaryStrategy?: OfficialSecondaryStrategy,
+    fixedSecondarySelections?: Record<string, [OfficialSecondaryId, OfficialSecondaryId]>,
   ) => Promise<string>
   loadBattle: (id: string) => Promise<void>
   resumeLatest: () => Promise<string | null>
@@ -72,6 +79,12 @@ type BattleStore = {
   completeMissionAction: (actionId: string, positionConfirmed: boolean) => void
   cancelMissionAction: (actionId: string, reason?: string) => void
   mulliganSecondary: (playerId: string, cardId: SecondaryId) => void
+  scoreOfficialSecondary: (playerId: string, cardId: OfficialSecondaryId, requestedVp: number) => void
+  replaceOfficialSecondary: (playerId: string, cardId: OfficialSecondaryId, newOrders?: boolean) => void
+  discardOfficialAtEndTurn: (playerId: string, cardIds: OfficialSecondaryId[]) => void
+  noteOfficialTarget: (playerId: string, cardId: OfficialSecondaryId, note: string) => void
+  startOfficialSecondaryAction: (playerId: string, cardId: OfficialSecondaryId, unit: string, target: string) => void
+  acknowledgeOfficialWindow: (playerId: string) => void
   discardSecondaryCards: (playerId: string, cardIds: SecondaryId[]) => void
   evaluateEndTurnSecondaries: (playerId: string, confirmations?: EndTurnSecondaryConfirmations) => void
   resolveEliminationChoice: (playerId: string, cardId: SecondaryId) => void
@@ -130,10 +143,10 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
   loading: false,
   error: null,
 
-  async startCauldronBattle(players, armies, guidanceLevel, objectiveLayout) {
+  async startCauldronBattle(players, armies, guidanceLevel, objectiveLayout, secondaryDeck, officialSecondaryStrategy, fixedSecondarySelections) {
     set({ loading: true, error: null })
     try {
-      const session = createCauldronGame({ players, armies, guidanceLevel, objectiveLayout })
+      const session = createCauldronGame({ players, armies, guidanceLevel, objectiveLayout, secondaryDeck, officialSecondaryStrategy, fixedSecondarySelections })
       await saveBattle(session)
       set({ session, loading: false })
       return session.setup.gameId
@@ -261,6 +274,30 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
 
   mulliganSecondary(playerId, cardId) {
     applySessionUpdate(get().session, (session) => mulliganSecondaryInBattle(session, playerId, cardId), set)
+  },
+
+  scoreOfficialSecondary(playerId, cardId, requestedVp) {
+    applySessionUpdate(get().session, (session) => scoreOfficialSecondary(session, playerId, cardId, requestedVp), set)
+  },
+
+  replaceOfficialSecondary(playerId, cardId, newOrders = false) {
+    applySessionUpdate(get().session, (session) => replaceOfficialSecondary(session, playerId, cardId, newOrders), set)
+  },
+
+  discardOfficialAtEndTurn(playerId, cardIds) {
+    applySessionUpdate(get().session, (session) => discardOfficialAtEndTurn(session, playerId, cardIds), set)
+  },
+
+  noteOfficialTarget(playerId, cardId, note) {
+    applySessionUpdate(get().session, (session) => noteOfficialTarget(session, playerId, cardId, note), set)
+  },
+
+  startOfficialSecondaryAction(playerId, cardId, unit, target) {
+    applySessionUpdate(get().session, (session) => startOfficialSecondaryAction(session, playerId, cardId, unit, target), set)
+  },
+
+  acknowledgeOfficialWindow(playerId) {
+    applySessionUpdate(get().session, (session) => acknowledgeOfficialWindow(session, playerId), set)
   },
 
   discardSecondaryCards(playerId, cardIds) {

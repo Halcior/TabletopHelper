@@ -16,6 +16,7 @@ import {
   cauldronObjectivesForPlayerCount,
 } from './constants'
 import { cauldronEvent } from './events'
+import { officialPendingReviewPlayers } from './officialSecondary'
 import { getPrimaryTurnCommit } from './primary'
 import { addSnapshotEvents, captureRoundSnapshot, captureTurnSnapshot } from './snapshots'
 import {
@@ -60,6 +61,9 @@ export function createCauldronGame(input: CauldronGameInput): BattleSession {
     mode,
     playerCount,
     objectiveLayout,
+    secondaryDeck: input.secondaryDeck ?? 'cauldron',
+    officialSecondaryStrategy: input.officialSecondaryStrategy ?? 'tactical',
+    fixedSecondarySelections: input.fixedSecondarySelections,
     battleRounds: CAULDRON_BATTLE_ROUNDS,
     primaryCap: CAULDRON_PRIMARY_CAP,
     secondaryCap: CAULDRON_SECONDARY_CAP,
@@ -117,6 +121,7 @@ export function advanceCauldronPhase(session: BattleSession): BattleSession {
   }
   let secondaryEvents: ReturnType<typeof createEndTurnSecondaryEvents> = []
   if (session.state.phase === 'END_TURN') {
+    if (officialPendingReviewPlayers(session).length > 0) throw new Error('Wait until each commander has reviewed eligible Chapter Approved cards for this turn.')
     if (Object.values(session.state.missionActions).some((action) => (
       action.playerId === session.state.activePlayerId && action.status === 'ACTIVE'
     ))) throw new Error('Resolve active Mission Actions before ending the turn.')

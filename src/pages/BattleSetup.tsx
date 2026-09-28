@@ -7,6 +7,8 @@ import {
   CAULDRON_RULESET_VERSION,
   OPERATIONAL_PLAN_DEFINITIONS,
   OPERATIONAL_PLAN_IDS,
+  OFFICIAL_FIXED_IDS,
+  OFFICIAL_SECONDARY_BY_ID,
   randomDeploymentZones,
   randomTurnPositions,
   type CauldronMode,
@@ -15,6 +17,9 @@ import {
   type DeploymentZone,
   type OperationalPlanId,
   type TurnPosition,
+  type SecondaryDeck,
+  type OfficialSecondaryStrategy,
+  type OfficialSecondaryId,
 } from '../rulesets/cauldronFFA3'
 import { useSharedSessionStore } from '../multiplayer/sharedSessionStore'
 import { useBattleStore } from '../stores/battleStore'
@@ -36,6 +41,11 @@ export default function BattleSetup() {
   const [armies, setArmies] = useState<Army[]>([])
   const [players, setPlayers] = useState<PlayerDraft[]>(DEFAULT_PLAYERS)
   const [guidance, setGuidance] = useState<GuidanceLevel>('guided')
+  const [secondaryDeck, setSecondaryDeck] = useState<SecondaryDeck>('cauldron')
+  const [officialStrategy, setOfficialStrategy] = useState<OfficialSecondaryStrategy>('tactical')
+  const [fixedSelections, setFixedSelections] = useState<Record<string, [OfficialSecondaryId, OfficialSecondaryId]>>(
+    Object.fromEntries(DEFAULT_PLAYERS.map((player) => [player.id, ['OFFICIAL_A_GRIEVOUS_BLOW', 'OFFICIAL_ENGAGE_ON_ALL_FRONTS']])) as Record<string, [OfficialSecondaryId, OfficialSecondaryId]>,
+  )
   const [hostPlayerId, setHostPlayerId] = useState(DEFAULT_PLAYERS[0].id)
   const [loadingArmies, setLoadingArmies] = useState(true)
   const [sharedWorking, setSharedWorking] = useState(false)
@@ -140,6 +150,9 @@ export default function BattleSetup() {
         selectedArmies,
         guidance,
         mode === 'duel' ? 'classic-6' : objectiveLayout,
+        secondaryDeck,
+        officialStrategy,
+        secondaryDeck === 'chapter-approved' && officialStrategy === 'fixed' ? fixedSelections : undefined,
       )
       if (sharedMode) {
         const membership = await hostCurrentBattle(hostPlayerId)
@@ -206,9 +219,30 @@ export default function BattleSetup() {
               {OPERATIONAL_PLAN_IDS.map((planId) => <option key={planId} value={planId}>{OPERATIONAL_PLAN_DEFINITIONS[planId].name}</option>)}
             </select></label>
             <p className="plan-description">{OPERATIONAL_PLAN_DEFINITIONS[player.operationalPlanId].description}</p>
+            {secondaryDeck === 'chapter-approved' && officialStrategy === 'fixed' && <div className="setup-pair">
+              {([0, 1] as const).map((slot) => <label key={slot}>Fixed Secondary {slot + 1}
+                <select value={fixedSelections[player.id][slot]} onChange={(event) => setFixedSelections((current) => ({
+                  ...current,
+                  [player.id]: current[player.id].map((id, index) => index === slot ? event.target.value as OfficialSecondaryId : id) as [OfficialSecondaryId, OfficialSecondaryId],
+                }))}>
+                  {OFFICIAL_FIXED_IDS.map((id) => <option key={id} value={id}>{OFFICIAL_SECONDARY_BY_ID[id].name}</option>)}
+                </select>
+              </label>)}
+            </div>}
           </section>
         ))}</div>
         <section className="panel setup-footer setup-footer--battle-mode">
+          <label>Secondary deck<select value={secondaryDeck} onChange={(event) => setSecondaryDeck(event.target.value as SecondaryDeck)}>
+            <option value="cauldron">Cauldron v{CAULDRON_RULESET_VERSION} · 15 cards</option>
+            <option value="chapter-approved">Chapter Approved 2026–27 · 18 official cards</option>
+          </select></label>
+          {secondaryDeck === 'chapter-approved' && <>
+            <label>Secondary strategy<select value={officialStrategy} onChange={(event) => setOfficialStrategy(event.target.value as OfficialSecondaryStrategy)}>
+              <option value="tactical">Tactical · draw two each Command phase</option>
+              <option value="fixed">Fixed · choose two eligible cards per player</option>
+            </select></label>
+            <p className="context-note">Chapter Approved Secondary rules: 15 VP per round, 45 VP per battle; Fixed cards have a 20 VP limit each. Confirm physical positions and actions at the table. In FFA, opponent, enemy and opponent territory refer to your current Rival; other Cauldron scoring rules stay in effect.</p>
+          </>}
           <label>Guidance level<select value={guidance} onChange={(event) => setGuidance(event.target.value as GuidanceLevel)}>
             <option value="guided">Guided — full contextual reminders</option>
             <option value="fast">Fast — essential reminders only</option>
@@ -220,9 +254,9 @@ export default function BattleSetup() {
           <label>Shared host seat<select value={hostPlayerId} onChange={(event) => setHostPlayerId(event.target.value)}>
             {activePlayers.map((player) => <option key={player.id} value={player.id}>{player.name}</option>)}
           </select></label>
-          {duel
+          {secondaryDeck === 'cauldron' && (duel
             ? <p className="context-note">Duel changes only the player topology: 2 turns per Battle Round, A/B HOME objectives, and a permanent Rival. Primary, Secondary, Operational Plans and scoring caps use the Cauldron {CAULDRON_RULESET_VERSION} balance rules.</p>
-            : <p className="context-note">The 7-objective layout treats CENTER as a normal neutral objective, so it counts for Primary, objective Secondaries, Mission Actions and Operational Plans exactly like N1/N2/N3.</p>}
+            : <p className="context-note">The 7-objective layout treats CENTER as a normal neutral objective, so it counts for Primary, objective Secondaries, Mission Actions and Operational Plans exactly like N1/N2/N3.</p>)}
           {(localError || error) && <div className="alert alert--danger">{localError ?? error}</div>}
           <div className="setup-submit-actions">
             <button className="button" type="submit" value="local" disabled={loading || sharedWorking}>{loading && !sharedWorking ? 'Preparing…' : 'Start locally'}</button>

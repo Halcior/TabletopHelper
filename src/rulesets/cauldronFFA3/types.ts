@@ -1,11 +1,13 @@
 import type { Army } from '../../domain/army/types'
 import type { ObjectiveState } from '../../domain/battle/types'
-import type { SecondaryId } from './secondaryTypes'
+import type { OfficialSecondaryId, SecondaryId } from './secondaryTypes'
 
 export type DeploymentZone = 'A' | 'B' | 'C'
 export type TurnPosition = 1 | 2 | 3
 export type CauldronMode = 'duel' | 'ffa3'
 export type CauldronObjectiveLayout = 'classic-6' | 'expanded-7'
+export type SecondaryDeck = 'cauldron' | 'chapter-approved'
+export type OfficialSecondaryStrategy = 'tactical' | 'fixed'
 export type OperationalPlanId =
   | 'WYNISZCZENIE'
   | 'DECYDUJACE_NATARCIE'
@@ -30,6 +32,9 @@ export type CauldronGameInput = {
   guidanceLevel: 'guided' | 'fast'
   mode?: CauldronMode
   objectiveLayout?: CauldronObjectiveLayout
+  secondaryDeck?: SecondaryDeck
+  officialSecondaryStrategy?: OfficialSecondaryStrategy
+  fixedSecondarySelections?: Record<string, [OfficialSecondaryId, OfficialSecondaryId]>
   gameId?: string
   createdAt?: string
   /** Optional deterministic order for tests/dev tools. Normal games shuffle every player's complete deck. */
@@ -47,6 +52,9 @@ export type CauldronConfig = {
   mode?: CauldronMode
   playerCount?: 2 | 3
   objectiveLayout?: CauldronObjectiveLayout
+  secondaryDeck?: SecondaryDeck
+  officialSecondaryStrategy?: OfficialSecondaryStrategy
+  fixedSecondarySelections?: Record<string, [OfficialSecondaryId, OfficialSecondaryId]>
   battleRounds: number
   primaryCap: number
   secondaryCap: number

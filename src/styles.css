@@ -278,6 +278,13 @@ p { color: var(--muted); line-height: 1.65; }
 .secondary-card__heading > strong { flex: none; color: var(--gold-bright); }
 .secondary-card__objective, .secondary-card__progress { margin: 0; font-size: .76rem; line-height: 1.45; }
 .secondary-card__objective { color: var(--paper); }
+.official-secondary-panel .secondary-card--official { min-width: 0; }
+.official-secondary-panel .secondary-card__objective { font-size: .82rem; line-height: 1.55; }
+.official-secondary-input { display: grid; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.official-secondary-input label { display: grid; gap: 5px; color: var(--muted); font-size: .76rem; }
+.official-secondary-input input, .official-secondary-input select { width: 100%; min-width: 0; }
+.official-secondary-input small { line-height: 1.45; color: var(--muted); }
+.official-secondary-panel .secondary-card .review-check-row { margin-top: 12px; }
 .secondary-card__progress { padding-top: 8px; border-top: 1px solid var(--line); }
 .secondary-card > button { margin-top: auto; }
 .secondary-mulligan { margin-top: 10px; padding: 10px; border: 1px dashed var(--line-gold); display: flex; align-items: center; justify-content: space-between; gap: 10px; }

@@ -10,6 +10,7 @@ import { buildSharedInviteUrl, roomCodeFromSearch } from '../multiplayer/sharedI
 import { useSharedSessionStore } from '../multiplayer/sharedSessionStore'
 import { getLatestActiveBattle } from '../persistence/database'
 import { useBattleStore } from '../stores/battleStore'
+import { CAULDRON_RULESET_ID, getCauldronConfig } from '../rulesets/cauldronFFA3'
 
 function syncTime(value: string | null): string {
   if (!value) return 'Waiting for sync'
@@ -116,6 +117,7 @@ export default function SharedSessions() {
   }, [membership, navigate, roomStartedAt])
 
   const lobbySession = inspection?.room.sessionSnapshot ?? latestBattle
+  const secondaryConfig = lobbySession?.setup.rulesetId === CAULDRON_RULESET_ID ? getCauldronConfig(lobbySession) : null
   const lobbyPlayerIds = lobbySession?.state.turnOrder ?? []
   const seatTarget = lobbyPlayerIds.length
   const lobbySummary = useMemo(
@@ -231,6 +233,9 @@ export default function SharedSessions() {
         <div><span>Ready</span><strong>{lobbySummary.readyCount}/{seatTarget}</strong></div>
         <div><span>Last</span><strong>{syncTime(lastSyncedAt)}</strong></div>
       </div>
+      {secondaryConfig && <p className="context-note" aria-label="Secondary deck selected for this room">Secondary deck: {secondaryConfig.secondaryDeck === 'chapter-approved'
+        ? `Chapter Approved 2026–27 · ${secondaryConfig.officialSecondaryStrategy === 'fixed' ? 'Fixed' : 'Tactical'}`
+        : 'Cauldron'}. {secondaryConfig.mode === 'ffa3' && secondaryConfig.secondaryDeck === 'chapter-approved' ? 'FFA conditions use the current Rival.' : ''}</p>}
 
       <div className="shared-lobby__content">
         <div className="shared-lobby__seats" aria-label="Player seats">

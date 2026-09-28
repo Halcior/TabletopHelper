@@ -1,4 +1,5 @@
 import type { SecondaryDefinition, SecondaryId } from './secondaryTypes'
+import { OFFICIAL_SECONDARY_DEFINITIONS } from './officialSecondaryDefinitions'
 
 const definitions: SecondaryDefinition[] = [
   { id: 'SILA_OGNIA', name: 'Siła Ognia', vp: 4, category: 'ELIMINATION', description: 'Destroy a current Rival unit in your Shooting phase.', timing: ['UNIT_DESTROYED'], evaluationMode: 'AUTOMATIC' },
@@ -27,5 +28,5 @@ export const CAULDRON_SECONDARY_IDS: readonly SecondaryId[] = Object.freeze(
 )
 
 export const CAULDRON_SECONDARY_BY_ID: Readonly<Record<SecondaryId, SecondaryDefinition>> = Object.freeze(
-  Object.fromEntries(CAULDRON_SECONDARY_DEFINITIONS.map((definition) => [definition.id, definition])) as Record<SecondaryId, SecondaryDefinition>,
+  Object.fromEntries([...CAULDRON_SECONDARY_DEFINITIONS, ...OFFICIAL_SECONDARY_DEFINITIONS].map((definition) => [definition.id, definition])) as Record<SecondaryId, SecondaryDefinition>,
 )

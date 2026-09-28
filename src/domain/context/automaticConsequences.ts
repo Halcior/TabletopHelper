@@ -1,7 +1,7 @@
 import type { BattleSession } from '../battle/types'
 import { CAULDRON_RULESET_ID } from '../../rulesets/cauldronFFA3/constants'
 import { evaluateOperationalPlan, getOperationalPlanState } from '../../rulesets/cauldronFFA3/operationalPlans'
-import { getRoundSecondaryVp } from '../../rulesets/cauldronFFA3/secondary'
+import { getRoundSecondaryVp, getSecondaryRoundCap, isOfficialSecondary } from '../../rulesets/cauldronFFA3/secondary'
 import { CAULDRON_SECONDARY_BY_ID } from '../../rulesets/cauldronFFA3/secondaryDefinitions'
 import type { SecondaryId } from '../../rulesets/cauldronFFA3/secondaryTypes'
 import type { ContextItem } from './types'
@@ -33,6 +33,7 @@ function isPhysicalKillEvent(event: BattleSession['state']['events'][number]): e
  */
 export function buildLatestAutomaticConsequence(session: BattleSession): ContextItem | null {
   if (session.setup.guidanceLevel === 'fast' || session.setup.rulesetId !== CAULDRON_RULESET_ID) return null
+  if (isOfficialSecondary(session)) return null
 
   let turnStartIndex = -1
   for (let index = session.state.events.length - 1; index >= 0; index -= 1) {
@@ -65,7 +66,7 @@ export function buildLatestAutomaticConsequence(session: BattleSession): Context
     const details = [
       `Army → ${destroyedName} marked destroyed.`,
       `Secondary → ${secondary.name} completed for +${data.pointsAwarded} VP.`,
-      `Round Secondary → ${roundSecondaryVp} / 10 VP.`,
+      `Round Secondary → ${roundSecondaryVp} / ${getSecondaryRoundCap(session)} VP.`,
     ]
 
     const planState = getOperationalPlanState(session, data.playerId)

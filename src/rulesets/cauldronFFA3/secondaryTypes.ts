@@ -1,4 +1,4 @@
-export type SecondaryId =
+export type CauldronSecondaryId =
   | 'SILA_OGNIA'
   | 'WALKA_W_ZWARCIU'
   | 'ZNISZCZ_KOLOSA'
@@ -14,6 +14,28 @@ export type SecondaryId =
   | 'CEL_PRIORYTETOWY'
   | 'PRESJA_TAKTYCZNA'
   | 'ODCIECIE_ODWROTU'
+
+export type OfficialSecondaryId =
+  | 'OFFICIAL_A_GRIEVOUS_BLOW'
+  | 'OFFICIAL_A_TEMPTING_TARGET'
+  | 'OFFICIAL_ASSASSINATION'
+  | 'OFFICIAL_BEACON'
+  | 'OFFICIAL_BEHIND_ENEMY_LINES'
+  | 'OFFICIAL_BRING_IT_DOWN'
+  | 'OFFICIAL_BURDEN_OF_TRUST'
+  | 'OFFICIAL_CENTRE_GROUND'
+  | 'OFFICIAL_CLEANSE'
+  | 'OFFICIAL_DEFEND_STRONGHOLD'
+  | 'OFFICIAL_DISPLAY_OF_MIGHT'
+  | 'OFFICIAL_ENGAGE_ON_ALL_FRONTS'
+  | 'OFFICIAL_FORWARD_POSITION'
+  | 'OFFICIAL_NO_PRISONERS'
+  | 'OFFICIAL_OUTFLANK'
+  | 'OFFICIAL_OVERWHELMING_FORCE'
+  | 'OFFICIAL_PLUNDER'
+  | 'OFFICIAL_SECURE_NO_MANS_LAND'
+
+export type SecondaryId = CauldronSecondaryId | OfficialSecondaryId
 
 export type SecondaryCategory = 'ELIMINATION' | 'OBJECTIVE' | 'POSITION' | 'MISSION_ACTION' | 'MIXED'
 export type SecondaryEvaluationMode =
@@ -87,6 +109,7 @@ export type SecondaryScoreEntry = {
   cardName: string
   round: number
   pointsAwarded: number
+  turnKey?: string
 }
 
 export type PlayerSecondaryState = {
@@ -140,7 +163,7 @@ export type EndTurnReview = {
   missionActions: Array<{ name: string; unitName: string; status: string; detail: string }>
   secondaries: ActiveSecondaryView[]
   roundSecondaryVp: number
-  roundCap: 10
+  roundCap: number
   gameSecondaryVp: number
   gameCap: 45
   incompleteCards: Array<{ cardId: SecondaryId; name: string }>

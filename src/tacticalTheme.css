@@ -1132,6 +1132,9 @@ textarea:focus {
   gap: 9px;
 }
 
+.secondary-card--official { --mission-color: var(--gold-bright); }
+.secondary-card--official .secondary-card__identity { display: block; flex: 1; }
+
 .secondary-card__icon {
   width: 34px;
   height: 34px;

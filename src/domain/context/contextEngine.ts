@@ -10,7 +10,9 @@ import { CAULDRON_SECONDARY_BY_ID } from '../../rulesets/cauldronFFA3/secondaryD
 import type { ActiveSecondaryView, SecondaryId } from '../../rulesets/cauldronFFA3/secondaryTypes'
 import {
   getRoundSecondaryVp,
+  getSecondaryRoundCap,
   getSecondaryState,
+  isOfficialSecondary,
   isMulliganAvailable,
 } from '../../rulesets/cauldronFFA3/secondary'
 import { buildLatestAutomaticConsequence } from './automaticConsequences'
@@ -73,6 +75,7 @@ function secondaryAction(
 
 function secondaryItems(session: BattleSession): ContextItem[] {
   if (session.setup.rulesetId !== CAULDRON_RULESET_ID) return []
+  if (isOfficialSecondary(session)) return [] // Chapter Approved cards have their own action and scoring panel.
   const playerId = session.state.activePlayerId
   const rival = selectCurrentRival(session, playerId)
   const blockerIds = new Set(selectSecondaryBlockers(session, playerId).map((blocker) => blocker.secondaryId))
@@ -132,6 +135,7 @@ function commandItems(session: BattleSession): ContextItem[] {
     actions: cpRecorded ? [] : [action('gain-command-cp', 'GAIN_COMMAND_POINT', '+1 CP', { playerId })],
   }]
   if (session.setup.rulesetId !== CAULDRON_RULESET_ID) return items
+  if (isOfficialSecondary(session)) return items
   const activeCards = getSecondaryState(session)[playerId]?.active.length ?? 0
   items.push({
     id: `secondary-refill-${playerId}`,
@@ -297,6 +301,7 @@ function reactionItems(input: BuildBattleContextInput, players: BattleContext['r
 
 function automaticItems(session: BattleSession): ContextItem[] {
   if (session.setup.guidanceLevel === 'fast' || session.setup.rulesetId !== CAULDRON_RULESET_ID) return []
+  if (isOfficialSecondary(session)) return []
   const playerId = session.state.activePlayerId
   const consequence = buildLatestAutomaticConsequence(session)
   const completed = selectCompletedSecondariesThisTurn(session, playerId)
@@ -305,7 +310,7 @@ function automaticItems(session: BattleSession): ContextItem[] {
       id: `completed-secondary-${card.cardId}-${card.completedTurn}`,
       type: 'AUTOMATIC_SECONDARY_RESULT',
       title: `${CAULDRON_SECONDARY_BY_ID[card.cardId].name} completed`,
-      shortDescription: `+${card.pointsAwarded} VP · ${getRoundSecondaryVp(session, playerId)} / 10 this Battle Round`,
+      shortDescription: `+${card.pointsAwarded} VP · ${getRoundSecondaryVp(session, playerId)} / ${getSecondaryRoundCap(session)} this Battle Round`,
       status: 'DONE' as const,
       severity: 'INFO' as const,
       source: 'SECONDARY' as const,

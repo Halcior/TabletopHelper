@@ -8,6 +8,7 @@ import {
 import { addSnapshotEvents } from './snapshots'
 import { addSecondaryRefillEvents, createEndTurnSecondaryEvents, getSecondaryState } from './secondary'
 import { isCauldronEndOfRound } from './session'
+import { officialPendingReviewPlayers } from './officialSecondary'
 import type { PlanConfirmation } from './types'
 
 type RoundCommit = {
@@ -31,6 +32,7 @@ export function confirmCauldronEndRound(
   if (getSecondaryState(session)[session.state.activePlayerId]?.pendingEliminationChoice) {
     throw new Error('Resolve the pending Secondary scoring choice before ending the turn.')
   }
+  if (officialPendingReviewPlayers(session).length > 0) throw new Error('Wait for each commander to review Chapter Approved scoring before ending the round.')
 
   for (const playerId of session.state.turnOrder) {
     if (!getPrimaryTurnCommit(session, playerId, session.state.round)) {

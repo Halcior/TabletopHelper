@@ -9,6 +9,7 @@ Current capabilities:
 - configure either a two-player Cauldron Duel or three-player FFA battle with saved armies, deployment zones, fixed turn order, and Operational Plans;
 - track automatic Rival rotation, snapshots, phases, turns, rounds, CP, objectives, attributed casualties, wounds, abilities, and an event log;
 - manage all 15 Cauldron Secondaries and Mission Actions, including automatic Sabotaż evaluation;
+- select the existing Cauldron Secondary deck or the 18 Chapter Approved 2026–27 Secondary cards at battle setup, in Duel or FFA;
 - reveal newly drawn Secondaries, use the free mulligan, and automatically commit Primary/Secondary scoring;
 - hand the phone over from a compact end-turn summary while keeping the full scoring audit available on demand;
 - record damage against any opponent while keeping Rival-specific scoring separate and crediting the final casualty correctly;
@@ -44,3 +45,13 @@ When the GitHub repository is connected to Vercel, pushes to feature branches ca
 The shared-session flow is different: one player creates a two- or three-seat lobby directly from battle setup or the battle header. The other phones scan its QR invite (or enter the six-character code), claim their seats, mark ready, and enter the synchronized battle together when the host starts it. See `docs/shared-sessions.md` for the cumulative Supabase migration and the physical-phone checklist.
 
 The files in `test-data/` are immutable external New Recruit fixtures.
+
+## Chapter Approved Secondary deck
+
+The deck selector applies only to Secondary Missions. Primary, Operational Plans, phases, objectives, and Rival rotation still use the configured Cauldron battle mode. Existing saved battles without a deck selection continue using the original 15-card Cauldron deck.
+
+Tactical uses a separate shuffled 18-card deck for each player. Players start with two cards and draw two more in each later Command phase, even if they still hold cards. Card-specific when-drawn replacements, once-per-battle New Orders (1 CP), and end-of-turn discards (one or more cards for 1 CP total) are available on the Secondary panel. Fixed allows each player to select two of the four eligible cards in setup. The app applies the 15 VP per round, 45 VP per battle, and 20 VP per Fixed card limits.
+
+The card panel shows conditions and timing from the [Chapter Approved 2026–27 Secondary Missions](https://gdmissions.app/11th/secondary-missions). Players confirm physical positions, destroyed models, and eligible units at the table. Cleanse and Plunder starts are recorded in the Shooting phase, then confirmed at end of turn. Each eligible commander scores or acknowledges their own cards before turn progression; in a shared room this can happen from their own phone during another commander's turn.
+
+FFA is an explicit house adaptation: references to an opponent, enemy units, and the opponent's home or deployment zone use the card owner's current Rival. Neutral objectives remain No Man's Land, while physical territory, quarters, and distances are confirmed on the table. Duel follows the two-player card text directly.

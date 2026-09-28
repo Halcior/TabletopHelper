@@ -9,6 +9,7 @@ import {
   getPendingEliminationChoice,
   getRoundSecondaryVp,
   getSecondaryState,
+  getSecondaryRoundCap,
   isMulliganAvailable,
 } from '../../rulesets/cauldronFFA3/secondary'
 import type { ActiveSecondaryView, SecondaryId } from '../../rulesets/cauldronFFA3/secondaryTypes'
@@ -95,7 +96,7 @@ export function SecondaryPanel({
       <SecondaryDrawReveal session={session} playerId={playerId} onMulligan={onMulligan} />
       <div className="section-heading secondary-heading">
         <div><span className="eyebrow">Current objectives</span><h2>Secondary Missions</h2></div>
-        <div className="secondary-score"><strong>{getRoundSecondaryVp(session, playerId)} / 10</strong><span>round</span><small>{getGameSecondaryVp(session, playerId)} / 45 game</small></div>
+        <div className="secondary-score"><strong>{getRoundSecondaryVp(session, playerId)} / {getSecondaryRoundCap(session)}</strong><span>round</span><small>{getGameSecondaryVp(session, playerId)} / 45 game</small></div>
       </div>
       {recentScore?.round === session.state.round && <div className="secondary-feedback" role="status">✓ {recentScore.cardName} completed · +{recentScore.pointsAwarded} VP</div>}
       {pendingChoice && <div className="secondary-decision" role="alert">

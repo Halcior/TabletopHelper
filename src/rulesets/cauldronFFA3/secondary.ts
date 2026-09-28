@@ -7,6 +7,7 @@ import { getCurrentRivalPlayerId } from './rivalRotation'
 import { getCauldronConfig } from './sessionConfig'
 import { getCauldronTurnStartSnapshot } from './snapshots'
 import { CAULDRON_SECONDARY_BY_ID, CAULDRON_SECONDARY_IDS } from './secondaryDefinitions'
+import { OFFICIAL_SECONDARY_BY_ID, OFFICIAL_SECONDARY_IDS } from './officialSecondaryDefinitions'
 import type {
   ActiveSecondaryView,
   EndTurnReview,
@@ -21,11 +22,18 @@ import type {
 
 const ROUND_SECONDARY_CAP = 10
 const GAME_SECONDARY_CAP = 45
+export function isOfficialSecondary(session: BattleSession): boolean {
+  return getCauldronConfig(session).secondaryDeck === 'chapter-approved'
+}
+
+export function getSecondaryRoundCap(session: BattleSession): number {
+  return isOfficialSecondary(session) ? 15 : ROUND_SECONDARY_CAP
+}
 
 type SecondaryEventData =
   | { playerId: string; deckOrder: SecondaryId[] }
   | { playerId: string; cardId: SecondaryId; round: number; turn: number; reason?: string }
-  | { playerId: string; cardId: SecondaryId; round: number; turn: number; pointsAwarded: number; cardSpecificState?: SecondaryCardSpecificState }
+  | { playerId: string; cardId: SecondaryId; round: number; turn: number; pointsAwarded: number; turnKey?: string; cardSpecificState?: SecondaryCardSpecificState }
   | { playerId: string; cardId: SecondaryId; patch: SecondaryCardSpecificState }
   | { playerId: string; turnKey: string }
   | { playerId: string; choice: PendingEliminationChoice }
@@ -89,6 +97,7 @@ export function getSecondaryState(session: BattleSession): SecondaryState {
           round: number
           turn: number
           pointsAwarded: number
+          turnKey?: string
           cardSpecificState?: SecondaryCardSpecificState
         }
         const card = removeCard(player.active, completed.cardId)
@@ -107,8 +116,20 @@ export function getSecondaryState(session: BattleSession): SecondaryState {
             cardName: CAULDRON_SECONDARY_BY_ID[completed.cardId].name,
             round: completed.round,
             pointsAwarded: completed.pointsAwarded,
+            turnKey: completed.turnKey,
           })
         }
+        break
+      }
+      case 'SECONDARY_FIXED_SCORED': {
+        const scored = data as { cardId: SecondaryId; round: number; pointsAwarded: number; turnKey: string }
+        if (player.active.some((card) => card.cardId === scored.cardId)) player.scoreHistory.push({
+          cardId: scored.cardId,
+          cardName: CAULDRON_SECONDARY_BY_ID[scored.cardId].name,
+          round: scored.round,
+          pointsAwarded: scored.pointsAwarded,
+          turnKey: scored.turnKey,
+        })
         break
       }
       case 'SECONDARY_CARD_STATE_UPDATED': {
@@ -259,6 +280,26 @@ export function createSecondaryInitializationEvents(
   deckOrders: Partial<Record<string, readonly SecondaryId[]>> = {},
   random: () => number = Math.random,
 ): BattleEventInput[] {
+  if (isOfficialSecondary(session)) {
+    const config = getCauldronConfig(session)
+    if (config.officialSecondaryStrategy === 'fixed') return session.setup.players.flatMap((player) => {
+      const selected = config.fixedSecondarySelections?.[player.id]
+      if (!selected || selected.length !== 2 || new Set(selected).size !== 2 || selected.some((id) => !OFFICIAL_SECONDARY_BY_ID[id]?.fixed)) {
+        throw new Error(`Choose two different Fixed Secondaries for ${player.name}.`)
+      }
+      return [cauldronEvent('SECONDARY_DECK_SHUFFLED', { playerId: player.id, deckOrder: [] }), ...selected.map((cardId) => (
+        cauldronEvent('SECONDARY_DRAWN', { playerId: player.id, cardId, round: 1, turn: 1 })
+      ))]
+    })
+    return session.setup.players.flatMap((player) => {
+      const order = deckOrders[player.id] ? [...deckOrders[player.id]!] : shuffle(OFFICIAL_SECONDARY_IDS, random)
+      if (order.length !== 18 || new Set(order).size !== 18 || order.some((id) => !(id in OFFICIAL_SECONDARY_BY_ID))) {
+        throw new Error('The Chapter Approved Tactical deck must contain all 18 unique cards.')
+      }
+      return [cauldronEvent('SECONDARY_DECK_SHUFFLED', { playerId: player.id, deckOrder: order }),
+        ...officialDrawEvents(player.id, order, 2, 1, 1)]
+    })
+  }
   return session.setup.players.flatMap((player) => {
     const order = deckOrders[player.id] ? [...deckOrders[player.id]!] : shuffle(CAULDRON_SECONDARY_IDS, random)
     validateDeckOrder(order)
@@ -270,6 +311,20 @@ export function createSecondaryInitializationEvents(
   })
 }
 
+export function officialDrawEvents(playerId: string, deck: readonly SecondaryId[], count: number, round: number, turn: number): BattleEventInput[] {
+  const events: BattleEventInput[] = []
+  let drawn = 0
+  for (const cardId of deck) {
+    if (drawn >= count) break
+    events.push(cauldronEvent('SECONDARY_DRAWN', { playerId, cardId, round, turn }))
+    // This card must be replaced in Battle Round 1. Its replacement is a bonus draw.
+    if (round === 1 && cardId === 'OFFICIAL_DEFEND_STRONGHOLD') {
+      events.push(cauldronEvent('SECONDARY_DISCARDED', { playerId, cardId, round, turn, reason: 'Mandatory round-one redraw' }))
+    } else drawn += 1
+  }
+  return events
+}
+
 export function createSecondaryRefillEvents(
   session: BattleSession,
   playerId: string,
@@ -278,6 +333,12 @@ export function createSecondaryRefillEvents(
 ): BattleEventInput[] {
   const current = getSecondaryState(session)[playerId]
   if (!current) throw new Error(`Unknown player: ${playerId}`)
+  if (isOfficialSecondary(session)) {
+    if (getCauldronConfig(session).officialSecondaryStrategy === 'fixed') return []
+    // Both players received their first two cards during setup, before their first turns begin.
+    if (round === 1 && getPlayerTurnNumber(session, playerId) === 0) return []
+    return officialDrawEvents(playerId, current.deck, 2, round, getPlayerTurnNumber(session, playerId) + 1)
+  }
   const mutable: MutableDrawState = {
     deck: [...current.deck],
     active: current.active.map(cloneCard),
@@ -304,6 +365,7 @@ function currentTurnKey(session: BattleSession, playerId: string): string {
 }
 
 export function isMulliganAvailable(session: BattleSession, playerId: string): boolean {
+  if (isOfficialSecondary(session)) return false
   const state = getSecondaryState(session)[playerId]
   return Boolean(
     state
@@ -319,6 +381,7 @@ export function mulliganSecondary(
   cardId: SecondaryId,
   random: () => number = Math.random,
 ): BattleSession {
+  if (isOfficialSecondary(session)) throw new Error('Chapter Approved uses card-specific redraws or New Orders, not the Cauldron mulligan.')
   const state = getSecondaryState(session)[playerId]
   if (!state?.active.some((card) => card.cardId === cardId)) throw new Error('Only an active incomplete card can be mulliganed.')
   if (!isMulliganAvailable(session, playerId)) throw new Error('The free mulligan has already been used this turn.')
@@ -344,6 +407,7 @@ export function discardSecondaryCards(
   playerId: string,
   cardIds: readonly SecondaryId[],
 ): BattleSession {
+  if (isOfficialSecondary(session)) throw new Error('Use the Chapter Approved end-turn discard, which grants 1 CP.')
   if (session.state.activePlayerId !== playerId || session.state.phase !== 'END_TURN') {
     throw new Error('Incomplete Secondary cards are discarded at the end of their player’s turn.')
   }
@@ -508,6 +572,7 @@ function priorityTargetConsequenceEvents(session: BattleSession, event: BattleEv
 
 /** Dispatches a normal Battle event and attaches any automatic Cauldron Secondary consequence to the same undo action. */
 export function dispatchCauldronBattleEvent(session: BattleSession, event: BattleEventInput): BattleSession {
+  if (isOfficialSecondary(session)) return dispatchBattleEvents(session, [event])
   const match = eliminationMatches(session, event)
   const inputs: BattleEventInput[] = [event, ...priorityTargetConsequenceEvents(session, event)]
   if (match?.matchingCardIds.length === 1) {
@@ -712,6 +777,7 @@ export function createEndTurnSecondaryEvents(
   playerId: string,
   confirmation: EndTurnSecondaryConfirmations = {},
 ): BattleEventInput[] {
+  if (isOfficialSecondary(session)) return [] // Chapter Approved is confirmed by each card owner, including on Rival turns.
   if (session.state.activePlayerId !== playerId || session.state.phase !== 'END_TURN') {
     throw new Error('End-turn Secondary evaluation is only available for the active player.')
   }
@@ -793,6 +859,21 @@ function contextualAction(cardId: SecondaryId): ActiveSecondaryView['action'] {
 
 export function getActiveSecondaryViews(session: BattleSession, playerId: string): ActiveSecondaryView[] {
   const state = getSecondaryState(session)[playerId]
+  if (isOfficialSecondary(session)) return (state?.active ?? []).map((card) => {
+    const definition = OFFICIAL_SECONDARY_BY_ID[card.cardId as keyof typeof OFFICIAL_SECONDARY_BY_ID]
+    return {
+      cardId: card.cardId,
+      name: definition.name,
+      vp: definition.vp,
+      objective: definition.description,
+      status: 'INPUT_REQUIRED',
+      progress: getCauldronConfig(session).officialSecondaryStrategy === 'fixed'
+        ? 'Fixed: score whenever the condition is met, up to 20 VP for this card.'
+        : `Tactical: confirm at the end of ${definition.scoreAt === 'either' ? 'either turn' : definition.scoreAt === 'own' ? 'your turn' : 'the Rival turn'}.`,
+      pointsAwarded: state.scoreHistory.filter((entry) => entry.cardId === card.cardId).reduce((sum, entry) => sum + entry.pointsAwarded, 0),
+      action: null,
+    }
+  })
   const pending = state?.pendingEliminationChoice
   return (state?.active ?? []).map((card) => {
     const definition = CAULDRON_SECONDARY_BY_ID[card.cardId]
@@ -835,7 +916,7 @@ export function getSecondaryCommandCentre(session: BattleSession, playerId: stri
     playerId,
     activeCards: getActiveSecondaryViews(session, playerId),
     roundVp: getRoundSecondaryVp(session, playerId),
-    roundCap: ROUND_SECONDARY_CAP,
+    roundCap: getSecondaryRoundCap(session),
     gameVp: getGameSecondaryVp(session, playerId),
     gameCap: GAME_SECONDARY_CAP,
     deckRemaining: player?.deck.length ?? 0,
@@ -876,7 +957,7 @@ export function getEndTurnReview(session: BattleSession, playerId: string): EndT
       })),
     secondaries: [...completedThisTurn, ...getActiveSecondaryViews(session, playerId)],
     roundSecondaryVp: getRoundSecondaryVp(session, playerId),
-    roundCap: 10,
+    roundCap: getSecondaryRoundCap(session),
     gameSecondaryVp: getGameSecondaryVp(session, playerId),
     gameCap: 45,
     incompleteCards: secondary.active.map((card) => ({ cardId: card.cardId, name: CAULDRON_SECONDARY_BY_ID[card.cardId].name })),
