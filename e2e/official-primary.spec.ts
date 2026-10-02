@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { dismissSecondaryReveal, importTestArmy, phone } from './helpers'
+import { dismissSecondaryReveal, importTestArmy, phone, resolvePriorityTargetIfNeeded } from './helpers'
 
 test('three commanders can choose different 11th edition Primary missions', async ({ browser }) => {
   const { context, page } = await phone(browser)
@@ -17,13 +17,19 @@ test('three commanders can choose different 11th edition Primary missions', asyn
     await page.getByLabel('Guidance level').selectOption('fast')
     await page.getByRole('button', { name: 'Start locally' }).click()
     await expect(page).toHaveURL(/\/battle\//)
+    await expect(page.getByRole('button', { name: 'Keep cards' })).toBeVisible()
     await dismissSecondaryReveal(page)
     await expect(page.locator('.score-card')).toHaveCount(3)
     await expect(page.locator('.official-primary-panel h2').first()).toHaveText('Gather Intel')
     await expect(page.locator('.ruleset-label').last()).toContainText('Gather Intel')
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
 
-    for (let index = 0; index < 6; index += 1) await page.locator('.next-phase').click()
+    await resolvePriorityTargetIfNeeded(page)
+    for (const phase of ['Movement', 'Shooting', 'Charge', 'Fight', 'End']) {
+      await page.locator('.next-phase').click()
+      await expect(page.locator('.phase-step--current strong')).toHaveText(phase)
+    }
+    await page.locator('.next-phase').click()
     await expect(page.getByRole('heading', { name: 'End Turn Review' })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Gather Intel' })).toBeVisible()
     await page.getByRole('button', { name: 'Apply scoring' }).click()
