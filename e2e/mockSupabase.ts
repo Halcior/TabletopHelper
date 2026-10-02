@@ -46,7 +46,7 @@ export class MockSupabase {
   private participants: ParticipantRow[] = []
   private events: EventRow[] = []
   private eventAttempts = new Map<string, number>()
-  failNextEventInsertAfterCommit = false
+  failNextEventInsertAfterCommitForPlayerId: string | null = null
 
   async attach(context: BrowserContext): Promise<void> {
     await context.route('https://mock.supabase.test/rest/v1/**', (route) => this.handle(route))
@@ -155,8 +155,9 @@ export class MockSupabase {
             created_at: new Date().toISOString(),
           })
         }
-        if (this.failNextEventInsertAfterCommit) {
-          this.failNextEventInsertAfterCommit = false
+        if (this.failNextEventInsertAfterCommitForPlayerId
+          && inputs.some((input) => (input.event_payload.payload as JsonObject | undefined)?.playerId === this.failNextEventInsertAfterCommitForPlayerId)) {
+          this.failNextEventInsertAfterCommitForPlayerId = null
           return void await json(route, { message: 'Simulated lost acknowledgement' }, 503)
         }
         return void await route.fulfill({ status: 204 })

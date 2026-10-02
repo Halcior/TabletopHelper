@@ -57,13 +57,14 @@ test('three phones start, synchronize and recover one idempotent offline action'
     await bravo.page.getByRole('button', { name: 'Gain 1 CP for Player II' }).click()
     await expect(scoreCard(bravo.page, 'Player II').locator('.score-card__numbers strong').nth(1)).toHaveText('1')
 
-    backend.failNextEventInsertAfterCommit = true
+    backend.failNextEventInsertAfterCommitForPlayerId = 'player-b'
     await bravo.context.setOffline(false)
     await expect(scoreCard(alpha.page, 'Player II').locator('.score-card__numbers strong').nth(1)).toHaveText('1')
 
     const stored = backend.storedEvents('CP_GAINED', 'player-b')
     expect(stored).toHaveLength(1)
-    expect(backend.attemptsFor(stored[0].event_id)).toBeGreaterThanOrEqual(2)
+    await expect.poll(() => backend.attemptsFor(stored[0].event_id)).toBeGreaterThanOrEqual(2)
+    expect(backend.storedEvents('CP_GAINED', 'player-b')).toHaveLength(1)
     await expect(bravo.page.getByText('This phone is offline')).toBeHidden()
   } finally {
     await Promise.all([alpha.context.close(), bravo.context.close(), charlie.context.close()])
