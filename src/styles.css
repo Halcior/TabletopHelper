@@ -278,7 +278,38 @@ p { color: var(--muted); line-height: 1.65; }
 .secondary-card__heading > strong { flex: none; color: var(--gold-bright); }
 .secondary-card__objective, .secondary-card__progress { margin: 0; font-size: .76rem; line-height: 1.45; }
 .secondary-card__objective { color: var(--paper); }
+.official-secondary-panel .secondary-card--official { min-width: 0; }
+.official-secondary-panel .secondary-card__objective { font-size: .82rem; line-height: 1.55; }
+.official-secondary-input { display: grid; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.official-secondary-input label { display: grid; gap: 5px; color: var(--muted); font-size: .76rem; }
+.official-secondary-input input, .official-secondary-input select { width: 100%; min-width: 0; }
+.official-secondary-input small { line-height: 1.45; color: var(--muted); }
+.official-secondary-panel .secondary-card .review-check-row { margin-top: 12px; }
 .secondary-card__progress { padding-top: 8px; border-top: 1px solid var(--line); }
+.setup-primary-picker { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; margin: 0 0 14px; padding: 16px; }
+.setup-primary-picker label { display: grid; gap: 6px; min-width: 0; }
+.setup-primary-picker select { width: 100%; min-width: 0; }
+.official-primary-panel { display: grid; gap: 10px; padding: 18px; }
+.official-primary-panel ul { margin: 0; padding-left: 19px; color: var(--paper); font-size: .84rem; line-height: 1.5; }
+.official-primary-panel li + li { margin-top: 6px; }
+.official-primary-panel a { width: fit-content; color: var(--gold-bright); font-size: .78rem; }
+.duel-primary-panel { display: grid; gap: 12px; min-width: 0; }
+.duel-primary-panel .section-heading { min-width: 0; }
+.duel-primary-panel p, .duel-primary-panel li { line-height: 1.5; }
+.duel-primary-panel a { color: var(--gold-bright); }
+.duel-primary-conditions { display: grid; gap: 10px; }
+.duel-primary-conditions ul { margin: 5px 0 0; padding-left: 20px; }
+.duel-primary-condition { padding: 10px 0; min-width: 0; }
+.duel-primary-condition > span { display: grid; min-width: 0; gap: 4px; }
+.duel-primary-condition small { color: var(--muted); line-height: 1.45; }
+.duel-primary-condition > label:not(.review-check-row) { flex: 0 0 74px; display: grid; gap: 5px; font-size: .72rem; }
+.duel-primary-condition input[type="number"] { width: 74px; min-width: 0; }
+.duel-primary-condition .review-check-row { flex: 0 0 auto; min-height: 44px; padding: 6px; }
+.official-primary-inputs { display: grid; gap: 10px; margin: 12px 0; padding: 12px; border: 1px solid var(--line); }
+.official-primary-inputs p { margin: 0; color: var(--muted); font-size: .78rem; line-height: 1.5; }
+.official-primary-inputs label:not(.review-check-row) { display: grid; gap: 5px; font-size: .8rem; }
+.official-primary-inputs input[type="number"], .official-primary-inputs input:not([type]) { width: 100%; min-width: 0; }
+.official-primary-action { display: grid; gap: 8px; padding: 9px; border: 1px solid var(--line); }
 .secondary-card > button { margin-top: auto; }
 .secondary-mulligan { margin-top: 10px; padding: 10px; border: 1px dashed var(--line-gold); display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .secondary-mulligan > span { display: grid; }

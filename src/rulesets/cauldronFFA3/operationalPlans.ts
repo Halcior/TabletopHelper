@@ -283,6 +283,9 @@ export function evaluateOperationalPlan(
 }
 
 export function canChangeOperationalPlan(session: BattleSession, playerId: string): { available: boolean; reason: string } {
+  if (getCauldronConfig(session).primaryDeck && getCauldronConfig(session).primaryDeck !== 'cauldron') {
+    return { available: false, reason: 'Operational Plans are not used with Chapter Approved Primary missions.' }
+  }
   if (session.state.activePlayerId !== playerId || session.state.phase !== 'COMMAND') {
     return { available: false, reason: 'Plan changes are only available during your own Command phase.' }
   }

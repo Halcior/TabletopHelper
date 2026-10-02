@@ -1,6 +1,8 @@
 import type { BattleEvent, BattleSession } from '../battle/types'
 import { getCurrentReactionWindow } from '../stratagems/battleIntegration'
 import { CAULDRON_RULESET_ID } from '../../rulesets/cauldronFFA3/constants'
+import { isOfficialPrimary } from '../../rulesets/cauldronFFA3/officialPrimary'
+import { isDuelPrimary } from '../../rulesets/cauldronFFA3/duelPrimary'
 import { evaluateOperationalPlan, getOperationalPlanState } from '../../rulesets/cauldronFFA3/operationalPlans'
 import { CAULDRON_SECONDARY_BY_ID } from '../../rulesets/cauldronFFA3/secondaryDefinitions'
 import type { SecondaryId } from '../../rulesets/cauldronFFA3/secondaryTypes'
@@ -152,7 +154,7 @@ export function buildLatestBattleUpdate(session: BattleSession): LatestBattleUpd
     if (card) consequences.push(`${card.name} +${data.pointsAwarded} VP`)
   }
 
-  if (session.setup.rulesetId === CAULDRON_RULESET_ID && described.casualtyScoringPlayerId) {
+  if (session.setup.rulesetId === CAULDRON_RULESET_ID && !isOfficialPrimary(session) && !isDuelPrimary(session) && described.casualtyScoringPlayerId) {
     try {
       const planState = getOperationalPlanState(session, described.casualtyScoringPlayerId)
       const evaluation = evaluateOperationalPlan(session, described.casualtyScoringPlayerId)

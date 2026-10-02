@@ -1,5 +1,5 @@
 import type { BattleSession } from '../../domain/battle/types'
-import { getActiveSecondaryViews, getRoundSecondaryVp } from '../../rulesets/cauldronFFA3/secondary'
+import { getActiveSecondaryViews, getRoundSecondaryVp, getSecondaryRoundCap } from '../../rulesets/cauldronFFA3/secondary'
 import { AppIcon } from '../AppIcon'
 import { getSecondaryPresentation } from './secondaryPresentation'
 
@@ -32,7 +32,7 @@ export function TurnSecondaryFocus({
         <span className="eyebrow">Your current turn</span>
         <h2>Secondary Missions</h2>
       </div>
-      <div className="turn-secondary-focus__score"><strong>{getRoundSecondaryVp(session, playerId)}/10</strong><span>round VP</span></div>
+      <div className="turn-secondary-focus__score"><strong>{getRoundSecondaryVp(session, playerId)}/{getSecondaryRoundCap(session)}</strong><span>round VP</span></div>
     </div>
 
     {cards.length === 0

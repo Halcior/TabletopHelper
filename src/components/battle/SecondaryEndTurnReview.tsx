@@ -6,9 +6,19 @@ import {
   buildPrimaryTurnReview,
   getOperationalPlanState,
   getPrimaryTurnCommit,
+  isOfficialPrimary,
+  isDuelPrimary,
+  getDuelConditions,
+  getDuelPrimaryCommit,
 } from '../../rulesets/cauldronFFA3'
 import { getEndTurnReview, getSecondaryState } from '../../rulesets/cauldronFFA3/secondary'
+import { isOfficialSecondary } from '../../rulesets/cauldronFFA3/secondary'
+import { officialPendingReviewPlayers } from '../../rulesets/cauldronFFA3/officialSecondary'
+import { OfficialSecondaryPanel } from './OfficialSecondaryPanel'
+import { OfficialPrimaryInputs } from './OfficialPrimaryInputs'
+import { DuelPrimaryPanel } from './DuelPrimaryPanel'
 import type { EndTurnSecondaryConfirmations, SecondaryId } from '../../rulesets/cauldronFFA3/secondaryTypes'
+import { useBattleStore } from '../../stores/battleStore'
 
 type SecondaryEndTurnReviewProps = {
   session: BattleSession
@@ -17,21 +27,55 @@ type SecondaryEndTurnReviewProps = {
   onDiscard: (playerId: string, cardIds: SecondaryId[]) => void
   onFinish: () => void
   onCancel: () => void
+  sharedBattle?: boolean
 }
 
-export function SecondaryEndTurnReview({
+export function SecondaryEndTurnReview(props: SecondaryEndTurnReviewProps) {
+  if (isDuelPrimary(props.session)) return <DuelEndTurnReview {...props} />
+  return <CauldronEndTurnReview {...props} />
+}
+
+function DuelEndTurnReview({ session, onCompleteMissionAction, onFinish, onCancel, sharedBattle = false }: SecondaryEndTurnReviewProps) {
+  const [missionPositions, setMissionPositions] = useState<Record<string, boolean>>({})
+  const playerId = session.state.activePlayerId
+  const otherId = session.state.turnOrder.find((id) => id !== playerId)!
+  const opponentHasEither = getDuelConditions(session, otherId, 'turn').some((condition) => condition.window === 'either')
+  const ownCommit = getDuelPrimaryCommit(session, playerId, 'turn')
+  const otherCommit = opponentHasEither ? getDuelPrimaryCommit(session, otherId, 'turn') : true
+  const pendingSecondaries = officialPendingReviewPlayers(session)
+  const activeActions = Object.values(session.state.missionActions).filter((action) => action.playerId === playerId && action.status === 'ACTIVE')
+  const last = session.state.turnOrder.at(-1) === playerId
+  const next = session.state.players[otherId]
+  const canFinish = Boolean(ownCommit && otherCommit && !pendingSecondaries.length && !activeActions.length)
+
+  return <main className="battle-content secondary-turn-review">
+    <div className="round-review__intro"><span className="eyebrow">{session.state.players[playerId].name}</span><h1>End Turn · Chapter Approved</h1><p>Resolve actions, review Primary at this turn end, then both players check their eligible Secondary cards. If the opponent has Punishment, they also review its turn-end condition.</p></div>
+    {activeActions.length > 0 && <section className="panel turn-review-section"><h2>Complete Mission Actions</h2>{activeActions.map((action) => <div key={action.id} className="review-check-row"><label><input type="checkbox" checked={missionPositions[action.id] ?? false} onChange={(event) => setMissionPositions((current) => ({ ...current, [action.id]: event.target.checked }))} /> {action.name} · final position confirmed</label><button type="button" onClick={() => onCompleteMissionAction(action.id, missionPositions[action.id] ?? false)}>Resolve</button></div>)}</section>}
+    <DuelPrimaryPanel session={session} playerId={playerId} window="turn" editable />
+    {opponentHasEither && (sharedBattle ? <section className="panel turn-review-section"><strong>{session.state.players[otherId].name} · Punishment</strong><p>The other commander must review their Primary on their own device before this turn can end.</p></section> : <DuelPrimaryPanel session={session} playerId={otherId} window="turn" editable />)}
+    {(sharedBattle ? [playerId] : session.state.turnOrder).map((id) => <OfficialSecondaryPanel key={id} session={session} playerId={id} editable />)}
+    {pendingSecondaries.length > 0 && <p className="context-note">Secondary review pending: {pendingSecondaries.map((id) => session.state.players[id].name).join(', ')}.</p>}
+    <div className="review-actions"><button type="button" onClick={onCancel}>Back to turn</button><button className="button--gold" type="button" disabled={!canFinish} onClick={onFinish}>{last ? 'Continue to Battle Round review' : `End turn → ${next.name}`}</button></div>
+  </main>
+}
+
+function CauldronEndTurnReview({
   session,
   onCompleteMissionAction,
   onEvaluate,
   onDiscard,
   onFinish,
   onCancel,
+  sharedBattle = false,
 }: SecondaryEndTurnReviewProps) {
   const playerId = session.state.activePlayerId
   const player = session.state.players[playerId]
   const activeCards = getSecondaryState(session)[playerId].active
+  const official = isOfficialSecondary(session)
+  const officialPrimary = isOfficialPrimary(session)
+  const pendingOfficial = official ? officialPendingReviewPlayers(session) : []
   const activeIds = new Set(activeCards.map((card) => card.cardId))
-  const planId = getOperationalPlanState(session, playerId).planId
+  const planId = officialPrimary ? null : getOperationalPlanState(session, playerId).planId
   const [evaluated, setEvaluated] = useState(false)
   const [missionPositions, setMissionPositions] = useState<Record<string, boolean>>({})
   const [confirmations, setConfirmations] = useState<EndTurnSecondaryConfirmations>({
@@ -80,8 +124,10 @@ export function SecondaryEndTurnReview({
   }
 
   function evaluate() {
+    if (confirmations.officialPrimary?.actions?.some((action) => !action.unitName.trim())) return
     for (const action of activeActions) onCompleteMissionAction(action.id, missionPositions[action.id] === true)
     onEvaluate(playerId, confirmations)
+    if (useBattleStore.getState().error) return
     setEvaluated(true)
   }
 
@@ -97,7 +143,10 @@ export function SecondaryEndTurnReview({
   }
 
   return <main className="battle-content secondary-turn-review">
-    <div className="round-review__intro"><span className="eyebrow">{player.name}</span><h1>End Turn Review</h1><p>Resolve Mission Actions, Secondary scoring and your own Primary before advancing to the next player.</p></div>
+    <div className="round-review__intro"><span className="eyebrow">{player.name}</span><h1>End Turn Review</h1><p>{official ? 'Confirm Chapter Approved scoring with each eligible commander, then resolve your Primary and advance.' : 'Resolve Mission Actions, Secondary scoring and your own Primary before advancing to the next player.'}</p></div>
+
+    {official && (sharedBattle ? [playerId] : session.state.turnOrder).map((ownerId) => <OfficialSecondaryPanel key={ownerId} session={session} playerId={ownerId} editable />)}
+    {official && pendingOfficial.length > 0 && <section className="panel turn-review-section"><strong>Secondary review pending</strong><p>{pendingOfficial.map((id) => session.state.players[id]?.name ?? id).join(', ')} must score eligible cards or mark this turn reviewed. Each commander can use their Cards panel on their phone.</p></section>}
 
     {!evaluated && <>
       {activeActions.length > 0 && <section className="panel turn-review-section">
@@ -108,12 +157,12 @@ export function SecondaryEndTurnReview({
         </label>)}
       </section>}
 
-      {activeIds.has('DOMINACJA_CENTRUM') && <section className="panel turn-review-section">
+      {!official && activeIds.has('DOMINACJA_CENTRUM') && <section className="panel turn-review-section">
         <div className="section-heading"><div><span className="eyebrow">Dominacja Centrum</span><h2>Centre OC</h2></div></div>
         {session.state.turnOrder.map((id) => <div className="centre-oc-row" key={id}><span>{session.state.players[id].name}</span><div className="stepper"><button onClick={() => adjustCentreOc(id, -1)}>−</button><strong>{confirmations.centreOcByPlayer?.[id] ?? 0} OC</strong><button onClick={() => adjustCentreOc(id, 1)}>+</button></div></div>)}
       </section>}
 
-      <section className="panel turn-review-section">
+      {!official && <section className="panel turn-review-section">
         <div className="section-heading"><div><span className="eyebrow">Secondary physical conditions</span><h2>Quick confirmation</h2></div></div>
         {activeIds.has('ZA_LINIAMI_WROGA') && <div className="centre-oc-row">
           <span><strong>Za Liniami Wroga</strong><small>Units wholly inside the current Rival deployment zone.</small></span>
@@ -129,9 +178,9 @@ export function SecondaryEndTurnReview({
           <ConfirmationRow label="An OC>0 unit is within 9″ of the Rival deployment zone." checked={confirmations.unitNearRivalDeployment ?? false} onChange={(value) => setConfirmation('unitNearRivalDeployment', value)} />
         </>}
         {!['DOMINACJA_CENTRUM', 'ZA_LINIAMI_WROGA', 'SZEROKI_FRONT', 'UTRZYMAJ_BAZE', 'ODCIECIE_ODWROTU'].some((id) => activeIds.has(id as SecondaryId)) && <p className="context-note">No additional Secondary physical-state confirmation is required.</p>}
-      </section>
+      </section>}
 
-      {(planId === 'ZWIAD_OPERACYJNY' || planId === 'TWIERDZA') && session.state.round >= 2 && <section className="panel turn-review-section">
+      {!officialPrimary && (planId === 'ZWIAD_OPERACYJNY' || planId === 'TWIERDZA') && session.state.round >= 2 && <section className="panel turn-review-section">
         <div className="section-heading"><div><span className="eyebrow">Operational Plan</span><h2>{primaryPreview.planEvaluation.name}</h2></div><strong>up to +5 VP</strong></div>
         {planId === 'ZWIAD_OPERACYJNY' && <>
           <ConfirmationRow label="Non-AIRCRAFT OC>0 units are in at least four different sectors; each unit counts once." checked={confirmations.zwiadHasFourSectors ?? false} onChange={(value) => setConfirmation('zwiadHasFourSectors', value)} />
@@ -141,15 +190,20 @@ export function SecondaryEndTurnReview({
       </section>}
 
       <section className="panel turn-review-section">
-        <div className="section-heading"><div><span className="eyebrow">Primary · Balance patch 2.1.2</span><h2>Score at the end of your turn</h2></div><strong>{primaryPreview.roundPrimary} VP</strong></div>
-        {[primaryPreview.neutralObjective, primaryPreview.twoObjectives, primaryPreview.operationalPlan].map((condition) => <div className="primary-condition" key={condition.label}>
+        <div className="section-heading"><div><span className="eyebrow">{officialPrimary ? '11th edition Primary · FFA' : 'Primary · Balance patch 2.1.2'}</span><h2>{primaryPreview.official?.missionName ?? 'Score at the end of your turn'}</h2></div><strong>{primaryPreview.roundPrimary} VP</strong></div>
+        {officialPrimary && <>
+          <p className="context-note">Command checks use control recorded when you left Command; in round 5 they use end-of-turn control. Opponent and enemy conditions use your Current Rival for this Battle Round. The score is saved now, once per condition.</p>
+          <OfficialPrimaryInputs session={session} playerId={playerId} value={confirmations.officialPrimary ?? {}} onChange={(value) => setConfirmations((current) => ({ ...current, officialPrimary: value }))} />
+        </>}
+        {(primaryPreview.official?.conditions ?? [primaryPreview.neutralObjective, primaryPreview.twoObjectives, primaryPreview.operationalPlan]).map((condition) => <div className="primary-condition" key={condition.label}>
           <span className={condition.completed ? 'condition-mark complete' : 'condition-mark'}>{condition.completed ? '✓' : '×'}</span>
           <span>{condition.label}</span><strong>+{condition.vp}</strong>
         </div>)}
+        {primaryPreview.capped && <p className="context-note">The total is limited to 15 VP this round and 45 VP in this battle.</p>}
         {planId === 'WYNISZCZENIE' && <p className="context-note">Wyniszczenie is intentionally not included here. It is checked after every player finishes the Battle Round.</p>}
       </section>
 
-      <div className="review-actions"><button onClick={onCancel}>Back to turn</button><button className="button--gold" onClick={evaluate}>Apply scoring</button></div>
+      <div className="review-actions"><button onClick={onCancel}>Back to turn</button><button className="button--gold" disabled={confirmations.officialPrimary?.actions?.some((action) => !action.unitName.trim())} onClick={evaluate}>{official ? 'Apply Primary scoring' : 'Apply scoring'}</button></div>
     </>}
 
     {evaluated && <>
@@ -162,7 +216,7 @@ export function SecondaryEndTurnReview({
           <div className="turn-handoff-summary__score"><span>{turnSummary.scoreBefore} VP</span><b>→</b><strong>{turnSummary.scoreAfter} VP</strong><small>+{turnSummary.pointsGained} this turn</small></div>
         </div>
         <div className="turn-handoff-summary__stats">
-          <div><span>Primary</span><strong>+{turnSummary.primaryGained} VP</strong><small>{primaryCommit?.review.operationalPlan.completed ? 'Operational Plan scored' : 'End-turn scoring'}</small></div>
+          <div><span>Primary</span><strong>+{turnSummary.primaryGained} VP</strong><small>{officialPrimary ? primaryPreview.official?.missionName : primaryCommit?.review.operationalPlan.completed ? 'Operational Plan scored' : 'End-turn scoring'}</small></div>
           <div><span>Secondary</span><strong>+{turnSummary.secondaryGained} VP</strong><small>{turnSummary.completedSecondaries.length} completed</small></div>
           <div><span>Enemy units destroyed</span><strong>{turnSummary.kills.length}</strong><small>Kills credited to {player.name}</small></div>
         </div>
@@ -203,7 +257,7 @@ export function SecondaryEndTurnReview({
           </section>
         </div>
       </details>
-      {review.incompleteCards.length > 0 && <section className="panel turn-review-section turn-review-carryover">
+      {!official && review.incompleteCards.length > 0 && <section className="panel turn-review-section turn-review-carryover">
         <div className="section-heading"><div><span className="eyebrow">Incomplete cards</span><h2>Choose what carries over</h2></div></div>
         {review.incompleteCards.map((card) => {
             const discarding = discardIds.includes(card.cardId)
@@ -221,7 +275,7 @@ export function SecondaryEndTurnReview({
         <span className="turn-handoff-next__icon"><AppIcon name={lastTurnOfRound ? 'objectives' : 'next'} /></span>
         <span><span className="eyebrow">Next command</span><strong>{lastTurnOfRound ? `Finish Round ${session.state.round}` : `${nextPlayer?.name ?? 'Next player'} · Command phase`}</strong><small>{lastTurnOfRound ? 'Resolve deferred end-of-round effects before the next Battle Round.' : 'The next commander will immediately see their newly drawn Secondary cards.'}</small></span>
       </div>
-      <div className="review-actions review-actions--final"><button className="button--gold" onClick={finish}><span>{finishLabel}</span><AppIcon name="next" /></button></div>
+      <div className="review-actions review-actions--final"><button className="button--gold" disabled={pendingOfficial.length > 0} onClick={finish}><span>{pendingOfficial.length ? 'Wait for Secondary review' : finishLabel}</span><AppIcon name="next" /></button></div>
     </>}
   </main>
 }

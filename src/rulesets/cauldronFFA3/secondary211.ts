@@ -1,6 +1,7 @@
 import { dispatchBattleEvents } from '../../domain/battle/engine'
 import type { BattleSession } from '../../domain/battle/types'
 import { createPrimaryTurnCommitEvents } from './primary'
+import { isDuelPrimary } from './duelPrimary'
 import { createEndTurnSecondaryEvents } from './secondary'
 import type { EndTurnSecondaryConfirmations } from './secondaryTypes'
 
@@ -16,7 +17,7 @@ export function evaluateEndTurnSecondaries(
   confirmation: EndTurnSecondaryConfirmations = {},
 ): BattleSession {
   const secondaryEvents = createEndTurnSecondaryEvents(session, playerId, confirmation)
-  const primaryEvents = createPrimaryTurnCommitEvents(session, playerId, confirmation)
+  const primaryEvents = isDuelPrimary(session) ? [] : createPrimaryTurnCommitEvents(session, playerId, confirmation)
   const events = [...secondaryEvents, ...primaryEvents]
   return events.length === 0
     ? session

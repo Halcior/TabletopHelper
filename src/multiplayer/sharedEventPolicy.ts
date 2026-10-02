@@ -153,6 +153,7 @@ export function authorizeSharedAction(
   }
 
   const primaryCommit = hasPrimaryCommit(events)
+  const duelBattleReady = events.some((event) => event.type === 'RULESET_EVENT' && event.payload.action === 'DUEL_BATTLE_READY')
   if (primaryCommit && viewerPlayerId !== sessionBefore.state.activePlayerId) {
     return deny('Only the active commander can confirm end-of-round scoring.')
   }
@@ -193,12 +194,13 @@ export function authorizeSharedAction(
 
     const targetPlayerId = playerScopedTarget(event, sessionBefore)
     if (targetPlayerId && targetPlayerId !== viewerPlayerId) {
-      if (event.type === 'SCORE_ADJUSTED' && primaryCommit && viewerPlayerId === sessionBefore.state.activePlayerId) continue
+      if (event.type === 'SCORE_ADJUSTED' && (primaryCommit || duelBattleReady) && viewerPlayerId === sessionBefore.state.activePlayerId) continue
       return deny('A shared commander can only change their own player or army state, except casualties they inflict during their own turn.')
     }
 
     if (event.type === 'RULESET_EVENT') {
       if (event.payload.action === 'PRIMARY_COMMITTED') continue
+      if (event.payload.action === 'DUEL_BATTLE_READY' && viewerPlayerId === sessionBefore.state.activePlayerId) continue
       const target = rulesetPlayerId(event)
       if (target && target !== viewerPlayerId) {
         if (isPriorityAlphaRivalChoice(event)) continue

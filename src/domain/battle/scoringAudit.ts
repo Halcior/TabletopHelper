@@ -36,6 +36,28 @@ export function buildScoringAudit(session: BattleSession): ScoringAuditEntry[] {
       })
       continue
     }
+    if (event.type === 'RULESET_EVENT' && event.payload.action === 'PRIMARY_TURN_COMMITTED') {
+      const commit = dataOf(event.payload.data)
+      const review = dataOf(commit?.review)
+      const official = dataOf(review?.official)
+      if (typeof commit?.playerId !== 'string' || typeof commit.pointsAwarded !== 'number') continue
+      let remaining = commit.pointsAwarded
+      const conditions = Array.isArray(official?.conditions)
+        ? official.conditions : [review?.neutralObjective, review?.twoObjectives, review?.operationalPlan]
+      for (const [index, rawCondition] of conditions.entries()) {
+        const condition = dataOf(rawCondition)
+        if (!condition?.completed || typeof condition.vp !== 'number' || typeof condition.label !== 'string' || remaining <= 0) continue
+        const points = Math.min(condition.vp, remaining)
+        remaining -= points
+        entries.push({
+          id: `${event.id}-${index}`, timestamp: event.timestamp,
+          round: typeof commit.round === 'number' ? commit.round : round, playerId: commit.playerId,
+          category: condition.label === 'Operational Plan' ? 'plan' : 'primary', label: condition.label,
+          points, corrected: false,
+        })
+      }
+      continue
+    }
     if (event.type === 'RULESET_EVENT' && event.payload.action === 'PRIMARY_COMMITTED') {
       const data = dataOf(event.payload.data)
       const reviews = Array.isArray(data?.reviews) ? data.reviews : []
@@ -70,7 +92,7 @@ export function buildScoringAudit(session: BattleSession): ScoringAuditEntry[] {
     if (event.type === 'SCORE_ADJUSTED') {
       const action = groups.get(event.actionId) ?? []
       const explained = action.some((item) => item.type === 'RULESET_EVENT' && (
-        item.payload.action === 'SECONDARY_COMPLETED' || item.payload.action === 'PRIMARY_COMMITTED'
+        item.payload.action === 'SECONDARY_COMPLETED' || item.payload.action === 'PRIMARY_COMMITTED' || item.payload.action === 'PRIMARY_TURN_COMMITTED'
       ))
       if (explained) continue
       entries.push({

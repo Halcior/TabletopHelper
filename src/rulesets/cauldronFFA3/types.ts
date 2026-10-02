@@ -1,11 +1,16 @@
 import type { Army } from '../../domain/army/types'
 import type { ObjectiveState } from '../../domain/battle/types'
-import type { SecondaryId } from './secondaryTypes'
+import type { OfficialSecondaryId, SecondaryId } from './secondaryTypes'
 
 export type DeploymentZone = 'A' | 'B' | 'C'
 export type TurnPosition = 1 | 2 | 3
 export type CauldronMode = 'duel' | 'ffa3'
 export type CauldronObjectiveLayout = 'classic-6' | 'expanded-7'
+export type SecondaryDeck = 'cauldron' | 'chapter-approved'
+export type PrimaryDeck = 'cauldron' | 'chapter-approved-ffa' | 'chapter-approved-duel'
+import type { ForceDisposition } from './duelPrimary'
+export type OfficialPrimaryId = 'battlefield-dominance' | 'meatgrinder' | 'gather-intel' | 'sabotage' | 'outmanoeuvre'
+export type OfficialSecondaryStrategy = 'tactical' | 'fixed'
 export type OperationalPlanId =
   | 'WYNISZCZENIE'
   | 'DECYDUJACE_NATARCIE'
@@ -22,6 +27,8 @@ export type CauldronPlayerInput = {
   deploymentZone: DeploymentZone
   turnPosition: TurnPosition
   operationalPlanId: OperationalPlanId
+  officialPrimaryId?: OfficialPrimaryId
+  forceDisposition?: ForceDisposition
 }
 
 export type CauldronGameInput = {
@@ -30,6 +37,12 @@ export type CauldronGameInput = {
   guidanceLevel: 'guided' | 'fast'
   mode?: CauldronMode
   objectiveLayout?: CauldronObjectiveLayout
+  primaryDeck?: PrimaryDeck
+  secondaryDeck?: SecondaryDeck
+  officialSecondaryStrategy?: OfficialSecondaryStrategy
+  officialSecondaryStrategies?: Record<string, OfficialSecondaryStrategy>
+  officialLayout?: 1 | 2 | 3
+  fixedSecondarySelections?: Record<string, [OfficialSecondaryId, OfficialSecondaryId]>
   gameId?: string
   createdAt?: string
   /** Optional deterministic order for tests/dev tools. Normal games shuffle every player's complete deck. */
@@ -40,6 +53,8 @@ export type CauldronPlayerConfig = {
   deploymentZone: DeploymentZone
   turnPosition: TurnPosition
   initialOperationalPlanId: OperationalPlanId
+  officialPrimaryId?: OfficialPrimaryId
+  forceDisposition?: ForceDisposition
 }
 
 export type CauldronConfig = {
@@ -47,6 +62,12 @@ export type CauldronConfig = {
   mode?: CauldronMode
   playerCount?: 2 | 3
   objectiveLayout?: CauldronObjectiveLayout
+  primaryDeck?: PrimaryDeck
+  secondaryDeck?: SecondaryDeck
+  officialSecondaryStrategy?: OfficialSecondaryStrategy
+  officialSecondaryStrategies?: Record<string, OfficialSecondaryStrategy>
+  officialLayout?: 1 | 2 | 3
+  fixedSecondarySelections?: Record<string, [OfficialSecondaryId, OfficialSecondaryId]>
   battleRounds: number
   primaryCap: number
   secondaryCap: number
@@ -74,6 +95,32 @@ export type PlanConfirmation = {
   /** Legacy aliases kept so persisted review state and older tests can still rehydrate. */
   zwiadHasThreeSectors?: boolean
   zwiadHasThreeOutsideDeployment?: boolean
+  officialPrimary?: OfficialPrimaryConfirmation
+}
+
+export type OfficialPrimaryAction = {
+  objectiveId: string
+  unitName: string
+  /** Physical confirmation of current Rival territory on a non-HOME objective. */
+  enemyTerritory?: boolean
+}
+export type OfficialPrimaryConfirmation = {
+  /** Optional for older inputs; new physical confirmations belong to this Rival. */
+  rivalPlayerId?: string
+  actions?: OfficialPrimaryAction[]
+  /** Only units from the current Rival army. */
+  enemyUnitsDestroyedThisTurn?: number
+  /** Only own losses caused by the current Rival since the previous own turn. */
+  friendlyUnitsDestroyedSinceLastTurn?: number
+}
+
+export type OfficialPrimaryReview = {
+  missionId: OfficialPrimaryId
+  missionName: string
+  /** Stored with new reviews; older saved reviews may omit it. */
+  rivalPlayerId?: string
+  conditions: PrimaryCondition[]
+  operationMarkerObjectiveIds: string[]
 }
 
 export type OperationalPlanTurnTarget = {
@@ -114,6 +161,7 @@ export type PrimaryRoundResult = {
   twoObjectives: PrimaryCondition
   operationalPlan: PrimaryCondition
   planEvaluation: PlanEvaluation
+  official?: OfficialPrimaryReview
   roundPrimary: number
   capped: boolean
 }

@@ -6,6 +6,7 @@ import {
 } from './constants'
 import { cauldronEvent, getCauldronEventData } from './events'
 import { evaluateOperationalPlan, getOperationalPlanState } from './operationalPlans'
+import { evaluateOfficialPrimary, isOfficialPrimary } from './officialPrimary'
 import type {
   DeferredWyniszczenieCommit,
   PlanConfirmation,
@@ -48,6 +49,24 @@ export function calculatePrimaryRound(
   confirmation: PlanConfirmation = {},
   includeDeferredWyniszczenie = true,
 ): PrimaryRoundResult {
+  if (isOfficialPrimary(session)) {
+    const official = evaluateOfficialPrimary(session, playerId, battleRound, confirmation.officialPrimary)
+    const empty = (label: string) => ({ completed: false, vp: 0, label })
+    return {
+      playerId, round: battleRound,
+      neutralObjective: empty('Cauldron neutral objective'),
+      twoObjectives: empty('Cauldron two objectives'),
+      operationalPlan: empty('Operational Plan'),
+      planEvaluation: {
+        planId: getOperationalPlanState(session, playerId).planId,
+        name: 'Not used in 11th Primary FFA', description: '', vp: 5,
+        status: 'INCOMPLETE', reason: 'The selected Primary card replaces the Cauldron Operational Plan.',
+      },
+      official: official.review,
+      roundPrimary: official.roundPrimary,
+      capped: official.capped,
+    }
+  }
   const planEvaluation = evaluateOperationalPlan(session, playerId, battleRound, confirmation)
   const controlsNeutral = Object.values(session.state.objectives).some((objective) => (
     objective.type === 'neutral' && objective.controllerPlayerId === playerId
@@ -111,10 +130,13 @@ export function createPrimaryTurnCommitEvents(
   }
   if (getPrimaryTurnCommit(session, playerId, session.state.round)) return []
 
+  if (isOfficialPrimary(session)) evaluateOfficialPrimary(session, playerId, session.state.round, confirmation.officialPrimary, true)
+
   const review = buildPrimaryTurnReview(session, playerId, confirmation)
   const planId = getOperationalPlanState(session, playerId).planId
   if (
-    session.state.round >= 2
+    !isOfficialPrimary(session)
+    && session.state.round >= 2
     && planId !== 'WYNISZCZENIE'
     && review.planEvaluation.status === 'REQUIRES_CONFIRMATION'
   ) {
@@ -133,6 +155,9 @@ export function createPrimaryTurnCommitEvents(
       payload: { playerId, category: 'primary' as const, delta: review.roundPrimary },
     }] : []),
     cauldronEvent('PRIMARY_TURN_COMMITTED', commit),
+    ...(review.official?.operationMarkerObjectiveIds.length ? [cauldronEvent('PRIMARY_11TH_MARKERS_PLACED', {
+      playerId, round: session.state.round, objectiveIds: review.official.operationMarkerObjectiveIds,
+    })] : []),
   ]
 }
 
@@ -140,6 +165,7 @@ export function createPrimaryTurnCommitEvents(
 export function createDeferredWyniszczenieEvents(
   session: BattleSession,
 ): BattleEventInput[] {
+  if (isOfficialPrimary(session)) return []
   const events: BattleEventInput[] = []
   for (const playerId of session.state.turnOrder) {
     if (getOperationalPlanState(session, playerId).planId !== 'WYNISZCZENIE') continue

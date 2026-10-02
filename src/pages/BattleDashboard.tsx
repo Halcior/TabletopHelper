@@ -15,6 +15,9 @@ import { ReactionHoldControl } from '../components/battle/ReactionHoldControl'
 import { Scoreboard } from '../components/battle/Scoreboard'
 import { SecondaryEndTurnReview } from '../components/battle/SecondaryEndTurnReview'
 import { SecondaryDetailPanel } from '../components/battle/SecondaryPanel'
+import { OfficialSecondaryPanel } from '../components/battle/OfficialSecondaryPanel'
+import { OfficialPrimaryPanel } from '../components/battle/OfficialPrimaryPanel'
+import { DuelPrimaryPanel } from '../components/battle/DuelPrimaryPanel'
 import { SharedPlayerPerspective } from '../components/battle/SharedPlayerPerspective'
 import { SharedSessionStatus } from '../components/battle/SharedSessionStatus'
 import { SharedSyncWarning } from '../components/battle/SharedSyncWarning'
@@ -46,8 +49,17 @@ import {
   getPendingEliminationChoice,
   getCauldronConfig,
   isCauldronEndOfRound,
+  isOfficialPrimary,
+  getOfficialPrimaryId,
+  OFFICIAL_PRIMARY_MISSIONS,
+  isDuelPrimary,
+  getDuelMission,
+  getDuelConditions,
+  hasDuelOwnTurnCommit,
+  secondaryStrategyFor,
 } from '../rulesets/cauldronFFA3'
 import type { SecondaryId } from '../rulesets/cauldronFFA3/secondaryTypes'
+import { isOfficialSecondary } from '../rulesets/cauldronFFA3/secondary'
 import { useBattleStore } from '../stores/battleStore'
 
 type DashboardTab = 'overview' | 'army' | 'objectives' | 'cards' | 'log'
@@ -183,8 +195,11 @@ export default function BattleDashboard() {
   const viewerPlayerId = sharedPermissions.viewerPlayerId
   const viewer = viewerPlayerId ? session.state.players[viewerPlayerId] : null
   const cauldron = session.setup.rulesetId === CAULDRON_RULESET_ID
+  const officialSecondary = cauldron && isOfficialSecondary(session)
+  const officialPrimary = cauldron && isOfficialPrimary(session)
+  const duelPrimary = cauldron && isDuelPrimary(session)
   const cauldronModeLabel = cauldron && getCauldronConfig(session).mode === 'duel'
-    ? 'Cauldron Duel 1v1'
+    ? duelPrimary ? 'Chapter Approved Duel 1v1' : 'Cauldron Duel 1v1'
     : 'Cauldron FFA 3'
   const reactionPolicy = cauldron ? cauldronReactionPolicy : undefined
   const dashboardTabs: DashboardTab[] = cauldron
@@ -193,6 +208,16 @@ export default function BattleDashboard() {
   const endOfRound = cauldron && isCauldronEndOfRound(session)
   const rivalId = cauldron ? getCurrentRivalPlayerId(session, active.id) : null
   const rival = rivalId ? session.state.players[rivalId] : null
+  const primaryViewerId = sharedBattle ? viewerPlayerId ?? active.id : active.id
+  const duelReviewWindow = duelPrimary ? (() => {
+    if (session.state.phase === 'COMMAND' && session.state.round >= 2 && session.state.round < 5 && primaryViewerId === active.id) return 'command' as const
+    if (session.state.phase === 'END_TURN') {
+      if (session.state.round === 5 && active.id === session.state.turnOrder.at(-1)
+        && session.state.turnOrder.every((id) => hasDuelOwnTurnCommit(session, id))) return 'battle' as const
+      if (primaryViewerId === active.id || getDuelConditions(session, primaryViewerId, 'turn').some((condition) => condition.window === 'either')) return 'turn' as const
+    }
+    return undefined
+  })() : undefined
   const playerIds = Object.keys(session.state.players)
   const reactionHoldPlayers = session.state.turnOrder
     .filter((playerId) => playerId !== active.id)
@@ -456,6 +481,9 @@ export default function BattleDashboard() {
           {battleActive && rival && <div className="rival-callout"><span>Current Rival</span><strong>{rival.name}</strong></div>}
           {battleActive && <span className={`mode-badge mode-badge--${guidanceLevel}`}>{guidanceLevel} mode</span>}
           {cauldron && <span className="ruleset-label">{cauldronModeLabel}</span>}
+          {officialSecondary && <span className="ruleset-label">Chapter Approved · {secondaryStrategyFor(session, primaryViewerId) === 'fixed' ? 'Fixed' : 'Tactical'}</span>}
+          {officialPrimary && <span className="ruleset-label">Primary FFA · {OFFICIAL_PRIMARY_MISSIONS[getOfficialPrimaryId(session, active.id)].name}</span>}
+          {duelPrimary && <span className="ruleset-label">Primary · {getDuelMission(session, active.id).name}</span>}
           <SharedSessionStatus battleId={session.setup.gameId} />
           {battleActive && <BattleMenu
             session={session}
@@ -503,10 +531,12 @@ export default function BattleDashboard() {
 
         {reviewOpen ? <EndRoundReview
           session={session}
+          sharedBattle={sharedBattle}
           onCancel={() => setReviewOpen(false)}
           onConfirm={(confirmations) => { if (canControlTurn) confirmRound(confirmations); setReviewOpen(false) }}
         /> : turnReviewOpen && cauldron ? <SecondaryEndTurnReview
           session={session}
+          sharedBattle={sharedBattle}
           onCompleteMissionAction={completeMissionAction}
           onEvaluate={evaluateEndTurnSecondaries}
           onDiscard={discardSecondaryCards}
@@ -565,6 +595,9 @@ export default function BattleDashboard() {
                     setTab('army')
                   }}
                 />
+                {officialPrimary && <OfficialPrimaryPanel session={session} playerId={sharedBattle ? viewerPlayerId ?? active.id : active.id} />}
+                {duelPrimary && <DuelPrimaryPanel session={session} playerId={primaryViewerId} window={duelReviewWindow} editable={!sharedBattle || primaryViewerId === viewerPlayerId} />}
+                {officialSecondary && <OfficialSecondaryPanel session={session} playerId={sharedBattle ? viewerPlayerId ?? active.id : active.id} editable={!sharedBattle || viewerPlayerId === (viewerPlayerId ?? active.id)} />}
                 {rulesDataProvider && rulesDataAttribution
                   ? <a className="rules-data-attribution" href={rulesDataAttribution.url} target="_blank" rel="noreferrer">{rulesDataAttribution.label}</a>
                   : rulesDataError
@@ -608,7 +641,13 @@ export default function BattleDashboard() {
               onClearSecondaryTargetFilter={() => setArmySecondaryFilter(null)}
             />}
             {tab === 'objectives' && <ObjectivesPanel session={session} dispatch={dispatch} />}
-            {tab === 'cards' && cauldron && <SecondaryDetailPanel session={session} playerId={sharedBattle ? viewerPlayerId ?? active.id : active.id} />}
+            {tab === 'cards' && cauldron && <>
+              {officialPrimary && <OfficialPrimaryPanel session={session} playerId={sharedBattle ? viewerPlayerId ?? active.id : active.id} />}
+              {duelPrimary && <DuelPrimaryPanel session={session} playerId={primaryViewerId} window={duelReviewWindow} editable={!sharedBattle || primaryViewerId === viewerPlayerId} />}
+              {officialSecondary
+                ? <OfficialSecondaryPanel session={session} playerId={sharedBattle ? viewerPlayerId ?? active.id : active.id} editable={!sharedBattle || Boolean(viewerPlayerId)} />
+                : <SecondaryDetailPanel session={session} playerId={sharedBattle ? viewerPlayerId ?? active.id : active.id} />}
+            </>}
             {tab === 'log' && <BattleLog session={session} />}
           </main>
 
