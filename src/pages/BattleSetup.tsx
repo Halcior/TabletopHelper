@@ -219,7 +219,7 @@ export default function BattleSetup() {
             <option value="cauldron">Cauldron · objectives + Operational Plan</option>
             {duel ? <option value="chapter-approved-duel">11th edition official Duel · Force Disposition matrix</option> : <option value="chapter-approved-ffa">11th edition FFA · a different Primary for each player</option>}
           </select></label>
-          {primaryDeck === 'chapter-approved-ffa' && <p className="context-note">House-rule FFA adaptation of five 11th edition mirror cards. Each player selects a mission below for the whole battle. “Opponent” means either enemy; a comparison must beat both. Primary scores up to 15 VP per round and 45 VP per battle. Operational Plans do not score.</p>}
+          {primaryDeck === 'chapter-approved-ffa' && <p className="context-note">House-rule FFA adaptation of five 11th edition mirror cards. Each player selects a mission below for the whole battle. “Opponent” and “enemy” mean your Current Rival for that Battle Round, including HOME, territory, comparisons and destroyed units, as on Secondary cards. Rounds 1/3/5: A → B → C → A. Rounds 2/4: A → C → B → A. Primary scores up to 15 VP per round and 45 VP per battle. Operational Plans do not score.</p>}
           {primaryDeck === 'chapter-approved-duel' && <p className="context-note">Official 1v1 matrix: each player chooses a Force Disposition available to their Detachment. Their row against the opponent’s choice determines their own Primary. Use one of three terrain layouts for that pairing. The physical battlefield decides control, actions and markers; confirm each condition at the correct scoring window. 45 Primary + 45 Secondary + 10 Battle Ready VP.</p>}
         </div>
         <div className="setup-toolbar panel">

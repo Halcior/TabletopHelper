@@ -98,16 +98,27 @@ export type PlanConfirmation = {
   officialPrimary?: OfficialPrimaryConfirmation
 }
 
-export type OfficialPrimaryAction = { objectiveId: string; unitName: string; enemyTerritory?: boolean }
+export type OfficialPrimaryAction = {
+  objectiveId: string
+  unitName: string
+  /** Physical confirmation of current Rival territory on a non-HOME objective. */
+  enemyTerritory?: boolean
+}
 export type OfficialPrimaryConfirmation = {
+  /** Optional for older inputs; new physical confirmations belong to this Rival. */
+  rivalPlayerId?: string
   actions?: OfficialPrimaryAction[]
+  /** Only units from the current Rival army. */
   enemyUnitsDestroyedThisTurn?: number
+  /** Only own losses caused by the current Rival since the previous own turn. */
   friendlyUnitsDestroyedSinceLastTurn?: number
 }
 
 export type OfficialPrimaryReview = {
   missionId: OfficialPrimaryId
   missionName: string
+  /** Stored with new reviews; older saved reviews may omit it. */
+  rivalPlayerId?: string
   conditions: PrimaryCondition[]
   operationMarkerObjectiveIds: string[]
 }

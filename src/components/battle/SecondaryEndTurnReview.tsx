@@ -192,7 +192,7 @@ function CauldronEndTurnReview({
       <section className="panel turn-review-section">
         <div className="section-heading"><div><span className="eyebrow">{officialPrimary ? '11th edition Primary · FFA' : 'Primary · Balance patch 2.1.2'}</span><h2>{primaryPreview.official?.missionName ?? 'Score at the end of your turn'}</h2></div><strong>{primaryPreview.roundPrimary} VP</strong></div>
         {officialPrimary && <>
-          <p className="context-note">Command checks use control recorded when you left Command; in round 5 they use end-of-turn control. The score is saved now. Each condition can score only once, even if both enemies qualify.</p>
+          <p className="context-note">Command checks use control recorded when you left Command; in round 5 they use end-of-turn control. Opponent and enemy conditions use your Current Rival for this Battle Round. The score is saved now, once per condition.</p>
           <OfficialPrimaryInputs session={session} playerId={playerId} value={confirmations.officialPrimary ?? {}} onChange={(value) => setConfirmations((current) => ({ ...current, officialPrimary: value }))} />
         </>}
         {(primaryPreview.official?.conditions ?? [primaryPreview.neutralObjective, primaryPreview.twoObjectives, primaryPreview.operationalPlan]).map((condition) => <div className="primary-condition" key={condition.label}>

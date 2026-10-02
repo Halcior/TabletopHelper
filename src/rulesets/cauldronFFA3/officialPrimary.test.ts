@@ -7,17 +7,17 @@ import { evaluateOfficialPrimary, getOfficialPrimaryMarkers } from './officialPr
 import { createDeferredWyniszczenieEvents, createPrimaryTurnCommitEvents } from './primary'
 import { advanceCauldronPhase, createCauldronGame } from './session'
 import { captureTurnSnapshot } from './snapshots'
-import type { OfficialPrimaryId } from './types'
+import type { DeploymentZone, OfficialPrimaryId } from './types'
 
-function game(id: OfficialPrimaryId = 'battlefield-dominance', layout: 'expanded-7' | 'classic-6' = 'expanded-7') {
+function game(id: OfficialPrimaryId = 'battlefield-dominance', layout: 'expanded-7' | 'classic-6' = 'expanded-7', sameMission = false, zones: DeploymentZone[] = ['A', 'B', 'C']) {
   const armies = ['a', 'b', 'c'].map((name) => testArmy(`army-${name}`))
   return createCauldronGame({
     gameId: 'official-primary-test', guidanceLevel: 'fast', armies, primaryDeck: 'chapter-approved-ffa', objectiveLayout: layout,
     players: armies.map((army, index) => ({
       id: `p-${['a', 'b', 'c'][index]}`, name: `Player ${index + 1}`, armyId: army.id,
-      deploymentZone: ['A', 'B', 'C'][index] as 'A' | 'B' | 'C', turnPosition: (index + 1) as 1 | 2 | 3,
+      deploymentZone: zones[index], turnPosition: (index + 1) as 1 | 2 | 3,
       operationalPlanId: 'WYNISZCZENIE' as const,
-      officialPrimaryId: index === 0 ? id : index === 1 ? 'meatgrinder' as const : 'outmanoeuvre' as const,
+      officialPrimaryId: sameMission || index === 0 ? id : index === 1 ? 'meatgrinder' as const : 'outmanoeuvre' as const,
     })),
   })
 }
@@ -26,15 +26,24 @@ function control(session: BattleSession, objectiveId: string, playerId = 'p-a') 
   return dispatchBattleEvent(session, { type: 'OBJECTIVE_CONTROL_CHANGED', payload: { objectiveId, controllerPlayerId: playerId } })
 }
 
-function round(session: BattleSession, number: number) {
+function round(session: BattleSession, number: number, playerId = 'p-a') {
   const next = dispatchBattleEvents(session, [
     { type: 'ROUND_STARTED', payload: { round: number } },
-    { type: 'TURN_STARTED', payload: { playerId: 'p-a' } },
+    { type: 'TURN_STARTED', payload: { playerId } },
   ])
   return dispatchBattleEvent(next, { type: 'RULESET_EVENT', payload: {
-    rulesetId: 'cauldron-ffa-3', action: 'TURN_SNAPSHOT_CAPTURED', data: captureTurnSnapshot(next, 'p-a', number),
+    rulesetId: 'cauldron-ffa-3', action: 'TURN_SNAPSHOT_CAPTURED', data: captureTurnSnapshot(next, playerId, number),
   } })
 }
+
+const rivalCases = [1, 2, 3, 4, 5].flatMap((battleRound) => ['A', 'B', 'C'].map((zone, index) => {
+  const rivalZone = (battleRound % 2 === 1 ? ['B', 'C', 'A'] : ['C', 'A', 'B'])[index]
+  const thirdZone = ['A', 'B', 'C'].find((candidate) => candidate !== zone && candidate !== rivalZone)!
+  return {
+    battleRound, zone, playerId: `p-${zone.toLowerCase()}`, rivalZone, thirdZone,
+    rivalId: `p-${rivalZone.toLowerCase()}`, thirdId: `p-${thirdZone.toLowerCase()}`,
+  }
+}))
 
 describe('11th edition Primary FFA adaptation', () => {
   it('locks a different selected mission for each player and requires CENTER for Gather Intel', () => {
@@ -86,13 +95,82 @@ describe('11th edition Primary FFA adaptation', () => {
     expect(result.capped).toBe(true)
   })
 
-  it('counts both enemies for Meatgrinder without adding Operational Plan VP', () => {
+  it('counts current Rival units for Meatgrinder without adding Operational Plan VP', () => {
     const session = round(control(game('meatgrinder'), 'N1'), 2)
     const result = evaluateOfficialPrimary(session, 'p-a', 2, {
       enemyUnitsDestroyedThisTurn: 2, friendlyUnitsDestroyedSinceLastTurn: 1,
     })
     expect(result.review.conditions.map((condition) => condition.vp)).toEqual([3, 4, 5, 0])
     expect(result.roundPrimary).toBe(12)
+  })
+
+  it.each(rivalCases.filter((entry) => entry.battleRound <= 2))('compares only the Rival of $playerId in round $battleRound, even when the third player leads', ({ battleRound, zone, playerId, rivalZone, rivalId, thirdZone, thirdId }) => {
+    let session = game('battlefield-dominance', 'expanded-7', true)
+    session = control(control(control(session, `${zone}-HOME`, playerId), `${rivalZone}-HOME`, rivalId), `${thirdZone}-HOME`, thirdId)
+    session = control(control(control(session, 'N1', thirdId), 'CENTER', thirdId), 'N2', playerId)
+    session = round(session, battleRound, playerId)
+    const result = evaluateOfficialPrimary(session, playerId)
+    expect(result.review.rivalPlayerId).toBe(rivalId)
+    expect(result.review.conditions[0].vp).toBe(2)
+    // A tie with the Rival is insufficient; the third player's three objectives do not matter.
+    session = control(session, 'N3', rivalId)
+    expect(evaluateOfficialPrimary(session, playerId).review.conditions[0].vp).toBe(0)
+  })
+
+  it.each(rivalCases)('uses only the current Rival HOME for $playerId in round $battleRound', ({ battleRound, playerId, rivalZone, thirdZone }) => {
+    for (const mission of ['outmanoeuvre', 'meatgrinder'] as const) {
+      if (mission === 'meatgrinder' && battleRound === 1) continue
+      let session = round(control(game(mission, 'expanded-7', true), `${thirdZone}-HOME`, playerId), battleRound, playerId)
+      const homeCondition = (current: BattleSession) => evaluateOfficialPrimary(current, playerId).review.conditions
+        .find((condition) => condition.label.startsWith('Control current Rival HOME'))!
+      expect(homeCondition(session).vp).toBe(0)
+      session = control(session, `${rivalZone}-HOME`, playerId)
+      expect(homeCondition(session).vp).toBe(mission === 'outmanoeuvre' ? 10 : 5)
+    }
+  })
+
+  it.each(rivalCases)('binds Meatgrinder physical confirmations to the Rival of $playerId in round $battleRound', ({ battleRound, playerId, rivalId, thirdId }) => {
+    const session = round(control(game('meatgrinder', 'expanded-7', true), 'N1', playerId), battleRound, playerId)
+    const counts = { rivalPlayerId: rivalId, enemyUnitsDestroyedThisTurn: 2, friendlyUnitsDestroyedSinceLastTurn: 1 }
+    expect(evaluateOfficialPrimary(session, playerId, battleRound, counts).roundPrimary).toBe(battleRound === 1 ? 3 : 12)
+    const stale = { ...counts, rivalPlayerId: thirdId }
+    expect(evaluateOfficialPrimary(session, playerId, battleRound, stale).roundPrimary).toBe(battleRound === 1 ? 0 : 4)
+    expect(() => evaluateOfficialPrimary(session, playerId, battleRound, stale, true)).toThrow(/current Rival/)
+  })
+
+  it.each(rivalCases)('limits Sabotage HOME territory bonuses to the Rival of $playerId in round $battleRound', ({ battleRound, playerId, rivalId, rivalZone, thirdZone }) => {
+    const session = round(control(control(game('sabotage', 'expanded-7', true), `${rivalZone}-HOME`, playerId), `${thirdZone}-HOME`, playerId), battleRound, playerId)
+    const result = evaluateOfficialPrimary(session, playerId, battleRound, {
+      rivalPlayerId: rivalId,
+      actions: [
+        { objectiveId: `${rivalZone}-HOME`, unitName: 'Scouts' },
+        { objectiveId: `${thirdZone}-HOME`, unitName: 'Guard', enemyTerritory: true },
+      ],
+    }, true)
+    expect(result.review.conditions.filter((condition) => condition.label.startsWith('Current Rival territory'))).toHaveLength(1)
+    expect(result.roundPrimary).toBe(battleRound === 1 ? 8 : 12)
+  })
+
+  it.each(rivalCases.filter((entry) => entry.battleRound === 5))('checks the round 5 Rival HOME for Gather Intel markers of $playerId', ({ playerId, rivalZone, thirdZone }) => {
+    let session = game('gather-intel', 'expanded-7', true)
+    session = dispatchBattleEvent(session, { type: 'RULESET_EVENT', payload: {
+      rulesetId: 'cauldron-ffa-3', action: 'PRIMARY_11TH_MARKERS_PLACED',
+      data: { playerId, round: 2, objectiveIds: ['N1', 'N2', `${thirdZone}-HOME`] },
+    } })
+    session = round(session, 5, playerId)
+    expect(evaluateOfficialPrimary(session, playerId).review.conditions.slice(-2).map((condition) => condition.vp)).toEqual([5, 0])
+    session = control(session, `${rivalZone}-HOME`, playerId)
+    const result = evaluateOfficialPrimary(session, playerId, 5, { actions: [{ objectiveId: `${rivalZone}-HOME`, unitName: 'Scouts' }] }, true)
+    expect(result.review.conditions.slice(-2).map((condition) => condition.vp)).toEqual([5, 5])
+    expect(result.roundPrimary).toBe(15)
+    expect(result.capped).toBe(true)
+  })
+
+  it('uses deployment zones to resolve HOME when player IDs and turn positions differ from zone names', () => {
+    const session = game('outmanoeuvre', 'expanded-7', true, ['C', 'A', 'B'])
+    const result = evaluateOfficialPrimary(control(control(session, 'B-HOME'), 'A-HOME'), 'p-a')
+    expect(result.review.rivalPlayerId).toBe('p-b')
+    expect(result.review.conditions[0]).toEqual(expect.objectContaining({ vp: 10, label: 'Control current Rival HOME (A-HOME) · end of turn' }))
   })
 
   it('places Gather Intel markers once, scores actions and rejects duplicate targets', () => {
