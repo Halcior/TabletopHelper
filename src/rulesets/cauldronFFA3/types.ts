@@ -10,6 +10,7 @@ export type SecondaryDeck = 'cauldron' | 'chapter-approved'
 export type PrimaryDeck = 'cauldron' | 'chapter-approved-ffa' | 'chapter-approved-duel'
 import type { ForceDisposition } from './duelPrimary'
 export type OfficialPrimaryId = 'battlefield-dominance' | 'meatgrinder' | 'gather-intel' | 'sabotage' | 'outmanoeuvre'
+export type OfficialPrimaryBalance = 'original' | 'balanced-v1'
 export type OfficialSecondaryStrategy = 'tactical' | 'fixed'
 export type OperationalPlanId =
   | 'WYNISZCZENIE'
@@ -38,6 +39,7 @@ export type CauldronGameInput = {
   mode?: CauldronMode
   objectiveLayout?: CauldronObjectiveLayout
   primaryDeck?: PrimaryDeck
+  officialPrimaryBalance?: OfficialPrimaryBalance
   secondaryDeck?: SecondaryDeck
   officialSecondaryStrategy?: OfficialSecondaryStrategy
   officialSecondaryStrategies?: Record<string, OfficialSecondaryStrategy>
@@ -63,6 +65,7 @@ export type CauldronConfig = {
   playerCount?: 2 | 3
   objectiveLayout?: CauldronObjectiveLayout
   primaryDeck?: PrimaryDeck
+  officialPrimaryBalance?: OfficialPrimaryBalance
   secondaryDeck?: SecondaryDeck
   officialSecondaryStrategy?: OfficialSecondaryStrategy
   officialSecondaryStrategies?: Record<string, OfficialSecondaryStrategy>

@@ -66,7 +66,19 @@ NML is the battlefield outside **all** deployment zones. Fixed Territories A/B/C
 
 ## 11th edition Primary FFA with Tactical Secondary
 
-For a three-player game, select **FFA 3**, **11th edition FFA** Primary, **Chapter Approved 2026–27** Secondary, **Tactical**, and **7 objectives**. Each player selects one of the five Primary mirror cards for the whole battle. This is a house adaptation; the official 5×5 Force Disposition matrix is available only in Duel 1v1.
+For a three-player game, select **FFA 3**, **11th edition FFA** Primary, **Chapter Approved 2026–27** Secondary, **Tactical**, and **7 objectives**. Each player freely selects one of the five Primary mirror cards for the whole battle. The choice is not assigned or restricted by the imported army's Detachment. This is a house adaptation; the official 5×5 Force Disposition matrix is available only in Duel 1v1.
+
+New FFA Primary games use the **Balanced FFA v1** point values below. This changes VP amounts only, retaining each mission's tasks and scoring windows. Setup and the battle panel show the adjusted rules; links open the original cards.
+
+| Primary | Original → Balanced FFA v1 |
+| --- | --- |
+| Battlefield Dominance | Bonus per non-HOME objective while controlling your HOME: **2 → 1 VP**. |
+| Meatgrinder | Hold a non-HOME objective: **4 → 5 VP**; destroy more Rival units than your losses to that Rival: **5 → 4 VP**. |
+| Gather Intel | Round 1 CENTER: **6 → 4 VP**; hold a non-HOME objective: **4 → 5 VP**; each fresh extraction: **7 → 8 VP**. |
+| Sabotage | Each completed action: **3 → 4 VP**; the Rival territory bonus remains **+2 VP**. |
+| Outmanoeuvre | Rival HOME: **10 → 8 VP**; each non-HOME objective in rounds 2–3: **5 → 6 VP**, rounds 4–5: **6 → 7 VP**. |
+
+The adjustment reduces the reward for staying on HOME with Battlefield Dominance, gives Meatgrinder a steadier objective-based floor, rewards the action cost of Gather Intel and Sabotage, and makes Outmanoeuvre less dependent on taking a Rival HOME. These are initial house-rule values for playtesting, not measured win-rate balance. Battles save their point profile: existing untagged saves retain the original awards and rule text, including when resumed or shared. Cauldron and official Duel scoring are unchanged.
 
 Primary uses **Current Rival**, rotating by Battle Round. A new Rival-dependent Secondary card takes that Current Rival at draw time as its permanent **Secondary Rival**:
 
@@ -77,4 +89,4 @@ Primary uses **Current Rival**, rotating by Battle Round. A new Rival-dependent 
 
 Battlefield Dominance compares objective control only with the current Rival. Meatgrinder and Outmanoeuvre use only that Rival's HOME for their enemy HOME condition. Meatgrinder's manual counts include that Rival's units destroyed this turn and your losses caused by that same Rival since your previous turn. Sabotage's territory bonus applies only in current Rival territory; HOME territory follows deployment zones and other physical territory is confirmed at the table. Gather Intel keeps all operation markers, but its final enemy HOME bonus checks the **round 5 Rival's HOME**, regardless of when the marker was placed. General objective/action conditions still apply to any eligible objective other than your own HOME.
 
-Primary keeps its existing card timings, Command snapshots, final-turn checks, 15 VP per round / 45 VP per battle caps, and one commit per own turn. Cauldron Operational Plans do not add VP. Each commander reviews eligible Tactical cards before advancing the turn. Saved scores remain recorded; create a new battle to play the updated adaptation from the start.
+Primary keeps its existing card timings, Command snapshots, final-turn checks, 15 VP per round / 45 VP per battle caps, and one commit per own turn. Cauldron Operational Plans do not add VP. Each commander reviews eligible Tactical cards before advancing the turn. Saved scores remain recorded; create a new battle to play Balanced FFA v1 from the start.

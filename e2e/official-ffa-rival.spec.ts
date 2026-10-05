@@ -83,7 +83,7 @@ test('three Tactical phones keep Primary Rival scopes after turn handoffs, round
     await expect(scoreCard(bravo.page, 'Player II').locator('.score-card__numbers strong').first()).toHaveText('3')
     await endTacticalTurn(alpha.page, pages, 'Player I')
     await endTacticalTurn(bravo.page, pages, 'Player II')
-    for (const page of pages) await expect(scoreCard(page, 'Player II').locator('.score-card__numbers strong').first()).toHaveText('11')
+    for (const page of pages) await expect(scoreCard(page, 'Player II').locator('.score-card__numbers strong').first()).toHaveText('10')
     if (process.env.CAPTURE_UI === '1') await bravo.page.screenshot({ path: 'test-results/visual-ffa-current-rival.png', fullPage: true })
   } finally {
     await Promise.all([alpha.context.close(), bravo.context.close(), charlie.context.close()])
