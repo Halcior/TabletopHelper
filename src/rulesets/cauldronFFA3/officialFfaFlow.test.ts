@@ -5,8 +5,10 @@ import { getCauldronEventData } from './events'
 import {
   acknowledgeOfficialWindow, canScoreOfficialSecondary, discardOfficialAtEndTurn,
   officialAwards, officialPendingReviewPlayers, scoreOfficialSecondary,
+  assignOfficialGuards, noteOfficialTarget,
 } from './officialSecondary'
 import { OFFICIAL_SECONDARY_IDS } from './officialSecondaryDefinitions'
+import { officialTemptingTargets } from './officialSecondaryFFA'
 import { createPrimaryTurnCommitEvents, getPrimaryTurnCommit } from './primary'
 import { getCurrentRivalPlayerId } from './rivalRotation'
 import { confirmCauldronEndRound } from './roundEnd'
@@ -30,7 +32,7 @@ it('completes five rounds of FFA 3 + 11th Primary + Tactical with caps, Rival ro
     })),
   })
   for (const [objectiveId, controllerPlayerId] of Object.entries({
-    'A-HOME': 'p-a', 'B-HOME': 'p-b', 'C-HOME': 'p-c', N1: 'p-a', N2: 'p-b', N3: 'p-c', CENTER: 'p-a',
+    'A-HOME': 'p-a', 'B-HOME': 'p-b', 'C-HOME': 'p-c', 'AB-NEUTRAL': 'p-a', 'AC-NEUTRAL': 'p-b', 'BC-NEUTRAL': 'p-c', CENTER: 'p-a',
   })) session = dispatchBattleEvent(session, { type: 'OBJECTIVE_CONTROL_CHANGED', payload: { objectiveId, controllerPlayerId } })
 
   for (let battleRound = 1; battleRound <= 5; battleRound += 1) {
@@ -38,6 +40,11 @@ it('completes five rounds of FFA 3 + 11th Primary + Tactical with caps, Rival ro
       expect(session.state.round).toBe(battleRound)
       expect(session.state.activePlayerId).toBe(playerId)
       expect(session.state.phase).toBe('COMMAND')
+      for (const card of getSecondaryState(session)[playerId].active) {
+        if (card.cardId === 'OFFICIAL_BEACON' && !card.cardSpecificState?.officialTargetUnitId) session = noteOfficialTarget(session, playerId, card.cardId, 'infantry')
+        if (card.cardId === 'OFFICIAL_A_TEMPTING_TARGET' && !card.cardSpecificState?.officialTargetObjectiveId) session = noteOfficialTarget(session, playerId, card.cardId, officialTemptingTargets(session, playerId)[0])
+        if (card.cardId === 'OFFICIAL_BURDEN_OF_TRUST') session = assignOfficialGuards(session, playerId, Object.fromEntries(Object.values(session.state.objectives).filter((objective) => objective.controllerPlayerId === playerId).map((objective) => [objective.id, 'infantry'])))
+      }
       while (session.state.phase !== 'END_TURN') session = advanceCauldronPhase(session)
       const rivalPlayerId = getCurrentRivalPlayerId(session, playerId)
       session = dispatchBattleEvents(session, createPrimaryTurnCommitEvents(session, playerId, {
@@ -53,7 +60,18 @@ it('completes five rounds of FFA 3 + 11th Primary + Tactical with caps, Rival ro
         for (const card of cards) {
           const cardId = card.cardId as OfficialSecondaryId
           if (canScoreOfficialSecondary(session, commanderId, cardId)) {
-            session = scoreOfficialSecondary(session, commanderId, cardId, officialAwards(session, commanderId, cardId).at(-1)!)
+            const confirmation = {
+              ownUnitWithin3OfCenter: true,
+              enemyCenterDistanceByPlayer: Object.fromEntries(session.state.turnOrder.filter((id) => id !== commanderId).map((id) => [id, 'outside-6' as const])),
+              enemyInOwnDeploymentByPlayer: Object.fromEntries(session.state.turnOrder.filter((id) => id !== commanderId).map((id) => [id, false])),
+              qualifyingNmlUnitsByPlayer: Object.fromEntries(session.state.turnOrder.map((id) => [id, id === commanderId ? 3 : 2])),
+              beaconOutsideOwnDeployment: true, unitWhollyOutsideOwnTerritory: true,
+              behindEnemyLinesUnitCount: 2, qualifyingQuarterCount: 4,
+              outflankUnitNearEdge: true, outflankOppositeEdges: true,
+              guardingObjectiveIdsInRange: Object.keys(card.cardSpecificState?.officialGuardAssignments ?? {}),
+            }
+            const awards = officialAwards(session, commanderId, cardId, confirmation)
+            if (awards.length > 0) session = scoreOfficialSecondary(session, commanderId, cardId, awards.at(-1)!, confirmation)
           }
         }
       }

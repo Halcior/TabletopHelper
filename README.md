@@ -50,17 +50,25 @@ The files in `test-data/` are immutable external New Recruit fixtures.
 
 The deck selector applies only to Secondary Missions. Primary, Operational Plans, phases, objectives, and Rival rotation still use the configured Cauldron battle mode. Existing saved battles without a deck selection continue using the original 15-card Cauldron deck.
 
-Tactical uses a separate shuffled 18-card deck for each player. Players start with two cards and draw two more in each later Command phase, even if they still hold cards. Card-specific when-drawn replacements, once-per-battle New Orders (1 CP), and end-of-turn discards (one or more cards for 1 CP total) are available on the Secondary panel. Fixed allows each player to select two of the four eligible cards in setup. The app applies the 15 VP per round, 45 VP per battle, and 20 VP per Fixed card limits.
+Tactical uses a separate shuffled 18-card deck for each player. Players draw two cards in each own Command phase, even if they still hold cards. New FFA battles draw the first two when each commander actually starts their first turn, so when-drawn choices happen before play continues and a Rival whose turn has already passed cannot be scored retroactively. Legacy setup hands are retained without a duplicate first-turn draw. Card-specific when-drawn replacements, once-per-battle New Orders (1 CP), and end-of-turn discards (one or more cards for 1 CP total) are available on the Secondary panel. Fixed allows each player to select two of the four eligible cards in setup. The app applies the 15 VP per round, 45 VP per battle, and 20 VP per Fixed card limits.
 
 The card panel shows conditions and timing from the [Chapter Approved 2026–27 Secondary Missions](https://gdmissions.app/11th/secondary-missions). Players confirm physical positions, destroyed models, and eligible units at the table. Cleanse and Plunder starts are recorded in the Shooting phase, then confirmed at end of turn. Each eligible commander scores or acknowledges their own cards before turn progression; in a shared room this can happen from their own phone during another commander's turn.
 
-FFA is an explicit house adaptation: references to an opponent, enemy units, and the opponent's home or deployment zone use the card owner's current Rival. Neutral objectives remain No Man's Land, while physical territory, quarters, and distances are confirmed on the table. Duel follows the two-player card text directly.
+Chapter Approved uses roster selectors in both Duel and FFA: Cleanse and Plunder choose an acting unit from that commander's own army, with destroyed, reserve and Battle-shocked units excluded. Cleanse also selects its non-HOME objective from the battlefield list. Beacon selects and saves a unit's stable roster ID, displaying its name. Plunder's terrain name is entered at the table because terrain areas are not stored in the app.
+
+FFA uses the Secondary Balance Patch: a card targeting an opponent or scoring at an opponent's turn end stores `secondaryRivalPlayerId` when drawn (including Fixed selections). That assigned Rival stays with the card through round rotation until scoring/discard/replacement. Legacy cards without the field fall back to Current Rival. Rival-independent cards have no Target Rival label. Duel follows the two-player card text directly.
+
+Kill cards count only qualifying models/units of the assigned Rival destroyed by the card owner's army, using the recorded `destroyedByPlayerId`; third-player kills never score them. Record casualties in the Army panel. Centre Ground and Defend Stronghold check both enemies, while Display of Might requires `YourCount > max(EnemyA, EnemyB)`, not their sum. The scoring panel collects the physical confirmations for each enemy separately. Opponent-turn cards wait for the assigned Rival's next turn if that turn already ended; Beacon, Burden of Trust and Defend Stronghold keep their end-of-round-5 fallback.
+
+New Chapter Approved FFA games use A/B/C-HOME, AB/AC/BC-NEUTRAL and CENTER. Tempting Target offers only CENTER and the owner/Rival pairwise neutral; Forward Position requires Rival HOME or that pairwise neutral plus CENTER. Old saves keep their objective IDs: N1 = AB-NEUTRAL, N2 = AC-NEUTRAL, N3 = BC-NEUTRAL. Align the physical legacy layout with those labels before using pairwise targets.
+
+NML is the battlefield outside **all** deployment zones. Fixed Territories A/B/C are a separate layer and may overlap NML. Territory boundaries count as inside. Outflank and Beacon's 5 VP require a unit **wholly outside** its own Territory; Plunder requires the **entire terrain footprint** wholly outside, confirmed at action start. Beacon/Tempting choices are saved and locked; Burden saves one guard per controlled objective at draw/start of own turn, then checks those units and continued control. Tactical is the recommended/default Chapter Approved strategy in FFA; Fixed remains experimental due to matchup dependency.
 
 ## 11th edition Primary FFA with Tactical Secondary
 
 For a three-player game, select **FFA 3**, **11th edition FFA** Primary, **Chapter Approved 2026–27** Secondary, **Tactical**, and **7 objectives**. Each player selects one of the five Primary mirror cards for the whole battle. This is a house adaptation; the official 5×5 Force Disposition matrix is available only in Duel 1v1.
 
-Primary and Secondary use the same **Current Rival** for every reference to an opponent/enemy, enemy HOME or territory, comparison, or destroyed enemy unit:
+Primary uses **Current Rival**, rotating by Battle Round. A new Rival-dependent Secondary card takes that Current Rival at draw time as its permanent **Secondary Rival**:
 
 | Battle Rounds | A's Rival | B's Rival | C's Rival |
 | --- | --- | --- | --- |

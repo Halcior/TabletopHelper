@@ -52,7 +52,8 @@ import {
   type PlanConfirmation,
   type SecondaryId,
 } from '../rulesets/cauldronFFA3'
-import { acknowledgeOfficialWindow, discardOfficialAtEndTurn, noteOfficialTarget, replaceOfficialSecondary, scoreOfficialSecondary, startOfficialSecondaryAction } from '../rulesets/cauldronFFA3/officialSecondary'
+import { acknowledgeOfficialWindow, assignOfficialGuards, discardOfficialAtEndTurn, noteOfficialTarget, replaceOfficialSecondary, scoreOfficialSecondary, startOfficialSecondaryAction, type OfficialActionConfirmation } from '../rulesets/cauldronFFA3/officialSecondary'
+import type { OfficialSecondaryConfirmation } from '../rulesets/cauldronFFA3/secondaryTypes'
 import { confirmDuelBattleReady, reviewDuelPrimary, type DuelReviewWindow } from '../rulesets/cauldronFFA3/duelPrimary'
 
 type BattleStore = {
@@ -84,11 +85,12 @@ type BattleStore = {
   completeMissionAction: (actionId: string, positionConfirmed: boolean) => void
   cancelMissionAction: (actionId: string, reason?: string) => void
   mulliganSecondary: (playerId: string, cardId: SecondaryId) => void
-  scoreOfficialSecondary: (playerId: string, cardId: OfficialSecondaryId, requestedVp: number) => void
+  scoreOfficialSecondary: (playerId: string, cardId: OfficialSecondaryId, requestedVp: number, confirmation?: OfficialSecondaryConfirmation) => void
   replaceOfficialSecondary: (playerId: string, cardId: OfficialSecondaryId, newOrders?: boolean) => void
   discardOfficialAtEndTurn: (playerId: string, cardIds: OfficialSecondaryId[]) => void
   noteOfficialTarget: (playerId: string, cardId: OfficialSecondaryId, note: string) => void
-  startOfficialSecondaryAction: (playerId: string, cardId: OfficialSecondaryId, unit: string, target: string) => void
+  startOfficialSecondaryAction: (playerId: string, cardId: OfficialSecondaryId, unit: string, target: string, confirmation?: OfficialActionConfirmation) => void
+  assignOfficialGuards: (playerId: string, assignments: Record<string, string>) => void
   acknowledgeOfficialWindow: (playerId: string) => void
   reviewDuelPrimary: (playerId: string, window: DuelReviewWindow, selections: Record<string, number>) => void
   confirmDuelBattleReady: (playerId: string, ready: boolean) => void
@@ -283,8 +285,8 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
     applySessionUpdate(get().session, (session) => mulliganSecondaryInBattle(session, playerId, cardId), set)
   },
 
-  scoreOfficialSecondary(playerId, cardId, requestedVp) {
-    applySessionUpdate(get().session, (session) => scoreOfficialSecondary(session, playerId, cardId, requestedVp), set)
+  scoreOfficialSecondary(playerId, cardId, requestedVp, confirmation) {
+    applySessionUpdate(get().session, (session) => scoreOfficialSecondary(session, playerId, cardId, requestedVp, confirmation), set)
   },
 
   replaceOfficialSecondary(playerId, cardId, newOrders = false) {
@@ -299,8 +301,12 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
     applySessionUpdate(get().session, (session) => noteOfficialTarget(session, playerId, cardId, note), set)
   },
 
-  startOfficialSecondaryAction(playerId, cardId, unit, target) {
-    applySessionUpdate(get().session, (session) => startOfficialSecondaryAction(session, playerId, cardId, unit, target), set)
+  startOfficialSecondaryAction(playerId, cardId, unit, target, confirmation) {
+    applySessionUpdate(get().session, (session) => startOfficialSecondaryAction(session, playerId, cardId, unit, target, confirmation), set)
+  },
+
+  assignOfficialGuards(playerId, assignments) {
+    applySessionUpdate(get().session, (session) => assignOfficialGuards(session, playerId, assignments), set)
   },
 
   acknowledgeOfficialWindow(playerId) {

@@ -79,11 +79,17 @@ export type SecondaryCardSpecificState = {
   deadlineFailed?: boolean
   centreOcByPlayer?: Record<string, number>
   lastConfirmation?: string
+  officialTargetUnitId?: string
+  officialTargetObjectiveId?: string
+  officialGuardAssignments?: Record<string, string>
+  officialGuardAssignmentTurnKey?: string
 }
 
 export type SecondaryCardState = {
   cardId: SecondaryId
   playerId: string
+  /** Chapter Approved: the Current Rival at draw time, retained for this card's lifetime. */
+  secondaryRivalPlayerId?: string
   status: SecondaryCardStatus
   drawnRound?: number
   drawnTurn?: number
@@ -110,6 +116,25 @@ export type SecondaryScoreEntry = {
   round: number
   pointsAwarded: number
   turnKey?: string
+  secondaryRivalPlayerId?: string
+}
+
+/** Physical facts confirmed at the table. Player-indexed inputs must include both enemies in FFA. */
+export type OfficialSecondaryConfirmation = {
+  secondaryRivalPlayerId?: string
+  ownUnitWithin3OfCenter?: boolean
+  enemyCenterDistanceByPlayer?: Record<string, 'within-3' | 'within-6' | 'outside-6'>
+  enemyInOwnDeploymentByPlayer?: Record<string, boolean>
+  qualifyingNmlUnitsByPlayer?: Record<string, number>
+  beaconOutsideOwnDeployment?: boolean
+  unitWhollyOutsideOwnTerritory?: boolean
+  behindEnemyLinesUnitCount?: number
+  qualifyingQuarterCount?: number
+  outflankUnitNearEdge?: boolean
+  outflankOppositeEdges?: boolean
+  guardingObjectiveIdsInRange?: string[]
+  overwhelmingForceUnitIds?: string[]
+  completedCleanseObjectiveIds?: string[]
 }
 
 export type PlayerSecondaryState = {

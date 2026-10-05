@@ -8,7 +8,7 @@ import { getCauldronConfig, secondaryStrategyFor } from './sessionConfig'
 import { isDuelPrimary } from './duelPrimary'
 import { getCauldronTurnStartSnapshot } from './snapshots'
 import { CAULDRON_SECONDARY_BY_ID, CAULDRON_SECONDARY_IDS } from './secondaryDefinitions'
-import { OFFICIAL_SECONDARY_BY_ID, OFFICIAL_SECONDARY_IDS } from './officialSecondaryDefinitions'
+import { OFFICIAL_SECONDARY_BY_ID, OFFICIAL_SECONDARY_IDS, officialFfaDescription } from './officialSecondaryDefinitions'
 import type {
   ActiveSecondaryView,
   EndTurnReview,
@@ -68,12 +68,13 @@ export function getSecondaryState(session: BattleSession): SecondaryState {
         break
       }
       case 'SECONDARY_DRAWN': {
-        const drawn = data as { cardId: SecondaryId; round: number; turn: number }
+        const drawn = data as { cardId: SecondaryId; round: number; turn: number; secondaryRivalPlayerId?: string }
         const index = player.deck.indexOf(drawn.cardId)
         if (index >= 0) player.deck.splice(index, 1)
         player.active.push({
           cardId: drawn.cardId,
           playerId: player.playerId,
+          secondaryRivalPlayerId: drawn.secondaryRivalPlayerId,
           status: 'ACTIVE',
           drawnRound: drawn.round,
           drawnTurn: drawn.turn,
@@ -118,6 +119,7 @@ export function getSecondaryState(session: BattleSession): SecondaryState {
             round: completed.round,
             pointsAwarded: completed.pointsAwarded,
             turnKey: completed.turnKey,
+            secondaryRivalPlayerId: card.secondaryRivalPlayerId,
           })
         }
         break
@@ -130,6 +132,7 @@ export function getSecondaryState(session: BattleSession): SecondaryState {
           round: scored.round,
           pointsAwarded: scored.pointsAwarded,
           turnKey: scored.turnKey,
+          secondaryRivalPlayerId: player.active.find((card) => card.cardId === scored.cardId)?.secondaryRivalPlayerId,
         })
         break
       }
@@ -288,8 +291,8 @@ export function createSecondaryInitializationEvents(
         if (!selected || selected.length !== 2 || new Set(selected).size !== 2 || selected.some((id) => !OFFICIAL_SECONDARY_BY_ID[id]?.fixed)) {
           throw new Error(`Choose two different Fixed Secondaries for ${player.name}.`)
         }
-        return [cauldronEvent('SECONDARY_DECK_SHUFFLED', { playerId: player.id, deckOrder: [] }), ...selected.map((cardId) => (
-          cauldronEvent('SECONDARY_DRAWN', { playerId: player.id, cardId, round: 1, turn: 1 })
+        return [cauldronEvent('SECONDARY_DECK_SHUFFLED', { playerId: player.id, deckOrder: [] }), ...selected.flatMap((cardId) => (
+          officialDrawEvents(session, player.id, [cardId], 1, 1, 1)
         ))]
       }
       const order = deckOrders[player.id] ? [...deckOrders[player.id]!] : shuffle(OFFICIAL_SECONDARY_IDS, random)
@@ -297,7 +300,7 @@ export function createSecondaryInitializationEvents(
         throw new Error('The Chapter Approved Tactical deck must contain all 18 unique cards.')
       }
       return [cauldronEvent('SECONDARY_DECK_SHUFFLED', { playerId: player.id, deckOrder: order }),
-        ...(isDuelPrimary(session) && player.id !== session.state.activePlayerId ? [] : officialDrawEvents(player.id, order, 2, 1, 1))]
+        ...((isDuelPrimary(session) || session.setup.players.length === 3) && player.id !== session.state.activePlayerId ? [] : officialDrawEvents(session, player.id, order, 2, 1, 1))]
     })
   }
   return session.setup.players.flatMap((player) => {
@@ -311,12 +314,16 @@ export function createSecondaryInitializationEvents(
   })
 }
 
-export function officialDrawEvents(playerId: string, deck: readonly SecondaryId[], count: number, round: number, turn: number): BattleEventInput[] {
+export function officialDrawEvents(session: BattleSession, playerId: string, deck: readonly SecondaryId[], count: number, round: number, turn: number): BattleEventInput[] {
   const events: BattleEventInput[] = []
   let drawn = 0
   for (const cardId of deck) {
     if (drawn >= count) break
-    events.push(cauldronEvent('SECONDARY_DRAWN', { playerId, cardId, round, turn }))
+    const usesRival = OFFICIAL_SECONDARY_BY_ID[cardId as keyof typeof OFFICIAL_SECONDARY_BY_ID]?.usesSecondaryRival
+    events.push(cauldronEvent('SECONDARY_DRAWN', {
+      playerId, cardId, round, turn,
+      ...(usesRival ? { secondaryRivalPlayerId: getCurrentRivalPlayerId(session, playerId, round) } : {}),
+    }))
     // This card must be replaced in Battle Round 1. Its replacement is a bonus draw.
     if (round === 1 && cardId === 'OFFICIAL_DEFEND_STRONGHOLD') {
       events.push(cauldronEvent('SECONDARY_DISCARDED', { playerId, cardId, round, turn, reason: 'Mandatory round-one redraw' }))
@@ -335,9 +342,9 @@ export function createSecondaryRefillEvents(
   if (!current) throw new Error(`Unknown player: ${playerId}`)
   if (isOfficialSecondary(session)) {
     if (secondaryStrategyFor(session, playerId) === 'fixed') return []
-    // Legacy FFA draws for all players at setup; official duel draws at the beginning of each own Command.
-    if (!isDuelPrimary(session) && round === 1 && getPlayerTurnNumber(session, playerId) === 0) return []
-    return officialDrawEvents(playerId, current.deck, 2, round, getPlayerTurnNumber(session, playerId) + 1)
+    // Legacy games may already hold their first cards from setup; new FFA draws on each own Command.
+    if (!isDuelPrimary(session) && round === 1 && getPlayerTurnNumber(session, playerId) === 0 && current.active.length > 0) return []
+    return officialDrawEvents(session, playerId, current.deck, 2, round, getPlayerTurnNumber(session, playerId) + 1)
   }
   const mutable: MutableDrawState = {
     deck: [...current.deck],
@@ -861,15 +868,20 @@ export function getActiveSecondaryViews(session: BattleSession, playerId: string
   const state = getSecondaryState(session)[playerId]
   if (isOfficialSecondary(session)) return (state?.active ?? []).map((card) => {
     const definition = OFFICIAL_SECONDARY_BY_ID[card.cardId as keyof typeof OFFICIAL_SECONDARY_BY_ID]
+    const ffa = session.setup.players.length === 3
+    const rivalId = card.secondaryRivalPlayerId ?? getCurrentRivalPlayerId(session, playerId)
+    const targetLabel = ffa && definition.usesSecondaryRival
+      ? `Target Rival: ${session.state.players[rivalId]?.name} · ${session.state.players[rivalId]?.deploymentZone}-HOME. `
+      : ffa && definition.enemyScope === 'all-enemies' ? 'Enemy scope: All opponents. ' : ''
     return {
       cardId: card.cardId,
       name: definition.name,
       vp: definition.vp,
-      objective: definition.description,
+      objective: ffa ? officialFfaDescription(definition.id) : definition.description,
       status: 'INPUT_REQUIRED',
-      progress: secondaryStrategyFor(session, playerId) === 'fixed'
+      progress: targetLabel + (secondaryStrategyFor(session, playerId) === 'fixed'
         ? 'Fixed: score whenever the condition is met, up to 20 VP for this card.'
-        : `Tactical: confirm at the end of ${definition.scoreAt === 'either' ? 'either turn' : definition.scoreAt === 'own' ? 'your turn' : 'the Rival turn'}.`,
+        : `Tactical: confirm at the end of ${definition.scoreAt === 'either' ? 'your or the assigned Rival’s turn' : definition.scoreAt === 'own' ? 'your turn' : 'the assigned Rival’s turn'}.`),
       pointsAwarded: state.scoreHistory.filter((entry) => entry.cardId === card.cardId).reduce((sum, entry) => sum + entry.pointsAwarded, 0),
       action: null,
     }

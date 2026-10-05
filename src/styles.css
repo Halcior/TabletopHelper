@@ -284,6 +284,9 @@ p { color: var(--muted); line-height: 1.65; }
 .official-secondary-input label { display: grid; gap: 5px; color: var(--muted); font-size: .76rem; }
 .official-secondary-input input, .official-secondary-input select { width: 100%; min-width: 0; }
 .official-secondary-input small { line-height: 1.45; color: var(--muted); }
+.official-secondary-input .review-check-row { display: flex; align-items: flex-start; gap: 8px; }
+.official-secondary-input input[type="checkbox"] { width: 16px; min-width: 16px; margin-top: 2px; }
+.official-secondary-panel .review-actions { grid-template-columns: minmax(0, 1fr); }
 .official-secondary-panel .secondary-card .review-check-row { margin-top: 12px; }
 .secondary-card__progress { padding-top: 8px; border-top: 1px solid var(--line); }
 .setup-primary-picker { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; margin: 0 0 14px; padding: 16px; }

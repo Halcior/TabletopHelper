@@ -8,6 +8,7 @@ import { OFFICIAL_SECONDARY_DEFINITIONS, OFFICIAL_SECONDARY_IDS } from './offici
 import {
   acknowledgeOfficialWindow, canScoreOfficialSecondary, discardOfficialAtEndTurn, officialActionCount,
   officialPendingReviewPlayers, replaceOfficialSecondary, scoreOfficialSecondary, startOfficialSecondaryAction,
+  noteOfficialTarget,
 } from './officialSecondary'
 import { createSecondaryRefillEvents, getRoundSecondaryVp, getSecondaryState } from './secondary'
 import { createCauldronGame } from './session'
@@ -52,6 +53,11 @@ function membership(playerId: string): SharedMembership {
 }
 
 describe('Chapter Approved Secondary deck', () => {
+  it('stores a Duel Beacon choice by roster ID with a readable name and locks it', () => {
+    const chosen = noteOfficialTarget(game(['OFFICIAL_BEACON', 'OFFICIAL_NO_PRISONERS']), 'p-a', 'OFFICIAL_BEACON', 'infantry')
+    expect(getSecondaryState(chosen)['p-a'].active[0].cardSpecificState).toMatchObject({ officialTargetUnitId: 'infantry', lastConfirmation: 'Four-model unit' })
+    expect(() => noteOfficialTarget(chosen, 'p-a', 'OFFICIAL_BEACON', 'tank')).toThrow(/locked/)
+  })
   it('contains 18 unique cards and exactly four Fixed options', () => {
     expect(OFFICIAL_SECONDARY_DEFINITIONS).toHaveLength(18)
     expect(new Set(OFFICIAL_SECONDARY_IDS).size).toBe(18)
@@ -100,11 +106,17 @@ describe('Chapter Approved Secondary deck', () => {
     expect(canScoreOfficialSecondary(session, 'p-a', 'OFFICIAL_DISPLAY_OF_MIGHT')).toBe(false)
   })
 
-  it('uses the current Rival for FFA opponent scoring', () => {
-    let session = phase(game(['OFFICIAL_BEACON', 'OFFICIAL_NO_PRISONERS'], 'tactical', true), 'END_TURN')
+  it('uses the draw-time Rival for FFA opponent scoring with a locked own unit', () => {
+    let session = game(['OFFICIAL_BEACON', 'OFFICIAL_NO_PRISONERS'], 'tactical', true)
+    // C draws against A during its own first Command; that assigned Rival remains A next round.
+    session = dispatchBattleEvents(session, createSecondaryRefillEvents(session, 'p-c', 1))
+    session = dispatchBattleEvent(session, { type: 'TURN_STARTED', payload: { playerId: 'p-c' } })
+    session = noteOfficialTarget(session, 'p-c', 'OFFICIAL_BEACON', 'infantry')
+    session = dispatchBattleEvent(session, { type: 'TURN_STARTED', payload: { playerId: 'p-a' } })
+    session = phase(session, 'END_TURN')
     expect(canScoreOfficialSecondary(session, 'p-b', 'OFFICIAL_BEACON')).toBe(false)
     expect(canScoreOfficialSecondary(session, 'p-c', 'OFFICIAL_BEACON')).toBe(true)
-    session = scoreOfficialSecondary(session, 'p-c', 'OFFICIAL_BEACON', 3)
+    session = scoreOfficialSecondary(session, 'p-c', 'OFFICIAL_BEACON', 3, { beaconOutsideOwnDeployment: true })
     expect(session.state.players['p-c'].score.secondary).toBe(3)
   })
 

@@ -144,7 +144,7 @@ export default function BattleSetup() {
         : 'Assign turn positions 1, 2, and 3 exactly once.')
       return
     }
-    if (primaryDeck === 'chapter-approved-ffa' && activePlayers.some((player) => player.officialPrimaryId === 'gather-intel') && objectiveLayout !== 'expanded-7') {
+    if (primaryDeck === 'chapter-approved-ffa' && activePlayers.some((player) => player.officialPrimaryId === 'gather-intel') && objectiveLayout !== 'expanded-7' && secondaryDeck !== 'chapter-approved') {
       setLocalError('Gather Intel requires the 7-objective layout with CENTER.')
       return
     }
@@ -219,7 +219,7 @@ export default function BattleSetup() {
             <option value="cauldron">Cauldron · objectives + Operational Plan</option>
             {duel ? <option value="chapter-approved-duel">11th edition official Duel · Force Disposition matrix</option> : <option value="chapter-approved-ffa">11th edition FFA · a different Primary for each player</option>}
           </select></label>
-          {primaryDeck === 'chapter-approved-ffa' && <p className="context-note">House-rule FFA adaptation of five 11th edition mirror cards. Each player selects a mission below for the whole battle. “Opponent” and “enemy” mean your Current Rival for that Battle Round, including HOME, territory, comparisons and destroyed units, as on Secondary cards. Rounds 1/3/5: A → B → C → A. Rounds 2/4: A → C → B → A. Primary scores up to 15 VP per round and 45 VP per battle. Operational Plans do not score.</p>}
+          {primaryDeck === 'chapter-approved-ffa' && <p className="context-note">House-rule FFA adaptation of five 11th edition mirror cards. Each player selects a mission below for the whole battle. Primary uses your Current Rival for that Battle Round, including HOME, territory, comparisons and destroyed units. Secondary cards keep the Rival assigned when drawn. Rounds 1/3/5: A → B → C → A. Rounds 2/4: A → C → B → A. Primary scores up to 15 VP per round and 45 VP per battle. Operational Plans do not score.</p>}
           {primaryDeck === 'chapter-approved-duel' && <p className="context-note">Official 1v1 matrix: each player chooses a Force Disposition available to their Detachment. Their row against the opponent’s choice determines their own Primary. Use one of three terrain layouts for that pairing. The physical battlefield decides control, actions and markers; confirm each condition at the correct scoring window. 45 Primary + 45 Secondary + 10 Battle Ready VP.</p>}
         </div>
         <div className="setup-toolbar panel">
@@ -287,14 +287,14 @@ export default function BattleSetup() {
             </select></label>
             <p className="context-note">{officialStrategy === 'fixed'
               ? 'Fixed: choose two eligible cards for each player. They remain active throughout the battle and each can score up to 20 VP.'
-              : 'Tactical: draw two cards at each own Command phase. There is no free general mulligan: once per battle New Orders replaces one card for 1 CP; specific When Drawn cards have their own replacement rules. At your turn end, discard active cards to gain 1 CP.'} Secondary scores up to 15 VP per round and 45 VP per battle. In FFA, opponent and enemy on Secondary cards refer to your current Rival.</p>
+              : 'Tactical: draw two cards at each own Command phase. There is no free general mulligan: once per battle New Orders replaces one card for 1 CP; specific When Drawn cards have their own replacement rules. At your turn end, discard active cards to gain 1 CP.'} Secondary scores up to 15 VP per round and 45 VP per battle. {duel ? 'Duel uses the two-player card text.' : 'FFA cards keep their assigned Secondary Rival. Enemy presence checks both other armies. Only your army’s kills against that assigned Rival score. Tactical is recommended; Fixed is experimental because target availability depends on the matchup.'}</p>
           </>}
           <label>Guidance level<select value={guidance} onChange={(event) => setGuidance(event.target.value as GuidanceLevel)}>
             <option value="guided">Guided — full contextual reminders</option>
             <option value="fast">Fast — essential reminders only</option>
           </select></label>
-          {!duel && <label>Objective layout<select value={objectiveLayout} onChange={(event) => setObjectiveLayout(event.target.value as CauldronObjectiveLayout)}>
-            <option value="expanded-7">7 objectives — 3 HOME + N1/N2/N3 + CENTER</option>
+          {!duel && <label>Objective layout<select value={secondaryDeck === 'chapter-approved' ? 'expanded-7' : objectiveLayout} disabled={secondaryDeck === 'chapter-approved'} onChange={(event) => setObjectiveLayout(event.target.value as CauldronObjectiveLayout)}>
+            <option value="expanded-7">{secondaryDeck === 'chapter-approved' ? '7 objectives — 3 HOME + AB/AC/BC-NEUTRAL + CENTER' : '7 objectives — 3 HOME + N1/N2/N3 + CENTER'}</option>
             <option value="classic-6">6 objectives — 3 HOME + N1/N2/N3</option>
           </select></label>}
           <label>Shared host seat<select value={hostPlayerId} onChange={(event) => setHostPlayerId(event.target.value)}>
