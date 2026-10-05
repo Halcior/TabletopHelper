@@ -235,7 +235,7 @@ export default function SharedSessions() {
       </div>
       {secondaryConfig && <p className="context-note" aria-label="Secondary deck selected for this room">Secondary deck: {secondaryConfig.secondaryDeck === 'chapter-approved'
         ? `Chapter Approved 2026–27 · ${secondaryConfig.primaryDeck === 'chapter-approved-duel' ? 'each player chooses Fixed or Tactical' : secondaryConfig.officialSecondaryStrategy === 'fixed' ? 'Fixed' : 'Tactical'}`
-        : 'Cauldron'}. {secondaryConfig.mode === 'ffa3' && secondaryConfig.secondaryDeck === 'chapter-approved' ? 'FFA conditions use the current Rival.' : ''}</p>}
+        : 'Cauldron'}. {secondaryConfig.mode === 'ffa3' && secondaryConfig.secondaryDeck === 'chapter-approved' ? 'FFA cards retain their assigned Secondary Rival; enemy presence checks both opponents.' : ''}</p>}
 
       <div className="shared-lobby__content">
         <div className="shared-lobby__seats" aria-label="Player seats">

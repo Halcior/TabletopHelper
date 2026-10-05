@@ -28,6 +28,23 @@ export function scoreCard(page: Page, playerName: string) {
 export async function dismissSecondaryReveal(page: Page): Promise<void> {
   const keep = page.getByRole('button', { name: 'Keep cards' })
   if (await keep.isVisible().catch(() => false)) await keep.click()
+  // FFA when-drawn targets must be saved before leaving Command.
+  for (const box of await page.locator('.official-secondary-input').all()) {
+    const saveChoice = box.getByRole('button', { name: 'Save and lock choice', exact: true })
+    if (await saveChoice.isVisible()) {
+      const select = box.locator('select').first()
+      const value = await select.locator('option').nth(1).getAttribute('value')
+      if (value) { await select.selectOption(value); await saveChoice.click() }
+    }
+    const saveGuards = box.getByRole('button', { name: 'Save guards for this turn', exact: true })
+    if (await saveGuards.isVisible()) {
+      for (const select of await box.locator('select').all()) {
+        const value = await select.locator('option').nth(1).getAttribute('value')
+        if (value) await select.selectOption(value)
+      }
+      await saveGuards.click()
+    }
+  }
 }
 
 export async function resolvePriorityTargetIfNeeded(page: Page): Promise<void> {

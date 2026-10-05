@@ -13,11 +13,12 @@ import {
   CAULDRON_SECONDARY_CAP,
   CAULDRON_TOTAL_CAP,
   OFFICIAL_DUEL_OBJECTIVES,
+  OFFICIAL_FFA_OBJECTIVES,
   OPERATIONAL_PLAN_IDS,
   cauldronObjectivesForPlayerCount,
 } from './constants'
 import { cauldronEvent } from './events'
-import { officialPendingReviewPlayers } from './officialSecondary'
+import { officialPendingChoices, officialPendingReviewPlayers } from './officialSecondary'
 import { isOfficialPrimary, OFFICIAL_PRIMARY_MISSIONS } from './officialPrimary'
 import { DISPOSITIONS, getDuelConditions, getDuelPrimaryCommit, isDuelPrimary } from './duelPrimary'
 import { getPrimaryTurnCommit } from './primary'
@@ -50,7 +51,7 @@ function validateCauldronInput(input: CauldronGameInput): void {
   }
   if (input.primaryDeck === 'chapter-approved-ffa') {
     if (playerCount !== 3) throw new Error('The 11th edition Primary FFA adaptation requires three players.')
-    if (input.players.some((player) => player.officialPrimaryId === 'gather-intel') && input.objectiveLayout !== 'expanded-7') {
+    if (input.players.some((player) => player.officialPrimaryId === 'gather-intel') && input.objectiveLayout !== 'expanded-7' && input.secondaryDeck !== 'chapter-approved') {
       throw new Error('Gather Intel needs the 7-objective layout with CENTER.')
     }
   }
@@ -73,7 +74,7 @@ export function createCauldronGame(input: CauldronGameInput): BattleSession {
   const mode = input.mode ?? (playerCount === 2 ? 'duel' : 'ffa3')
   const objectiveLayout = playerCount === CAULDRON_DUEL_PLAYER_COUNT
     ? 'classic-6'
-    : input.objectiveLayout ?? 'classic-6'
+    : input.secondaryDeck === 'chapter-approved' ? 'expanded-7' : input.objectiveLayout ?? 'classic-6'
   const config: CauldronConfig = {
     version: 1,
     mode,
@@ -116,7 +117,9 @@ export function createCauldronGame(input: CauldronGameInput): BattleSession {
     players,
     armies: [...new Map(input.armies.map((army) => [army.id, army])).values()],
     turnOrder,
-    objectives: input.primaryDeck === 'chapter-approved-duel' ? OFFICIAL_DUEL_OBJECTIVES : cauldronObjectivesForPlayerCount(playerCount, objectiveLayout),
+    objectives: input.primaryDeck === 'chapter-approved-duel' ? OFFICIAL_DUEL_OBJECTIVES
+      : playerCount === 3 && input.secondaryDeck === 'chapter-approved' ? OFFICIAL_FFA_OBJECTIVES
+      : cauldronObjectivesForPlayerCount(playerCount, objectiveLayout),
     maxRounds: CAULDRON_BATTLE_ROUNDS,
     guidanceLevel: input.guidanceLevel,
     rulesetConfig: config,
@@ -135,6 +138,9 @@ export function isCauldronEndOfRound(session: BattleSession): boolean {
 }
 
 export function advanceCauldronPhase(session: BattleSession): BattleSession {
+  if (officialPendingChoices(session, session.state.activePlayerId).length > 0) {
+    throw new Error('Save the when-drawn Secondary choices before leaving your Command phase: selected objective, Beacon unit or guarding units.')
+  }
   if (isCauldronEndOfRound(session)) {
     throw new Error('Review the final turn and resolve end-of-round Wyniszczenie before ending the Battle Round.')
   }

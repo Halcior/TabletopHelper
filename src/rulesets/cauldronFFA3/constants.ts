@@ -27,6 +27,14 @@ export const CAULDRON_EXPANDED_OBJECTIVES: ObjectiveDefinition[] = [
   { id: 'CENTER', name: 'CENTER', type: 'neutral' },
 ]
 
+export const OFFICIAL_FFA_OBJECTIVES: ObjectiveDefinition[] = [
+  ...CAULDRON_OBJECTIVES.filter((objective) => objective.type === 'home'),
+  { id: 'AB-NEUTRAL', name: 'AB-NEUTRAL', type: 'neutral' },
+  { id: 'AC-NEUTRAL', name: 'AC-NEUTRAL', type: 'neutral' },
+  { id: 'BC-NEUTRAL', name: 'BC-NEUTRAL', type: 'neutral' },
+  { id: 'CENTER', name: 'CENTER', type: 'neutral' },
+]
+
 export const CAULDRON_DUEL_OBJECTIVES: ObjectiveDefinition[] = [
   { id: 'A-HOME', name: 'A-HOME', type: 'home' },
   { id: 'B-HOME', name: 'B-HOME', type: 'home' },

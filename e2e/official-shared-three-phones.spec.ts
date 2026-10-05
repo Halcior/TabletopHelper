@@ -31,7 +31,7 @@ test('independent Primary and Chapter Approved Secondary synchronize on three ph
     await dismissSecondaryReveal(alpha.page)
     for (const page of [alpha.page, bravo.page, charlie.page]) {
       await expect(page.locator('.ruleset-label')).toContainText(['Cauldron FFA 3', 'Chapter Approved · Fixed', /Primary FFA/])
-      await expect(page.locator('.official-secondary-panel').first()).toContainText('FFA adaptation')
+      await expect(page.locator('.official-secondary-panel').first()).toContainText('FFA balance patch')
     }
     await expect(alpha.page.locator('.official-primary-panel h2').first()).toHaveText('Battlefield Dominance')
     await expect(bravo.page.locator('.official-primary-panel h2').first()).toHaveText('Meatgrinder')

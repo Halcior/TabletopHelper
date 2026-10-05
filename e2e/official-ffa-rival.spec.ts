@@ -9,6 +9,10 @@ async function join(page: Page, roomCode: string, seat: string) {
 }
 
 async function endTacticalTurn(owner: Page, phones: Page[], name: string, last = false) {
+  // The other commander's name can already appear as Current Rival before handoff.
+  await expect(owner.locator('.battle-turn__mobile-meta strong')).toHaveText(name)
+  await expect(owner.locator('.phase-step--current strong')).toHaveText('Command')
+  await expect(owner.getByRole('button', { name: 'Keep cards', exact: true })).toBeVisible()
   await dismissSecondaryReveal(owner)
   for (let index = 0; index < 6; index += 1) await owner.locator('.next-phase').click()
   await expect(owner.getByRole('heading', { name: 'End Turn Review' })).toBeVisible()
@@ -57,7 +61,6 @@ test('three Tactical phones keep Primary Rival scopes after turn handoffs, round
     for (const page of pages) await page.getByRole('button', { name: 'I am ready' }).click()
     await alpha.page.getByRole('button', { name: 'Start battle' }).click()
     for (const page of pages) await expect(page).toHaveURL(/\/battle\//)
-    await dismissSecondaryReveal(alpha.page)
     const oddRivals = ['Player II · B-HOME', 'Player III · C-HOME', 'Player I · A-HOME']
     for (const [index, page] of pages.entries()) {
       await expect(page.locator('.ruleset-label').nth(1)).toHaveText('Chapter Approved · Tactical')
@@ -66,7 +69,7 @@ test('three Tactical phones keep Primary Rival scopes after turn handoffs, round
     }
 
     await endTacticalTurn(alpha.page, pages, 'Player I')
-    await expect(bravo.page.locator('.battle-turn__mobile-meta')).toContainText('Player II')
+    await expect(bravo.page.locator('.battle-turn__mobile-meta strong')).toHaveText('Player II')
     await endTacticalTurn(bravo.page, pages, 'Player II')
     for (const page of pages) await expect(scoreCard(page, 'Player II').locator('.score-card__numbers strong').first()).toHaveText('3')
     await endTacticalTurn(charlie.page, pages, 'Player III', true)
