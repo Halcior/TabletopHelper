@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
-import { dismissSecondaryReveal, importTestArmy, phone, resolvePriorityTargetIfNeeded } from './helpers'
+import { dismissSecondaryReveal, importTestArmy, phone, resolvePriorityTargetIfNeeded, scoreCard } from './helpers'
 
-test('three commanders can choose different 11th edition Primary missions', async ({ browser }) => {
+test('three commanders with the same army freely choose balanced Primary missions and retain their scoring after reload', async ({ browser }) => {
   const { context, page } = await phone(browser)
   try {
     await importTestArmy(page)
@@ -12,8 +12,16 @@ test('three commanders can choose different 11th edition Primary missions', asyn
     await primaryPickers.nth(0).selectOption('gather-intel')
     await primaryPickers.nth(1).selectOption('meatgrinder')
     await primaryPickers.nth(2).selectOption('sabotage')
+    await primaryPickers.nth(0).selectOption('outmanoeuvre')
+    await expect(primaryPickers.nth(1)).toHaveValue('meatgrinder')
+    await expect(primaryPickers.nth(2)).toHaveValue('sabotage')
+    await primaryPickers.nth(0).selectOption('gather-intel')
+    await expect(page.getByText('Each player freely selects a Primary below', { exact: false })).toBeVisible()
+    await expect(page.getByText('Round 1: 4 VP for controlling CENTER at turn end.', { exact: true })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Read original card', exact: true })).toHaveCount(3)
     await expect(page.getByRole('combobox', { name: 'Operational Plan', exact: true })).toHaveCount(0)
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
+    if (process.env.CAPTURE_UI === '1') await page.screenshot({ path: 'test-results/visual-balanced-primary-setup.png', fullPage: true })
     await page.getByLabel('Guidance level').selectOption('fast')
     await page.getByRole('button', { name: 'Start locally' }).click()
     await expect(page).toHaveURL(/\/battle\//)
@@ -21,10 +29,15 @@ test('three commanders can choose different 11th edition Primary missions', asyn
     await dismissSecondaryReveal(page)
     await expect(page.locator('.score-card')).toHaveCount(3)
     await expect(page.locator('.official-primary-panel h2').first()).toHaveText('Gather Intel')
+    await expect(page.locator('.official-primary-panel').first()).toContainText('Balanced FFA')
+    await expect(page.locator('.official-primary-panel').first()).toContainText('8 VP per completed Extract Intelligence')
     await expect(page.locator('.ruleset-label').last()).toContainText('Gather Intel')
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
 
     await resolvePriorityTargetIfNeeded(page)
+    await page.getByRole('button', { name: 'objectives', exact: true }).click()
+    await page.getByRole('group', { name: 'Quick control for CENTER', exact: true }).getByRole('button', { name: 'Player I', exact: true }).click()
+    await page.getByRole('button', { name: 'overview', exact: true }).click()
     for (const phase of ['Movement', 'Shooting', 'Charge', 'Fight', 'End']) {
       await page.locator('.next-phase').click()
       await expect(page.locator('.phase-step--current strong')).toHaveText(phase)
@@ -33,9 +46,16 @@ test('three commanders can choose different 11th edition Primary missions', asyn
     await expect(page.getByRole('heading', { name: 'End Turn Review' })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Gather Intel' })).toBeVisible()
     await page.getByRole('button', { name: 'Apply scoring' }).click()
+    await expect(scoreCard(page, 'Player I').locator('.score-card__numbers strong').first()).toHaveText('4')
     await expect(page.locator('.turn-handoff-summary')).toBeVisible()
     await page.getByRole('button', { name: /End turn/ }).click()
     await expect(page.locator('.official-primary-panel h2').first()).toHaveText('Meatgrinder')
+    await dismissSecondaryReveal(page)
+    await page.reload()
+    await expect(page.locator('.official-primary-panel h2').first()).toHaveText('Meatgrinder')
+    await expect(page.locator('.official-primary-panel').first()).toContainText('Balanced FFA')
+    await expect(page.locator('.official-primary-panel').first()).toContainText('5 VP for a non-home objective at Command; 4 VP if')
+    await expect(scoreCard(page, 'Player I').locator('.score-card__numbers strong').first()).toHaveText('4')
   } finally {
     await context.close()
   }

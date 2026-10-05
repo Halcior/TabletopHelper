@@ -20,6 +20,7 @@ import {
 import { cauldronEvent } from './events'
 import { officialPendingChoices, officialPendingReviewPlayers } from './officialSecondary'
 import { isOfficialPrimary, OFFICIAL_PRIMARY_MISSIONS } from './officialPrimary'
+import { FFA_PRIMARY_BALANCE_VERSION } from './officialPrimaryBalance'
 import { DISPOSITIONS, getDuelConditions, getDuelPrimaryCommit, isDuelPrimary } from './duelPrimary'
 import { getPrimaryTurnCommit } from './primary'
 import { addSnapshotEvents, captureRoundSnapshot, captureTurnSnapshot } from './snapshots'
@@ -81,6 +82,8 @@ export function createCauldronGame(input: CauldronGameInput): BattleSession {
     playerCount,
     objectiveLayout,
     primaryDeck: input.primaryDeck ?? 'cauldron',
+    officialPrimaryBalance: input.primaryDeck === 'chapter-approved-ffa'
+      ? input.officialPrimaryBalance ?? FFA_PRIMARY_BALANCE_VERSION : undefined,
     secondaryDeck: input.secondaryDeck ?? 'cauldron',
     officialSecondaryStrategy: input.officialSecondaryStrategy ?? 'tactical',
     officialSecondaryStrategies: input.officialSecondaryStrategies,

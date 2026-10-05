@@ -11,6 +11,7 @@ import {
   OFFICIAL_SECONDARY_BY_ID,
   OFFICIAL_PRIMARY_IDS,
   OFFICIAL_PRIMARY_MISSIONS,
+  BALANCED_OFFICIAL_PRIMARY_MISSIONS,
   randomDeploymentZones,
   randomTurnPositions,
   type CauldronMode,
@@ -219,7 +220,7 @@ export default function BattleSetup() {
             <option value="cauldron">Cauldron · objectives + Operational Plan</option>
             {duel ? <option value="chapter-approved-duel">11th edition official Duel · Force Disposition matrix</option> : <option value="chapter-approved-ffa">11th edition FFA · a different Primary for each player</option>}
           </select></label>
-          {primaryDeck === 'chapter-approved-ffa' && <p className="context-note">House-rule FFA adaptation of five 11th edition mirror cards. Each player selects a mission below for the whole battle. Primary uses your Current Rival for that Battle Round, including HOME, territory, comparisons and destroyed units. Secondary cards keep the Rival assigned when drawn. Rounds 1/3/5: A → B → C → A. Rounds 2/4: A → C → B → A. Primary scores up to 15 VP per round and 45 VP per battle. Operational Plans do not score.</p>}
+          {primaryDeck === 'chapter-approved-ffa' && <p className="context-note">Balanced FFA adaptation of five 11th edition mirror cards, with adjusted VP values. Each player freely selects a Primary below for the whole battle; it is not automatically assigned by Detachment. Primary uses your Current Rival for that Battle Round, including HOME, territory, comparisons and destroyed units. Secondary cards keep the Rival assigned when drawn. Rounds 1/3/5: A → B → C → A. Rounds 2/4: A → C → B → A. Primary scores up to 15 VP per round and 45 VP per battle. Operational Plans do not score.</p>}
           {primaryDeck === 'chapter-approved-duel' && <p className="context-note">Official 1v1 matrix: each player chooses a Force Disposition available to their Detachment. Their row against the opponent’s choice determines their own Primary. Use one of three terrain layouts for that pairing. The physical battlefield decides control, actions and markers; confirm each condition at the correct scoring window. 45 Primary + 45 Secondary + 10 Battle Ready VP.</p>}
         </div>
         <div className="setup-toolbar panel">
@@ -254,7 +255,7 @@ export default function BattleSetup() {
               <label>11th edition Primary<select value={player.officialPrimaryId} onChange={(event) => updatePlayer(index, 'officialPrimaryId', event.target.value as OfficialPrimaryId)}>
                 {OFFICIAL_PRIMARY_IDS.map((id) => <option key={id} value={id}>{OFFICIAL_PRIMARY_MISSIONS[id].name}</option>)}
               </select></label>
-              {player.officialPrimaryId && <p className="plan-description">{OFFICIAL_PRIMARY_MISSIONS[player.officialPrimaryId].description} <a href={OFFICIAL_PRIMARY_MISSIONS[player.officialPrimaryId].url} target="_blank" rel="noreferrer">Read card</a></p>}
+              {player.officialPrimaryId && <><p className="plan-description">{BALANCED_OFFICIAL_PRIMARY_MISSIONS[player.officialPrimaryId].description} <a href={BALANCED_OFFICIAL_PRIMARY_MISSIONS[player.officialPrimaryId].url} target="_blank" rel="noreferrer">Read original card</a></p><ul className="context-note">{BALANCED_OFFICIAL_PRIMARY_MISSIONS[player.officialPrimaryId].rules.map((rule) => <li key={rule}>{rule}</li>)}</ul></>}
             </> : <><label>Operational Plan<select value={player.operationalPlanId} onChange={(event) => updatePlayer(index, 'operationalPlanId', event.target.value as OperationalPlanId)}>
               {OPERATIONAL_PLAN_IDS.map((planId) => <option key={planId} value={planId}>{OPERATIONAL_PLAN_DEFINITIONS[planId].name}</option>)}
             </select></label>

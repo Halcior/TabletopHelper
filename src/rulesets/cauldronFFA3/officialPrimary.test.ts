@@ -12,7 +12,7 @@ import type { DeploymentZone, OfficialPrimaryId } from './types'
 function game(id: OfficialPrimaryId = 'battlefield-dominance', layout: 'expanded-7' | 'classic-6' = 'expanded-7', sameMission = false, zones: DeploymentZone[] = ['A', 'B', 'C']) {
   const armies = ['a', 'b', 'c'].map((name) => testArmy(`army-${name}`))
   return createCauldronGame({
-    gameId: 'official-primary-test', guidanceLevel: 'fast', armies, primaryDeck: 'chapter-approved-ffa', objectiveLayout: layout,
+    gameId: 'official-primary-test', guidanceLevel: 'fast', armies, primaryDeck: 'chapter-approved-ffa', officialPrimaryBalance: 'original', objectiveLayout: layout,
     players: armies.map((army, index) => ({
       id: `p-${['a', 'b', 'c'][index]}`, name: `Player ${index + 1}`, armyId: army.id,
       deploymentZone: zones[index], turnPosition: (index + 1) as 1 | 2 | 3,

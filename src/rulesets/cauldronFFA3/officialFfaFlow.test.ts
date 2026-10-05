@@ -93,7 +93,7 @@ it('completes five rounds of FFA 3 + 11th Primary + Tactical with caps, Rival ro
   expect(session.state.status).toBe('completed')
   expect(session.state.players['p-a'].score.primary).toBe(45)
   expect(session.state.players['p-b'].score.primary).toBe(45)
-  expect(session.state.players['p-c'].score.primary).toBe(26)
+  expect(session.state.players['p-c'].score.primary).toBe(30)
   expect(getCauldronEventData(session, 'PRIMARY_TURN_COMMITTED')).toHaveLength(15)
   expect(getCauldronEventData(session, 'WYNISZCZENIE_COMMITTED')).toHaveLength(0)
   for (const playerId of session.state.turnOrder) {

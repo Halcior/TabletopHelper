@@ -4,6 +4,7 @@ import { getCauldronEventData } from './events'
 import { getCurrentRivalPlayerId } from './rivalRotation'
 import { getCauldronConfig } from './sessionConfig'
 import { getCauldronTurnStartSnapshot } from './snapshots'
+import { BALANCED_PRIMARY_POINTS, officialPrimaryPoints, usesBalancedFfaPrimary } from './officialPrimaryBalance'
 import type {
   CauldronTurnSnapshot, OfficialPrimaryAction, OfficialPrimaryConfirmation, OfficialPrimaryId, OfficialPrimaryReview, PrimaryCondition,
 } from './types'
@@ -37,6 +38,35 @@ export const OFFICIAL_PRIMARY_MISSIONS: Record<OfficialPrimaryId, { name: string
 }
 
 export const OFFICIAL_PRIMARY_IDS = Object.keys(OFFICIAL_PRIMARY_MISSIONS) as OfficialPrimaryId[]
+
+export const BALANCED_OFFICIAL_PRIMARY_MISSIONS: typeof OFFICIAL_PRIMARY_MISSIONS = {
+  'battlefield-dominance': { ...OFFICIAL_PRIMARY_MISSIONS['battlefield-dominance'], rules: [
+    'Rounds 1–2: 2 VP at turn end if you control more objectives than your current Rival.',
+    `From round 2: 3 VP per controlled objective at the Command check. Add ${BALANCED_PRIMARY_POINTS.dominanceNonHomeBonus} VP per non-home objective if you control your HOME.`,
+  ] },
+  meatgrinder: { ...OFFICIAL_PRIMARY_MISSIONS.meatgrinder, rules: [
+    'Every round: 3 VP at turn end if any current Rival unit was destroyed.',
+    `From round 2: ${BALANCED_PRIMARY_POINTS.meatgrinderHold} VP for a non-home objective at Command; ${BALANCED_PRIMARY_POINTS.meatgrinderTrade} VP if current Rival units destroyed this turn exceed your losses caused by that Rival since your previous turn; 5 VP for controlling the current Rival HOME at turn end.`,
+  ] },
+  'gather-intel': { ...OFFICIAL_PRIMARY_MISSIONS['gather-intel'], rules: [
+    `Round 1: ${BALANCED_PRIMARY_POINTS.gatherFirstCenter} VP for controlling CENTER at turn end.`,
+    `From round 2: ${BALANCED_PRIMARY_POINTS.gatherHold} VP for a non-home objective at Command; ${BALANCED_PRIMARY_POINTS.gatherAction} VP per completed Extract Intelligence action on a distinct controlled non-home objective.`,
+    'At battle end: 5 VP for three operation markers, plus 5 VP if one is at your round 5 Rival HOME.',
+  ] },
+  sabotage: { ...OFFICIAL_PRIMARY_MISSIONS.sabotage, rules: [
+    `Every round: ${BALANCED_PRIMARY_POINTS.sabotageAction} VP per completed Sabotage action on a distinct controlled non-home objective. Add 2 VP if that objective lies in your current Rival territory.`,
+    'From round 2: 4 VP for controlling a non-home objective at the Command check.',
+  ] },
+  outmanoeuvre: { ...OFFICIAL_PRIMARY_MISSIONS.outmanoeuvre, rules: [
+    `Every round: ${BALANCED_PRIMARY_POINTS.outmanoeuvreHome} VP for controlling your current Rival HOME at turn end.`,
+    `Non-home objectives: 4 VP each at the end of round 1; ${BALANCED_PRIMARY_POINTS.outmanoeuvreCommand} VP each at Command in rounds 2–3; ${BALANCED_PRIMARY_POINTS.outmanoeuvreLate} VP each at turn end in rounds 4–5.`,
+  ] },
+}
+
+export function getOfficialPrimaryMission(session: BattleSession, playerId: string) {
+  const missions = usesBalancedFfaPrimary(session) ? BALANCED_OFFICIAL_PRIMARY_MISSIONS : OFFICIAL_PRIMARY_MISSIONS
+  return missions[getOfficialPrimaryId(session, playerId)]
+}
 
 export function isOfficialPrimary(session: BattleSession): boolean {
   return getCauldronConfig(session).primaryDeck === 'chapter-approved-ffa'
@@ -108,6 +138,7 @@ export function evaluateOfficialPrimary(
 ): { review: OfficialPrimaryReview; roundPrimary: number; capped: boolean } {
   const missionId = getOfficialPrimaryId(session, playerId)
   const missionName = OFFICIAL_PRIMARY_MISSIONS[missionId].name
+  const points = officialPrimaryPoints(session)
   const conditions: PrimaryCondition[] = []
   const rival = getOfficialPrimaryRival(session, playerId, round)
   // Keep older unscoped confirmations readable; new inputs bind physical checks to
@@ -141,7 +172,7 @@ export function evaluateOfficialPrimary(
     if (round >= 2) {
       add('Objectives controlled · Command phase' + (round === 5 ? ' / final turn' : ''), commandOwn.length * 3)
       add('Non-home objectives while your HOME is controlled · cumulative',
-        commandNonHome.length * 2, commandOwn.some((objective) => ownHome(objective, ownZone)))
+        commandNonHome.length * points.dominanceNonHomeBonus, commandOwn.some((objective) => ownHome(objective, ownZone)))
     }
   } else if (missionId === 'meatgrinder') {
     const kills = rivalConfirmation.enemyUnitsDestroyedThisTurn ?? 0
@@ -149,16 +180,16 @@ export function evaluateOfficialPrimary(
     if (![kills, losses].every((count) => Number.isSafeInteger(count) && count >= 0)) throw new Error('Unit counts must be whole non-negative numbers.')
     add(`One or more current Rival (${rival.name}) units destroyed this turn`, 3, kills > 0)
     if (round >= 2) {
-      add('Control a non-home objective · Command phase', 4, commandNonHome.length > 0)
-      add('Current Rival units destroyed this turn > own units lost to that Rival since your previous turn', 5, kills > losses)
+      add('Control a non-home objective · Command phase', points.meatgrinderHold, commandNonHome.length > 0)
+      add('Current Rival units destroyed this turn > own units lost to that Rival since your previous turn', points.meatgrinderTrade, kills > losses)
       add(`Control current Rival HOME (${rival.homeObjectiveId}) · end of turn`, 5, rivalHome)
     }
   } else if (missionId === 'gather-intel') {
-    if (round === 1) add('Control CENTER · first round end of turn', 6,
+    if (round === 1) add('Control CENTER · first round end of turn', points.gatherFirstCenter,
       own.some((objective) => objective.id === 'CENTER'))
     if (round >= 2) {
-      add('Control a non-home objective · Command phase', 4, commandNonHome.length > 0)
-      for (const action of actions) add(`Extract Intelligence · ${action.objectiveId} (${action.unitName.trim()})`, 7)
+      add('Control a non-home objective · Command phase', points.gatherHold, commandNonHome.length > 0)
+      for (const action of actions) add(`Extract Intelligence · ${action.objectiveId} (${action.unitName.trim()})`, points.gatherAction)
       operationMarkerObjectiveIds = actions.map((action) => action.objectiveId)
     }
     if (round === 5) {
@@ -169,7 +200,7 @@ export function evaluateOfficialPrimary(
     }
   } else if (missionId === 'sabotage') {
     for (const action of actions) {
-      add(`Sabotage · ${action.objectiveId} (${action.unitName.trim()})`, 3)
+      add(`Sabotage · ${action.objectiveId} (${action.unitName.trim()})`, points.sabotageAction)
       const objective = session.state.objectives[action.objectiveId]
       const inRivalTerritory = objective.id === rival.homeObjectiveId
         || (objective.type !== 'home' && action.enemyTerritory)
@@ -177,10 +208,10 @@ export function evaluateOfficialPrimary(
     }
     if (round >= 2) add('Control a non-home objective · Command phase', 4, commandNonHome.length > 0)
   } else if (missionId === 'outmanoeuvre') {
-    add(`Control current Rival HOME (${rival.homeObjectiveId}) · end of turn`, 10, rivalHome)
+    add(`Control current Rival HOME (${rival.homeObjectiveId}) · end of turn`, points.outmanoeuvreHome, rivalHome)
     if (round === 1) add('Non-home objectives · first round end of turn', ownNonHome.length * 4)
-    else if (round <= 3) add('Non-home objectives · Command phase', commandNonHome.length * 5)
-    else add('Non-home objectives · end of turn', ownNonHome.length * 6)
+    else if (round <= 3) add('Non-home objectives · Command phase', commandNonHome.length * points.outmanoeuvreCommand)
+    else add('Non-home objectives · end of turn', ownNonHome.length * points.outmanoeuvreLate)
   }
 
   const raw = round >= 1 && round <= 5 ? conditions.reduce((sum, condition) => sum + condition.vp, 0) : 0
