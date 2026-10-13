@@ -18,7 +18,7 @@ The **Damage opponent** panel also has the optional own-roster selector. Change 
 - Single-model wound decreases record actual logged damage. Healing is retained as combat history; a host wound correction can retract overstated damage. A whole-unit KO does not infer weapon damage. Multi-model wound damage is not inferred.
 - Combat ROI = net enemy points destroyed / own starting cost × 100%. Zero-cost units show no ROI.
 - Old saves without an attacking unit retain army-level credit and show partial attribution. Unknown player sources are reported separately.
-- Generic Mission Actions count only explicit completions. Plunder is recorded as immediately completed. Cleanse uses the existing completed-objective confirmations. Only a single unambiguous acting unit receives its recorded action VP; multi-unit awards are not split. Score corrections make prior action VP attribution uncertain.
+- Generic Mission Actions count only explicit completions. Plunder is recorded as immediately completed. Cleanse uses the existing completed-objective confirmations. Only a single unambiguous acting unit receives its recorded action VP; multi-unit awards are not split. A changed Secondary score correction makes prior action VP attribution uncertain. Other score categories and unchanged totals preserve those credits; later explicit awards remain confirmed. The displayed action VP is the known contribution, not a reconstruction of uncertain earlier awards.
 - Objective control has no unit identity, so it grants no invented unit-level VP.
 
 Completed battles award Executioner for most net enemy points, Objective Hero for most explicitly completed actions, and Last Stand for a surviving unit with losses and confirmed combat value. Ties share awards. No award is issued without a positive eligible value.
@@ -33,4 +33,4 @@ Chronicle/analytics use the engine reducers in one read-only pass, deduplicated 
 
 The report describes what was recorded, not every action on the physical table. Fine-grained multi-model damage, unit-level capture identity, AI narration and rich narrative art are outside this MVP. `BattleNarrator` is an optional future adapter; the offline generator stays the default.
 
-The production Supabase database was not changed. Shared flows are verified against the existing mock transport and three browser contexts. No production merge or deployment is performed.
+Chronicle itself requires no Supabase migration. Shared flows are verified against the existing mock transport and three browser contexts. The accompanying battlefield feature has its own host-only geometry migration and live RLS rollback check; see `interactive-battlefield.md`.
