@@ -12,6 +12,7 @@ function unitName(setup: BattleSetup, playerId: string, unitId: string): string 
 export function describeBattleEvent(event: BattleEvent, setup: BattleSetup): string {
   switch (event.type) {
     case 'GAME_STARTED': return 'Battle started'
+    case 'BATTLEFIELD_LAYOUT_CHANGED': return `Battlefield layout saved · ${event.payload.geometry.widthCm} × ${event.payload.geometry.heightCm} cm`
     case 'GAME_ENDED': return 'Battle ended'
     case 'GAME_ABANDONED': return 'Battle abandoned'
     case 'ROUND_STARTED': return `Round ${event.payload.round} started`

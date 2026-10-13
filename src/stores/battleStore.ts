@@ -71,6 +71,7 @@ type BattleStore = {
     primaryDeck?: PrimaryDeck,
     officialSecondaryStrategies?: Record<string, OfficialSecondaryStrategy>,
     officialLayout?: 1 | 2 | 3,
+    battlefieldAttackerHomeZone?: 'A' | 'B',
   ) => Promise<string>
   loadBattle: (id: string) => Promise<void>
   resumeLatest: () => Promise<string | null>
@@ -152,10 +153,10 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
   loading: false,
   error: null,
 
-  async startCauldronBattle(players, armies, guidanceLevel, objectiveLayout, secondaryDeck, officialSecondaryStrategy, fixedSecondarySelections, primaryDeck, officialSecondaryStrategies, officialLayout) {
+  async startCauldronBattle(players, armies, guidanceLevel, objectiveLayout, secondaryDeck, officialSecondaryStrategy, fixedSecondarySelections, primaryDeck, officialSecondaryStrategies, officialLayout, battlefieldAttackerHomeZone) {
     set({ loading: true, error: null })
     try {
-      const session = createCauldronGame({ players, armies, guidanceLevel, objectiveLayout, secondaryDeck, officialSecondaryStrategy, fixedSecondarySelections, primaryDeck, officialSecondaryStrategies, officialLayout })
+      const session = createCauldronGame({ players, armies, guidanceLevel, objectiveLayout, secondaryDeck, officialSecondaryStrategy, fixedSecondarySelections, primaryDeck, officialSecondaryStrategies, officialLayout, battlefieldAttackerHomeZone })
       await saveBattle(session)
       set({ session, loading: false })
       return session.setup.gameId

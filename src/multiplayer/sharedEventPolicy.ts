@@ -1,5 +1,6 @@
 import type { BattleEvent, BattleSession } from '../domain/battle/types'
 import { combatAttributionError } from '../domain/battle/combatAttribution'
+import { validateBattlefieldGeometry } from '../domain/battlefield/layouts'
 import type { SharedMembership } from './types'
 
 export type SharedMutationDecision = {
@@ -164,6 +165,12 @@ export function authorizeSharedAction(
   for (const event of events) {
     const attributionError = combatAttributionError(sessionBefore.setup, event)
     if (attributionError) return deny(attributionError)
+    if (event.type === 'BATTLEFIELD_LAYOUT_CHANGED') {
+      if (!membership.isHost) return deny('Only the room host can edit battlefield geometry.')
+      try { validateBattlefieldGeometry(sessionBefore.setup, event.payload.geometry) }
+      catch (error) { return deny(error instanceof Error ? error.message : 'Invalid battlefield geometry.') }
+      continue
+    }
     if (event.type === 'GAME_STARTED' || event.type === 'GAME_ENDED' || event.type === 'GAME_ABANDONED') continue
     if (TURN_OWNER_EVENTS.has(event.type)) continue
     if (event.type === 'REACTION_WINDOW_RESOLVED') continue

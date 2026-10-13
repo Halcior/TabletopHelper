@@ -153,7 +153,7 @@ stable
 security invoker
 set search_path = ''
 as $$
-  select 5;
+  select 6;
 $$;
 
 revoke all on function public.start_shared_room(uuid) from public;
@@ -261,7 +261,7 @@ create policy "shared events create" on public.shared_events
         and room.code = public.request_shared_room_code()
         and room.started_at is not null
         and (
-          shared_events.event_payload ->> 'type' <> 'STATE_CORRECTED'
+          shared_events.event_payload ->> 'type' not in ('STATE_CORRECTED', 'BATTLEFIELD_LAYOUT_CHANGED')
           or participant.is_host = true
         )
     )

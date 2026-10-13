@@ -52,10 +52,10 @@ export class MockSupabase {
     await context.route('https://mock.supabase.test/rest/v1/**', (route) => this.handle(route))
   }
 
-  storedEvents(type: string, playerId: string): EventRow[] {
+  storedEvents(type: string, playerId?: string): EventRow[] {
     return this.events.filter((event) => (
       event.event_payload.type === type
-      && (event.event_payload.payload as JsonObject | undefined)?.playerId === playerId
+      && (!playerId || (event.event_payload.payload as JsonObject | undefined)?.playerId === playerId)
     ))
   }
 
@@ -69,7 +69,7 @@ export class MockSupabase {
     const resource = url.pathname.replace(/^\/rest\/v1\//, '')
     const method = request.method()
 
-    if (resource === 'rpc/shared_schema_version') return void await json(route, 5)
+    if (resource === 'rpc/shared_schema_version') return void await json(route, 6)
 
     if (resource === 'rpc/start_shared_room') {
       const body = request.postDataJSON() as { p_room_id?: string }
@@ -147,6 +147,16 @@ export class MockSupabase {
       if (method === 'POST') {
         const inputs = request.postDataJSON() as Array<JsonObject & { room_id: string; event_id: string; event_payload: JsonObject }>
         for (const input of inputs) {
+          if (input.event_payload.type !== 'BATTLEFIELD_LAYOUT_CHANGED') continue
+          const participant = this.participants.find((candidate) => candidate.room_id === input.room_id
+            && candidate.client_id === request.headers()['x-client-id']
+            && candidate.player_id === input.event_payload.actorPlayerId)
+          const room = this.rooms.find((candidate) => candidate.id === input.room_id)
+          if (!participant?.is_host || !room?.started_at || room.code !== request.headers()['x-room-code']) {
+            return void await json(route, { message: 'new row violates row-level security policy' }, 403)
+          }
+        }
+        for (const input of inputs) {
           this.eventAttempts.set(input.event_id, (this.eventAttempts.get(input.event_id) ?? 0) + 1)
           if (this.events.some((event) => event.room_id === input.room_id && event.event_id === input.event_id)) continue
           this.events.push({
@@ -156,7 +166,8 @@ export class MockSupabase {
           })
         }
         if (this.failNextEventInsertAfterCommitForPlayerId
-          && inputs.some((input) => (input.event_payload.payload as JsonObject | undefined)?.playerId === this.failNextEventInsertAfterCommitForPlayerId)) {
+          && inputs.some((input) => ((input.event_payload.payload as JsonObject | undefined)?.playerId
+            ?? input.event_payload.actorPlayerId) === this.failNextEventInsertAfterCommitForPlayerId)) {
           this.failNextEventInsertAfterCommitForPlayerId = null
           return void await json(route, { message: 'Simulated lost acknowledgement' }, 503)
         }

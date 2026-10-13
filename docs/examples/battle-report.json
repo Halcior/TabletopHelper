@@ -1,0 +1,662 @@
+{
+  "example": true,
+  "schemaVersion": 1,
+  "gameId": "example-chronicle",
+  "status": "completed",
+  "mode": "FFA 3 · 11th Edition Primary · Chapter Approved Secondary",
+  "missions": [
+    "Custodes: Meatgrinder",
+    "Necrons: Meatgrinder",
+    "Aeldari: Meatgrinder"
+  ],
+  "roundsPlayed": 5,
+  "maxRounds": 5,
+  "ranking": [
+    {
+      "playerId": "p-a",
+      "name": "Custodes",
+      "faction": "Adeptus Custodes",
+      "vp": 22,
+      "rank": 1
+    },
+    {
+      "playerId": "p-b",
+      "name": "Necrons",
+      "faction": "Necrons",
+      "vp": 18,
+      "rank": 2
+    },
+    {
+      "playerId": "p-c",
+      "name": "Aeldari",
+      "faction": "Aeldari",
+      "vp": 16,
+      "rank": 3
+    }
+  ],
+  "winnerPlayerIds": [
+    "p-a"
+  ],
+  "rounds": [
+    {
+      "round": 1,
+      "highlights": [],
+      "leaderChanges": []
+    },
+    {
+      "round": 2,
+      "highlights": [
+        {
+          "id": "event-f174870b-9ac3-44c9-9ec6-81fa61dc252b",
+          "event": {
+            "type": "OBJECTIVE_CONTROL_CHANGED",
+            "payload": {
+              "objectiveId": "AB-NEUTRAL",
+              "controllerPlayerId": "p-a"
+            },
+            "id": "event-f174870b-9ac3-44c9-9ec6-81fa61dc252b",
+            "actionId": "action-bb9f3159-5e67-417f-b010-f2c91b883cb5",
+            "timestamp": "2026-10-13T09:27:06.995Z",
+            "undoable": true
+          },
+          "round": 2,
+          "phase": "SHOOTING",
+          "turnPlayerId": "p-a",
+          "playerIds": [
+            "p-a"
+          ],
+          "category": "objectives",
+          "highlight": true,
+          "description": "AB-NEUTRAL: Custodes",
+          "objectiveId": "AB-NEUTRAL",
+          "objectiveName": "AB-NEUTRAL",
+          "objectiveControllerPlayerId": "p-a"
+        },
+        {
+          "id": "event-f6b6342f-4bd7-4bbf-88d6-39f2c53172eb",
+          "event": {
+            "type": "SCORE_ADJUSTED",
+            "payload": {
+              "playerId": "p-a",
+              "category": "primary",
+              "delta": 5
+            },
+            "id": "event-f6b6342f-4bd7-4bbf-88d6-39f2c53172eb",
+            "actionId": "action-bb9f3159-5e67-417f-b010-f2c91b883cb5",
+            "timestamp": "2026-10-13T09:27:06.995Z",
+            "undoable": true
+          },
+          "round": 2,
+          "phase": "SHOOTING",
+          "turnPlayerId": "p-a",
+          "playerIds": [
+            "p-a"
+          ],
+          "category": "vp",
+          "highlight": true,
+          "description": "Custodes: Primary +5 VP",
+          "scorePlayerId": "p-a",
+          "scoreDelta": 5
+        },
+        {
+          "id": "event-7bc174d4-42fa-416a-bb6d-fb3a63720321",
+          "event": {
+            "type": "SCORE_ADJUSTED",
+            "payload": {
+              "playerId": "p-b",
+              "category": "primary",
+              "delta": 8
+            },
+            "id": "event-7bc174d4-42fa-416a-bb6d-fb3a63720321",
+            "actionId": "action-bb9f3159-5e67-417f-b010-f2c91b883cb5",
+            "timestamp": "2026-10-13T09:27:06.995Z",
+            "undoable": true
+          },
+          "round": 2,
+          "phase": "SHOOTING",
+          "turnPlayerId": "p-a",
+          "playerIds": [
+            "p-b"
+          ],
+          "category": "vp",
+          "highlight": true,
+          "description": "Necrons: Primary +8 VP",
+          "scorePlayerId": "p-b",
+          "scoreDelta": 8
+        }
+      ],
+      "leaderChanges": [
+        "Zmiana prowadzenia po zapisanym punktowaniu: Necrons (8 VP)."
+      ]
+    },
+    {
+      "round": 3,
+      "highlights": [
+        {
+          "id": "event-01b05e8b-c2c1-4322-8639-035d877425f5",
+          "event": {
+            "type": "MISSION_ACTION_COMPLETED",
+            "payload": {
+              "actionId": "example-mission",
+              "endedRound": 3,
+              "endedTurn": 3
+            },
+            "id": "event-01b05e8b-c2c1-4322-8639-035d877425f5",
+            "actionId": "action-bb9f3159-5e67-417f-b010-f2c91b883cb5",
+            "timestamp": "2026-10-13T09:27:06.995Z",
+            "undoable": true
+          },
+          "round": 3,
+          "phase": "SHOOTING",
+          "turnPlayerId": "p-a",
+          "playerIds": [
+            "p-a"
+          ],
+          "category": "actions",
+          "highlight": true,
+          "description": "Custodian Guard: Recon completed",
+          "missionAction": {
+            "id": "example-mission",
+            "playerId": "p-a",
+            "unitId": "infantry",
+            "type": "CUSTOM",
+            "name": "Recon",
+            "status": "ACTIVE",
+            "startedRound": 3,
+            "startedTurn": 3
+          },
+          "missionWasActive": true
+        },
+        {
+          "id": "event-0f97a2e8-bd69-4597-b22e-f6fd571f5ef0",
+          "event": {
+            "type": "SCORE_ADJUSTED",
+            "payload": {
+              "playerId": "p-c",
+              "category": "primary",
+              "delta": 6
+            },
+            "id": "event-0f97a2e8-bd69-4597-b22e-f6fd571f5ef0",
+            "actionId": "action-bb9f3159-5e67-417f-b010-f2c91b883cb5",
+            "timestamp": "2026-10-13T09:27:06.995Z",
+            "undoable": true
+          },
+          "round": 3,
+          "phase": "SHOOTING",
+          "turnPlayerId": "p-a",
+          "playerIds": [
+            "p-c"
+          ],
+          "category": "vp",
+          "highlight": true,
+          "description": "Aeldari: Primary +6 VP",
+          "scorePlayerId": "p-c",
+          "scoreDelta": 6
+        }
+      ],
+      "leaderChanges": []
+    },
+    {
+      "round": 4,
+      "highlights": [
+        {
+          "id": "event-427144af-03e3-44bd-9b6a-fd2cb4d43df2",
+          "event": {
+            "type": "UNIT_DESTROYED",
+            "payload": {
+              "playerId": "p-b",
+              "unitId": "tank",
+              "destroyedByPlayerId": "p-a",
+              "attackerUnitId": "tank",
+              "note": "Potwierdzona eliminacja."
+            },
+            "id": "event-427144af-03e3-44bd-9b6a-fd2cb4d43df2",
+            "actionId": "action-bb9f3159-5e67-417f-b010-f2c91b883cb5",
+            "timestamp": "2026-10-13T09:27:06.995Z",
+            "undoable": true
+          },
+          "round": 4,
+          "phase": "SHOOTING",
+          "turnPlayerId": "p-a",
+          "playerIds": [
+            "p-b",
+            "p-a"
+          ],
+          "category": "kills",
+          "highlight": true,
+          "description": "Caladius Grav-Tank (Custodes) → Doomsday Ark (Necrons) destroyed",
+          "note": "Potwierdzona eliminacja.",
+          "unitChange": {
+            "target": {
+              "playerId": "p-b",
+              "unitId": "tank",
+              "name": "Doomsday Ark"
+            },
+            "attacker": {
+              "playerId": "p-a",
+              "unitId": "tank",
+              "name": "Caladius Grav-Tank"
+            },
+            "attackerPlayerId": "p-a",
+            "modelsBefore": 1,
+            "modelsAfter": 0,
+            "woundsBefore": 14,
+            "woundsAfter": 0,
+            "destroyedBefore": false,
+            "destroyedAfter": true,
+            "correction": false
+          }
+        },
+        {
+          "id": "event-00006c72-6238-4f49-9a2e-958d36acc08c",
+          "event": {
+            "type": "OBJECTIVE_CONTROL_CHANGED",
+            "payload": {
+              "objectiveId": "CENTER",
+              "controllerPlayerId": "p-a"
+            },
+            "id": "event-00006c72-6238-4f49-9a2e-958d36acc08c",
+            "actionId": "action-bb9f3159-5e67-417f-b010-f2c91b883cb5",
+            "timestamp": "2026-10-13T09:27:06.995Z",
+            "undoable": true
+          },
+          "round": 4,
+          "phase": "SHOOTING",
+          "turnPlayerId": "p-a",
+          "playerIds": [
+            "p-a"
+          ],
+          "category": "objectives",
+          "highlight": true,
+          "description": "CENTER: Custodes",
+          "objectiveId": "CENTER",
+          "objectiveName": "CENTER",
+          "objectiveControllerPlayerId": "p-a"
+        },
+        {
+          "id": "event-39b20267-0892-4767-83f6-7b6edd20c956",
+          "event": {
+            "type": "SCORE_ADJUSTED",
+            "payload": {
+              "playerId": "p-a",
+              "category": "secondary",
+              "delta": 5
+            },
+            "id": "event-39b20267-0892-4767-83f6-7b6edd20c956",
+            "actionId": "action-bb9f3159-5e67-417f-b010-f2c91b883cb5",
+            "timestamp": "2026-10-13T09:27:06.995Z",
+            "undoable": true
+          },
+          "round": 4,
+          "phase": "SHOOTING",
+          "turnPlayerId": "p-a",
+          "playerIds": [
+            "p-a"
+          ],
+          "category": "vp",
+          "highlight": true,
+          "description": "Custodes: Secondary +5 VP",
+          "scorePlayerId": "p-a",
+          "scoreDelta": 5
+        }
+      ],
+      "leaderChanges": [
+        "Zmiana prowadzenia po zapisanym punktowaniu: Custodes (10 VP)."
+      ]
+    },
+    {
+      "round": 5,
+      "highlights": [
+        {
+          "id": "event-9bf42bc2-5327-4f9f-96a5-6bf77add34df",
+          "event": {
+            "type": "SCORE_ADJUSTED",
+            "payload": {
+              "playerId": "p-a",
+              "category": "primary",
+              "delta": 12
+            },
+            "id": "event-9bf42bc2-5327-4f9f-96a5-6bf77add34df",
+            "actionId": "action-bb9f3159-5e67-417f-b010-f2c91b883cb5",
+            "timestamp": "2026-10-13T09:27:06.995Z",
+            "undoable": true
+          },
+          "round": 5,
+          "phase": "SHOOTING",
+          "turnPlayerId": "p-a",
+          "playerIds": [
+            "p-a"
+          ],
+          "category": "vp",
+          "highlight": true,
+          "description": "Custodes: Primary +12 VP",
+          "scorePlayerId": "p-a",
+          "scoreDelta": 12
+        },
+        {
+          "id": "event-869310fd-2c04-4c7e-a28c-60019c3dc30c",
+          "event": {
+            "type": "SCORE_ADJUSTED",
+            "payload": {
+              "playerId": "p-b",
+              "category": "primary",
+              "delta": 10
+            },
+            "id": "event-869310fd-2c04-4c7e-a28c-60019c3dc30c",
+            "actionId": "action-bb9f3159-5e67-417f-b010-f2c91b883cb5",
+            "timestamp": "2026-10-13T09:27:06.995Z",
+            "undoable": true
+          },
+          "round": 5,
+          "phase": "SHOOTING",
+          "turnPlayerId": "p-a",
+          "playerIds": [
+            "p-b"
+          ],
+          "category": "vp",
+          "highlight": true,
+          "description": "Necrons: Primary +10 VP",
+          "scorePlayerId": "p-b",
+          "scoreDelta": 10
+        },
+        {
+          "id": "event-c8a4d634-331a-4bea-b36e-77039a7887a5",
+          "event": {
+            "type": "SCORE_ADJUSTED",
+            "payload": {
+              "playerId": "p-c",
+              "category": "primary",
+              "delta": 10
+            },
+            "id": "event-c8a4d634-331a-4bea-b36e-77039a7887a5",
+            "actionId": "action-bb9f3159-5e67-417f-b010-f2c91b883cb5",
+            "timestamp": "2026-10-13T09:27:06.995Z",
+            "undoable": true
+          },
+          "round": 5,
+          "phase": "SHOOTING",
+          "turnPlayerId": "p-a",
+          "playerIds": [
+            "p-c"
+          ],
+          "category": "vp",
+          "highlight": true,
+          "description": "Aeldari: Primary +10 VP",
+          "scorePlayerId": "p-c",
+          "scoreDelta": 10
+        }
+      ],
+      "leaderChanges": []
+    }
+  ],
+  "performance": {
+    "units": [
+      {
+        "playerId": "p-a",
+        "unitId": "infantry",
+        "name": "Custodian Guard",
+        "startingPoints": 170,
+        "startingModels": 4,
+        "startingWounds": 3,
+        "modelsDestroyed": 2,
+        "enemyPointsDestroyed": 85,
+        "kills": 0,
+        "destroyedEnemies": [],
+        "damageDealt": null,
+        "damagePartial": true,
+        "modelsLost": 1,
+        "remainingModels": 3,
+        "survived": true,
+        "completedMissionActions": 1,
+        "missionVp": null,
+        "combatRoi": 50
+      },
+      {
+        "playerId": "p-a",
+        "unitId": "tank",
+        "name": "Caladius Grav-Tank",
+        "startingPoints": 230,
+        "startingModels": 1,
+        "startingWounds": 14,
+        "modelsDestroyed": 1,
+        "enemyPointsDestroyed": 400,
+        "kills": 1,
+        "destroyedEnemies": [
+          {
+            "playerId": "p-b",
+            "unitId": "tank",
+            "name": "Doomsday Ark",
+            "round": 4
+          }
+        ],
+        "damageDealt": null,
+        "damagePartial": true,
+        "modelsLost": 0,
+        "remainingModels": 1,
+        "remainingWounds": 14,
+        "survived": true,
+        "completedMissionActions": 0,
+        "missionVp": null,
+        "combatRoi": 173.91304347826087
+      },
+      {
+        "playerId": "p-a",
+        "unitId": "remainder",
+        "name": "Remainder",
+        "startingPoints": 1005,
+        "startingModels": 1,
+        "startingWounds": 10,
+        "modelsDestroyed": 0,
+        "enemyPointsDestroyed": 0,
+        "kills": 0,
+        "destroyedEnemies": [],
+        "damageDealt": null,
+        "damagePartial": true,
+        "modelsLost": 0,
+        "remainingModels": 1,
+        "remainingWounds": 10,
+        "survived": true,
+        "completedMissionActions": 0,
+        "missionVp": null,
+        "combatRoi": 0
+      },
+      {
+        "playerId": "p-b",
+        "unitId": "infantry",
+        "name": "Necron Warriors",
+        "startingPoints": 170,
+        "startingModels": 4,
+        "startingWounds": 3,
+        "modelsDestroyed": 1,
+        "enemyPointsDestroyed": 42.5,
+        "kills": 0,
+        "destroyedEnemies": [],
+        "damageDealt": null,
+        "damagePartial": true,
+        "modelsLost": 2,
+        "remainingModels": 2,
+        "survived": true,
+        "completedMissionActions": 0,
+        "missionVp": null,
+        "combatRoi": 25
+      },
+      {
+        "playerId": "p-b",
+        "unitId": "tank",
+        "name": "Doomsday Ark",
+        "startingPoints": 400,
+        "startingModels": 1,
+        "startingWounds": 14,
+        "modelsDestroyed": 0,
+        "enemyPointsDestroyed": 0,
+        "kills": 0,
+        "destroyedEnemies": [],
+        "damageDealt": null,
+        "damagePartial": true,
+        "modelsLost": 1,
+        "remainingModels": 0,
+        "remainingWounds": 0,
+        "survived": false,
+        "completedMissionActions": 0,
+        "missionVp": null,
+        "combatRoi": 0,
+        "destructionRound": 4
+      },
+      {
+        "playerId": "p-b",
+        "unitId": "remainder",
+        "name": "Remainder",
+        "startingPoints": 1005,
+        "startingModels": 1,
+        "startingWounds": 10,
+        "modelsDestroyed": 0,
+        "enemyPointsDestroyed": 0,
+        "kills": 0,
+        "destroyedEnemies": [],
+        "damageDealt": null,
+        "damagePartial": true,
+        "modelsLost": 0,
+        "remainingModels": 1,
+        "remainingWounds": 10,
+        "survived": true,
+        "completedMissionActions": 0,
+        "missionVp": null,
+        "combatRoi": 0
+      },
+      {
+        "playerId": "p-c",
+        "unitId": "infantry",
+        "name": "Dire Avengers",
+        "startingPoints": 170,
+        "startingModels": 4,
+        "startingWounds": 3,
+        "modelsDestroyed": 0,
+        "enemyPointsDestroyed": 0,
+        "kills": 0,
+        "destroyedEnemies": [],
+        "damageDealt": null,
+        "damagePartial": true,
+        "modelsLost": 0,
+        "remainingModels": 4,
+        "survived": true,
+        "completedMissionActions": 0,
+        "missionVp": null,
+        "combatRoi": 0
+      },
+      {
+        "playerId": "p-c",
+        "unitId": "tank",
+        "name": "Single-model tank",
+        "startingPoints": 225,
+        "startingModels": 1,
+        "startingWounds": 14,
+        "modelsDestroyed": 0,
+        "enemyPointsDestroyed": 0,
+        "kills": 0,
+        "destroyedEnemies": [],
+        "damageDealt": null,
+        "damagePartial": true,
+        "modelsLost": 0,
+        "remainingModels": 1,
+        "remainingWounds": 14,
+        "survived": true,
+        "completedMissionActions": 0,
+        "missionVp": null,
+        "combatRoi": 0
+      },
+      {
+        "playerId": "p-c",
+        "unitId": "remainder",
+        "name": "Remainder",
+        "startingPoints": 1005,
+        "startingModels": 1,
+        "startingWounds": 10,
+        "modelsDestroyed": 0,
+        "enemyPointsDestroyed": 0,
+        "kills": 0,
+        "destroyedEnemies": [],
+        "damageDealt": null,
+        "damagePartial": true,
+        "modelsLost": 0,
+        "remainingModels": 1,
+        "remainingWounds": 10,
+        "survived": true,
+        "completedMissionActions": 0,
+        "missionVp": null,
+        "combatRoi": 0
+      }
+    ],
+    "armies": [
+      {
+        "playerId": "p-a",
+        "startingPoints": 1405,
+        "enemyPointsDestroyed": 485,
+        "ownPointsLost": 42.5,
+        "kills": 1,
+        "playerOnlyPoints": 0
+      },
+      {
+        "playerId": "p-b",
+        "startingPoints": 1575,
+        "enemyPointsDestroyed": 42.5,
+        "ownPointsLost": 485,
+        "kills": 0,
+        "playerOnlyPoints": 0
+      },
+      {
+        "playerId": "p-c",
+        "startingPoints": 1400,
+        "enemyPointsDestroyed": 0,
+        "ownPointsLost": 0,
+        "kills": 0,
+        "playerOnlyPoints": 0
+      }
+    ],
+    "awards": [
+      {
+        "title": "Executioner",
+        "rule": "Most net enemy model points destroyed; tied units share the award.",
+        "winners": [
+          {
+            "playerId": "p-a",
+            "unitId": "tank",
+            "name": "Caladius Grav-Tank"
+          }
+        ]
+      },
+      {
+        "title": "Objective Hero",
+        "rule": "Most explicitly completed Mission Actions; tied units share the award.",
+        "winners": [
+          {
+            "playerId": "p-a",
+            "unitId": "infantry",
+            "name": "Custodian Guard"
+          }
+        ]
+      },
+      {
+        "title": "Last Stand",
+        "rule": "Survived with model/wound losses and recorded combat contribution; most net enemy points, ties shared.",
+        "winners": [
+          {
+            "playerId": "p-a",
+            "unitId": "infantry",
+            "name": "Custodian Guard"
+          }
+        ]
+      }
+    ],
+    "unattributedPoints": 0,
+    "partial": false
+  },
+  "narrativeStyle": "war-chronicle",
+  "narrative": [
+    "Kronika — runda 1. Brak zapisanych kluczowych wydarzeń.",
+    "Kronika — runda 2. AB-NEUTRAL: kontrolę przejął Custodes. Custodes: zmiana wyniku o +5 VP. Necrons: zmiana wyniku o +8 VP. Zmiana prowadzenia po zapisanym punktowaniu: Necrons (8 VP).",
+    "Kronika — runda 3. Recon: ukończona przez Custodian Guard. Aeldari: zmiana wyniku o +6 VP.",
+    "Kronika — runda 4. W fazie ostrzału Doomsday Ark (Necrons) został zniszczony przez Caladius Grav-Tank (Custodes). Notatka gracza: „Potwierdzona eliminacja.”. CENTER: kontrolę przejął Custodes. Custodes: zmiana wyniku o +5 VP. Zmiana prowadzenia po zapisanym punktowaniu: Custodes (10 VP).",
+    "Kronika — runda 5. Custodes: zmiana wyniku o +12 VP. Necrons: zmiana wyniku o +10 VP. Aeldari: zmiana wyniku o +10 VP.",
+    "Zwycięzca: Custodes — 22 VP."
+  ]
+}

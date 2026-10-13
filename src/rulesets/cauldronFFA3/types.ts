@@ -44,6 +44,7 @@ export type CauldronGameInput = {
   officialSecondaryStrategy?: OfficialSecondaryStrategy
   officialSecondaryStrategies?: Record<string, OfficialSecondaryStrategy>
   officialLayout?: 1 | 2 | 3
+  battlefieldAttackerHomeZone?: 'A' | 'B'
   fixedSecondarySelections?: Record<string, [OfficialSecondaryId, OfficialSecondaryId]>
   gameId?: string
   createdAt?: string

@@ -10,6 +10,7 @@ import {
 } from '../stratagems/usage'
 import { resolveObjectiveController } from './objectives'
 import { combatAttributionError } from './combatAttribution'
+import { defaultBattlefieldGeometry, validateBattlefieldGeometry } from '../battlefield/layouts'
 import {
   BATTLE_PHASES,
   type BattleEvent,
@@ -31,6 +32,7 @@ export type CreateBattleInput = {
   maxRounds?: number
   guidanceLevel?: BattleSetup['guidanceLevel']
   rulesetConfig?: unknown
+  battlefieldAttackerHomeZone?: 'A' | 'B'
   createdAt?: string
 }
 
@@ -95,6 +97,7 @@ function validateSetup(input: CreateBattleInput): BattleSetup {
     maxRounds: Math.max(1, Math.floor(input.maxRounds ?? 5)),
     guidanceLevel: input.guidanceLevel ?? 'guided',
     rulesetConfig: input.rulesetConfig,
+    battlefieldAttackerHomeZone: input.battlefieldAttackerHomeZone,
     createdAt: input.createdAt ?? new Date().toISOString(),
   }
 }
@@ -131,6 +134,7 @@ function baseState(setup: BattleSetup): GameState {
     snapshots: { roundStart: [], turnStart: [] },
     timing: createEmptyTimingState(),
     missionActions: {},
+    battlefield: defaultBattlefieldGeometry(setup),
     events: [],
     createdAt: setup.createdAt,
     updatedAt: setup.createdAt,
@@ -180,6 +184,10 @@ function unitDefinition(setup: BattleSetup, playerId: string, unitId: string): U
 function applyEvent(state: GameState, event: BattleEvent, setup: BattleSetup): void {
   state.updatedAt = event.timestamp
   switch (event.type) {
+    case 'BATTLEFIELD_LAYOUT_CHANGED':
+      validateBattlefieldGeometry(setup, event.payload.geometry)
+      state.battlefield = structuredClone(event.payload.geometry)
+      return
     case 'GAME_STARTED':
       state.status = 'active'
       return

@@ -55,6 +55,7 @@ export default function BattleSetup() {
   const [officialStrategy, setOfficialStrategy] = useState<OfficialSecondaryStrategy>('tactical')
   const [duelStrategies, setDuelStrategies] = useState<Record<string, OfficialSecondaryStrategy>>({ 'player-a': 'tactical', 'player-b': 'tactical' })
   const [officialLayout, setOfficialLayout] = useState<1 | 2 | 3>(1)
+  const [attackerHomeZone, setAttackerHomeZone] = useState<'A' | 'B'>('A')
   const [fixedSelections, setFixedSelections] = useState<Record<string, [OfficialSecondaryId, OfficialSecondaryId]>>(
     Object.fromEntries(DEFAULT_PLAYERS.map((player) => [player.id, ['OFFICIAL_A_GRIEVOUS_BLOW', 'OFFICIAL_ENGAGE_ON_ALL_FRONTS']])) as Record<string, [OfficialSecondaryId, OfficialSecondaryId]>,
   )
@@ -173,6 +174,7 @@ export default function BattleSetup() {
         primaryDeck,
         primaryDeck === 'chapter-approved-duel' ? duelStrategies : undefined,
         primaryDeck === 'chapter-approved-duel' ? officialLayout : undefined,
+        primaryDeck === 'chapter-approved-duel' ? attackerHomeZone : undefined,
       )
       if (sharedMode) {
         const membership = await hostCurrentBattle(hostPlayerId)
@@ -281,6 +283,7 @@ export default function BattleSetup() {
             <option value="chapter-approved">Chapter Approved 2026–27 · 18 official cards</option>
           </select></label>}
           {primaryDeck === 'chapter-approved-duel' && <><p className="context-note">Secondary deck: Chapter Approved 2026–27. Each player chooses Tactical or Fixed on their card above. Pick the recommended layout for your pairing. Roll for Attacker/Defender, then roll separately for first turn as described in the <a href="https://assets.warhammer-community.com/eng_12-06_warhammer40000_event_companion-s3bfb5f9s1-ivswuij3fo.pdf" target="_blank" rel="noreferrer">Warhammer Event Companion</a>. Assign A/B HOME to your actual objectives and turn positions to the first-turn roll. The app’s central and expansion names are generic; use the physical layout to identify them.</p><label>Pairing layout<select value={officialLayout} onChange={(event) => setOfficialLayout(Number(event.target.value) as 1 | 2 | 3)}><option value={1}>Layout A</option><option value={2}>Layout B</option><option value={3}>Layout C</option></select></label></>}
+          {primaryDeck === 'chapter-approved-duel' && <label>Attacker HOME assignment<select value={attackerHomeZone} onChange={(event) => setAttackerHomeZone(event.target.value as 'A' | 'B')}><option value="A">A-HOME · Attacker / B-HOME · Defender</option><option value="B">B-HOME · Attacker / A-HOME · Defender</option></select></label>}
           {secondaryDeck === 'chapter-approved' && primaryDeck !== 'chapter-approved-duel' && <>
             <label>Secondary strategy<select value={officialStrategy} onChange={(event) => setOfficialStrategy(event.target.value as OfficialSecondaryStrategy)}>
               <option value="tactical">Tactical · draw two each Command phase</option>

@@ -1,5 +1,5 @@
-export const SHARED_SCHEMA_VERSION = 5
-export const SHARED_SCHEMA_MIGRATION = 'supabase/migrations/20260907110311_stabilize_shared_schema.sql'
+export const SHARED_SCHEMA_VERSION = 6
+export const SHARED_SCHEMA_MIGRATION = 'supabase/migrations/20261013094351_battlefield_geometry_host_policy.sql'
 
 function detail(error: unknown): string {
   return error instanceof Error ? error.message : String(error)

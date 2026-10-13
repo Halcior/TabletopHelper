@@ -93,6 +93,7 @@ export default function BattleDashboard() {
   const [phaseEndReviewOpen, setPhaseEndReviewOpen] = useState(false)
   const [terminalLogOpen, setTerminalLogOpen] = useState(false)
   const [terminalReportOpen, setTerminalReportOpen] = useState(false)
+  const [terminalBoardOpen, setTerminalBoardOpen] = useState(false)
   const [contextFocusItemId, setContextFocusItemId] = useState<string | null>(null)
   const [rulesDataProvider, setRulesDataProvider] = useState<RulesDataProvider | null>(null)
   const [rulesDataAttribution, setRulesDataAttribution] = useState<{ label: string; url: string } | null>(null)
@@ -523,6 +524,8 @@ export default function BattleDashboard() {
         />
         <button className="terminal-report-toggle" onClick={() => setTerminalReportOpen((current) => !current)}>{terminalReportOpen ? 'Hide Battle Report' : 'View Battle Report'}</button>
         {terminalReportOpen && <BattleReport session={session} />}
+        <button className="terminal-report-toggle" onClick={() => setTerminalBoardOpen((current) => !current)}>{terminalBoardOpen ? 'Hide battlefield replay' : 'View battlefield replay'}</button>
+        {terminalBoardOpen && <ObjectivesPanel session={session} dispatch={dispatch} />}
         {terminalLogOpen && <div className="battle-terminal-log"><BattleLog session={session} /></div>}
       </main> : <>
         <Scoreboard

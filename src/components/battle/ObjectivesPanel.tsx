@@ -1,12 +1,24 @@
 import type { BattleEventInput, BattleSession } from '../../domain/battle/types'
+import { useState } from 'react'
+import { BattlefieldBoard } from './BattlefieldBoard'
 
 type ObjectivesPanelProps = {
   session: BattleSession
   dispatch: (event: BattleEventInput) => void
   liveObjectiveIds?: string[]
+  focusObjectiveId?: string | null
 }
 
-export function ObjectivesPanel({ session, dispatch, liveObjectiveIds = [] }: ObjectivesPanelProps) {
+export function ObjectivesPanel(props: ObjectivesPanelProps) {
+  const [mode, setMode] = useState<'board' | 'list'>('board')
+  const [focusObjectiveId, setFocusObjectiveId] = useState<string | null>(null)
+  return <div className="objectives-workspace">
+    <nav className="objectives-view-switch" aria-label="Objective view"><button aria-pressed={mode === 'board'} onClick={() => setMode('board')}>Board</button><button aria-pressed={mode === 'list'} onClick={() => setMode('list')}>List</button></nav>
+    {mode === 'board' ? <BattlefieldBoard {...props} onOpenList={(id) => { setFocusObjectiveId(id); setMode('list') }} /> : <ObjectivesList {...props} focusObjectiveId={focusObjectiveId} />}
+  </div>
+}
+
+function ObjectivesList({ session, dispatch, liveObjectiveIds = [], focusObjectiveId }: ObjectivesPanelProps) {
   const players = session.state.turnOrder.map((id) => session.state.players[id])
   const objectives = Object.values(session.state.objectives)
     .sort((left, right) => Number(left.type === 'home') - Number(right.type === 'home'))
@@ -26,6 +38,7 @@ export function ObjectivesPanel({ session, dispatch, liveObjectiveIds = [] }: Ob
             </div>
             <div className="control-choices" role="group" aria-label={`Quick control for ${objective.name}`}>
               <button
+                disabled={session.state.status !== 'active'}
                 className={objective.controllerPlayerId === null ? 'selected' : ''}
                 aria-pressed={objective.controllerPlayerId === null}
                 onClick={() => dispatch({
@@ -34,6 +47,7 @@ export function ObjectivesPanel({ session, dispatch, liveObjectiveIds = [] }: Ob
               >None</button>
               {players.map((player) => (
                 <button
+                  disabled={session.state.status !== 'active'}
                   className={objective.controllerPlayerId === player.id ? 'selected' : ''}
                   aria-pressed={objective.controllerPlayerId === player.id}
                   key={player.id}
@@ -44,7 +58,7 @@ export function ObjectivesPanel({ session, dispatch, liveObjectiveIds = [] }: Ob
                 >{player.name}</button>
               ))}
             </div>
-            <details className="oc-mode">
+            <details className="oc-mode" open={focusObjectiveId === objective.id ? true : undefined}>
               <summary>OC mode</summary>
               {players.map((player) => {
                 const oc = objective.playerOC[player.id] ?? 0
@@ -52,12 +66,12 @@ export function ObjectivesPanel({ session, dispatch, liveObjectiveIds = [] }: Ob
                   <div className="oc-row" key={player.id}>
                     <span>{player.name}</span>
                     <div className="stepper">
-                      <button aria-label={`Reduce ${player.name} OC`} onClick={() => dispatch({
+                      <button disabled={session.state.status !== 'active'} aria-label={`Reduce ${player.name} OC`} onClick={() => dispatch({
                         type: 'OBJECTIVE_OC_CHANGED',
                         payload: { objectiveId: objective.id, playerId: player.id, oc: Math.max(0, oc - 1) },
                       })}>−</button>
                       <strong>{oc} OC</strong>
-                      <button aria-label={`Increase ${player.name} OC`} onClick={() => dispatch({
+                      <button disabled={session.state.status !== 'active'} aria-label={`Increase ${player.name} OC`} onClick={() => dispatch({
                         type: 'OBJECTIVE_OC_CHANGED',
                         payload: { objectiveId: objective.id, playerId: player.id, oc: oc + 1 },
                       })}>+</button>

@@ -17,6 +17,7 @@ test('official duel selects asymmetric matrix cards and scores the first turn', 
     await expect(page.locator('.ruleset-label').first()).toHaveText('Chapter Approved Duel 1v1')
     await expect(page.locator('.duel-primary-panel').first()).toContainText('Immovable Object')
     await page.getByRole('button', { name: 'objectives', exact: true }).click()
+    await page.getByRole('button', { name: 'List', exact: true }).click()
     await expect(page.locator('.objective-card')).toHaveCount(6)
     await page.getByRole('button', { name: 'overview', exact: true }).click()
     for (let phase = 0; phase < 6; phase += 1) await page.locator('.next-phase').click()

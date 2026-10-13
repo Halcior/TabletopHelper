@@ -36,6 +36,7 @@ test('three commanders with the same army freely choose balanced Primary mission
 
     await resolvePriorityTargetIfNeeded(page)
     await page.getByRole('button', { name: 'objectives', exact: true }).click()
+    await page.getByRole('button', { name: 'List', exact: true }).click()
     await page.getByRole('group', { name: 'Quick control for CENTER', exact: true }).getByRole('button', { name: 'Player I', exact: true }).click()
     await page.getByRole('button', { name: 'overview', exact: true }).click()
     for (const phase of ['Movement', 'Shooting', 'Charge', 'Fight', 'End']) {

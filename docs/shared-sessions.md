@@ -35,7 +35,7 @@ The browser keeps a persistent client ID. Mutating REST requests carry both `x-r
 - an event write must identify the same player seat in `actor_player_id` and the event payload;
 - the participant's room, client ID and player ID must match the request;
 - only the host client identity can update room lifecycle state;
-- only the host participant can publish a `STATE_CORRECTED` event;
+- only the host participant can publish `STATE_CORRECTED` and `BATTLEFIELD_LAYOUT_CHANGED` events;
 - an active player seat cannot be silently taken by a different device;
 - a stale non-host seat can be reclaimed after the presence timeout;
 - the host seat is not automatically transferred to a different browser identity.
@@ -73,7 +73,13 @@ For an existing development database, apply the cumulative compatibility migrati
 supabase/migrations/20260907110311_stabilize_shared_schema.sql
 ```
 
-The migration is idempotent. The Shared page checks `shared_schema_version()` before touching a room and reports this exact file when the backend is older than the app. New projects should still run the complete `supabase/shared_sessions.sql` bootstrap once.
+Then apply the version 6 host-only geometry policy:
+
+```text
+supabase/migrations/20261013094351_battlefield_geometry_host_policy.sql
+```
+
+Both migrations are idempotent. The Shared page requires `shared_schema_version() >= 6` before touching a room, ensuring geometry edits are protected by server RLS as well as the client policy. New projects should run the complete `supabase/shared_sessions.sql` bootstrap once.
 
 The schema explicitly grants only the required table, sequence, and RPC privileges to `anon`, then uses RLS and the room/client capability headers to scope rows. This remains private-play capability security, not authenticated public identity.
 
