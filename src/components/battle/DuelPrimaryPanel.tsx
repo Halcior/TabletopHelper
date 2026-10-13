@@ -11,12 +11,22 @@ const WINDOW_LABEL: Record<DuelReviewWindow, string> = {
   command: 'End of Command phase', turn: 'End of turn', battle: 'End of battle',
 }
 
-export function DuelPrimaryPanel({ session, playerId, window, editable }: {
+type DuelPrimaryPanelProps = {
   session: BattleSession
   playerId: string
   window?: DuelReviewWindow
   editable: boolean
-}) {
+}
+
+export function DuelPrimaryPanel(props: DuelPrimaryPanelProps) {
+  const { session, playerId, window } = props
+  // Keep drafts on tab switches, but require fresh checks in each scoring context.
+  const context = [session.setup.gameId, playerId, session.state.round,
+    session.state.activePlayerId, session.state.phase, window ?? 'none'].join(':')
+  return <DuelPrimaryForm key={context} {...props} />
+}
+
+function DuelPrimaryForm({ session, playerId, window, editable }: DuelPrimaryPanelProps) {
   const [selections, setSelections] = useState<Record<string, number>>({})
   const [error, setError] = useState('')
   const reviewDuelPrimary = useBattleStore((state) => state.reviewDuelPrimary)

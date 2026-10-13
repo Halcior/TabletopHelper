@@ -17,7 +17,16 @@ import { useBattleStore } from '../../stores/battleStore'
 import { OfficialSecondaryConfirmationFields } from './OfficialSecondaryConfirmationFields'
 import { InfoDisclosure } from '../ui/InfoDisclosure'
 
-export function OfficialSecondaryPanel({ session, playerId, editable }: { session: BattleSession; playerId: string; editable: boolean }) {
+type OfficialSecondaryPanelProps = { session: BattleSession; playerId: string; editable: boolean }
+
+export function OfficialSecondaryPanel(props: OfficialSecondaryPanelProps) {
+  const { session, playerId } = props
+  // Local confirmations and discard/action drafts belong to this player's phase.
+  const context = [session.setup.gameId, playerId, officialTurnKey(session), session.state.phase].join(':')
+  return <OfficialSecondaryForm key={context} {...props} />
+}
+
+function OfficialSecondaryForm({ session, playerId, editable }: OfficialSecondaryPanelProps) {
   const [selectedVp, setSelectedVp] = useState<Record<string, number>>({})
   const [selectedDiscard, setSelectedDiscard] = useState<OfficialSecondaryId[]>([])
   const [notes, setNotes] = useState<Record<string, string>>({})

@@ -65,6 +65,13 @@ presentation state only. Scores, units, objectives and replay snapshots still
 come from the existing store/event projections. Leaving the Board closes its
 control sheet without discarding an editor draft.
 
+Primary and Chapter Approved Secondary forms retain drafts only within the same
+scoring context. Changing the battle, player, active turn, round, phase or Primary
+review window remounts the transient form. Previous checks, award selections,
+discard selections and action drafts cannot carry into another player's turn or
+another scoring window. Confirmed choices and awards still come from the event log.
+This also applies when a previously visited Cards panel is hidden during a transition.
+
 Objective-label placement and lead-change/highlight ranking are isolated in
 presentation helpers. They do not change marker coordinates, Chronicle event
 semantics, combat values or scores. The VP chart uses engine replay frames;
@@ -114,7 +121,8 @@ CAPTURE_UI2=1 npm run test:e2e
 | `npx tsc --noEmit` | Passed |
 | `npm test -- --run` | 475 tests passed in 62 files |
 | `npm run build` | Passed; existing large-chunk warning only |
-| `CAPTURE_UI2=1 npm run test:e2e` | All 31 scenarios passed, including the capture workflow |
+| `CAPTURE_UI2=1 npm run test:e2e` | Original 31 scenarios passed, including the capture workflow |
+| `npm run test:e2e` after review fix | All 33 scenarios passed, including two scoring-context regressions |
 | Focused report navigation / print regression | Passed after ensuring standout links reveal a unit excluded by the player filter |
 | `git diff --check` | Passed |
 
@@ -124,6 +132,8 @@ The verification scenarios cover:
   768 × 1024, 1280 × 900 and 1920 × 1080.
 - Mobile navigation, menu keys, CP focus/return, saved form and editor drafts,
   unobstructed fixed actions, priority-card placement and nonoverlapping labels.
+- Fresh Primary confirmations and Secondary action/discard drafts after changes
+  of player, round, phase and scoring window, including transitions while Cards is hidden.
 - Setup validation, unique zones/turns, distinct Fixed cards, retained choices
   and the absence of sessions created between steps.
 - Compact live combat feedback, Chronicle access, reduced motion and quiet reload.
