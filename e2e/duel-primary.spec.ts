@@ -18,6 +18,7 @@ test('official duel selects asymmetric matrix cards and scores the first turn', 
     await setupBattlefield(page)
     await page.getByRole('button', { name: 'Start locally' }).click()
     await expect(page).toHaveURL(/\/battle\//)
+    await expect(page.getByRole('button', { name: 'Keep cards', exact: true })).toBeVisible()
     await dismissSecondaryReveal(page)
     await expect(page.locator('.ruleset-label').first()).toHaveText('Chapter Approved Duel 1v1')
     await expect(page.locator('.duel-primary-panel').first()).toContainText('Immovable Object')

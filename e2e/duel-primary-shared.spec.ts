@@ -1,6 +1,6 @@
 import { setupBattlefield, setupRules, setupCommanders } from './helpers'
 import { expect, test } from '@playwright/test'
-import { importTestArmy, phone, scoreCard } from './helpers'
+import { dismissSecondaryReveal, importTestArmy, phone, scoreCard } from './helpers'
 import { MockSupabase } from './mockSupabase'
 
 test('two phones review their own asymmetric Primary, including opponent-turn Punishment', async ({ browser }) => {
@@ -27,6 +27,8 @@ test('two phones review their own asymmetric Primary, including opponent-turn Pu
     for (const page of [alpha.page, bravo.page]) await page.getByRole('button', { name: 'I am ready' }).click()
     await alpha.page.getByRole('button', { name: 'Start battle' }).click()
     await Promise.all([alpha.page, bravo.page].map((page) => expect(page).toHaveURL(/\/battle\//)))
+    await expect(alpha.page.getByRole('button', { name: 'Keep cards', exact: true })).toBeVisible()
+    await dismissSecondaryReveal(alpha.page)
     await expect(alpha.page.locator('.duel-primary-panel').first()).toContainText('Punishment')
     await expect(bravo.page.locator('.duel-primary-panel').first()).toContainText('Delaying Action')
     for (let i = 0; i < 6; i += 1) await alpha.page.locator('.next-phase').click()
@@ -39,6 +41,8 @@ test('two phones review their own asymmetric Primary, including opponent-turn Pu
     await expect(alpha.page.getByRole('button', { name: /End turn →/ })).toBeEnabled()
     await alpha.page.getByRole('button', { name: /End turn →/ }).click()
     await expect(bravo.page.locator('.battle-turn__mobile-meta')).toContainText('Player II')
+    await expect(bravo.page.getByRole('button', { name: 'Keep cards', exact: true })).toBeVisible()
+    await dismissSecondaryReveal(bravo.page)
     for (let i = 0; i < 6; i += 1) await bravo.page.locator('.next-phase').click()
     await expect(bravo.page.getByRole('heading', { name: 'End Turn · Chapter Approved' })).toBeVisible()
     const punishment = alpha.page.locator('.duel-primary-panel').filter({ hasText: 'Punishment' }).first()
