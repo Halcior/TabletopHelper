@@ -72,6 +72,13 @@ discard selections and action drafts cannot carry into another player's turn or
 another scoring window. Confirmed choices and awards still come from the event log.
 This also applies when a previously visited Cards panel is hidden during a transition.
 
+Wide desktop layouts use a full-width battle container with viewport-based gutters,
+matching the HUD and tabs. Combining those gutters with the old 1260px shell had
+collapsed the content to 100px at a 2560px viewport. The Secondary draw reveal now
+portals to the document body so animated battle panels cannot constrain its fixed
+scrim or dialog. Regression coverage at 2560px and 3440px verifies viewport coverage,
+dialog centering, a reachable dismissal button and readable widths across tabs.
+
 Objective-label placement and lead-change/highlight ranking are isolated in
 presentation helpers. They do not change marker coordinates, Chronicle event
 semantics, combat values or scores. The VP chart uses engine replay frames;
@@ -123,6 +130,7 @@ CAPTURE_UI2=1 npm run test:e2e
 | `npm run build` | Passed; existing large-chunk warning only |
 | `CAPTURE_UI2=1 npm run test:e2e` | Original 31 scenarios passed, including the capture workflow |
 | `npm run test:e2e` after review fix | All 33 scenarios passed, including two scoring-context regressions |
+| Wide-desktop regression tests | Both failed on the previous layout and pass after the container/portal fix |
 | Focused report navigation / print regression | Passed after ensuring standout links reveal a unit excluded by the player filter |
 | `git diff --check` | Passed |
 

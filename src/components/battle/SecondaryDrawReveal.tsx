@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { AppIcon } from '../AppIcon'
 import { getPlayerTurnNumber } from '../../domain/battle/missionActions'
 import type { BattleSession } from '../../domain/battle/types'
@@ -75,7 +76,8 @@ export function SecondaryDrawReveal({
 
   if (!open || !eligibleNow) return null
 
-  return <div className="secondary-draw-reveal" role="presentation">
+  // Animated battle panels establish a containing block for fixed descendants.
+  return createPortal(<div className="secondary-draw-reveal" role="presentation">
     <div className="secondary-draw-reveal__scrim" />
     <section className="secondary-draw-reveal__dialog" role="dialog" aria-modal="true" aria-labelledby="secondary-reveal-title">
       <div className="secondary-draw-reveal__header">
@@ -129,5 +131,5 @@ export function SecondaryDrawReveal({
         <button className="button button--gold" type="button" onClick={finish}>Start turn</button>
       </div>}
     </section>
-  </div>
+  </div>, document.body)
 }

@@ -130,7 +130,8 @@ summary { min-height: 44px; padding-block: 10px; cursor: pointer; font-size: var
 .phase-step > strong { font-size: 13px; font-weight: 550; white-space: nowrap; overflow: visible; text-overflow: clip; }
 .phase-step--current { color: var(--text); }
 .phase-step--current > strong { max-width: none; }
-.battle-content { padding: 24px max(calc((100vw - 1400px) / 2), 24px) calc(var(--battle-action-height) + 24px); }
+/* Viewport-based gutters need the full viewport width, not the legacy capped shell. */
+.battle-content { width: 100%; padding: 24px max(calc((100vw - 1400px) / 2), 24px) calc(var(--battle-action-height) + 24px); }
 .battle-tabs { top: var(--battle-hud-height, 88px); padding: 0 max(calc((100vw - 1400px) / 2), 24px); background: var(--surface-sunken); gap: 0; }
 .battle-tabs button { min-height: 52px; padding: 10px 12px; font-size: 14px; letter-spacing: 0; text-transform: none; display: flex; justify-content: center; align-items: center; gap: 8px; background: transparent; border-radius: 0; }
 .battle-tabs .battle-tabs__more { display: none; }
