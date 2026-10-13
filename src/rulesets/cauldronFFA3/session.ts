@@ -126,6 +126,7 @@ export function createCauldronGame(input: CauldronGameInput): BattleSession {
     maxRounds: CAULDRON_BATTLE_ROUNDS,
     guidanceLevel: input.guidanceLevel,
     rulesetConfig: config,
+    battlefieldAttackerHomeZone: input.battlefieldAttackerHomeZone,
   })
   session = dispatchBattleEvents(session, [
     cauldronEvent('ROUND_SNAPSHOT_CAPTURED', captureRoundSnapshot(session, 1)),

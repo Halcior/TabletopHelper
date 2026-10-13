@@ -1,0 +1,82 @@
+.objectives-workspace { min-width: 0; }
+.objectives-view-switch { display: flex; gap: 8px; margin-bottom: 14px; }
+.objectives-view-switch button { min-height: 44px; min-width: 84px; }
+.objectives-view-switch [aria-pressed="true"], .battlefield-tools [aria-pressed="true"] { background: color-mix(in srgb, var(--gold) 12%, var(--panel)); border-color: var(--gold); color: var(--gold-bright); }
+.battlefield-board { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); }
+.battlefield-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.battlefield-heading h3 { margin: 4px 0; font-size: 1.25rem; }
+.battlefield-heading p { margin: 6px 0; color: var(--muted); font-family: var(--font-mono); font-size: .85rem; }
+.battlefield-tools { display: flex; flex-wrap: wrap; gap: 8px; }
+.battlefield-tools button { min-height: 44px; }
+.battlefield-source { display: grid; gap: 8px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius-md); }
+.battlefield-source a { color: var(--gold-bright); font-size: .85rem; }
+.battlefield-source label { display: grid; gap: 6px; font-size: .85rem; }
+.battlefield-source select { width: 100%; min-height: 44px; min-width: 0; }
+.battlefield-source small, .battlefield-schematic-note, .battlefield-table-note { color: var(--muted); font-size: .85rem; line-height: 1.5; margin: 0; }
+.battlefield-player-legend { display: flex; gap: 8px; flex-wrap: wrap; }
+.battlefield-player { display: flex; align-items: center; gap: 5px; border: 1px solid var(--line); padding: 7px 10px; font-size: .8rem; border-radius: 4px; }
+.battlefield-player--0 { --legend-color: var(--player-0); }
+.battlefield-player--1 { --legend-color: var(--player-1); }
+.battlefield-player--2 { --legend-color: var(--player-2); }
+.battlefield-player i { display: block; width: 6px; height: 6px; border-radius: 50%; background: var(--legend-color); }
+.battlefield-player.is-active { border-color: var(--legend-color); color: var(--legend-color); }
+.battlefield-frame { padding: 32px 28px 44px; border: 1px solid var(--line-strong); border-radius: var(--radius-lg); background: radial-gradient(ellipse at center, #182224, #0c1112); width: min(100%, 780px); margin-inline: auto; }
+.battlefield-canvas { position: relative; width: 100%; border: 1px solid var(--line-strong); background: #0a1113; color: #526267; }
+.battlefield-canvas > svg { position: absolute; width: 100%; height: 100%; inset: 0; pointer-events: none; }
+.battlefield-territory { stroke: var(--muted); }
+.objective-node { --node-color: var(--muted); position: absolute; transform: translate(-50%, -50%); width: 44px; height: 44px; min-width: 44px; min-height: 44px; padding: 0; border: 2px solid var(--node-color); background: #121c1f; border-radius: 50%; display: grid; place-items: center; color: var(--node-color); box-shadow: 0 3px 16px rgb(0 0 0 / 40%); touch-action: manipulation; transition: border-color 220ms ease, color 220ms ease, background-color 220ms ease; z-index: 2; }
+.objective-node--player-0 { --node-color: var(--player-0); }
+.objective-node--player-1 { --node-color: var(--player-1); }
+.objective-node--player-2 { --node-color: var(--player-2); }
+.objective-node__symbol { font-family: var(--font-mono); font-size: .95rem; font-weight: 800; }
+.objective-node__label { position: absolute; top: calc(100% + 4px); width: max-content; max-width: 92px; font-size: .7rem; font-family: var(--font-mono); line-height: 1.15; color: var(--paper); background: #0b1215; padding: 2px 3px; border-radius: 3px; white-space: nowrap; pointer-events: none; }
+.objective-node__owner { position: absolute; bottom: calc(100% + 4px); max-width: 88px; width: max-content; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; font-size: .7rem; line-height: 1.15; background: #0b1215; padding: 2px 3px; border-radius: 3px; pointer-events: none; }
+.objective-node.is-active-home { outline: 1px dashed var(--gold); outline-offset: 4px; }
+.objective-node[aria-pressed="true"] { box-shadow: 0 0 0 4px color-mix(in srgb, var(--node-color) 20%, transparent); }
+.objective-node.is-editing { touch-action: none; cursor: grab; }
+.battlefield-frame.is-editing { border-color: var(--gold); }
+.objective-node--live .objective-node__symbol { animation: board-control-confirm 250ms ease-out; }
+@keyframes board-control-confirm { from { opacity: .3; transform: scale(.85); } to { opacity: 1; transform: scale(1); } }
+.battlefield-objective-sheet { position: fixed; z-index: 130; left: 50%; bottom: calc(116px + env(safe-area-inset-bottom)); transform: translateX(-50%); width: min(440px, calc(100vw - 24px)); padding: 16px; box-shadow: var(--shadow); }
+.battlefield-objective-sheet__heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.battlefield-objective-sheet__heading h4 { margin: 4px 0; font-size: 1.1rem; }
+.battlefield-objective-sheet__heading small { color: var(--muted); }
+.battlefield-objective-sheet__heading > button { width: 44px; min-height: 44px; padding: 0; font-size: 1.3rem; }
+.battlefield-objective-sheet__choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.battlefield-objective-sheet__choices button { min-height: 44px; font-size: .85rem; }
+.objective-choice--player-0 { color: var(--player-0); }
+.objective-choice--player-1 { color: var(--player-1); }
+.objective-choice--player-2 { color: var(--player-2); }
+.battlefield-objective-sheet__choices [aria-pressed="true"] { border-color: var(--gold); }
+.battlefield-open-oc { min-height: 44px; width: 100%; margin-top: 8px; }
+.battlefield-editor, .battlefield-replay, .battlefield-unplaced, .battlefield-round-highlights { padding: 16px; }
+.battlefield-editor h4, .battlefield-unplaced h4 { margin-top: 0; }
+.battlefield-editor p, .battlefield-unplaced p { color: var(--muted); font-size: .85rem; line-height: 1.5; }
+.battlefield-editor__dimensions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.battlefield-editor__dimensions label { display: grid; gap: 6px; font-size: .85rem; }
+.battlefield-editor__dimensions input { min-width: 0; width: 100%; min-height: 44px; }
+.battlefield-editor__presets, .battlefield-editor__actions, .battlefield-unplaced > div { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.battlefield-editor__presets button, .battlefield-editor__actions button, .battlefield-unplaced button { min-height: 44px; }
+.battlefield-editor__lock { display: flex; gap: 10px; align-items: center; min-height: 44px; font-size: .85rem; margin-top: 10px; }
+.battlefield-editor__lock input { min-height: 0; width: 18px; height: 18px; accent-color: var(--gold); }
+.battlefield-replay__heading { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; font-size: .85rem; }
+.battlefield-replay > label { display: grid; gap: 6px; margin: 12px 0; color: var(--muted); font-size: .85rem; }
+.battlefield-replay input { width: 100%; min-height: 44px; accent-color: var(--gold); padding: 0; }
+.battlefield-replay__rounds { display: flex; gap: 8px; }
+.battlefield-replay__rounds button { flex: 1; min-height: 44px; padding: 6px; }
+.battlefield-replay__rounds [aria-pressed="true"] { border-color: var(--gold); color: var(--gold-bright); }
+.battlefield-replay p { color: var(--muted); font-size: .85rem; }
+.battlefield-replay__scores { display: flex; flex-wrap: wrap; gap: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.battlefield-replay__scores span { font-size: .8rem; color: var(--muted); }
+.battlefield-replay__scores strong { color: var(--paper); margin-left: 6px; }
+.battlefield-round-highlights summary { cursor: pointer; min-height: 44px; }
+.battlefield-round-highlights li { font-size: .85rem; line-height: 1.5; padding: 4px 0; }
+@media (max-width: 600px) {
+  .battlefield-heading { flex-direction: column; }
+  .battlefield-tools { width: 100%; }
+  .battlefield-tools button { flex: 1 1 auto; padding-inline: 10px; font-size: .8rem; }
+  .battlefield-frame { padding: 28px 24px 40px; }
+  .objective-node__label { max-width: 100px; font-size: .72rem; }
+  .objective-node__owner { font-size: .72rem; }
+}
+@media (prefers-reduced-motion: reduce) { .objective-node { transition: none !important; } .objective-node--live .objective-node__symbol { animation: none !important; } }

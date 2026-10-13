@@ -22,4 +22,5 @@
 @import './turnFlowUx.css' layer(responsive);
 
 @import './battleChronicle.css' layer(polish);
+@import './battlefield.css' layer(polish);
 @import './tacticalTheme.css' layer(polish);

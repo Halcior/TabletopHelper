@@ -1,5 +1,6 @@
 import type { Army, UnitState } from '../army/types'
 import type { ReactionWindow, TimingState } from '../stratagems/types'
+import type { BattlefieldGeometry } from '../battlefield/types'
 
 export const BATTLE_PHASES = [
   'COMMAND',
@@ -41,6 +42,7 @@ export type BattleSetup = {
   maxRounds: number
   guidanceLevel: GuidanceLevel
   rulesetConfig?: unknown
+  battlefieldAttackerHomeZone?: 'A' | 'B'
   createdAt: string
 }
 
@@ -132,6 +134,7 @@ export type BattleEvent = BattleEventMetadata & (
   | { type: 'CP_SPENT'; payload: { playerId: string; amount: number } }
   | { type: 'SCORE_ADJUSTED'; payload: { playerId: string; category: ScoreCategory; delta: number } }
   | { type: 'STATE_CORRECTED'; payload: { correction: BattleCorrection; reason: string } }
+  | { type: 'BATTLEFIELD_LAYOUT_CHANGED'; payload: { geometry: BattlefieldGeometry } }
   | {
     type: 'UNIT_MODEL_DESTROYED'
     payload: { playerId: string; unitId: string; amount: number } & CombatAttribution
@@ -206,6 +209,7 @@ export type GameState = {
   }
   timing: TimingState
   missionActions: Record<string, MissionActionState>
+  battlefield?: BattlefieldGeometry
   events: BattleEvent[]
   createdAt: string
   updatedAt: string
