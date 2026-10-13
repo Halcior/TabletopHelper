@@ -197,6 +197,38 @@ describe('mission attribution, timeline and offline report', () => {
     expect(stats(session).completedMissionActions).toBe(1)
   })
 
+  it.each(['primary', 'plan', 'adjustment'] as const)('preserves confirmed action VP after a %s score correction', (category) => {
+    let session = dispatchBattleEvent(officialGame(), { type: 'PHASE_CHANGED', payload: { phase: 'SHOOTING' } })
+    session = startOfficialSecondaryAction(session, 'p-a', 'OFFICIAL_PLUNDER', 'tank', 'Ruins', { terrainWhollyOutsideOwnTerritory: true })
+    session = dispatchBattleEvent(session, { type: 'PHASE_CHANGED', payload: { phase: 'END_TURN' } })
+    session = scoreOfficialSecondary(session, 'p-a', 'OFFICIAL_PLUNDER', 5)
+    session = dispatchBattleEvent(session, { type: 'STATE_CORRECTED', payload: { correction: { kind: 'SCORE', playerId: 'p-a', category, value: 8 }, reason: 'Correct a separate score category' } })
+    expect(stats(session).missionVp).toBe(5)
+  })
+
+  it('keeps new explicit action VP after an earlier Secondary correction', () => {
+    let session = dispatchBattleEvent(officialGame(), { type: 'PHASE_CHANGED', payload: { phase: 'SHOOTING' } })
+    session = startOfficialSecondaryAction(session, 'p-a', 'OFFICIAL_CLEANSE', 'infantry', 'AB-NEUTRAL')
+    session = startOfficialSecondaryAction(session, 'p-a', 'OFFICIAL_PLUNDER', 'tank', 'Ruins', { terrainWhollyOutsideOwnTerritory: true })
+    session = dispatchBattleEvents(session, [{ type: 'OBJECTIVE_CONTROL_CHANGED', payload: { objectiveId: 'AB-NEUTRAL', controllerPlayerId: 'p-a' } }, { type: 'PHASE_CHANGED', payload: { phase: 'END_TURN' } }])
+    session = scoreOfficialSecondary(session, 'p-a', 'OFFICIAL_CLEANSE', 2, { completedCleanseObjectiveIds: ['AB-NEUTRAL'] })
+    session = dispatchBattleEvent(session, { type: 'STATE_CORRECTED', payload: { correction: { kind: 'SCORE', playerId: 'p-a', category: 'secondary', value: 1 }, reason: 'Earlier award overstated' } })
+    expect(stats(session, 'p-a', 'infantry').missionVp).toBeNull()
+    session = scoreOfficialSecondary(session, 'p-a', 'OFFICIAL_PLUNDER', 5)
+    expect(stats(session)).toMatchObject({ missionVp: 5, completedMissionActions: 1 })
+    expect(stats(session, 'p-a', 'infantry').missionVp).toBeNull()
+    expect(stats(deserializeBattleSession(serializeBattleSession(session))).missionVp).toBe(5)
+  })
+
+  it('keeps action attribution when a Secondary correction does not change the score', () => {
+    let session = dispatchBattleEvent(officialGame(), { type: 'PHASE_CHANGED', payload: { phase: 'SHOOTING' } })
+    session = startOfficialSecondaryAction(session, 'p-a', 'OFFICIAL_PLUNDER', 'tank', 'Ruins', { terrainWhollyOutsideOwnTerritory: true })
+    session = dispatchBattleEvent(session, { type: 'PHASE_CHANGED', payload: { phase: 'END_TURN' } })
+    session = scoreOfficialSecondary(session, 'p-a', 'OFFICIAL_PLUNDER', 5)
+    session = dispatchBattleEvent(session, { type: 'STATE_CORRECTED', payload: { correction: { kind: 'SCORE', playerId: 'p-a', category: 'secondary', value: 5 }, reason: 'Confirmed existing total' } })
+    expect(stats(session).missionVp).toBe(5)
+  })
+
   it('assigns phase/round from replay and detects OC-driven control changes', () => {
     const session = dispatchBattleEvents(testCauldronGame(), [ { type: 'ROUND_STARTED', payload: { round: 4 } }, { type: 'PHASE_CHANGED', payload: { phase: 'FIGHT' } }, kill(), { type: 'OBJECTIVE_OC_CHANGED', payload: { objectiveId: 'N1', playerId: 'p-c', oc: 2 } } ])
     const entries = buildBattleChronicle(session)

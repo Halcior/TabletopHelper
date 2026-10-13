@@ -65,5 +65,5 @@ Zwycięzca: Custodes — 22 VP.
 ## Zasady statystyk
 
 Punkty zniszczone są wartością netto utraconych modeli: koszt jednostki / początkowa liczba modeli. Wskrzeszenie lub korekta stanu cofa ostatnie przypisane straty, również z poprzednich rund. Kill otrzymuje sprawca ostatniego ciosu i znika po przywróceniu celu. ROI = punkty zniszczone / koszt własnej jednostki × 100%.
-Obrażenia obejmują wyłącznie zapisane spadki wounds jednostek jednomodelowych; pełne KO nie dopisuje obrażeń. Wartości bez jednoznacznego sprawcy jednostkowego pozostają na poziomie gracza. Kontrola objective nie daje automatycznie VP konkretnej jednostce. Wielojednostkowe nagrody VP nie są dzielone przez zgadywanie. Korekta wyniku usuwa pewność przypisania VP z akcji.
+Obrażenia obejmują wyłącznie zapisane spadki wounds jednostek jednomodelowych; pełne KO nie dopisuje obrażeń. Wartości bez jednoznacznego sprawcy jednostkowego pozostają na poziomie gracza. Kontrola objective nie daje automatycznie VP konkretnej jednostce. Wielojednostkowe nagrody VP nie są dzielone przez zgadywanie. Zmiana wyniku Secondary przez korektę usuwa pewność wcześniejszych VP z akcji. Inne kategorie i późniejsze potwierdzone nagrody zachowują przypisanie; tabela pokazuje znany wkład.
 Straty bez przypisanego gracza: 0 pkt. Punkty przypisane tylko do gracza: 0 pkt.

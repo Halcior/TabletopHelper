@@ -69,7 +69,6 @@ export function buildUnitPerformance(session: BattleSession, chronicle = buildBa
   const missions = new Map<string, MissionCredit>()
   const starts: Array<{ id: string; playerId: string; cardId: string; turnKey: string; target: string; unit: UnitReference }> = []
   const scoredMissionEvents = new Set<string>()
-  const correctedScores = new Set<string>()
 
   function retract(batches: Credit[], requested: number): void {
     let remaining = requested
@@ -131,7 +130,12 @@ export function buildUnitPerformance(session: BattleSession, chronicle = buildBa
       if (event.type === 'MISSION_ACTION_CANCELLED' || event.type === 'MISSION_ACTION_FAILED') missions.set(action.id, { unit: battleUnit(session, action.playerId, action.unitId), completed: false })
     }
 
-    if (event.type === 'STATE_CORRECTED' && event.payload.correction.kind === 'SCORE') correctedScores.add(event.payload.correction.playerId)
+    if (event.type === 'STATE_CORRECTED' && event.payload.correction.kind === 'SCORE'
+      && event.payload.correction.category === 'secondary' && entry.scoreDelta !== 0) {
+      // A changed Secondary total makes earlier action attribution uncertain.
+      // Other categories and later explicit awards retain their confirmed VP.
+      for (const unit of units) if (unit.playerId === event.payload.correction.playerId) unit.missionVp = null
+    }
     if (event.type !== 'RULESET_EVENT') continue
     const data = rulesetData(event)
     if (event.payload.action === 'SECONDARY_OFFICIAL_ACTION_STARTED' && typeof data.playerId === 'string'
@@ -198,7 +202,6 @@ export function buildUnitPerformance(session: BattleSession, chronicle = buildBa
   }
   for (const unit of units) {
     unit.combatRoi = unit.startingPoints > 0 ? unit.enemyPointsDestroyed / unit.startingPoints * 100 : null
-    if (correctedScores.has(unit.playerId)) unit.missionVp = null
     armyById.get(unit.playerId)!.ownPointsLost += unit.modelsLost * valuePerModel(unit)
   }
   return {

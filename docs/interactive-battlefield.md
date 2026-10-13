@@ -54,7 +54,7 @@ Next steps: reconcile mission-specific official counts in a separately reviewed 
 
 ## Verification and mobile captures
 
-Validation on the combined Chronicle + map implementation: `npx tsc --noEmit`, all 463 Vitest tests in 60 files, `npm run build`, and all 20 scenarios from `npm run test:e2e` pass. This includes unchanged Duel/FFA Primary and Secondary scenarios, mobile attribution/report exports, Board/List consistency, real touch dragging, invalid sizes, locking, geometry restoration, undo/redo, read-only Replay, three phone contexts, offline events, lost acknowledgements and reconnect.
+Validation on the combined Chronicle + map implementation: `npx tsc --noEmit`, all 468 Vitest tests in 60 files, `npm run build`, and all 20 scenarios from `npm run test:e2e` pass. This includes unchanged Duel/FFA Primary and Secondary scenarios, mobile attribution/report exports, Board/List consistency, real touch dragging, invalid sizes, locking, geometry restoration, undo/redo, read-only Replay, three phone contexts, offline events, lost acknowledgements and reconnect.
 
 The installed Supabase schema was separately verified with `supabase/tests/battlefield_geometry_rls.sql`: the actual `anon` role can publish host geometry and peer objective control, while peer geometry, host impersonation and peer corrections are rejected. The check rolls back every test row. Schema version is 6 and the Supabase security advisor reports no lints. Existing shared battles and tables are preserved.
 
