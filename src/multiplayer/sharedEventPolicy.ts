@@ -1,4 +1,5 @@
 import type { BattleEvent, BattleSession } from '../domain/battle/types'
+import { combatAttributionError } from '../domain/battle/combatAttribution'
 import type { SharedMembership } from './types'
 
 export type SharedMutationDecision = {
@@ -161,6 +162,8 @@ export function authorizeSharedAction(
   const automaticBeneficiary = automaticCasualtyBeneficiary(events, viewerPlayerId)
 
   for (const event of events) {
+    const attributionError = combatAttributionError(sessionBefore.setup, event)
+    if (attributionError) return deny(attributionError)
     if (event.type === 'GAME_STARTED' || event.type === 'GAME_ENDED' || event.type === 'GAME_ABANDONED') continue
     if (TURN_OWNER_EVENTS.has(event.type)) continue
     if (event.type === 'REACTION_WINDOW_RESOLVED') continue

@@ -9,6 +9,7 @@ import {
   resetTurnUsage,
 } from '../stratagems/usage'
 import { resolveObjectiveController } from './objectives'
+import { combatAttributionError } from './combatAttribution'
 import {
   BATTLE_PHASES,
   type BattleEvent,
@@ -445,6 +446,10 @@ export function dispatchBattleEvents(session: BattleSession, inputs: BattleEvent
   if (session.state.status !== 'active' && inputs.length > 0) {
     throw new Error(`The battle is ${session.state.status} and can no longer be changed.`)
   }
+  for (const input of inputs) {
+    const error = combatAttributionError(session.setup, input)
+    if (error) throw new Error(error)
+  }
   const actionId = options.actionId ?? createId('action')
   const timestamp = options.timestamp ?? new Date().toISOString()
   const events = inputs.map((input) => materializeEvent(input, {
@@ -455,6 +460,26 @@ export function dispatchBattleEvents(session: BattleSession, inputs: BattleEvent
   }))
   const history = [...session.state.events, ...events]
   return { setup: session.setup, state: projectState(session.setup, history), redoActions: [] }
+}
+
+/**
+ * Read-only observers see the same transient projection before/after each event.
+ * Copy only the fields needed by an observer; never retain or mutate this state.
+ * One pass uses the engine's reducers, including corrections and restoration.
+ */
+export function visitBattleHistory(session: BattleSession, observer: {
+  before?: (event: BattleEvent, state: Readonly<GameState>) => void
+  after?: (event: BattleEvent, state: Readonly<GameState>) => void
+}): void {
+  const state = baseState(session.setup)
+  const seen = new Set<string>()
+  for (const event of session.state.events) {
+    if (seen.has(event.id)) continue
+    seen.add(event.id)
+    observer.before?.(event, state)
+    applyEvent(state, event, session.setup)
+    observer.after?.(event, state)
+  }
 }
 
 export function createBattleSession(input: CreateBattleInput): BattleSession {

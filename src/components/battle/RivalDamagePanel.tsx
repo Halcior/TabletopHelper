@@ -55,6 +55,14 @@ export function RivalDamagePanel({
   const [victimPlayerId, setVictimPlayerId] = useState(defaultVictimId)
   const [query, setQuery] = useState('')
   const [notice, setNotice] = useState<DamageNotice | null>(null)
+  const [unitChoices, setUnitChoices] = useState<Record<string, string>>({})
+  const setupAttacker = session.setup.players.find((player) => player.id === attackerPlayerId)
+  const attackingUnits = setupAttacker?.armyId ? session.setup.armies[setupAttacker.armyId]?.units ?? [] : []
+  const lastAttributed = [...session.state.events].reverse().find((event) => (event.type === 'UNIT_DESTROYED' || event.type === 'UNIT_MODEL_DESTROYED' || event.type === 'UNIT_WOUNDS_CHANGED') && event.payload.destroyedByPlayerId === attackerPlayerId && event.payload.attackerUnitId)
+  const suggestion = lastAttributed && 'attackerUnitId' in lastAttributed.payload ? lastAttributed.payload.attackerUnitId ?? '' : ''
+  const chosenUnitId = unitChoices[attackerPlayerId] ?? suggestion
+  const attackerUnitId = chosenUnitId && !attacker?.units[chosenUnitId]?.destroyed ? chosenUnitId : null
+  const attackingUnitName = attackingUnits.find((unit) => unit.id === attackerUnitId)?.name
   const undo = useBattleStore((state) => state.undo)
 
   useEffect(() => {
@@ -112,7 +120,7 @@ export function RivalDamagePanel({
 
   function beginNotice(unitId: string, title: string) {
     setNotice({
-      title,
+      title: attackingUnitName ? `${attackingUnitName} → ${title}` : title,
       victimPlayerId,
       unitId,
       eventCountBefore: session.state.events.length,
@@ -124,7 +132,7 @@ export function RivalDamagePanel({
     beginNotice(unitId, `${unitName} · −1 model`)
     dispatch({
       type: 'UNIT_MODEL_DESTROYED',
-      payload: { playerId: victimPlayerId, unitId, amount: 1, destroyedByPlayerId: attackerPlayerId },
+      payload: { playerId: victimPlayerId, unitId, amount: 1, destroyedByPlayerId: attackerPlayerId, attackerUnitId },
     })
   }
 
@@ -137,6 +145,7 @@ export function RivalDamagePanel({
         unitId,
         woundsRemaining: Math.max(0, current - amount),
         destroyedByPlayerId: attackerPlayerId,
+        attackerUnitId,
       },
     })
   }
@@ -145,7 +154,7 @@ export function RivalDamagePanel({
     beginNotice(unitId, `${unitName} · destroyed`)
     dispatch({
       type: 'UNIT_DESTROYED',
-      payload: { playerId: victimPlayerId, unitId, destroyedByPlayerId: attackerPlayerId },
+      payload: { playerId: victimPlayerId, unitId, destroyedByPlayerId: attackerPlayerId, attackerUnitId },
     })
   }
 
@@ -162,6 +171,9 @@ export function RivalDamagePanel({
       {victim && <strong>{victim.name}</strong>}
     </div>
 
+    <label className="rival-attacking-unit"><span>Attacking unit (optional)</span><select value={attackerUnitId ?? ''} onChange={(event) => setUnitChoices((current) => ({ ...current, [attackerPlayerId]: event.target.value }))}>
+      <option value="">Unknown unit · credit {attacker.name}</option>{attackingUnits.filter((unit) => !attacker.units[unit.id]?.destroyed).map((unit) => <option value={unit.id} key={unit.id}>{unit.name}</option>)}
+    </select></label>
     {opponentIds.length > 1 && <div className="rival-damage-panel__targets" role="group" aria-label="Choose damaged opponent">
       {opponentIds.map((playerId) => {
         const player = session.state.players[playerId]

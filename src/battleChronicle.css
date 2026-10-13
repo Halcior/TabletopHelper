@@ -1,0 +1,144 @@
+/* Chronicle and report surfaces extend the existing tactical presentation. */
+.combat-source { margin: 12px 0 16px; display: grid; gap: 12px; }
+.combat-source h3, .combat-source p { margin: 4px 0; }
+.combat-source p, .combat-source small { color: var(--muted); font-size: .85rem; }
+.combat-source__selectors, .report-filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.combat-source label, .report-filters label, .rival-attacking-unit { display: grid; min-width: 0; gap: 6px; font-size: .85rem; }
+.combat-source select, .combat-source input, .report-filters select, .rival-attacking-unit select { min-height: 44px; min-width: 0; width: 100%; max-width: 100%; }
+.combat-source__note summary, .unit-performance-inline summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; color: var(--muted); font-size: .85rem; }
+.combat-source__note input { margin-top: 4px; }
+.rival-attacking-unit { margin: 12px 0; }
+.unit-performance-inline { border-top: 1px solid var(--line); margin-top: 12px; }
+.unit-performance-inline p { font-size: .85rem; }
+.unit-performance-inline small { display: block; color: var(--muted); }
+.battle-report { display: grid; gap: 18px; min-width: 0; }
+.report-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.report-heading h2 { font-family: var(--font-display); font-size: 2rem; margin: 4px 0 8px; }
+.report-heading p, .report-heading small { color: var(--muted); line-height: 1.5; }
+.report-export, .report-style, .chronicle-filters { display: flex; flex-wrap: wrap; gap: 8px; }
+.report-export button, .report-style button, .chronicle-filters button, .terminal-report-toggle, .chronicle-load { min-height: 44px; }
+.report-style [aria-pressed="true"], .chronicle-filters [aria-pressed="true"] { border-color: var(--gold); color: var(--gold-bright); background: color-mix(in srgb, var(--gold) 12%, var(--panel)); }
+.report-ranking { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.report-player--0 { --report-color: var(--player-0); }
+.report-player--1 { --report-color: var(--player-1); }
+.report-player--2 { --report-color: var(--player-2); }
+.report-player { border-top: 2px solid var(--report-color); }
+.report-player h3 { margin: 8px 0 0; }
+.report-player p { margin: 4px 0 16px; font-size: .85rem; color: var(--muted); }
+.report-player > strong { font-family: var(--font-mono); font-size: 2rem; color: var(--report-color); }
+.report-player > strong small { font-size: .8rem; color: var(--muted); }
+.report-missions summary, .report-timeline summary { min-height: 44px; cursor: pointer; }
+.report-table-wrap { overflow-x: auto; max-width: 100%; }
+.report-table-wrap table { width: 100%; min-width: 540px; border-collapse: collapse; font-size: .85rem; }
+.report-table-wrap th, .report-table-wrap td { padding: 12px 8px; border-bottom: 1px solid var(--line); text-align: left; }
+.report-table-wrap thead th { color: var(--muted); font-weight: 500; }
+.report-data-note { color: var(--muted); font-size: .85rem; line-height: 1.5; }
+.report-filters { margin-bottom: 14px; }
+.performance-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 14px; }
+.performance-card { border-top: 2px solid var(--report-color); min-width: 0; }
+.performance-card__heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.performance-card__heading h4 { margin: 4px 0 8px; font-size: 1.1rem; overflow-wrap: anywhere; }
+.performance-card__heading small { color: var(--muted); }
+.performance-survived, .performance-destroyed { font-size: .75rem; white-space: nowrap; padding: 4px 6px; border: 1px solid var(--line); border-radius: 4px; }
+.performance-survived { color: var(--success-bright); }
+.performance-destroyed { color: var(--danger-bright); }
+.performance-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 20px 0 12px; }
+.performance-kpis strong { display: block; font-family: var(--font-mono); font-size: 1.5rem; color: var(--report-color); }
+.performance-kpis span { display: block; font-size: .8rem; margin-top: 4px; color: var(--muted); }
+.performance-card progress { width: 100%; height: 4px; display: block; border: none; border-radius: 3px; accent-color: var(--report-color); background: var(--line); }
+.performance-card progress::-webkit-progress-bar { background: var(--line); border-radius: 3px; }
+.performance-card progress::-webkit-progress-value { background: var(--report-color); border-radius: 3px; }
+.performance-card progress::-moz-progress-bar { background: var(--report-color); }
+.performance-facts { margin: 14px 0 0; font-size: .85rem; }
+.performance-facts > div { display: flex; gap: 12px; justify-content: space-between; padding: 6px 0; }
+.performance-facts dt { color: var(--muted); }
+.performance-facts dd { margin: 0; font-family: var(--font-mono); }
+.performance-card details { margin-top: 12px; font-size: .85rem; }
+.performance-card summary { min-height: 44px; cursor: pointer; }
+.report-awards > article { padding: 16px 0; border-top: 1px solid var(--line); }
+.report-awards > article > strong { font-family: var(--font-display); color: var(--gold-bright); font-size: 1.2rem; }
+.report-awards small { color: var(--muted); line-height: 1.5; }
+.report-narrative p, .report-method p { line-height: 1.75; }
+.report-timeline ul { margin-top: 0; padding-left: 20px; }
+.report-timeline li { line-height: 1.5; padding: 5px 0; font-size: .9rem; }
+.report-timeline li small { display: block; color: var(--muted); }
+.report-method p { font-size: .85rem; color: var(--muted); }
+.terminal-report-toggle { width: 100%; margin: 14px 0; }
+.chronicle-panel { min-width: 0; }
+.chronicle-filters { margin-bottom: 16px; }
+.chronicle-timeline { list-style: none; margin: 0; padding: 0; }
+.chronicle-round { font-size: .9rem; color: var(--gold-bright); border-bottom: 1px solid var(--line); padding: 14px 0; margin: 0; }
+.chronicle-entry__body { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 12px; padding: 16px 0; position: relative; }
+.chronicle-entry__body::before { content: ''; position: absolute; top: 40px; bottom: 0; left: 15px; width: 1px; background: var(--line); }
+.chronicle-entry__icon { width: 32px; height: 32px; border: 1px solid var(--line); border-radius: 50%; display: grid; place-items: center; background: var(--surface-inset); color: var(--muted); }
+.chronicle-entry--kills .chronicle-entry__icon { color: var(--danger-bright); border-color: var(--danger); }
+.chronicle-entry--vp .chronicle-entry__icon { color: var(--gold-bright); border-color: var(--line-gold); }
+.chronicle-entry--objectives .chronicle-entry__icon { color: var(--success-bright); }
+.chronicle-entry__meta { display: flex; justify-content: space-between; gap: 8px; font-size: .75rem; color: var(--muted); letter-spacing: .04em; }
+.chronicle-entry p { margin: 8px 0; font-size: .9rem; line-height: 1.6; overflow-wrap: anywhere; }
+.chronicle-entry__note { border-left: 2px solid var(--line-gold); padding-left: 10px; color: var(--muted); }
+.chronicle-entry summary { color: var(--muted); font-size: .8rem; cursor: pointer; min-height: 44px; display: flex; align-items: center; }
+.chronicle-entry details code, .chronicle-entry details small { display: block; color: var(--muted); font-size: .75rem; overflow-wrap: anywhere; margin: 4px 0; }
+.chronicle-load { width: 100%; }
+.score-card.is-leading::after { content: ''; position: absolute; bottom: 8px; right: 8px; width: 5px; height: 5px; border-radius: 50%; background: var(--gold-bright); box-shadow: 0 0 6px rgb(226 200 117 / 35%); }
+.score-card__metric--vp { position: relative; }
+.live-score-pulse { animation: chronicle-score 300ms ease-out; }
+.live-score-delta { position: absolute; top: -7px; right: -12px; color: var(--success-bright); font-family: var(--font-mono); font-size: .8rem; animation: chronicle-enter 200ms ease-out; }
+.battle-status { transition: border-color 220ms ease, background-color 220ms ease; }
+.battle-transition-live .battle-turn h1 { animation: chronicle-enter 220ms ease-out; }
+.battle-round-progress { height: 3px; background: var(--line); overflow: hidden; }
+.battle-round-progress > span { display: block; height: 100%; background: var(--gold); transform-origin: left; transition: transform 220ms ease-out; }
+.battle-kill-notice { position: fixed; z-index: 80; top: 14px; left: 50%; transform: translateX(-50%); max-width: min(540px, calc(100vw - 28px)); width: max-content; display: flex; align-items: center; gap: 10px; padding: 10px 16px; border: 1px solid var(--danger); border-radius: var(--radius-md); background: var(--panel); box-shadow: var(--shadow-card); pointer-events: none; }
+.battle-kill-notice .app-icon { color: var(--danger-bright); }
+.battle-kill-notice p { margin: 4px 0; font-size: .85rem; line-height: 1.4; }
+.objective-controller--0 { --objective-color: var(--player-0); }
+.objective-controller--1 { --objective-color: var(--player-1); }
+.objective-controller--2 { --objective-color: var(--player-2); }
+.objective-controller--none { --objective-color: var(--muted); }
+.objective-card .objective-card__header > strong { color: var(--objective-color); transition: color 220ms ease; }
+.objective-control-live { animation: chronicle-objective 300ms ease-out; }
+@keyframes chronicle-enter { from { opacity: .3; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes chronicle-score { 0% { opacity: .45; transform: scale(.92); } 55% { transform: scale(1.08); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes chronicle-objective { from { box-shadow: inset 0 0 0 1px var(--objective-color); } to { box-shadow: inset 0 0 0 1px transparent; } }
+@media (max-width: 600px) {
+  .report-heading { flex-direction: column; }
+  .report-export { width: 100%; }
+  .report-export button { flex: 1 1 100px; font-size: .8rem; }
+  .report-ranking { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; }
+  .report-player { padding: 14px 10px; }
+  .report-player h3 { font-size: .95rem; overflow-wrap: anywhere; }
+  .report-player p { font-size: .75rem; }
+  .combat-source__selectors { grid-template-columns: 1fr; }
+  .chronicle-filters { gap: 6px; }
+  .chronicle-filters button { flex: 1 1 auto; font-size: .8rem; padding: 8px 10px; }
+  .report-filters { gap: 8px; }
+  .report-filters label { font-size: .8rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .live-score-pulse, .live-score-delta, .battle-transition-live .battle-turn h1, .objective-control-live { animation: none !important; }
+  .battle-round-progress > span, .battle-status, .objective-card .objective-card__header > strong { transition: none !important; }
+}
+@media print {
+  @page { margin: 14mm; }
+  html, body, .app-root, .battle-page { background: white !important; color: #111 !important; }
+  .battle-page > :not(.battle-content):not(.battle-terminal-content), .battle-content > :not(.battle-report), .battle-terminal-content > :not(.battle-report), .no-print { display: none !important; }
+  .battle-content, .battle-terminal-content { display: block !important; padding: 0 !important; width: 100% !important; max-width: none !important; margin: 0 !important; }
+  .battle-report { display: block; }
+  .battle-report .panel { background: white !important; color: #111 !important; border-color: #bbb !important; box-shadow: none !important; margin-bottom: 14px; }
+  .battle-report p, .battle-report small, .battle-report span, .battle-report dt, .battle-report dd, .battle-report strong { color: #111 !important; }
+  .report-ranking, .performance-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .performance-card, .report-player, .report-awards article { break-inside: avoid; }
+  .report-table-wrap { overflow: visible; }
+  .report-table-wrap table { min-width: 0; font-size: 9pt; }
+  .report-method { font-size: 9pt; }
+  .report-timeline details { display: block; }
+}
+
+/* Bound grid tracks: a horizontally scrollable data table must not grow the page. */
+.battle-report { width: 100%; grid-template-columns: minmax(0, 1fr); }
+.battle-report > * { min-width: 0; }
+.battle-report .panel { padding: 16px; }
+.battle-menu__popover { max-height: calc(100dvh - 28px); overflow-y: auto; }
+.battle-menu__popover button { min-height: 44px; }
+@media (max-width: 600px) { .battle-report .report-player { padding: 14px 10px; } }
+@media print { .battle-report { display: block; } }

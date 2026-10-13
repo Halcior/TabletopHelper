@@ -4,6 +4,8 @@ import { AppIcon, type AppIconName } from '../components/AppIcon'
 import { ArmyTracker } from '../components/battle/ArmyTracker'
 import { BattleQuickStatus } from '../components/battle/BattleQuickStatus'
 import { BattleLog } from '../components/battle/BattleLog'
+import { BattleReport } from '../components/battle/BattleReport'
+import { useLiveBattleFeedback } from '../components/battle/useLiveBattleFeedback'
 import { BattleMenu } from '../components/battle/BattleMenu'
 import { BattleSummary } from '../components/battle/BattleSummary'
 import { ContextCommandCentre } from '../components/battle/context/ContextCommandCentre'
@@ -62,7 +64,7 @@ import type { SecondaryId } from '../rulesets/cauldronFFA3/secondaryTypes'
 import { isOfficialSecondary } from '../rulesets/cauldronFFA3/secondary'
 import { useBattleStore } from '../stores/battleStore'
 
-type DashboardTab = 'overview' | 'army' | 'objectives' | 'cards' | 'log'
+type DashboardTab = 'overview' | 'army' | 'objectives' | 'cards' | 'log' | 'report'
 
 const DASHBOARD_TAB_ICONS: Record<DashboardTab, AppIconName> = {
   overview: 'overview',
@@ -70,6 +72,7 @@ const DASHBOARD_TAB_ICONS: Record<DashboardTab, AppIconName> = {
   objectives: 'objectives',
   cards: 'cards',
   log: 'log',
+  report: 'log',
 }
 
 const rulesDataCache = new WeakMap<Army, RulesDataResolution>()
@@ -89,6 +92,7 @@ export default function BattleDashboard() {
   const [turnReviewOpen, setTurnReviewOpen] = useState(false)
   const [phaseEndReviewOpen, setPhaseEndReviewOpen] = useState(false)
   const [terminalLogOpen, setTerminalLogOpen] = useState(false)
+  const [terminalReportOpen, setTerminalReportOpen] = useState(false)
   const [contextFocusItemId, setContextFocusItemId] = useState<string | null>(null)
   const [rulesDataProvider, setRulesDataProvider] = useState<RulesDataProvider | null>(null)
   const [rulesDataAttribution, setRulesDataAttribution] = useState<{ label: string; url: string } | null>(null)
@@ -179,6 +183,7 @@ export default function BattleDashboard() {
     setArmyPreferredPlayerId(null)
   }, [session?.state.activePlayerId, session?.state.phase, session?.state.round, session?.state.status])
 
+  const liveFeedback = useLiveBattleFeedback(session)
   if (loading && session?.setup.gameId !== battleId) return <div className="page-shell"><div className="loading-state">Restoring battle…</div></div>
   if (!session || session.setup.gameId !== battleId) return <div className="page-shell"><div className="empty-state"><h1>Battle unavailable</h1><p>{error ?? 'The local battle could not be found.'}</p><Link className="button" to="/">Return home</Link></div></div>
   if (sharedMembership?.battleId === session.setup.gameId && !sharedBattleHasStarted(sharedRoomStartedAt)) {
@@ -203,8 +208,8 @@ export default function BattleDashboard() {
     : 'Cauldron FFA 3'
   const reactionPolicy = cauldron ? cauldronReactionPolicy : undefined
   const dashboardTabs: DashboardTab[] = cauldron
-    ? ['overview', 'army', 'objectives', 'cards', 'log']
-    : ['overview', 'army', 'objectives', 'log']
+    ? ['overview', 'army', 'objectives', 'cards', 'log', 'report']
+    : ['overview', 'army', 'objectives', 'log', 'report']
   const endOfRound = cauldron && isCauldronEndOfRound(session)
   const rivalId = cauldron ? getCurrentRivalPlayerId(session, active.id) : null
   const rival = rivalId ? session.state.players[rivalId] : null
@@ -467,7 +472,7 @@ export default function BattleDashboard() {
 
   return (
     <div className="battle-page">
-      <header className={`battle-status battle-status--player-${activePlayerIndex}`}>
+      <header className={`battle-status battle-status--player-${activePlayerIndex}${liveFeedback.phaseChanged ? ' battle-transition-live' : ''}`}>
         <div className="battle-round"><span>Battle round</span><strong>{session.state.round}<small>/ {session.state.maxRounds}</small></strong></div>
         <div className="battle-turn">
           <span>{battleActive ? `${active.name} turn` : 'Session status'}</span>
@@ -493,6 +498,7 @@ export default function BattleDashboard() {
             canRedoAction={!sharedBattle && session.redoActions.length > 0}
             endBlockedReason={endBlocker}
             onOpenLog={() => setTab('log')}
+            onOpenReport={() => setTab('report')}
             onExportReport={() => downloadBattleDiagnosticReport(session, useSharedSessionStore.getState())}
             onUndo={undo}
             onRedo={redo}
@@ -502,6 +508,8 @@ export default function BattleDashboard() {
           />}
         </div>
       </header>
+      {battleActive && <div className="battle-round-progress" role="progressbar" aria-label="Battle round progress" aria-valuemin={0} aria-valuemax={session.setup.turnOrder.length * BATTLE_PHASES.length} aria-valuenow={activePlayerIndex * BATTLE_PHASES.length + BATTLE_PHASES.indexOf(session.state.phase) + 1} aria-valuetext={`Round ${session.state.round}, ${active.name}, ${phaseLabel}`}><span style={{ transform: `scaleX(${(activePlayerIndex * BATTLE_PHASES.length + BATTLE_PHASES.indexOf(session.state.phase) + 1) / (session.setup.turnOrder.length * BATTLE_PHASES.length)})` }} /></div>}
+      {liveFeedback.kills.length > 0 && <aside className="battle-kill-notice" role="status" aria-live="polite"><AppIcon name="eliminate" /><div>{liveFeedback.kills.map((kill) => <p key={kill}>{kill}</p>)}</div></aside>}
 
       {!battleActive ? <main className="battle-terminal-content">
         {error && <div className="alert alert--danger battle-alert">{error}</div>}
@@ -513,6 +521,8 @@ export default function BattleDashboard() {
           onToggleLog={() => setTerminalLogOpen((current) => !current)}
           onRestoreSession={() => { setTerminalLogOpen(false); undo() }}
         />
+        <button className="terminal-report-toggle" onClick={() => setTerminalReportOpen((current) => !current)}>{terminalReportOpen ? 'Hide Battle Report' : 'View Battle Report'}</button>
+        {terminalReportOpen && <BattleReport session={session} />}
         {terminalLogOpen && <div className="battle-terminal-log"><BattleLog session={session} /></div>}
       </main> : <>
         <Scoreboard
@@ -521,6 +531,7 @@ export default function BattleDashboard() {
           dispatch={dispatch}
           sharedMode={sharedBattle}
           viewerPlayerId={viewerPlayerId}
+          feedback={liveFeedback}
         />
         <PhaseStepper phase={session.state.phase} />
         {sharedBattle && <SharedSyncWarning battleId={session.setup.gameId} />}
@@ -640,7 +651,7 @@ export default function BattleDashboard() {
               secondaryTargetFilter={armySecondaryFilter}
               onClearSecondaryTargetFilter={() => setArmySecondaryFilter(null)}
             />}
-            {tab === 'objectives' && <ObjectivesPanel session={session} dispatch={dispatch} />}
+            {tab === 'objectives' && <ObjectivesPanel session={session} dispatch={dispatch} liveObjectiveIds={liveFeedback.objectiveIds} />}
             {tab === 'cards' && cauldron && <>
               {officialPrimary && <OfficialPrimaryPanel session={session} playerId={sharedBattle ? viewerPlayerId ?? active.id : active.id} />}
               {duelPrimary && <DuelPrimaryPanel session={session} playerId={primaryViewerId} window={duelReviewWindow} editable={!sharedBattle || primaryViewerId === viewerPlayerId} />}
@@ -649,6 +660,7 @@ export default function BattleDashboard() {
                 : <SecondaryDetailPanel session={session} playerId={sharedBattle ? viewerPlayerId ?? active.id : active.id} />}
             </>}
             {tab === 'log' && <BattleLog session={session} />}
+            {tab === 'report' && <BattleReport session={session} />}
           </main>
 
           <footer className="battle-actions battle-actions--primary">
