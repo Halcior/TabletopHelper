@@ -21,4 +21,5 @@
 @import './ffaDamageTarget.css' layer(responsive);
 @import './turnFlowUx.css' layer(responsive);
 
+@import './battleChronicle.css' layer(polish);
 @import './tacticalTheme.css' layer(polish);

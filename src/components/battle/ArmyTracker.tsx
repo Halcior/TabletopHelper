@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { Army, UnitDefinition, UnitState, WeaponProfile } from '../../domain/army/types'
 import { getActiveMissionActionForUnit } from '../../domain/battle/missionActions'
 import { selectRecentUnits } from '../../domain/battle/recentUnits'
-import type { BattleEventInput, BattleSession } from '../../domain/battle/types'
+import type { BattleEventInput, BattleSession, CombatAttribution } from '../../domain/battle/types'
+import { buildUnitPerformance, performanceKey, type UnitPerformance } from '../../domain/battle/unitPerformance'
+import { CombatSourcePicker } from './CombatSourcePicker'
 import { CAULDRON_RULESET_ID, getCurrentRivalPlayerId } from '../../rulesets/cauldronFFA3'
 import { CAULDRON_SECONDARY_BY_ID } from '../../rulesets/cauldronFFA3/secondaryDefinitions'
 import type { SecondaryId } from '../../rulesets/cauldronFFA3/secondaryTypes'
@@ -111,8 +113,8 @@ function UnitCard({
   army,
   ownerId,
   ownerName,
-  activePlayerId,
-  players,
+  combatSource,
+  performance,
   missionActionName,
   dispatch,
   canEdit,
@@ -122,23 +124,19 @@ function UnitCard({
   army: Army
   ownerId: string
   ownerName: string
-  activePlayerId: string
-  players: Array<{ id: string; name: string }>
+  combatSource: CombatAttribution
+  performance?: UnitPerformance
   missionActionName?: string
   dispatch: (event: BattleEventInput) => void
   canEdit: boolean
 }) {
-  const inferredAttacker = activePlayerId === ownerId ? 'other' : activePlayerId
-  const [attacker, setAttacker] = useState(inferredAttacker)
-  useEffect(() => setAttacker(inferredAttacker), [inferredAttacker])
-  const destroyedByPlayerId = attacker === 'other' ? null : attacker
   const multiModel = unit.startingModels > 1
   const maximumWounds = unit.stats?.wounds
   const wounds = state.woundsRemaining ?? maximumWounds ?? 0
   const readOnlyTitle = canEdit ? undefined : `${ownerName} manages this army state on their device.`
   const destroy = () => {
     if (!canEdit) return
-    dispatch({ type: 'UNIT_DESTROYED', payload: { playerId: ownerId, unitId: unit.id, destroyedByPlayerId } })
+    dispatch({ type: 'UNIT_DESTROYED', payload: { playerId: ownerId, unitId: unit.id, ...combatSource } })
   }
   const recordBattleShock = (passed: boolean) => {
     if (!canEdit) return
@@ -153,10 +151,6 @@ function UnitCard({
       </div>
       {missionActionName && <div className="unit-mission-action"><span>Mission Action</span><strong>{missionActionName}</strong><small>Cannot Shoot or declare a charge this turn.</small></div>}
       {!canEdit && <p className="shared-readonly-note">Read only on this device · {ownerName} records this unit's state.</p>}
-      <label className="casualty-attribution"><span>Destroyed by</span><select disabled={!canEdit} title={readOnlyTitle} value={attacker} onChange={(event) => setAttacker(event.target.value)}>
-        {players.map((player) => <option key={player.id} value={player.id}>{player.name}{player.id === activePlayerId ? ' · current' : ''}</option>)}
-        <option value="other">Other / environment</option>
-      </select></label>
       {multiModel ? <>
         <div className="model-pips" aria-label={`${state.modelsAlive} of ${unit.startingModels} models alive`}>
           {Array.from({ length: unit.startingModels }, (_, index) => <span aria-hidden="true" className={index < state.modelsAlive ? 'alive' : ''} key={index} />)}
@@ -164,7 +158,7 @@ function UnitCard({
         <div className="unit-vital"><strong>{state.modelsAlive} / {unit.startingModels}</strong><span>models alive</span></div>
         <div className="unit-actions">
           <button disabled={!canEdit || state.modelsAlive === 0} title={readOnlyTitle} onClick={() => dispatch({
-            type: 'UNIT_MODEL_DESTROYED', payload: { playerId: ownerId, unitId: unit.id, amount: 1, destroyedByPlayerId },
+            type: 'UNIT_MODEL_DESTROYED', payload: { playerId: ownerId, unitId: unit.id, amount: 1, ...combatSource },
           })}>− Model</button>
           <button disabled={!canEdit || state.modelsAlive >= unit.startingModels} title={readOnlyTitle} onClick={() => dispatch({
             type: 'UNIT_MODEL_RESTORED', payload: { playerId: ownerId, unitId: unit.id, amount: 1 },
@@ -176,7 +170,7 @@ function UnitCard({
         <div className="unit-actions unit-actions--three">
           <button disabled={!canEdit || wounds <= 0} title={readOnlyTitle} onClick={() => dispatch({
             type: 'UNIT_WOUNDS_CHANGED',
-            payload: { playerId: ownerId, unitId: unit.id, woundsRemaining: wounds - 1, destroyedByPlayerId },
+            payload: { playerId: ownerId, unitId: unit.id, woundsRemaining: wounds - 1, ...combatSource },
           })}>− Wound</button>
           <button disabled={!canEdit || wounds >= maximumWounds} title={readOnlyTitle} onClick={() => dispatch({
             type: 'UNIT_WOUNDS_CHANGED', payload: { playerId: ownerId, unitId: unit.id, woundsRemaining: wounds + 1 },
@@ -205,6 +199,10 @@ function UnitCard({
       <details className="unit-details"><summary>Details & quick reference</summary>
         <UnitReference unit={unit} state={state} army={army} ownerId={ownerId} dispatch={dispatch} canEdit={canEdit} />
       </details>
+      {performance && <details className="unit-performance-inline"><summary>Battle performance · {performance.kills} kills · {Math.round(performance.enemyPointsDestroyed)} pts</summary>
+        <p>{performance.modelsDestroyed} enemy models · {performance.combatRoi === null ? '—' : `${Math.round(performance.combatRoi)}%`} Combat ROI · {performance.completedMissionActions} completed actions</p>
+        <small>Net model value; equal points per starting model. Full comparison is in Battle Report.</small>
+      </details>}
     </article>
   )
 }
@@ -213,7 +211,7 @@ function QuickUnitControl({
   unit,
   state,
   ownerId,
-  activePlayerId,
+  combatSource,
   dispatch,
   canEdit,
   onOpen,
@@ -221,7 +219,7 @@ function QuickUnitControl({
   unit: UnitDefinition
   state: UnitState
   ownerId: string
-  activePlayerId: string
+  combatSource: CombatAttribution
   dispatch: (event: BattleEventInput) => void
   canEdit: boolean
   onOpen: () => void
@@ -229,7 +227,6 @@ function QuickUnitControl({
   const maximumWounds = unit.stats?.wounds
   const wounds = state.woundsRemaining ?? maximumWounds ?? 0
   const multiModel = unit.startingModels > 1
-  const destroyedByPlayerId = activePlayerId === ownerId ? null : activePlayerId
   const vital = multiModel
     ? `${state.modelsAlive}/${unit.startingModels} models`
     : maximumWounds ? `${wounds}/${maximumWounds} W` : state.destroyed ? 'Destroyed' : 'Active'
@@ -237,11 +234,11 @@ function QuickUnitControl({
   function recordLoss() {
     if (!canEdit) return
     if (multiModel) {
-      dispatch({ type: 'UNIT_MODEL_DESTROYED', payload: { playerId: ownerId, unitId: unit.id, amount: 1, destroyedByPlayerId } })
+      dispatch({ type: 'UNIT_MODEL_DESTROYED', payload: { playerId: ownerId, unitId: unit.id, amount: 1, ...combatSource } })
     } else if (maximumWounds) {
-      dispatch({ type: 'UNIT_WOUNDS_CHANGED', payload: { playerId: ownerId, unitId: unit.id, woundsRemaining: wounds - 1, destroyedByPlayerId } })
+      dispatch({ type: 'UNIT_WOUNDS_CHANGED', payload: { playerId: ownerId, unitId: unit.id, woundsRemaining: wounds - 1, ...combatSource } })
     } else {
-      dispatch({ type: 'UNIT_DESTROYED', payload: { playerId: ownerId, unitId: unit.id, destroyedByPlayerId } })
+      dispatch({ type: 'UNIT_DESTROYED', payload: { playerId: ownerId, unitId: unit.id, ...combatSource } })
     }
   }
 
@@ -295,7 +292,10 @@ export function ArmyTracker({
     const army = player.armyId ? session.setup.armies[player.armyId] : undefined
     return army ? [{ player, army }] : []
   })
-  const players = session.state.turnOrder.map((id) => session.state.players[id])
+  const performance = useMemo(() => buildUnitPerformance(session), [session])
+  const performanceByUnit = useMemo(() => new Map(performance.units.map((unit) => [performanceKey(unit.playerId, unit.unitId), unit])), [performance])
+  const [sources, setSources] = useState<Record<string, CombatAttribution>>({})
+  const [lastUnits, setLastUnits] = useState<Record<string, string | null>>({})
   const rivalPlayerId = session.setup.rulesetId === CAULDRON_RULESET_ID
     ? getCurrentRivalPlayerId(session, session.state.activePlayerId)
     : null
@@ -311,6 +311,13 @@ export function ArmyTracker({
   useEffect(() => setSelectedPlayerId(defaultPlayerId), [defaultPlayerId])
   if (armyPlayers.length === 0) return <section className="empty-state"><h2>No army roster attached</h2></section>
   const selected = armyPlayers.find(({ player }) => player.id === selectedPlayerId) ?? armyPlayers[0]
+  const sourceKey = `${session.setup.gameId}:${session.state.activePlayerId}:${selected.player.id}`
+  const source = sources[sourceKey] ?? { destroyedByPlayerId: session.state.activePlayerId === selected.player.id ? null : session.state.activePlayerId }
+  const attackerId = source.destroyedByPlayerId
+  const recentAttack = attackerId ? [...session.state.events].reverse().find((event) => (event.type === 'UNIT_DESTROYED' || event.type === 'UNIT_MODEL_DESTROYED' || event.type === 'UNIT_WOUNDS_CHANGED') && event.payload.destroyedByPlayerId === attackerId && event.payload.attackerUnitId) : undefined
+  const suggestedUnit = recentAttack && 'attackerUnitId' in recentAttack.payload ? recentAttack.payload.attackerUnitId : null
+  const chosenUnit = attackerId ? Object.hasOwn(lastUnits, attackerId) ? lastUnits[attackerId] : suggestedUnit : null
+  const combatSource: CombatAttribution = { ...source, attackerUnitId: chosenUnit && !session.state.players[attackerId ?? '']?.units[chosenUnit]?.destroyed ? chosenUnit : null }
   const playerState = session.state.players[selected.player.id]
   const canEditSelectedArmy = !sharedMode || selected.player.id === viewerPlayerId
   const filterRivalTargets = Boolean(secondaryTargetFilter && selected.player.id === rivalPlayerId)
@@ -351,6 +358,10 @@ export function ArmyTracker({
         <strong>{selected.army.totalPoints} pts</strong>
       </div>
       {sharedMode && !canEditSelectedArmy && <div className="shared-army-readonly"><strong>Opponent army · read only</strong><span>{selected.player.name} records casualties, wounds, battle-shock and abilities on their device.</span></div>}
+      <CombatSourcePicker session={session} targetPlayerId={selected.player.id} value={combatSource} disabled={!canEditSelectedArmy} onChange={(value) => {
+        setSources((current) => ({ ...current, [sourceKey]: value }))
+        if (value.destroyedByPlayerId && value.attackerUnitId !== undefined) setLastUnits((current) => ({ ...current, [value.destroyedByPlayerId!]: value.attackerUnitId ?? null }))
+      }} />
       {filterRivalTargets && secondaryTargetFilter && <div className="army-target-filter" role="status">
         <span><strong>Targets for {CAULDRON_SECONDARY_BY_ID[secondaryTargetFilter].name}</strong><small>{visibleUnits.length} eligible Rival unit{visibleUnits.length === 1 ? '' : 's'} remaining.</small></span>
         <button onClick={onClearSecondaryTargetFilter}>Show all units</button>
@@ -358,14 +369,14 @@ export function ArmyTracker({
       {quickUnits.length > 0 && <section className="recent-units" aria-label={recentUnitIds.length > 0 ? 'Recently used units' : 'Quick unit access'}>
         <div className="recent-units__heading">
           <div><span className="eyebrow">{recentUnitIds.length > 0 ? 'Recently used' : 'Quick access'}</span><h3>Units</h3></div>
-          <small>Quick damage uses the current player as attacker.</small>
+          <small>Quick damage uses the combat source selected above.</small>
         </div>
         <div className="recent-unit-list">{quickUnits.map((unit) => <QuickUnitControl
           key={unit.id}
           unit={unit}
           state={playerState.units[unit.id]}
           ownerId={selected.player.id}
-          activePlayerId={session.state.activePlayerId}
+          combatSource={combatSource}
           dispatch={dispatch}
           canEdit={canEditSelectedArmy}
           onOpen={() => openUnitCard(unit.id)}
@@ -378,8 +389,8 @@ export function ArmyTracker({
         army={selected.army}
         ownerId={selected.player.id}
         ownerName={selected.player.name}
-        activePlayerId={session.state.activePlayerId}
-        players={players}
+        combatSource={combatSource}
+        performance={performanceByUnit.get(performanceKey(selected.player.id, unit.id))}
         missionActionName={getActiveMissionActionForUnit(session, selected.player.id, unit.id)?.name}
         dispatch={dispatch}
         canEdit={canEditSelectedArmy}

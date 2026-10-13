@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import type { BattleCorrection, BattleSession } from '../../domain/battle/types'
 import { BattleCorrectionDialog } from './BattleCorrectionDialog'
 
@@ -12,6 +13,7 @@ type BattleMenuProps = {
   canUndoAction?: boolean
   canRedoAction?: boolean
   onOpenLog: () => void
+  onOpenReport?: () => void
   onExportReport: () => void
   onUndo?: () => void
   onRedo?: () => void
@@ -28,6 +30,7 @@ export function BattleMenu({
   canUndoAction = false,
   canRedoAction = false,
   onOpenLog,
+  onOpenReport,
   onExportReport,
   onUndo,
   onRedo,
@@ -39,11 +42,12 @@ export function BattleMenu({
   const [confirmation, setConfirmation] = useState<Confirmation>(null)
   const [correctionOpen, setCorrectionOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const popoverRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!open) return
     const closeOnOutside = (event: MouseEvent) => {
-      if (!menuRef.current?.contains(event.target as Node)) setOpen(false)
+      if (!menuRef.current?.contains(event.target as Node) && !popoverRef.current?.contains(event.target as Node)) setOpen(false)
     }
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setOpen(false)
@@ -77,9 +81,10 @@ export function BattleMenu({
         aria-expanded={open}
         onClick={() => setOpen((current) => !current)}
       >•••</button>
-      {open && <div className="battle-menu__popover" role="menu">
+      {open && createPortal(<div ref={popoverRef} className="battle-menu__popover" role="menu" style={window.innerWidth > 820 ? { position: 'fixed', top: Math.min((menuRef.current?.getBoundingClientRect().bottom ?? 50) + 8, Math.max(8, window.innerHeight - 560)), right: Math.max(14, window.innerWidth - (menuRef.current?.getBoundingClientRect().right ?? window.innerWidth)) } : undefined}>
         <strong>Battle</strong>
         <button type="button" role="menuitem" onClick={() => { setOpen(false); onOpenLog() }}>View battle log</button>
+        {onOpenReport && <button type="button" role="menuitem" onClick={() => { setOpen(false); onOpenReport() }}>View Battle Report</button>}
         <button type="button" role="menuitem" disabled={!canUndoAction} onClick={() => { setOpen(false); onUndo?.() }}>Undo last action</button>
         <button type="button" role="menuitem" disabled={!canRedoAction} onClick={() => { setOpen(false); onRedo?.() }}>Redo action</button>
         <button type="button" role="menuitem" onClick={() => { setOpen(false); onExportReport() }}>Export diagnostic report</button>
@@ -90,7 +95,7 @@ export function BattleMenu({
         {canManageBattle && !canEndBattle && endBlockedReason && <small className="battle-menu__hint">{endBlockedReason}</small>}
         <button type="button" role="menuitem" className="danger-action" disabled={!canManageBattle} onClick={requestAbandonBattle}>Abandon battle</button>
         <small className="battle-menu__hint">Build {import.meta.env.VITE_BUILD_SHA}</small>
-      </div>}
+      </div>, document.body)}
     </div>
 
     {correctionOpen && <BattleCorrectionDialog session={session} onApply={onApplyCorrection} onClose={() => setCorrectionOpen(false)} />}

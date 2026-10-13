@@ -3,9 +3,10 @@ import type { BattleEventInput, BattleSession } from '../../domain/battle/types'
 type ObjectivesPanelProps = {
   session: BattleSession
   dispatch: (event: BattleEventInput) => void
+  liveObjectiveIds?: string[]
 }
 
-export function ObjectivesPanel({ session, dispatch }: ObjectivesPanelProps) {
+export function ObjectivesPanel({ session, dispatch, liveObjectiveIds = [] }: ObjectivesPanelProps) {
   const players = session.state.turnOrder.map((id) => session.state.players[id])
   const objectives = Object.values(session.state.objectives)
     .sort((left, right) => Number(left.type === 'home') - Number(right.type === 'home'))
@@ -18,7 +19,7 @@ export function ObjectivesPanel({ session, dispatch }: ObjectivesPanelProps) {
           ? session.state.players[objective.controllerPlayerId]?.name
           : 'None'
         return (
-          <article className="panel objective-card" key={objective.id}>
+          <article className={`panel objective-card objective-controller--${objective.controllerPlayerId ? session.state.turnOrder.indexOf(objective.controllerPlayerId) : 'none'}${liveObjectiveIds.includes(objective.id) ? ' objective-control-live' : ''}`} key={objective.id}>
             <div className="objective-card__header">
               <div><span className="eyebrow">{objective.type}</span><h3>{objective.name}</h3></div>
               <strong>{controller}</strong>

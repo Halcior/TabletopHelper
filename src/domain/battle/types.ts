@@ -112,6 +112,13 @@ type BattleEventMetadata = {
   undoable: boolean
 }
 
+/** Optional provenance; the existing player attribution still drives scoring. */
+export type CombatAttribution = {
+  destroyedByPlayerId?: string | null
+  attackerUnitId?: string | null
+  note?: string
+}
+
 export type BattleEvent = BattleEventMetadata & (
   | { type: 'GAME_STARTED'; payload: Record<string, never> }
   | { type: 'GAME_ENDED'; payload: Record<string, never> }
@@ -127,16 +134,16 @@ export type BattleEvent = BattleEventMetadata & (
   | { type: 'STATE_CORRECTED'; payload: { correction: BattleCorrection; reason: string } }
   | {
     type: 'UNIT_MODEL_DESTROYED'
-    payload: { playerId: string; unitId: string; amount: number; destroyedByPlayerId?: string | null }
+    payload: { playerId: string; unitId: string; amount: number } & CombatAttribution
   }
   | { type: 'UNIT_MODEL_RESTORED'; payload: { playerId: string; unitId: string; amount: number } }
   | {
     type: 'UNIT_WOUNDS_CHANGED'
-    payload: { playerId: string; unitId: string; woundsRemaining: number; destroyedByPlayerId?: string | null }
+    payload: { playerId: string; unitId: string; woundsRemaining: number } & CombatAttribution
   }
   | {
     type: 'UNIT_DESTROYED'
-    payload: { playerId: string; unitId: string; destroyedByPlayerId?: string | null }
+    payload: { playerId: string; unitId: string } & CombatAttribution
   }
   | { type: 'UNIT_BATTLESHOCK_CHANGED'; payload: { playerId: string; unitId: string; battleShocked: boolean } }
   | { type: 'BATTLESHOCK_TEST_RESOLVED'; payload: { playerId: string; unitId: string; passed: boolean } }
