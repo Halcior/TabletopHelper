@@ -1,3 +1,4 @@
+import { selectPanel, setupBattlefield, setupCommanders, setupRules } from './helpers'
 import { expect, test } from '@playwright/test'
 import { dismissSecondaryReveal, importTestArmy, phone } from './helpers'
 
@@ -5,21 +6,25 @@ test('official duel selects asymmetric matrix cards and scores the first turn', 
   const { context, page } = await phone(browser)
   try {
     await importTestArmy(page)
+    await setupRules(page)
     await page.getByLabel('Primary mode').selectOption('chapter-approved-duel')
+    await setupCommanders(page)
     await expect(page.getByRole('combobox', { name: 'Force Disposition' })).toHaveCount(2)
     await expect(page.getByText('Your Primary:')).toHaveCount(2)
     await expect(page.getByText('Immovable Object')).toBeVisible()
     await expect(page.getByText('Unstoppable Force')).toBeVisible()
+    await setupBattlefield(page)
     await page.getByLabel('Guidance level').selectOption('fast')
+    await setupBattlefield(page)
     await page.getByRole('button', { name: 'Start locally' }).click()
     await expect(page).toHaveURL(/\/battle\//)
     await dismissSecondaryReveal(page)
     await expect(page.locator('.ruleset-label').first()).toHaveText('Chapter Approved Duel 1v1')
     await expect(page.locator('.duel-primary-panel').first()).toContainText('Immovable Object')
-    await page.getByRole('button', { name: 'objectives', exact: true }).click()
+    await selectPanel(page, 'objectives')
     await page.getByRole('button', { name: 'List', exact: true }).click()
     await expect(page.locator('.objective-card')).toHaveCount(6)
-    await page.getByRole('button', { name: 'overview', exact: true }).click()
+    await selectPanel(page, 'overview')
     for (let phase = 0; phase < 6; phase += 1) await page.locator('.next-phase').click()
     await expect(page.getByRole('heading', { name: 'End Turn · Chapter Approved' })).toBeVisible()
     await page.locator('.duel-primary-condition').filter({ hasText: 'Control at least one central objective.' }).getByRole('checkbox').check()

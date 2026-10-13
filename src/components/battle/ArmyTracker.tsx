@@ -147,6 +147,7 @@ function UnitCard({
     <article id={`unit-card-${ownerId}-${unit.id}`} className={`unit-card${state.destroyed ? ' is-destroyed' : ''}${canEdit ? '' : ' unit-card--readonly'}`}>
       <div className="unit-card__header">
         <div><h3>{unit.name}</h3><p>{unit.points} pts{unit.isWarlord ? ' · Warlord' : ''}</p></div>
+        <span className={`unit-state${state.destroyed ? ' unit-state--destroyed' : ''}`}>{state.destroyed ? 'Destroyed' : 'Alive'}</span>
         {state.battleShocked && <span className="status-badge status-badge--danger">Battle-shocked</span>}
       </div>
       {missionActionName && <div className="unit-mission-action"><span>Mission Action</span><strong>{missionActionName}</strong><small>Cannot Shoot or declare a charge this turn.</small></div>}
@@ -194,7 +195,7 @@ function UnitCard({
             payload: { playerId: ownerId, unitId: unit.id, battleShocked: false },
           })}>Clear state</button>}
         </div>
-        <small>Pass/Fail records an exact test timing. Clear state only removes the status.</small>
+        <details className="unit-timing-help"><summary>Test timing</summary><small>Pass/Fail records an exact test timing. Clear state only removes the status.</small></details>
       </div>
       <details className="unit-details"><summary>Details & quick reference</summary>
         <UnitReference unit={unit} state={state} army={army} ownerId={ownerId} dispatch={dispatch} canEdit={canEdit} />

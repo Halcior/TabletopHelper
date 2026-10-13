@@ -10,6 +10,9 @@ export type AppIconName =
   | 'mark'
   | 'mission'
   | 'movement'
+  | 'more'
+  | 'replay'
+  | 'report'
   | 'next'
   | 'objectives'
   | 'overview'
@@ -38,6 +41,12 @@ export function AppIcon({ name, className = '' }: AppIconProps) {
   }
 
   switch (name) {
+    case 'more':
+      return <svg {...commonProps}><circle cx="5" cy="12" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="19" cy="12" r="1.5" /></svg>
+    case 'replay':
+      return <svg {...commonProps}><path d="M4 10a8 8 0 1 1 1 8M4 4v6h6" /><path d="m11 8 5 4-5 4Z" /></svg>
+    case 'report':
+      return <svg {...commonProps}><path d="M4 20V4h16v16ZM8 15v2M12 10v7M16 7v10" /></svg>
     case 'mark':
       return <svg {...commonProps} viewBox="0 0 32 32">
         <path d="M16 2.5 27.7 9v14L16 29.5 4.3 23V9Z" />

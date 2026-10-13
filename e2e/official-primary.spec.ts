@@ -1,3 +1,4 @@
+import { selectPanel, setupBattlefield, setupCommanders, setupRules } from './helpers'
 import { expect, test } from '@playwright/test'
 import { dismissSecondaryReveal, importTestArmy, phone, resolvePriorityTargetIfNeeded, scoreCard } from './helpers'
 
@@ -6,7 +7,9 @@ test('three commanders with the same army freely choose balanced Primary mission
   try {
     await importTestArmy(page)
     await page.getByRole('button', { name: /FFA 3/ }).click()
+    await setupRules(page)
     await page.getByLabel('Primary mode').selectOption('chapter-approved-ffa')
+    await setupCommanders(page)
     const primaryPickers = page.getByLabel('11th edition Primary')
     await expect(primaryPickers).toHaveCount(3)
     await primaryPickers.nth(0).selectOption('gather-intel')
@@ -16,13 +19,19 @@ test('three commanders with the same army freely choose balanced Primary mission
     await expect(primaryPickers.nth(1)).toHaveValue('meatgrinder')
     await expect(primaryPickers.nth(2)).toHaveValue('sabotage')
     await primaryPickers.nth(0).selectOption('gather-intel')
+    await setupRules(page)
+    await page.getByText('How this Primary works', { exact: false }).click()
     await expect(page.getByText('Each player freely selects a Primary below', { exact: false })).toBeVisible()
+    await setupCommanders(page)
+    for (const summary of await page.getByText('Selected Primary rules', { exact: false }).all()) await summary.click()
     await expect(page.getByText('Round 1: 4 VP for controlling CENTER at turn end.', { exact: true })).toBeVisible()
     await expect(page.getByRole('link', { name: 'Read original card', exact: true })).toHaveCount(3)
     await expect(page.getByRole('combobox', { name: 'Operational Plan', exact: true })).toHaveCount(0)
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
     if (process.env.CAPTURE_UI === '1') await page.screenshot({ path: 'test-results/visual-balanced-primary-setup.png', fullPage: true })
+    await setupBattlefield(page)
     await page.getByLabel('Guidance level').selectOption('fast')
+    await setupBattlefield(page)
     await page.getByRole('button', { name: 'Start locally' }).click()
     await expect(page).toHaveURL(/\/battle\//)
     await expect(page.getByRole('button', { name: 'Keep cards' })).toBeVisible()
@@ -35,10 +44,10 @@ test('three commanders with the same army freely choose balanced Primary mission
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
 
     await resolvePriorityTargetIfNeeded(page)
-    await page.getByRole('button', { name: 'objectives', exact: true }).click()
+    await selectPanel(page, 'objectives')
     await page.getByRole('button', { name: 'List', exact: true }).click()
     await page.getByRole('group', { name: 'Quick control for CENTER', exact: true }).getByRole('button', { name: 'Player I', exact: true }).click()
-    await page.getByRole('button', { name: 'overview', exact: true }).click()
+    await selectPanel(page, 'overview')
     for (const phase of ['Movement', 'Shooting', 'Charge', 'Fight', 'End']) {
       await page.locator('.next-phase').click()
       await expect(page.locator('.phase-step--current strong')).toHaveText(phase)

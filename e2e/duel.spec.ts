@@ -1,3 +1,4 @@
+import { setupBattlefield } from './helpers'
 import { expect, test } from '@playwright/test'
 import { dismissSecondaryReveal, importTestArmy, phone, resolvePriorityTargetIfNeeded } from './helpers'
 
@@ -5,7 +6,9 @@ test('Duel 1v1 starts as a compact two-player phone battle', async ({ browser })
   const { context, page } = await phone(browser)
   try {
     await importTestArmy(page)
+    await setupBattlefield(page)
     await page.getByLabel('Guidance level').selectOption('fast')
+    await setupBattlefield(page)
     await page.getByRole('button', { name: 'Start locally' }).click()
     await expect(page).toHaveURL(/\/battle\//)
     await expect(page.locator('.ruleset-label')).toHaveText('Cauldron Duel 1v1')
@@ -29,7 +32,7 @@ test('Duel 1v1 starts as a compact two-player phone battle', async ({ browser })
 
     await resolvePriorityTargetIfNeeded(page)
     for (let phase = 0; phase < 5; phase += 1) await page.locator('.next-phase').click()
-    await expect(page.locator('.battle-turn h1')).toHaveText('End phase')
+    await expect(page.locator('.battle-turn h1')).toHaveAccessibleName('End phase')
     await page.locator('.next-phase').click()
     await expect(page.getByRole('heading', { name: 'End Turn Review' })).toBeVisible()
     await page.getByRole('button', { name: 'Apply scoring' }).click()

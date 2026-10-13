@@ -5,9 +5,9 @@ test('mobile home presents a compact command deck without overflow', async ({ br
   const { context, page } = await phone(browser)
   try {
     await page.goto('/')
-    await expect(page.getByRole('heading', { name: 'Ready to play?' })).toBeVisible()
-    await expect(page.locator('.home-command-hub__meta')).toContainText('Local-first')
-    await expect(page.locator('.home-command-hub__meta')).toContainText('2–3 commanders')
+    await expect(page.getByRole('heading', { name: 'Command Hub' })).toBeVisible()
+    await expect(page.getByRole('link', { name: /Import army/ }).first()).toBeVisible()
+    await expect(page.getByRole('link', { name: /Host or join/ }).first()).toBeVisible()
 
     const layout = await page.evaluate(() => ({
       horizontalOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,

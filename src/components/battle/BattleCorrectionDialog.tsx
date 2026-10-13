@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { CommandDialog } from '../ui/CommandDialog'
 import type { BattleCorrection, BattleSession, ScoreCategory } from '../../domain/battle/types'
 
 type CorrectionKind = BattleCorrection['kind']
@@ -57,8 +58,8 @@ export function BattleCorrectionDialog({ session, onApply, onClose }: BattleCorr
   const needsObjective = kind === 'OBJECTIVE_CONTROL' || kind === 'OBJECTIVE_OC'
   const needsNumber = kind !== 'UNIT_BATTLESHOCK' && kind !== 'OBJECTIVE_CONTROL'
 
-  return <div className="battle-confirmation-backdrop" role="presentation" onMouseDown={onClose}>
-    <section className="panel battle-confirmation correction-dialog" role="dialog" aria-modal="true" aria-labelledby="correction-title" onMouseDown={(event) => event.stopPropagation()}>
+  return <CommandDialog label="Correct battle state" onClose={onClose}>
+    <section className="panel battle-confirmation correction-dialog">
       <span className="eyebrow">Recorded administration</span>
       <h2 id="correction-title">Correct battle state</h2>
       <p>This records a new correction in the battle log. It does not delete or rewrite earlier actions.</p>
@@ -94,5 +95,5 @@ export function BattleCorrectionDialog({ session, onApply, onClose }: BattleCorr
         </div>
       </form>
     </section>
-  </div>
+  </CommandDialog>
 }

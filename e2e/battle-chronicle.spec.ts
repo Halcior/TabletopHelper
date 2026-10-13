@@ -1,3 +1,4 @@
+import { selectPanel } from './helpers'
 import { expect, test } from '@playwright/test'
 import { phone } from './helpers'
 import fs from 'node:fs/promises'
@@ -22,14 +23,14 @@ test('mobile casualty attribution, chronicle filters, offline report exports, un
       return session.setup.gameId
     })
     await page.goto(`/battle/${gameId}`)
-    await page.getByRole('button', { name: 'army', exact: true }).click()
+    await selectPanel(page, 'army')
     await page.locator('.combat-source').getByLabel('Attacking unit (optional)').selectOption('tank')
     await page.getByLabel('Combat note (applies to following losses)').isVisible().then(async (visible) => { if (!visible) await page.getByText('Optional combat note', { exact: true }).click() })
     await page.getByLabel('Combat note (applies to following losses)').fill('Confirmed final volley')
     const target = page.locator('.unit-card').filter({ has: page.getByRole('heading', { name: 'Doomsday Ark', exact: true }) })
     await target.getByRole('button', { name: 'Destroyed', exact: true }).click()
     await expect(page.locator('.battle-kill-notice')).toContainText('Caladius Grav-Tank')
-    await page.getByRole('button', { name: 'report', exact: true }).click()
+    await selectPanel(page, 'report')
     await expect(page.getByRole('heading', { name: 'Battle Report', exact: true })).toBeVisible()
     const caladius = page.locator('.performance-card').filter({ has: page.getByRole('heading', { name: 'Caladius Grav-Tank', exact: true }) })
     await expect(caladius).toContainText('174%')
@@ -52,7 +53,7 @@ test('mobile casualty attribution, chronicle filters, offline report exports, un
     await page.getByRole('button', { name: 'Export Markdown', exact: true }).click()
     expect(await fs.readFile((await (await markdown).path())!, 'utf8')).toContain('Confirmed final volley')
     await context.setOffline(false)
-    await page.getByRole('button', { name: 'log', exact: true }).click()
+    await selectPanel(page, 'log')
     await expect(page.getByRole('heading', { name: 'Battle Chronicle' })).toBeVisible()
     await page.getByRole('button', { name: 'Kills', exact: true }).click()
     await expect(page.locator('.chronicle-entry')).toHaveCount(1)
@@ -63,7 +64,7 @@ test('mobile casualty attribution, chronicle filters, offline report exports, un
     if (process.env.CAPTURE_UI === '1') await page.screenshot({ path: 'test-results/chronicle-timeline-mobile.png' })
     await page.reload()
     await expect(page.locator('.battle-kill-notice')).toHaveCount(0)
-    await page.getByRole('button', { name: 'report', exact: true }).click()
+    await selectPanel(page, 'report')
     await expect(caladius).toContainText('174%')
     await page.getByRole('button', { name: 'Open battle menu' }).click()
     await page.getByRole('menuitem', { name: 'Undo last action', exact: true }).click()

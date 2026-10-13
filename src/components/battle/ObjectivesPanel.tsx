@@ -1,5 +1,5 @@
 import type { BattleEventInput, BattleSession } from '../../domain/battle/types'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { BattlefieldBoard } from './BattlefieldBoard'
 
 type ObjectivesPanelProps = {
@@ -7,14 +7,19 @@ type ObjectivesPanelProps = {
   dispatch: (event: BattleEventInput) => void
   liveObjectiveIds?: string[]
   focusObjectiveId?: string | null
+  replayRequest?: number
+  onEditingChange?: (editing: boolean) => void
+  active?: boolean
 }
 
 export function ObjectivesPanel(props: ObjectivesPanelProps) {
   const [mode, setMode] = useState<'board' | 'list'>('board')
   const [focusObjectiveId, setFocusObjectiveId] = useState<string | null>(null)
+  useEffect(() => { if (props.replayRequest) setMode('board') }, [props.replayRequest])
   return <div className="objectives-workspace">
     <nav className="objectives-view-switch" aria-label="Objective view"><button aria-pressed={mode === 'board'} onClick={() => setMode('board')}>Board</button><button aria-pressed={mode === 'list'} onClick={() => setMode('list')}>List</button></nav>
-    {mode === 'board' ? <BattlefieldBoard {...props} onOpenList={(id) => { setFocusObjectiveId(id); setMode('list') }} /> : <ObjectivesList {...props} focusObjectiveId={focusObjectiveId} />}
+    <div hidden={mode !== 'board'} className="objective-view"><BattlefieldBoard {...props} active={props.active !== false && mode === 'board'} onOpenList={(id) => { setFocusObjectiveId(id); setMode('list') }} /></div>
+    {mode === 'list' && <ObjectivesList {...props} focusObjectiveId={focusObjectiveId} />}
   </div>
 }
 

@@ -20,7 +20,7 @@ export function PhaseStepper({ phase }: { phase: BattlePhase }) {
       <ol>
         {BATTLE_PHASES.map((item, index) => {
           const state = index < currentIndex ? 'completed' : index === currentIndex ? 'current' : 'upcoming'
-          return <li className={`phase-step phase-step--${state}`} aria-current={state === 'current' ? 'step' : undefined} key={item}>
+          return <li className={`phase-step phase-step--${state}`} aria-label={`${PHASE_LABELS[item]} · ${state}`} aria-current={state === 'current' ? 'step' : undefined} key={item}>
             <span aria-hidden="true">{state === 'completed' ? '✓' : index + 1}</span>
             <strong>{PHASE_LABELS[item]}</strong>
           </li>

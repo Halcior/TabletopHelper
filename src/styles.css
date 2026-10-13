@@ -58,7 +58,7 @@ button:focus-visible, .button:focus-visible, a:focus-visible, summary:focus-visi
   background: linear-gradient(135deg, var(--gold-bright), #a88339);
   text-shadow: 0 1px rgb(255 255 255 / 20%);
 }
-.button--danger, .danger-action { border-color: #713936 !important; color: #f2c7c2 !important; background: #3a2020 !important; }
+.button--danger, .danger-action { border-color: #713936; color: #f2c7c2; background: #3a2020; }
 .button--small { min-height: 40px; padding: 8px 12px; font-size: .82rem; }
 .button--wide { width: 100%; }
 a { color: var(--gold-bright); }

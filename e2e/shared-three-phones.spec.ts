@@ -1,6 +1,16 @@
+import { openCommandPoints, setupBattlefield } from './helpers'
 import { expect, test, type Page } from '@playwright/test'
 import { dismissSecondaryReveal, importTestArmy, phone, scoreCard } from './helpers'
 import { MockSupabase } from './mockSupabase'
+import fs from 'node:fs/promises'
+
+async function captureLobby(page: Page, name: string) {
+  if (process.env.CAPTURE_UI2 !== '1') return
+  await fs.mkdir('docs/ui-2/after', { recursive: true })
+  await page.evaluate(() => window.scrollTo(0, 0))
+  await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))))
+  await page.screenshot({ path: `docs/ui-2/after/${name}.png`, fullPage: true })
+}
 
 async function joinLobby(page: Page, roomCode: string, playerId: string): Promise<void> {
   await page.goto(`/shared?room=${roomCode}`)
@@ -19,13 +29,17 @@ test('three phones start, synchronize and recover one idempotent offline action'
   try {
     await importTestArmy(alpha.page)
     await alpha.page.getByRole('button', { name: /FFA 3/ }).click()
+    await setupBattlefield(alpha.page)
     await alpha.page.getByLabel('Guidance level').selectOption('fast')
+    await setupBattlefield(alpha.page)
     await alpha.page.getByRole('button', { name: 'Create 3-player lobby' }).click()
     await expect(alpha.page.getByText('Waiting room')).toBeVisible()
     await expect(alpha.page.locator('.shared-lobby-seat')).toHaveCount(3)
     await expect(alpha.page.locator('.shared-lobby-seat__marker')).toHaveText(['01', '02', '03'])
+    await captureLobby(alpha.page, 'lobby-waiting-mobile')
     await alpha.page.getByRole('button', { name: 'Enlarge QR invite' }).click()
     await expect(alpha.page.getByRole('dialog', { name: 'QR room invite' })).toBeVisible()
+    await captureLobby(alpha.page, 'lobby-qr-mobile')
     await alpha.page.getByRole('button', { name: 'Close QR invite' }).click()
     const roomCode = (await alpha.page.locator('.shared-room-focus__code strong').textContent())?.trim()
     expect(roomCode).toMatch(/^[A-HJ-NP-Z2-9]{6}$/)
@@ -40,6 +54,7 @@ test('three phones start, synchronize and recover one idempotent offline action'
     }
 
     await expect(alpha.page.locator('.shared-lobby-seat.is-ready')).toHaveCount(3)
+    await captureLobby(alpha.page, 'lobby-ready-mobile')
     if (process.env.CAPTURE_UI === '1') await alpha.page.screenshot({ path: 'test-results/visual-lobby.png', fullPage: true })
 
     const start = alpha.page.getByRole('button', { name: 'Start battle' })
@@ -49,11 +64,13 @@ test('three phones start, synchronize and recover one idempotent offline action'
     await dismissSecondaryReveal(alpha.page)
     await expect(alpha.page.locator('.shared-secondary-card__icon')).toHaveCount(2)
 
+    await openCommandPoints(alpha.page, 'Player I')
     await alpha.page.getByRole('button', { name: 'Gain 1 CP for Player I' }).click()
     await expect(scoreCard(bravo.page, 'Player I').locator('.score-card__numbers strong').nth(1)).toHaveText('1')
 
     await bravo.context.setOffline(true)
     await expect(bravo.page.getByText('This phone is offline')).toBeVisible()
+    await openCommandPoints(bravo.page, 'Player II')
     await bravo.page.getByRole('button', { name: 'Gain 1 CP for Player II' }).click()
     await expect(scoreCard(bravo.page, 'Player II').locator('.score-card__numbers strong').nth(1)).toHaveText('1')
 

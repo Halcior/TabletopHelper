@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { useRef, useState } from 'react'
+import { CommandPopover } from '../ui/CommandPopover'
+import { CommandDialog } from '../ui/CommandDialog'
 import type { BattleCorrection, BattleSession } from '../../domain/battle/types'
 import { BattleCorrectionDialog } from './BattleCorrectionDialog'
 
@@ -42,24 +43,6 @@ export function BattleMenu({
   const [confirmation, setConfirmation] = useState<Confirmation>(null)
   const [correctionOpen, setCorrectionOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
-  const popoverRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!open) return
-    const closeOnOutside = (event: MouseEvent) => {
-      if (!menuRef.current?.contains(event.target as Node) && !popoverRef.current?.contains(event.target as Node)) setOpen(false)
-    }
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false)
-    }
-    document.addEventListener('mousedown', closeOnOutside)
-    document.addEventListener('keydown', closeOnEscape)
-    return () => {
-      document.removeEventListener('mousedown', closeOnOutside)
-      document.removeEventListener('keydown', closeOnEscape)
-    }
-  }, [open])
-
   function requestEndBattle() {
     if (!canEndBattle || !canManageBattle) return
     setOpen(false)
@@ -81,7 +64,7 @@ export function BattleMenu({
         aria-expanded={open}
         onClick={() => setOpen((current) => !current)}
       >•••</button>
-      {open && createPortal(<div ref={popoverRef} className="battle-menu__popover" role="menu" style={window.innerWidth > 820 ? { position: 'fixed', top: Math.min((menuRef.current?.getBoundingClientRect().bottom ?? 50) + 8, Math.max(8, window.innerHeight - 560)), right: Math.max(14, window.innerWidth - (menuRef.current?.getBoundingClientRect().right ?? window.innerWidth)) } : undefined}>
+      {open && <CommandPopover label="Battle menu" role="menu" trigger={menuRef} onClose={() => setOpen(false)} className="battle-menu-command">
         <strong>Battle</strong>
         <button type="button" role="menuitem" onClick={() => { setOpen(false); onOpenLog() }}>View battle log</button>
         {onOpenReport && <button type="button" role="menuitem" onClick={() => { setOpen(false); onOpenReport() }}>View Battle Report</button>}
@@ -95,18 +78,14 @@ export function BattleMenu({
         {canManageBattle && !canEndBattle && endBlockedReason && <small className="battle-menu__hint">{endBlockedReason}</small>}
         <button type="button" role="menuitem" className="danger-action" disabled={!canManageBattle} onClick={requestAbandonBattle}>Abandon battle</button>
         <small className="battle-menu__hint">Build {import.meta.env.VITE_BUILD_SHA}</small>
-      </div>, document.body)}
+      </CommandPopover>}
     </div>
 
     {correctionOpen && <BattleCorrectionDialog session={session} onApply={onApplyCorrection} onClose={() => setCorrectionOpen(false)} />}
 
-    {confirmation && <div className="battle-confirmation-backdrop" role="presentation" onMouseDown={() => setConfirmation(null)}>
+    {confirmation && <CommandDialog label={confirmation === 'end' ? 'End battle?' : 'Abandon this battle?'} onClose={() => setConfirmation(null)}>
       <section
         className="panel battle-confirmation"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="battle-confirmation-title"
-        onMouseDown={(event) => event.stopPropagation()}
       >
         {confirmation === 'end' ? <>
           <span className="eyebrow">Finish session</span>
@@ -126,6 +105,6 @@ export function BattleMenu({
           </div>
         </>}
       </section>
-    </div>}
+    </CommandDialog>}
   </>
 }
