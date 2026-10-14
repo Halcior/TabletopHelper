@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import type { Army } from '../domain/army/types'
-import type { GuidanceLevel } from '../domain/battle/types'
+import type { DoublesSetup, GuidanceLevel } from '../domain/battle/types'
 import { listArmies } from '../persistence/database'
 import {
   CAULDRON_RULESET_VERSION,
@@ -39,7 +39,8 @@ type PlayerDraft = CauldronPlayerInput
 const DEFAULT_PLAYERS: PlayerDraft[] = [
   { id: 'player-a', name: 'Player I', armyId: '', deploymentZone: 'A', turnPosition: 1, operationalPlanId: 'WYNISZCZENIE', officialPrimaryId: 'battlefield-dominance', forceDisposition: 'take-and-hold' },
   { id: 'player-b', name: 'Player II', armyId: '', deploymentZone: 'B', turnPosition: 2, operationalPlanId: 'DECYDUJACE_NATARCIE', officialPrimaryId: 'meatgrinder', forceDisposition: 'purge-the-foe' },
-  { id: 'player-c', name: 'Player III', armyId: '', deploymentZone: 'C', turnPosition: 3, operationalPlanId: 'TWIERDZA', officialPrimaryId: 'outmanoeuvre' },
+  { id: 'player-c', name: 'Player III', armyId: '', deploymentZone: 'C', turnPosition: 3, operationalPlanId: 'TWIERDZA', officialPrimaryId: 'outmanoeuvre', forceDisposition: 'purge-the-foe' },
+  { id: 'player-d', name: 'Player IV', armyId: '', deploymentZone: 'B', turnPosition: 2, operationalPlanId: 'TWIERDZA' },
 ]
 
 export default function BattleSetup() {
@@ -47,7 +48,7 @@ export default function BattleSetup() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
   const preferredArmyId = params.get('armyId')
-  const [mode, setMode] = useState<CauldronMode>(params.get('mode') === 'ffa3' ? 'ffa3' : 'duel')
+  const [mode, setMode] = useState<CauldronMode>(params.get('mode') === 'ffa3' ? 'ffa3' : params.get('mode') === 'doubles2v2' ? 'doubles2v2' : 'duel')
   const [objectiveLayout, setObjectiveLayout] = useState<CauldronObjectiveLayout>('expanded-7')
   const [armies, setArmies] = useState<Army[]>([])
   const [players, setPlayers] = useState<PlayerDraft[]>(DEFAULT_PLAYERS)
@@ -57,6 +58,9 @@ export default function BattleSetup() {
   const [officialStrategy, setOfficialStrategy] = useState<OfficialSecondaryStrategy>('tactical')
   const [duelStrategies, setDuelStrategies] = useState<Record<string, OfficialSecondaryStrategy>>({ 'player-a': 'tactical', 'player-b': 'tactical' })
   const [officialLayout, setOfficialLayout] = useState<1 | 2 | 3>(1)
+  const [teamNames, setTeamNames] = useState(['Team Alpha', 'Team Bravo'])
+  const [teamTypes, setTeamTypes] = useState<['unified' | 'convenience', 'unified' | 'convenience']>(['convenience', 'convenience'])
+  const [teamWarlords, setTeamWarlords] = useState<Record<number, string>>({})
   const [attackerHomeZone, setAttackerHomeZone] = useState<'A' | 'B'>('A')
   const [fixedSelections, setFixedSelections] = useState<Record<string, [OfficialSecondaryId, OfficialSecondaryId]>>(
     Object.fromEntries(DEFAULT_PLAYERS.map((player) => [player.id, ['OFFICIAL_A_GRIEVOUS_BLOW', 'OFFICIAL_ENGAGE_ON_ALL_FRONTS']])) as Record<string, [OfficialSecondaryId, OfficialSecondaryId]>,
@@ -70,7 +74,27 @@ export default function BattleSetup() {
   const sharedConfigured = useSharedSessionStore((state) => state.configured)
   const checkBackend = useSharedSessionStore((state) => state.checkBackend)
   const hostCurrentBattle = useSharedSessionStore((state) => state.hostCurrentBattle)
-  const activePlayers = useMemo(() => mode === 'duel' ? players.slice(0, 2) : players, [mode, players])
+  const activePlayers = useMemo(() => mode === 'duel' ? players.slice(0, 2) : mode === 'ffa3' ? players.slice(0, 3) : players, [mode, players])
+  const doubles = mode === 'doubles2v2'
+  const officialPair = mode !== 'ffa3'
+  const teamCaptainIndex = (team: number) => team === 0 ? 0 : 2
+  const warlordOptions = (team: number) => activePlayers.slice(team * 2, team * 2 + 2).flatMap((player) => {
+    const army = armies.find((entry) => entry.id === player.armyId)
+    return (army?.units ?? []).filter((unit) => [...unit.categories, ...unit.keywords].some((trait) => trait.toUpperCase() === 'CHARACTER')).map((unit) => ({ value: `${player.id}|${unit.id}`, label: `${player.name} · ${unit.name}` }))
+  })
+  function getDoublesSetup(): DoublesSetup {
+    return { rulesVersion: 'GW-Doubles-1.1', forces: ([0, 1] as const).map((team) => {
+      const members = activePlayers.slice(team * 2, team * 2 + 2)
+      const choice = teamWarlords[team] && warlordOptions(team).some((entry) => entry.value === teamWarlords[team])
+        ? teamWarlords[team] : warlordOptions(team)[0]?.value ?? ''
+      const [warlordPlayerId, warlordUnitId] = choice.split('|')
+      return { id: team === 0 ? 'team-alpha' : 'team-bravo', name: teamNames[team].trim(),
+        memberPlayerIds: [members[0].id, members[1].id], captainPlayerId: members[0].id,
+        forceDisposition: members[0].forceDisposition ?? 'take-and-hold', forceType: teamTypes[team],
+        warlord: { playerId: warlordPlayerId ?? '', unitId: warlordUnitId ?? '' },
+      }
+    }) as DoublesSetup['forces'] }
+  }
 
   useEffect(() => {
     void listArmies().then((stored) => {
@@ -101,34 +125,33 @@ export default function BattleSetup() {
     setLocalError(null)
     setInvalidFieldId(null)
     setMode(nextMode)
-    setPrimaryDeck('cauldron')
-    if (nextMode === 'duel') {
-      setPlayers((current) => current.map((player, index) => index < 2
-        ? {
-          ...player,
-          deploymentZone: (index === 0 ? 'A' : 'B') as DeploymentZone,
-          turnPosition: (index + 1) as TurnPosition,
-        }
-        : player))
-    }
+    setPrimaryDeck(nextMode === 'doubles2v2' ? 'chapter-approved-duel' : 'cauldron')
+    if (nextMode === 'doubles2v2') setSecondaryDeck('chapter-approved')
+    setPlayers((current) => current.map((player, index) => {
+      const zone = nextMode === 'doubles2v2' ? (index < 2 ? 'A' : 'B') : ('ABC'[index] ?? 'B')
+      const turn = nextMode === 'doubles2v2' ? (index < 2 ? 1 : 2) : index + 1
+      return { ...player, deploymentZone: zone as DeploymentZone, turnPosition: turn as TurnPosition }
+    }))
   }
 
   function randomizeZones() {
-    const zones = randomDeploymentZones(mode === 'duel' ? 2 : 3)
-    setPlayers((current) => current.map((player, index) => (
-      index < zones.length ? { ...player, deploymentZone: zones[index] } : player
-    )))
+    const zones = randomDeploymentZones(officialPair ? 2 : 3)
+    setPlayers((current) => current.map((player, index) => {
+      const zone = doubles ? zones[index < 2 ? 0 : 1] : zones[index]
+      return zone ? { ...player, deploymentZone: zone } : player
+    }))
   }
 
   function randomizeTurns() {
-    const positions = randomTurnPositions(mode === 'duel' ? 2 : 3)
-    setPlayers((current) => current.map((player, index) => (
-      index < positions.length ? { ...player, turnPosition: positions[index] } : player
-    )))
+    const positions = randomTurnPositions(officialPair ? 2 : 3)
+    setPlayers((current) => current.map((player, index) => {
+      const position = doubles ? positions[index < 2 ? 0 : 1] : positions[index]
+      return position ? { ...player, turnPosition: position } : player
+    }))
   }
 
   function validateCommanders(): boolean {
-    const count = mode === 'duel' ? 2 : 3
+    const count = doubles ? 4 : mode === 'duel' ? 2 : 3
     const fail = (message: string, index: number, field: string) => {
       const fieldId = `commander-${index}-${field}`
       setLocalError(`Commanders · ${message}`)
@@ -142,14 +165,16 @@ export default function BattleSetup() {
       const nameMissing = !activePlayers[missing].name.trim()
       return fail(`Player ${missing + 1}: ${nameMissing ? 'enter a player name' : 'choose a saved army'}.`, missing, nameMissing ? 'name' : 'army')
     }
-    const invalidZone = activePlayers.findIndex((player, index) => !(mode === 'duel' ? ['A', 'B'] : ['A', 'B', 'C']).includes(player.deploymentZone)
-      || activePlayers.slice(0, index).some((previous) => previous.deploymentZone === player.deploymentZone))
-    if (invalidZone >= 0) return fail(mode === 'duel' ? 'Assign deployment zones A and B exactly once.' : 'Assign deployment zones A, B, and C exactly once.', invalidZone, 'zone')
-    const invalidTurn = activePlayers.findIndex((player, index) => player.turnPosition < 1 || player.turnPosition > count
-      || activePlayers.slice(0, index).some((previous) => previous.turnPosition === player.turnPosition))
-    if (invalidTurn >= 0) return fail(mode === 'duel' ? 'Assign turn positions 1 and 2 exactly once.' : 'Assign turn positions 1, 2, and 3 exactly once.', invalidTurn, 'turn')
+    const invalidZone = activePlayers.findIndex((player, index) => !(officialPair ? ['A', 'B'] : ['A', 'B', 'C']).includes(player.deploymentZone)
+      || activePlayers.slice(0, index).some((previous, previousIndex) => (!doubles || Math.floor(index / 2) !== Math.floor(previousIndex / 2)) && previous.deploymentZone === player.deploymentZone)
+      || (doubles && index % 2 === 1 && activePlayers[index - 1].deploymentZone !== player.deploymentZone))
+    if (invalidZone >= 0) return fail(officialPair ? 'Assign opposing team deployment zones A and B.' : 'Assign deployment zones A, B, and C exactly once.', invalidZone, 'zone')
+    const invalidTurn = activePlayers.findIndex((player, index) => player.turnPosition < 1 || player.turnPosition > (doubles ? 2 : count)
+      || activePlayers.slice(0, index).some((previous, previousIndex) => (!doubles || Math.floor(index / 2) !== Math.floor(previousIndex / 2)) && previous.turnPosition === player.turnPosition)
+      || (doubles && index % 2 === 1 && activePlayers[index - 1].turnPosition !== player.turnPosition))
+    if (invalidTurn >= 0) return fail(officialPair ? 'Assign shared team turn positions 1 and 2.' : 'Assign turn positions 1, 2, and 3 exactly once.', invalidTurn, 'turn')
     const invalidFixed = activePlayers.findIndex((player) => {
-      const fixed = primaryDeck === 'chapter-approved-duel' ? duelStrategies[player.id] === 'fixed' : secondaryDeck === 'chapter-approved' && officialStrategy === 'fixed'
+      const fixed = primaryDeck === 'chapter-approved-duel' ? (!doubles || index === 0 || index === 2) && duelStrategies[player.id] === 'fixed' : secondaryDeck === 'chapter-approved' && officialStrategy === 'fixed'
       const selected = fixedSelections[player.id]
       return fixed && (!selected || new Set(selected).size !== 2 || selected.some((id) => !OFFICIAL_SECONDARY_BY_ID[id]?.fixed))
     })
