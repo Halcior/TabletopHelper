@@ -55,7 +55,7 @@ function OfficialSecondaryForm({ session, playerId, editable }: OfficialSecondar
 
   return <section className="panel secondary-panel official-secondary-panel">
     <div className="section-heading secondary-heading">
-      <div><span className="eyebrow">Chapter Approved 2026–27 · {fixed ? 'Fixed' : 'Tactical'}</span><h2>{player.name} · Secondary Missions</h2></div>
+      <div><span className="eyebrow">Chapter Approved 2026–27 · {fixed ? 'Fixed' : 'Tactical'}</span><h2>{session.setup.doubles?.forces.find((force) => force.captainPlayerId === playerId)?.name ?? player.name} · Secondary Missions</h2></div>
       <div className="secondary-score"><strong>{getRoundSecondaryVp(session, playerId)} / 15</strong><span>round</span><small>{getGameSecondaryVp(session, playerId)} / 45 game</small></div>
     </div>
     <InfoDisclosure label="Secondary rules & table confirmations">
@@ -109,7 +109,9 @@ function OfficialSecondaryForm({ session, playerId, editable }: OfficialSecondar
             {note ? <strong>Locked choice: {note}</strong> : <><label>{cardId === 'OFFICIAL_A_TEMPTING_TARGET' ? 'Objective selected by the assigned Rival' : 'Chosen own unit'}<select value={notes[cardId] ?? ''} disabled={!editable || !command} onChange={(event) => setNotes((current) => ({ ...current, [cardId]: event.target.value }))}>
               <option value="">Choose when drawn</option>
               {cardId === 'OFFICIAL_A_TEMPTING_TARGET' ? officialTemptingTargets(session, playerId).map((id) => <option key={id} value={id}>{id}</option>)
-                : officialPlayerUnits(session, playerId).filter((unit) => !player.units[unit.id]?.destroyed && !player.units[unit.id]?.inReserve).map((unit) => <option key={unit.id} value={unit.id}>{unit.name}</option>)}
+                : doublesUnitChoices
+                  ? doublesSecondaryUnitChoices(session, playerId, false).map((choice) => <option key={choice.value} value={choice.value}>{choice.label}</option>)
+                  : officialPlayerUnits(session, playerId).filter((unit) => !player.units[unit.id]?.destroyed && !player.units[unit.id]?.inReserve).map((unit) => <option key={unit.id} value={unit.id}>{unit.name}</option>)}
             </select></label>{editable && command && <button type="button" disabled={!notes[cardId]} onClick={() => noteOfficialTarget(playerId, cardId, notes[cardId])}>Save and lock choice</button>}</>}
           </div>}
           {ffa && cardId === 'OFFICIAL_BURDEN_OF_TRUST' && <div className="official-secondary-input">
