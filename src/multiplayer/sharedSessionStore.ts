@@ -544,7 +544,7 @@ export const useSharedSessionStore = create<SharedSessionStore>((set, get) => ({
     if (current.membership?.roomId !== membership.roomId || current.inspection?.room.id !== inspection.room.id) {
       throw new Error('The active shared room changed. Open its lobby and try again.')
     }
-    const playerIds = current.inspection.room.sessionSnapshot.state.turnOrder
+    const playerIds = current.inspection.room.sessionSnapshot.setup.players.map((player) => player.id)
     if (!canStartSharedLobby(true, playerIds, current.participants)) {
       throw new Error(sharedLobbyNotReadyMessage(playerIds))
     }
