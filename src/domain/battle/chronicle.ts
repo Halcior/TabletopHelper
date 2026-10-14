@@ -1,4 +1,5 @@
 import { totalCombatWounds } from './combatState'
+import { doublesScorekeeperId } from './doubles'
 import { visitBattleHistory } from './engine'
 import { describeBattleEvent } from './eventLog'
 import type { BattleEvent, BattlePhase, BattleSession, GameState, MissionActionState } from './types'
@@ -96,7 +97,7 @@ export function buildBattleChronicle(session: BattleSession): ChronicleEntry[] {
         if ('unitId' in correction) target = correction
         if (correction.kind === 'OBJECTIVE_CONTROL' || correction.kind === 'OBJECTIVE_OC') pending.objectiveId = correction.objectiveId
         if (correction.kind === 'SCORE') {
-          pending.scorePlayerId = correction.playerId
+          pending.scorePlayerId = doublesScorekeeperId(session.setup, correction.playerId)
           scoreCategory = correction.category
         }
       }
@@ -124,7 +125,7 @@ export function buildBattleChronicle(session: BattleSession): ChronicleEntry[] {
       if ('objectiveId' in event.payload) pending.objectiveId = event.payload.objectiveId
       if (pending.objectiveId) objectiveBefore = state.objectives[pending.objectiveId]?.controllerPlayerId
       if (event.type === 'SCORE_ADJUSTED') {
-        pending.scorePlayerId = event.payload.playerId
+        pending.scorePlayerId = doublesScorekeeperId(session.setup, event.payload.playerId)
         scoreCategory = event.payload.category
       }
       if (scoreCategory && pending.scorePlayerId) scoreBefore = state.players[pending.scorePlayerId].score[scoreCategory]
