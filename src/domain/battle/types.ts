@@ -234,6 +234,8 @@ export type GameState = {
   phase: BattlePhase
   turnOrder: string[]
   maxRounds: number
+  /** Event-projected rules mode; canonical source is setup.doubles. */
+  doubles?: DoublesSetup
   players: Record<string, PlayerState>
   objectives: Record<string, ObjectiveState>
   snapshots: {
