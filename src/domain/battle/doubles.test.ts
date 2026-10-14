@@ -9,6 +9,8 @@ import { doublesSecondaryUnitChoices, startOfficialSecondaryAction } from '../..
 import { cauldronEvent } from '../../rulesets/cauldronFFA3/events'
 import { getDuelMission } from '../../rulesets/cauldronFFA3/duelPrimary'
 import type { DoublesSetup } from './types'
+import { authorizeSharedMutation } from '../../multiplayer/sharedEventPolicy'
+import type { SharedMembership } from '../../multiplayer/types'
 
 const forces: DoublesSetup = {
   rulesVersion: 'GW-Doubles-1.1',
@@ -102,6 +104,24 @@ describe('GW Doubles team foundation', () => {
     expect(action && 'data' in action.payload && (action.payload.data as { unit?: string }).unit).toBe(partner!.value)
     expect(() => startOfficialSecondaryAction(session, 'a', 'OFFICIAL_CLEANSE', options.find((entry) => entry.playerId === 'a')!.value, neutral)).toThrow(/different objective/)
     expect(() => startOfficialSecondaryAction(session, 'a', 'OFFICIAL_CLEANSE', JSON.stringify(['c', 'tank']), 'CENTER-2')).toThrow(/eligible unit/)
+  })
+
+
+  it('authorizes both allied phones for shared turn and CP, without granting access to teammate units', () => {
+    const before = battle()
+    const seat = (playerId: string): SharedMembership => ({
+      roomId: 'room-test', roomCode: 'TEAM24', battleId: before.setup.gameId,
+      clientId: `client-${playerId}`, playerId, isHost: false,
+    })
+    const teamTurn = dispatchBattleEvent(before, { type: 'PHASE_CHANGED', payload: { phase: 'MOVEMENT' } }, { actorPlayerId: 'b' })
+    expect(authorizeSharedMutation(before, teamTurn, seat('b')).allowed).toBe(true)
+    expect(authorizeSharedMutation(before, teamTurn, seat('d')).allowed).toBe(false)
+    const sharedCp = dispatchBattleEvent(before, { type: 'CP_GAINED', payload: { playerId: 'a', amount: 1 } }, { actorPlayerId: 'b' })
+    expect(authorizeSharedMutation(before, sharedCp, seat('b')).allowed).toBe(true)
+    const teammateDamage = dispatchBattleEvent(before, { type: 'UNIT_MODEL_DESTROYED', payload: { playerId: 'a', unitId: 'infantry', amount: 1 } }, { actorPlayerId: 'b' })
+    expect(authorizeSharedMutation(before, teammateDamage, seat('b')).allowed).toBe(false)
+    const enemyDamage = dispatchBattleEvent(before, { type: 'UNIT_MODEL_DESTROYED', payload: { playerId: 'd', unitId: 'infantry', amount: 1, destroyedByPlayerId: 'b' } }, { actorPlayerId: 'b' })
+    expect(authorizeSharedMutation(before, enemyDamage, seat('b')).allowed).toBe(true)
   })
 
   it('rejects malformed team memberships instead of silently creating extra turns', () => {
