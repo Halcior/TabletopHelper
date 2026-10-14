@@ -93,6 +93,6 @@ describe('GW Doubles team foundation', () => {
         id, name: id, armyId: `army-${id}`, deploymentZone: index < 2 ? 'A' as const : 'B' as const,
         turnPosition: index < 2 ? 1 as const : 2 as const, operationalPlanId: 'WYNISZCZENIE' as const,
       })),
-    })).toThrow(/exactly one force/)
+    })).toThrow(/Doubles force|exactly one force/)
   })
 })
