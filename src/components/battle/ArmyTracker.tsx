@@ -309,7 +309,7 @@ export function ArmyTracker({
         <span><strong>Targets for {CAULDRON_SECONDARY_BY_ID[secondaryTargetFilter].name}</strong><small>{visibleUnits.length} eligible Rival unit{visibleUnits.length === 1 ? '' : 's'} remaining.</small></span>
         <button onClick={onClearSecondaryTargetFilter}>Show all units</button>
       </div>}
-      {quickUnits.length > 0 && <section className="recent-units" aria-label={recentUnitIds.length > 0 ? 'Recently used units' : 'Quick unit access'}>
+      {quickUnits.length > 0 && <section className="recent-units" aria-label="Quick unit access">
         <div className="recent-units__heading">
           <div><span className="eyebrow">Quick access</span><h3>Units</h3></div>
           <small>Shortcuts stay fixed while you record damage.</small>
