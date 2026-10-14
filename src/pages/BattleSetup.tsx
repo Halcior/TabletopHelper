@@ -83,7 +83,7 @@ export default function BattleSetup() {
     return (army?.units ?? []).filter((unit) => [...unit.categories, ...unit.keywords].some((trait) => trait.toUpperCase() === 'CHARACTER')).map((unit) => ({ value: `${player.id}|${unit.id}`, label: `${player.name} · ${unit.name}` }))
   })
   function getDoublesSetup(): DoublesSetup {
-    return { rulesVersion: 'GW-Doubles-1.1', forces: ([0, 1] as const).map((team) => {
+    return { rulesVersion: 'GW-Doubles-1.0', forces: ([0, 1] as const).map((team) => {
       const members = activePlayers.slice(team * 2, team * 2 + 2)
       const choice = teamWarlords[team] && warlordOptions(team).some((entry) => entry.value === teamWarlords[team])
         ? teamWarlords[team] : warlordOptions(team)[0]?.value ?? ''
@@ -274,7 +274,7 @@ export default function BattleSetup() {
           <strong>FFA 3</strong><span>3 players · rotating Rival</span>
         </button>
         <button type="button" className={doubles ? 'button--gold' : ''} aria-pressed={doubles} onClick={() => changeMode('doubles2v2')}>
-          <strong>Doubles 2v2</strong><span>4 commanders · 2 shared forces · GW v1.1</span>
+          <strong>Doubles 2v2</strong><span>4 commanders · 2 shared forces · GW v1.0</span>
         </button>
       </div>
 
