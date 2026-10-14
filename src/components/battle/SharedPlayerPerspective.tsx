@@ -44,6 +44,8 @@ export function SharedPlayerPerspective({
 }: SharedPlayerPerspectiveProps) {
   const viewer = session.state.players[viewerPlayerId]
   const active = session.state.players[session.state.activePlayerId]
+  const teamCaptainId = doublesScorekeeperId(session.setup, viewerPlayerId)
+  const teamScore = session.state.players[teamCaptainId]
   const dispatch = useBattleStore((store) => store.dispatch)
   if (!viewer || !active) return null
 
@@ -85,16 +87,16 @@ export function SharedPlayerPerspective({
 
   return <section className={`panel shared-perspective${ownTurn ? ' shared-perspective--active' : currentRival ? ' shared-perspective--rival' : ''}${reactionPending ? ' shared-perspective--reaction' : ''}`}>
     <div className="shared-perspective__heading">
-      <div><span className="eyebrow">You</span><h3>{viewer.name}</h3><small>{viewer.faction ?? 'Army'}</small></div>
+      <div><span className="eyebrow">You</span><h3>{viewer.name}</h3><small>{session.setup.doubles ? `${doublesForceForPlayer(session.setup, viewerPlayerId)?.name ?? 'Team'} · ${viewer.faction ?? 'Army'}` : viewer.faction ?? 'Army'}</small></div>
       <span className="shared-perspective__role">{role}</span>
     </div>
 
     {urgentTitle && <div className="shared-perspective__alert"><strong>{urgentTitle}</strong><span>{urgentCopy}</span></div>}
 
     <div className="shared-perspective__numbers">
-      <div><strong>{totalScore(viewer)}</strong><span>VP</span></div>
-      <div><strong>{viewer.cp}</strong><span>CP</span></div>
-      <div><strong>{viewerRival?.name ?? '—'}</strong><span>Rival</span></div>
+      <div><strong>{totalScore(teamScore ?? viewer)}</strong><span>VP</span></div>
+      <div><strong>{teamScore?.cp ?? viewer.cp}</strong><span>CP</span></div>
+      <div><strong>{viewerRivalId ? doublesForceForPlayer(session.setup, viewerRivalId)?.name ?? viewerRival?.name : '—'}</strong><span>{session.setup.doubles ? 'Enemy force' : 'Rival'}</span></div>
     </div>
 
     {plan && <div className="player-focus-line"><span>Plan</span><strong>{plan.name} · {planProgress}</strong></div>}
