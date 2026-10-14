@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { testArmy } from '../../rulesets/cauldronFFA3/cauldronTestUtils'
 import { createCauldronGame } from '../../rulesets/cauldronFFA3/session'
-import { dispatchBattleEvent } from './engine'
+import { advancePhase, dispatchBattleEvent } from './engine'
 import { doublesObjectiveController, doublesScorekeeperId, doublesTeamMembers } from './doubles'
 import { officialBoardDefinition } from '../battlefield/layouts'
 import { getSecondaryState } from '../../rulesets/cauldronFFA3/secondary'
 import { doublesSecondaryUnitChoices, startOfficialSecondaryAction } from '../../rulesets/cauldronFFA3/officialSecondary'
 import { cauldronEvent } from '../../rulesets/cauldronFFA3/events'
 import { getDuelMission } from '../../rulesets/cauldronFFA3/duelPrimary'
-import type { DoublesSetup } from './types'
+import { BATTLE_PHASES, type DoublesSetup } from './types'
 import { authorizeSharedMutation } from '../../multiplayer/sharedEventPolicy'
 import type { SharedMembership } from '../../multiplayer/types'
 import { getAvailableStratagems } from '../stratagems/timingEngine'
@@ -65,6 +65,20 @@ describe('GW Doubles team foundation', () => {
     expect(secondaries.c.deck.length + secondaries.c.active.length + secondaries.c.discarded.length).toBe(18)
     expect(secondaries.b.deck).toEqual([])
     expect(secondaries.d.deck).toEqual([])
+  })
+
+  it('advances exactly two shared team turns per round and ends after five rounds', () => {
+    let session = battle()
+    for (let step = 0; step < BATTLE_PHASES.length; step++) session = advancePhase(session)
+    expect(session.state.activePlayerId).toBe('c')
+    expect(session.state.round).toBe(1)
+    for (let step = 0; step < BATTLE_PHASES.length; step++) session = advancePhase(session)
+    expect(session.state.activePlayerId).toBe('a')
+    expect(session.state.round).toBe(2)
+    for (let step = 0; step < BATTLE_PHASES.length * 8; step++) session = advancePhase(session)
+    expect(session.state.round).toBe(5)
+    expect(session.state.status).toBe('completed')
+    expect(session.state.events.filter((event) => event.type === 'TURN_STARTED')).toHaveLength(9)
   })
 
   it('routes both partners CP and VP to their one shared force score', () => {
