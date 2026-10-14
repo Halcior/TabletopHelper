@@ -4,7 +4,7 @@ import {
   getPhaseTransitionEvents,
 } from '../../domain/battle/engine'
 import type { BattleSession } from '../../domain/battle/types'
-import { doublesTeamMembers, validateDoublesSetup } from '../../domain/battle/doubles'
+import { validateDoublesSetup } from '../../domain/battle/doubles'
 import {
   CAULDRON_BATTLE_ROUNDS,
   CAULDRON_DUEL_PLAYER_COUNT,
@@ -63,7 +63,7 @@ function validateCauldronInput(input: CauldronGameInput): void {
     if (input.primaryDeck === 'chapter-approved-ffa' && (!player.officialPrimaryId || !OFFICIAL_PRIMARY_MISSIONS[player.officialPrimaryId])) {
       throw new Error(`Choose an 11th edition Primary for ${player.name}.`)
     }
-    if (input.primaryDeck === 'chapter-approved-duel' && (!player.forceDisposition || !DISPOSITIONS.includes(player.forceDisposition))) {
+    if (input.primaryDeck === 'chapter-approved-duel' && !doubles && (!player.forceDisposition || !DISPOSITIONS.includes(player.forceDisposition))) {
       throw new Error(`Choose a Force Disposition for ${player.name}.`)
     }
   }
