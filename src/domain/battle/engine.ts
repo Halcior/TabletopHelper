@@ -135,6 +135,7 @@ function baseState(setup: BattleSetup): GameState {
     phase: 'COMMAND',
     turnOrder: [...setup.turnOrder],
     maxRounds: setup.maxRounds,
+    doubles: setup.doubles,
     players,
     objectives,
     snapshots: { roundStart: [], turnStart: [] },
