@@ -56,6 +56,18 @@ describe('shared lobby', () => {
     expect(canStartSharedLobby(true, FFA_PLAYERS, reconnected, NOW)).toBe(true)
   })
 
+  it('keeps a Doubles game blocked until all four distinct commanders are ready', () => {
+    const seats = ['player-a', 'player-b', 'player-c', 'player-d']
+    const threeReady = seats.map((id) => phone(id, id !== 'player-d'))
+    expect(summarizeSharedLobby(seats, threeReady, NOW)).toMatchObject({
+      seatCount: 4, onlineCount: 4, readyCount: 3, allReady: false,
+    })
+    expect(canStartSharedLobby(true, seats, threeReady, NOW)).toBe(false)
+    const fourReady = seats.map((id) => phone(id, true))
+    expect(canStartSharedLobby(true, seats, fourReady, NOW)).toBe(true)
+    expect(sharedLobbyNotReadyMessage(seats)).toBe('All 4 player seats must be online and ready before starting.')
+  })
+
   it('starts a Duel as soon as both online seats are ready', () => {
     const ready = DUEL_PLAYERS.map((playerId) => phone(playerId, true))
     expect(summarizeSharedLobby(DUEL_PLAYERS, ready, NOW)).toMatchObject({
