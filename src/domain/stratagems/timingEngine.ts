@@ -11,6 +11,19 @@ import type {
   TimingTrigger,
 } from './types'
 
+function teamScoringPlayerId(state: TimingStateView, playerId: string): string {
+  return state.doubles?.forces.find((force) => force.memberPlayerIds.includes(playerId))?.captainPlayerId ?? playerId
+}
+
+function playerPerspectiveState(state: TimingStateView, playerId: string): TimingStateView {
+  // Rules that inspect gameState.activePlayerId must see an allied commander
+  // as active during their force's shared turn, without changing recorded turns.
+  return state.activePlayerId !== playerId
+    && teamScoringPlayerId(state, playerId) === state.activePlayerId
+    ? { ...state, activePlayerId: playerId }
+    : state
+}
+
 function denialReason(result: RuleCheckResult, fallback: string): string | undefined {
   if (typeof result === 'boolean') return result ? undefined : fallback
   return result.allowed ? undefined : (result.reason ?? fallback)
@@ -46,13 +59,13 @@ export function evaluateTimedOption<TDefinition extends TimedOptionDefinition>(
     return { matches: false, reasons: [] }
   }
   if (!definition.triggers.includes(trigger)) return { matches: false, reasons: [] }
-  if (!matchesOwnerScope(definition, playerId, gameState.activePlayerId)) {
+  if (!matchesOwnerScope(definition, teamScoringPlayerId(gameState, playerId), teamScoringPlayerId(gameState, gameState.activePlayerId))) {
     return { matches: false, reasons: [] }
   }
 
   const evaluation: TimingEvaluationContext = {
     playerId,
-    gameState,
+    gameState: playerPerspectiveState(gameState, playerId),
     phase,
     trigger,
     context: input.context ?? {},
@@ -83,7 +96,8 @@ export function getAvailableStratagems(
   input: GetAvailableStratagemsInput,
 ): StratagemAvailability[] {
   const phase = input.phase ?? input.gameState.phase
-  const player = input.gameState.players[input.playerId]
+  const teamId = teamScoringPlayerId(input.gameState, input.playerId)
+  const player = input.gameState.players[teamId]
   if (!player) return []
 
   return input.definitions.flatMap((definition) => {
@@ -91,14 +105,14 @@ export function getAvailableStratagems(
     const timing = evaluateTimedOption({
       definition,
       playerId: input.playerId,
-      gameState: input.gameState,
+      gameState: playerPerspectiveState(input.gameState, input.playerId),
       phase,
       trigger: input.trigger,
       context: input.context,
     })
     if (!timing.matches) return []
 
-    const usage = getUsage(input.gameState.timing, input.playerId, definition.id)
+    const usage = getUsage(input.gameState.timing, teamId, definition.id)
     const evaluation: TimingEvaluationContext = {
       playerId: input.playerId,
       gameState: input.gameState,
