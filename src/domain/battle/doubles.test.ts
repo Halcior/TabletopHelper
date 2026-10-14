@@ -13,6 +13,8 @@ import { authorizeSharedMutation } from '../../multiplayer/sharedEventPolicy'
 import type { SharedMembership } from '../../multiplayer/types'
 import { getAvailableStratagems } from '../stratagems/timingEngine'
 import { buildUnitPerformance } from './unitPerformance'
+import { buildBattleChronicle } from './chronicle'
+import { buildBattleReport } from './battleReport'
 import type { StratagemDefinition } from '../stratagems/types'
 
 const forces: DoublesSetup = {
@@ -90,6 +92,12 @@ describe('GW Doubles team foundation', () => {
     expect(session.state.players.b.cp).toBe(0)
     expect(session.state.players.a.score.primary).toBe(5)
     expect(session.state.players.b.score.primary).toBe(0)
+    const scoreEvent = buildBattleChronicle(session).find((event) => event.scoreDelta === 5)
+    expect(scoreEvent?.scorePlayerId).toBe('a')
+    expect(scoreEvent?.description).toContain('+5 VP')
+    const report = buildBattleReport(session)
+    expect(report.ranking.find((team) => team.name === 'Alpha Force')?.vp).toBe(5)
+    expect(report.ranking).toHaveLength(2)
   })
 
   it('sums both partner OC values and normalizes manual owner to the force', () => {
