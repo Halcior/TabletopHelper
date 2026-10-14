@@ -86,6 +86,8 @@ export function generateOfflineNarrative(report: BattleReport, style: NarrativeS
   return paragraphs
 }
 
+const modelCount = (count: number): string => `${count} ${count === 1 ? 'model' : count % 10 >= 2 && count % 10 <= 4 && (count % 100 < 12 || count % 100 > 14) ? 'modele' : 'modeli'}`
+
 function narrateEntry(entry: ChronicleEntry, report: BattleReport, style: NarrativeStyle): string {
   const change = entry.unitChange
   const playerName = (id: string) => report.ranking.find((player) => player.playerId === id)?.name ?? id
@@ -96,7 +98,14 @@ function narrateEntry(entry: ChronicleEntry, report: BattleReport, style: Narrat
     const killed = !change.destroyedBefore && change.destroyedAfter
     const phase = entry.phase === 'SHOOTING' ? 'W fazie ostrzału' : entry.phase === 'FIGHT' ? 'W walce wręcz' : `W fazie ${entry.phase.replace('_', ' ')}`
     text = killed ? style === 'war-chronicle' ? `${phase} ${change.target.name} (${playerName(change.target.playerId)}) został zniszczony przez ${attacker}` : `${attacker} wyeliminował ${change.target.name} (${playerName(change.target.playerId)})`
-      : `${attacker} zniszczył ${lost} modeli ${change.target.name}`
+      : `${attacker} zniszczył ${modelCount(lost)} ${change.target.name}`
+    if (change.effectiveWoundsLost !== undefined) text += `; łącznie utracono ${change.effectiveWoundsLost} Wounds`
+    if (!change.destroyedAfter && change.currentModelWoundsAfter !== undefined) text += `; pozostałe modele: ${change.modelsAfter}, bieżący model ma ${change.currentModelWoundsAfter} W`
+  } else if (entry.category === 'combat' && change && !change.correction) {
+    const restored = change.modelsAfter - change.modelsBefore
+    if (restored > 0) text = `${change.target.name}: przywrócono ${modelCount(restored)}${change.destroyedBefore ? ' — powrót jednostki na pole bitwy' : ''}`
+    else if (change.woundsHealed) text = `${change.target.name}: uleczono ${change.woundsHealed} Wounds`
+    else if (change.effectiveWoundsLost) text = `${change.attacker?.name ?? 'Nieustalone źródło'} zadał ${change.effectiveWoundsLost} Wounds jednostce ${change.target.name} po rozpatrzeniu alokacji; pozostałe modele: ${change.modelsAfter}, bieżący model ma ${change.currentModelWoundsAfter ?? '?'} W`
   } else if (entry.category === 'vp' && entry.scorePlayerId) {
     text = `${playerName(entry.scorePlayerId)}: zmiana wyniku o ${(entry.scoreDelta ?? 0) >= 0 ? '+' : ''}${entry.scoreDelta} VP`
     if (entry.event.type === 'STATE_CORRECTED') text += ' (korekta hosta)'
@@ -119,16 +128,20 @@ export function battleReportMarkdown(report: BattleReport): string {
     '| Gracz | Punkty przeciwników zniszczone | Własne straty | Kills | Punkty przypisane tylko graczowi |',
     '| --- | --- | --- | --- | --- |',
     ...report.performance.armies.map((army) => `| ${markdownText(report.ranking.find((player) => player.playerId === army.playerId)?.name ?? army.playerId)} | ${amount(army.enemyPointsDestroyed)} | ${amount(army.ownPointsLost)} | ${army.kills} | ${amount(army.playerOnlyPoints)} |`),
+    '', '## Zarejestrowane obrażenia', '',
+    '| Jednostka | Zadane W (Partial) | Otrzymane W (Partial) | Uleczone W | Przywrócone modele |',
+    '| --- | --- | --- | --- | --- |',
+    ...report.performance.units.map((unit) => `| ${markdownText(unit.name)} | ${unit.damageDealt ?? 'Unknown'} | ${unit.damageReceived ?? 'Unknown'} | ${unit.woundsHealed} | ${unit.modelsRestored} |`),
     '', '## Przebieg', '',
     ...report.narrative.flatMap((paragraph) => [markdownText(paragraph), '']), '## Efektywność jednostek', '',
     '| Gracz / jednostka | Koszt | Kills | Modele wroga | Punkty zniszczone | Combat ROI | Akcje | Potwierdzone VP z akcji | Stan |',
     '| --- | --- | --- | --- | --- | --- | --- | --- | --- |',
-    ...report.performance.units.map((unit) => `| ${markdownText(report.ranking.find((player) => player.playerId === unit.playerId)?.name ?? unit.playerId)} / ${markdownText(unit.name)} | ${unit.startingPoints} | ${unit.kills} | ${unit.modelsDestroyed} | ${amount(unit.enemyPointsDestroyed)} | ${unit.combatRoi === null ? '—' : `${Math.round(unit.combatRoi)}%`} | ${unit.completedMissionActions} | ${unit.missionVp ?? '—'} | ${unit.survived ? `${unit.remainingModels} modeli${unit.remainingWounds === undefined ? '' : `, ${unit.remainingWounds} W`}` : `Zniszczona w rundzie ${unit.destructionRound ?? '—'}`} |`),
+    ...report.performance.units.map((unit) => `| ${markdownText(report.ranking.find((player) => player.playerId === unit.playerId)?.name ?? unit.playerId)} / ${markdownText(unit.name)} | ${unit.startingPoints} | ${unit.kills} | ${unit.modelsDestroyed} | ${amount(unit.enemyPointsDestroyed)} | ${unit.combatRoi === null ? '—' : `${Math.round(unit.combatRoi)}%`} | ${unit.completedMissionActions} | ${unit.missionVp ?? '—'} | ${unit.survived ? `${modelCount(unit.remainingModels)}${unit.remainingWounds === undefined ? '' : `, ${unit.remainingWounds} W`}` : `Zniszczona w rundzie ${unit.destructionRound ?? '—'}`} |`),
     '', '## Wyróżnienia', '',
     ...report.performance.awards.map((award) => `- **${award.title}**: ${award.winners.map((unit) => markdownText(`${unit.name} (${report.ranking.find((player) => player.playerId === unit.playerId)?.name ?? unit.playerId})`)).join(', ')}. ${award.rule}`),
     '', '## Zasady statystyk', '',
     'Punkty zniszczone są wartością netto utraconych modeli: koszt jednostki / początkowa liczba modeli. Wskrzeszenie lub korekta stanu cofa ostatnie przypisane straty, również z poprzednich rund. Kill otrzymuje sprawca ostatniego ciosu i znika po przywróceniu celu. ROI = punkty zniszczone / koszt własnej jednostki × 100%.',
-    'Obrażenia obejmują wyłącznie zapisane spadki wounds jednostek jednomodelowych; pełne KO nie dopisuje obrażeń. Wartości bez jednoznacznego sprawcy jednostkowego pozostają na poziomie gracza. Kontrola objective nie daje automatycznie VP konkretnej jednostce. Wielojednostkowe nagrody VP nie są dzielone przez zgadywanie. Zmiana wyniku Secondary przez korektę usuwa pewność wcześniejszych VP z akcji. Inne kategorie i późniejsze potwierdzone nagrody zachowują przypisanie; tabela pokazuje znany wkład.',
+    'Obrażenia obejmują skutecznie utracone Wounds zapisane w Combat Logging oraz starsze jawne spadki Wounds pojedynczych modeli. Zapis samej utraty modeli lub pełnego KO nie dopisuje obrażeń. Leczenie i reanimacja nie kasują historycznych obrażeń; korekta odejmuje błędnie zapisane straty. Unknown oznacza brak danych, a Partial — tylko zarejestrowany wkład. Wartości bez jednoznacznego sprawcy jednostkowego pozostają na poziomie gracza. Kontrola objective nie daje automatycznie VP konkretnej jednostce. Wielojednostkowe nagrody VP nie są dzielone przez zgadywanie. Zmiana wyniku Secondary przez korektę usuwa pewność wcześniejszych VP z akcji. Inne kategorie i późniejsze potwierdzone nagrody zachowują przypisanie; tabela pokazuje znany wkład.',
     `Straty bez przypisanego gracza: ${amount(report.performance.unattributedPoints)} pkt. Punkty przypisane tylko do gracza: ${amount(report.performance.armies.reduce((sum, army) => sum + army.playerOnlyPoints, 0))} pkt.`,
   ]
   return lines.join('\n')

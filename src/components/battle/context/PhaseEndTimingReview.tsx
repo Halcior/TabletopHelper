@@ -75,7 +75,7 @@ export function PhaseEndTimingReview({
         <span>{player.exactCount > 0 ? `${player.exactCount} exact` : ''}{player.exactCount > 0 && player.potentialCount > 0 ? ' · ' : ''}{player.potentialCount > 0 ? `${player.potentialCount} to confirm` : ''}</span>
       </div>)}</div>
       <p className="context-note">{!enforceReactionWindow
-        ? 'Fast Mode does not pause automatically here. Return to the phase if a player wants to use HOLD / REACT before you finish.'
+        ? 'Fast Mode does not pause automatically here. Use Opponent Stratagems during the phase to confirm a valid reaction before finishing.'
         : reactionWindowOpen
           ? 'The reaction window is open. Resolve USE / PASS before continuing.'
           : reactionsHandled

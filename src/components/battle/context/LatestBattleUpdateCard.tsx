@@ -1,11 +1,15 @@
+import { useBattleStore } from '../../../stores/battleStore'
+import { getSharedRuntimeMembership } from '../../../multiplayer/sharedRuntime'
 import type { BattleSession } from '../../../domain/battle/types'
 import { buildLatestBattleUpdate } from '../../../domain/context'
 
 export function LatestBattleUpdateCard({ session }: { session: BattleSession }) {
+  const undo = useBattleStore((state) => state.undo)
+  const shared = getSharedRuntimeMembership()?.battleId === session.setup.gameId
   const update = buildLatestBattleUpdate(session)
   if (!update) return null
 
-  return <details className="latest-battle-update" aria-live="polite">
+  return <div><details className="latest-battle-update" aria-live="polite">
     <summary className="latest-battle-update__heading">
       <div>
         <span className="eyebrow">Latest table update</span>
@@ -21,4 +25,7 @@ export function LatestBattleUpdateCard({ session }: { session: BattleSession }) 
       </div>}
     </div>
   </details>
+    {!shared && session.state.events.some((event) => event.actionId === update.actionId && event.type.startsWith('UNIT_')) && update.actionId === session.state.events.at(-1)?.actionId && session.state.events.at(-1)?.undoable && <button onClick={undo}>Undo last combat action</button>}
+    {shared && session.state.events.at(-1)?.type === 'UNIT_COMBAT_RESOLVED' && <small>Corrections: room host → Correct battle state.</small>}
+  </div>
 }

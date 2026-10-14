@@ -9,7 +9,7 @@ import type { BattleEvent, BattleSession } from '../domain/battle/types'
 export function findRetryableLocalEvents(baseSnapshot: BattleSession, localSession: BattleSession): BattleEvent[] {
   if (baseSnapshot.setup.gameId !== localSession.setup.gameId) return []
   const snapshotIds = new Set(baseSnapshot.state.events.map((event) => event.id))
-  return localSession.state.events.filter((event) => !snapshotIds.has(event.id))
+  return localSession.state.events.filter((event) => !event.derivedFromCombatId && !snapshotIds.has(event.id))
 }
 
 export function mergeCanonicalEnvelopes<T extends { sequence: number }>(current: T[], incoming: T[]): T[] {

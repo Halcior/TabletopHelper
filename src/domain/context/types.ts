@@ -29,7 +29,6 @@ export type ContextActionType =
   | 'CHANGE_OPERATIONAL_PLAN'
   | 'OPEN_STRATAGEMS'
   | 'USE_STRATAGEM'
-  | 'HOLD_REACTION'
   | 'PASS_REACTION'
   | 'ADVANCE_PHASE'
   | 'END_TURN'

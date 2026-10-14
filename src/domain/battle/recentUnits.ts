@@ -7,6 +7,7 @@ export type RecentUnitReference = {
 
 function unitReference(event: BattleEvent): RecentUnitReference | null {
   switch (event.type) {
+    case 'UNIT_COMBAT_RESOLVED':
     case 'UNIT_MODEL_DESTROYED':
     case 'UNIT_MODEL_RESTORED':
     case 'UNIT_WOUNDS_CHANGED':

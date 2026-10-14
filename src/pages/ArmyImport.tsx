@@ -40,9 +40,9 @@ export default function ArmyImport() {
   return (
     <div className="page-shell narrow-page">
       <section className="page-intro">
-        <span className="eyebrow">Roster adapter</span>
+        <span className="eyebrow">Army Library</span>
         <h1>Import New Recruit</h1>
-        <p>Select the original New Recruit JSON export. The source file remains untouched; the app converts it into its own battle-ready domain model.</p>
+        <p>Choose a New Recruit JSON export and review your roster before saving.</p>
       </section>
 
       <label className="file-drop">
@@ -50,7 +50,7 @@ export default function ArmyImport() {
         <small>JSON files remain on this device.</small>
         <input type="file" accept=".json,application/json" onChange={handleFile} />
       </label>
-      {error && <div className="alert alert--danger">{error}</div>}
+      {error && <div className="alert alert--danger" role="alert">{error}</div>}
 
       {preview && (
         <section className="panel import-preview">

@@ -1,3 +1,4 @@
+import { setupBattlefield, setupRules } from './helpers'
 import { expect, test, type Page } from '@playwright/test'
 import { dismissSecondaryReveal, importTestArmy, phone } from './helpers'
 import { MockSupabase } from './mockSupabase'
@@ -16,10 +17,15 @@ test('independent Primary and Chapter Approved Secondary synchronize on three ph
   try {
     await importTestArmy(alpha.page)
     await alpha.page.getByRole('button', { name: /FFA 3/ }).click()
+    await setupRules(alpha.page)
     await alpha.page.getByLabel('Primary mode').selectOption('chapter-approved-ffa')
+    await setupBattlefield(alpha.page)
     await alpha.page.getByLabel('Guidance level').selectOption('fast')
+    await setupRules(alpha.page)
     await alpha.page.getByLabel('Secondary deck').selectOption('chapter-approved')
+    await setupRules(alpha.page)
     await alpha.page.getByLabel('Secondary strategy').selectOption('fixed')
+    await setupBattlefield(alpha.page)
     await alpha.page.getByRole('button', { name: 'Create 3-player lobby' }).click()
     const code = (await alpha.page.locator('.shared-room-focus__code strong').textContent())!.trim()
     await join(bravo.page, code, 'player-b')

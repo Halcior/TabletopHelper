@@ -1,6 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { AppIcon, type AppIconName } from '../components/AppIcon'
+import { CommandPopover } from '../components/ui/CommandPopover'
+import { InfoDisclosure } from '../components/ui/InfoDisclosure'
+import { CommandDialog } from '../components/ui/CommandDialog'
 import { ArmyTracker } from '../components/battle/ArmyTracker'
 import { BattleQuickStatus } from '../components/battle/BattleQuickStatus'
 import { BattleLog } from '../components/battle/BattleLog'
@@ -13,7 +16,7 @@ import { PhaseEndTimingReview } from '../components/battle/context/PhaseEndTimin
 import { EndRoundReview } from '../components/battle/EndRoundReview'
 import { ObjectivesPanel } from '../components/battle/ObjectivesPanel'
 import { humanizePhase, PhaseStepper } from '../components/battle/PhaseStepper'
-import { ReactionHoldControl } from '../components/battle/ReactionHoldControl'
+import { OpponentStratagems } from '../components/battle/OpponentStratagems'
 import { Scoreboard } from '../components/battle/Scoreboard'
 import { SecondaryEndTurnReview } from '../components/battle/SecondaryEndTurnReview'
 import { SecondaryDetailPanel } from '../components/battle/SecondaryPanel'
@@ -38,7 +41,7 @@ import {
 import { selectNextBattleAction } from '../domain/context/progression'
 import { getCurrentReactionWindow, isBattleFlowPaused } from '../domain/stratagems/battleIntegration'
 import { getAvailableStratagems } from '../domain/stratagems/timingEngine'
-import type { ReactionContext, StratagemAvailability, TimingTrigger } from '../domain/stratagems/types'
+import type { StratagemAvailability } from '../domain/stratagems/types'
 import { ReactionWindowPanel } from '../features/stratagems'
 import { getSharedSessionPermissions } from '../multiplayer/permissions'
 import { sharedBattleHasStarted } from '../multiplayer/sharedLobby'
@@ -72,7 +75,7 @@ const DASHBOARD_TAB_ICONS: Record<DashboardTab, AppIconName> = {
   objectives: 'objectives',
   cards: 'cards',
   log: 'log',
-  report: 'log',
+  report: 'report',
 }
 
 const rulesDataCache = new WeakMap<Army, RulesDataResolution>()
@@ -87,7 +90,25 @@ function resolveArmyRules(provider: RulesDataProvider, army: Army): RulesDataRes
 
 export default function BattleDashboard() {
   const { battleId } = useParams()
-  const [tab, setTab] = useState<DashboardTab>('overview')
+  const [tab, setSelectedTab] = useState<DashboardTab>('overview')
+  const [visitedPanels, setVisitedPanels] = useState<Set<DashboardTab>>(() => new Set(['overview']))
+  const [moreOpen, setMoreOpen] = useState(false)
+  const moreTrigger = useRef<HTMLButtonElement>(null)
+  const [replayRequest, setReplayRequest] = useState(0)
+  const [boardEditing, setBoardEditing] = useState(false)
+  const [sessionDetailsOpen, setSessionDetailsOpen] = useState(false)
+  const headerRef = useRef<HTMLElement>(null)
+  const [headerHeight, setHeaderHeight] = useState(88)
+  const panelScroll = useRef<Partial<Record<DashboardTab, number>>>({})
+  function setTab(item: DashboardTab) {
+    if (item !== tab) {
+      panelScroll.current[tab] = window.scrollY
+      requestAnimationFrame(() => window.scrollTo({ top: panelScroll.current[item] ?? 0, behavior: 'instant' }))
+    }
+    setSelectedTab(item)
+    setVisitedPanels((current) => current.has(item) ? current : new Set([...current, item]))
+    setMoreOpen(false)
+  }
   const [reviewOpen, setReviewOpen] = useState(false)
   const [turnReviewOpen, setTurnReviewOpen] = useState(false)
   const [phaseEndReviewOpen, setPhaseEndReviewOpen] = useState(false)
@@ -110,8 +131,6 @@ export default function BattleDashboard() {
     dispatch,
     useStratagem,
     processReactionTrigger,
-    requestReactionHold,
-    refineReactionHold,
     cancelReactionWindow,
     passReaction,
     startMissionAction,
@@ -185,6 +204,12 @@ export default function BattleDashboard() {
   }, [session?.state.activePlayerId, session?.state.phase, session?.state.round, session?.state.status])
 
   const liveFeedback = useLiveBattleFeedback(session)
+  useEffect(() => {
+    if (!headerRef.current) return
+    const observer = new ResizeObserver(([entry]) => setHeaderHeight(entry.target.getBoundingClientRect().height))
+    observer.observe(headerRef.current)
+    return () => observer.disconnect()
+  }, [session?.setup.gameId, session?.state.status, loading])
   if (loading && session?.setup.gameId !== battleId) return <div className="page-shell"><div className="loading-state">Restoring battle…</div></div>
   if (!session || session.setup.gameId !== battleId) return <div className="page-shell"><div className="empty-state"><h1>Battle unavailable</h1><p>{error ?? 'The local battle could not be found.'}</p><Link className="button" to="/">Return home</Link></div></div>
   if (sharedMembership?.battleId === session.setup.gameId && !sharedBattleHasStarted(sharedRoomStartedAt)) {
@@ -225,9 +250,6 @@ export default function BattleDashboard() {
     return undefined
   })() : undefined
   const playerIds = Object.keys(session.state.players)
-  const reactionHoldPlayers = session.state.turnOrder
-    .filter((playerId) => playerId !== active.id)
-    .map((playerId) => ({ id: playerId, name: session.state.players[playerId].name }))
   const playerNames = Object.fromEntries(Object.values(session.state.players).map((player) => [player.id, player.name]))
   const rulesDataByPlayer = Object.fromEntries(playerIds.map((playerId) => {
     const armyId = session.state.players[playerId].armyId
@@ -348,37 +370,6 @@ export default function BattleDashboard() {
     })
   }
 
-  function handleReactionHoldStart(playerId: string) {
-    if (currentWindow) return
-    requestReactionHold(playerId, {
-      trigger: 'CUSTOM_CONFIRMATION',
-      context: {
-        actingPlayerId: active.id,
-        holdDraft: true,
-      },
-      definitionsByPlayer,
-      reactionPolicy,
-    })
-  }
-
-  function handleReactionHoldRefine(
-    reactionWindowId: string,
-    playerId: string,
-    trigger: TimingTrigger,
-    context: ReactionContext = {},
-  ) {
-    refineReactionHold(reactionWindowId, playerId, {
-      trigger,
-      context: {
-        ...context,
-        actingPlayerId: active.id,
-        holdDraft: false,
-      },
-      definitionsByPlayer,
-      reactionPolicy,
-    })
-  }
-
   function handlePhaseEndStratagem(option: RelevantStratagem) {
     if (!canControlTurn || currentWindow) return
     useStratagem({
@@ -455,41 +446,28 @@ export default function BattleDashboard() {
     onPass={(playerId: string) => passReaction(currentWindow.id, playerId)}
   /> : null
 
-  const sharedReactionHold = sharedBattle && !canControlTurn ? <div className="shared-reaction-hold-shell">
-    <ReactionHoldControl
-      phase={session.state.phase}
-      activePlayerName={active.name}
-      players={reactionHoldPlayers}
-      session={session}
-      definitionsByPlayer={definitionsByPlayer}
-      sharedMode
-      viewerPlayerId={viewerPlayerId}
-      disabled={Boolean(currentWindow)}
-      onHoldStart={handleReactionHoldStart}
-      onHoldRefine={handleReactionHoldRefine}
-      onHoldCancel={cancelReactionWindow}
-    />
-  </div> : null
 
   return (
-    <div className="battle-page">
-      <header className={`battle-status battle-status--player-${activePlayerIndex}${liveFeedback.phaseChanged ? ' battle-transition-live' : ''}`}>
+    <div className="battle-page" style={{ '--battle-hud-height': `${headerHeight}px` } as CSSProperties}>
+      <header ref={headerRef} className={`battle-status battle-status--player-${activePlayerIndex}${liveFeedback.phaseChanged ? ' battle-transition-live' : ''}`}>
         <div className="battle-round"><span>Battle round</span><strong>{session.state.round}<small>/ {session.state.maxRounds}</small></strong></div>
         <div className="battle-turn">
-          <span>{battleActive ? `${active.name} turn` : 'Session status'}</span>
-          <h1>{headerTitle}</h1>
+          <span className="battle-turn__eyebrow">{battleActive ? `${active.name} turn` : 'Session status'}</span>
+          <h1 aria-label={headerTitle}><span className="hud-round">Round {session.state.round} / {session.state.maxRounds} · </span>{headerTitle}</h1>
           {battleActive && <div className="battle-turn__mobile-meta" aria-label={`Active commander ${active.name}${rival ? `, Rival ${rival.name}` : ''}`}>
-            <strong>{active.name}</strong>
-            {rival && <span>Rival · {rival.name}</span>}
+            <strong>Active: {active.name}</strong>
+            {rival && <span>Rival: {rival.name}</span>}
           </div>}
         </div>
         <div className="battle-context">
+          <InfoDisclosure label="Session details" className="hud-session-details">
           {battleActive && rival && <div className="rival-callout"><span>Current Rival</span><strong>{rival.name}</strong></div>}
           {battleActive && <span className={`mode-badge mode-badge--${guidanceLevel}`}>{guidanceLevel} mode</span>}
           {cauldron && <span className="ruleset-label">{cauldronModeLabel}</span>}
           {officialSecondary && <span className="ruleset-label">Chapter Approved · {secondaryStrategyFor(session, primaryViewerId) === 'fixed' ? 'Fixed' : 'Tactical'}</span>}
           {officialPrimary && <span className="ruleset-label">Primary FFA · {OFFICIAL_PRIMARY_MISSIONS[getOfficialPrimaryId(session, active.id)].name}</span>}
           {duelPrimary && <span className="ruleset-label">Primary · {getDuelMission(session, active.id).name}</span>}
+          </InfoDisclosure>
           <SharedSessionStatus battleId={session.setup.gameId} />
           {battleActive && <BattleMenu
             session={session}
@@ -510,7 +488,7 @@ export default function BattleDashboard() {
         </div>
       </header>
       {battleActive && <div className="battle-round-progress" role="progressbar" aria-label="Battle round progress" aria-valuemin={0} aria-valuemax={session.setup.turnOrder.length * BATTLE_PHASES.length} aria-valuenow={activePlayerIndex * BATTLE_PHASES.length + BATTLE_PHASES.indexOf(session.state.phase) + 1} aria-valuetext={`Round ${session.state.round}, ${active.name}, ${phaseLabel}`}><span style={{ transform: `scaleX(${(activePlayerIndex * BATTLE_PHASES.length + BATTLE_PHASES.indexOf(session.state.phase) + 1) / (session.setup.turnOrder.length * BATTLE_PHASES.length)})` }} /></div>}
-      {liveFeedback.kills.length > 0 && <aside className="battle-kill-notice" role="status" aria-live="polite"><AppIcon name="eliminate" /><div>{liveFeedback.kills.map((kill) => <p key={kill}>{kill}</p>)}</div></aside>}
+      {liveFeedback.kills.length > 0 && <aside className="battle-kill-notice" role="status" aria-live="polite"><AppIcon name="eliminate" /><div>{liveFeedback.kills.map((kill) => <p key={kill}>{kill}</p>)}</div><button onClick={() => setTab('log')}>Chronicle</button></aside>}
 
       {!battleActive ? <main className="battle-terminal-content">
         {error && <div className="alert alert--danger battle-alert">{error}</div>}
@@ -538,9 +516,8 @@ export default function BattleDashboard() {
         />
         <PhaseStepper phase={session.state.phase} />
         {sharedBattle && <SharedSyncWarning battleId={session.setup.gameId} />}
-        {sharedBattle && canControlTurn && <div className="shared-flow-notice shared-flow-notice--active">Your turn as {viewer?.name ?? active.name}. You control phase progression and end-turn review on this device.</div>}
-        {sharedBattle && !canControlTurn && <div className="shared-flow-notice">Connected as {viewer?.name ?? 'player'}. Waiting for {sharedPermissions.waitingForPlayerName ?? active.name} to advance their turn. Your own CP, army state and reaction responses remain yours.</div>}
-        {sharedReactionHold}
+        {sharedBattle && <div className={`shared-flow-notice${canControlTurn ? ' shared-flow-notice--active' : ''}`}>{canControlTurn ? `Your turn · ${viewer?.name ?? active.name}` : `Waiting for ${sharedPermissions.waitingForPlayerName ?? active.name} · playing as ${viewer?.name ?? 'player'}`}</div>}
+        {currentWindow?.requestedByPlayerId && <section className="panel legacy-reaction-recovery"><p>This saved battle has an unfinished legacy reaction pause.</p><button disabled={sharedBattle && viewerPlayerId !== currentWindow.requestedByPlayerId && !sharedMembership?.isHost} onClick={() => cancelReactionWindow(currentWindow.id)}>Close legacy pause</button></section>}
         {error && <div className="alert alert--danger battle-alert">{error}</div>}
 
         {reviewOpen ? <EndRoundReview
@@ -578,13 +555,23 @@ export default function BattleDashboard() {
         </main> : <>
           <nav className="battle-tabs" aria-label="Battle panels">
             {dashboardTabs.map((item) => (
-              <button className={tab === item ? 'selected' : ''} key={item} onClick={() => selectDashboardTab(item)}><AppIcon name={DASHBOARD_TAB_ICONS[item]} /><span>{item}</span></button>
+              <button aria-pressed={tab === item} className={`${tab === item ? 'selected ' : ''}${['log', 'report'].includes(item) ? 'battle-tabs__desktop' : ''}`} key={item} onClick={() => selectDashboardTab(item)}><AppIcon name={DASHBOARD_TAB_ICONS[item]} /><span>{item === 'overview' ? 'Battle' : item === 'log' ? 'Chronicle' : item.charAt(0).toUpperCase() + item.slice(1)}</span></button>
             ))}
+            <button ref={moreTrigger} aria-haspopup="menu" aria-expanded={moreOpen} className={`battle-tabs__more${['log', 'report'].includes(tab) ? ' selected' : ''}`} onClick={() => setMoreOpen((current) => !current)}><AppIcon name="more" /><span>More</span></button>
           </nav>
+          {moreOpen && <CommandPopover label="More battle tools" role="menu" trigger={moreTrigger} onClose={() => setMoreOpen(false)} className="battle-more-popover">
+            <button role="menuitem" onClick={() => setTab('log')}><AppIcon name="log" />Battle Chronicle</button>
+            <button role="menuitem" disabled={boardEditing} title={boardEditing ? 'Save or cancel layout edits first' : undefined} onClick={() => { setTab('objectives'); setReplayRequest((current) => current + 1) }}><AppIcon name="replay" />Battle Replay</button>
+            <button role="menuitem" onClick={() => setTab('report')}><AppIcon name="report" />Battle Report</button>
+            <button role="menuitem" onClick={() => { setMoreOpen(false); setSessionDetailsOpen(true) }}><AppIcon name="mission" />Session details</button>
+            <button role="menuitem" onClick={() => { setMoreOpen(false); downloadBattleDiagnosticReport(session, useSharedSessionStore.getState()) }}><AppIcon name="import" />Export diagnostics</button>
+          </CommandPopover>}
+          {sessionDetailsOpen && <CommandDialog label="Session details" onClose={() => setSessionDetailsOpen(false)}><section className="panel"><div className="command-popover__heading"><h2>Session details</h2><button aria-label="Close session details" onClick={() => setSessionDetailsOpen(false)}>×</button></div><p>{cauldronModeLabel}</p><p>{guidanceLevel} mode · Round {session.state.round} / {session.state.maxRounds}</p>{rival && <p>Current Rival: {rival.name}</p>}{officialPrimary && <p>Primary: {OFFICIAL_PRIMARY_MISSIONS[getOfficialPrimaryId(session, active.id)].name}</p>}{duelPrimary && <p>Primary: {getDuelMission(session, active.id).name}</p>}{officialSecondary && <p>Chapter Approved · {secondaryStrategyFor(session, primaryViewerId) === 'fixed' ? 'Fixed' : 'Tactical'}</p>}</section></CommandDialog>}
 
           <main className="battle-content">
             {reactionWindowPanel}
-            {tab === 'overview' && battleContext && <div className="tactical-dashboard tactical-dashboard--context">
+            <section className="battle-panel" hidden={tab !== 'overview'} aria-label="Battle overview">
+            {battleContext && <div className="tactical-dashboard tactical-dashboard--context">
               <div className="tactical-column tactical-column--primary">
                 <ContextCommandCentre
                   context={battleContext}
@@ -597,7 +584,6 @@ export default function BattleDashboard() {
                   onMulligan={mulliganSecondary}
                   onOpenEndTurn={() => { if (canControlTurn) setTurnReviewOpen(true) }}
                   onUseStratagem={handleContextStratagem}
-                  onHoldReaction={handleReactionHoldStart}
                   onPassReaction={passReaction}
                   onChangePlan={changePlan}
                   onResolveEliminationChoice={resolveEliminationChoice}
@@ -632,20 +618,11 @@ export default function BattleDashboard() {
                   onOpenCards={() => setTab('cards')}
                 />}
                 <BattleQuickStatus session={session} onOpenObjectives={() => setTab('objectives')} />
-                {!sharedBattle && <ReactionHoldControl
-                  phase={session.state.phase}
-                  activePlayerName={active.name}
-                  players={reactionHoldPlayers}
-                  session={session}
-                  definitionsByPlayer={definitionsByPlayer}
-                  disabled={Boolean(currentWindow)}
-                  onHoldStart={handleReactionHoldStart}
-                  onHoldRefine={handleReactionHoldRefine}
-                  onHoldCancel={cancelReactionWindow}
-                />}
+                <OpponentStratagems key={`${session.setup.gameId}:${session.state.round}:${active.id}:${session.state.phase}`} session={session} definitionsByPlayer={definitionsByPlayer} sharedMode={sharedBattle} viewerPlayerId={viewerPlayerId} reactionPolicy={reactionPolicy} onUse={useStratagem} />
               </aside>
             </div>}
-            {tab === 'army' && <ArmyTracker
+            </section>
+            {visitedPanels.has('army') && <section className="battle-panel" hidden={tab !== 'army'} aria-label="Army"><ArmyTracker
               session={session}
               dispatch={dispatch}
               preferredPlayerId={armyPreferredPlayerId ?? (sharedBattle ? viewerPlayerId : undefined)}
@@ -653,17 +630,17 @@ export default function BattleDashboard() {
               viewerPlayerId={viewerPlayerId}
               secondaryTargetFilter={armySecondaryFilter}
               onClearSecondaryTargetFilter={() => setArmySecondaryFilter(null)}
-            />}
-            {tab === 'objectives' && <ObjectivesPanel session={session} dispatch={dispatch} liveObjectiveIds={liveFeedback.objectiveIds} />}
-            {tab === 'cards' && cauldron && <>
+            /></section>}
+            {visitedPanels.has('objectives') && <section className="battle-panel" hidden={tab !== 'objectives'} aria-label="Objectives"><ObjectivesPanel session={session} dispatch={dispatch} liveObjectiveIds={liveFeedback.objectiveIds} replayRequest={replayRequest} onEditingChange={setBoardEditing} active={tab === 'objectives'} /></section>}
+            {visitedPanels.has('cards') && cauldron && <section className="battle-panel" hidden={tab !== 'cards'} aria-label="Mission cards">
               {officialPrimary && <OfficialPrimaryPanel session={session} playerId={sharedBattle ? viewerPlayerId ?? active.id : active.id} />}
               {duelPrimary && <DuelPrimaryPanel session={session} playerId={primaryViewerId} window={duelReviewWindow} editable={!sharedBattle || primaryViewerId === viewerPlayerId} />}
               {officialSecondary
                 ? <OfficialSecondaryPanel session={session} playerId={sharedBattle ? viewerPlayerId ?? active.id : active.id} editable={!sharedBattle || Boolean(viewerPlayerId)} />
                 : <SecondaryDetailPanel session={session} playerId={sharedBattle ? viewerPlayerId ?? active.id : active.id} />}
-            </>}
-            {tab === 'log' && <BattleLog session={session} />}
-            {tab === 'report' && <BattleReport session={session} />}
+            </section>}
+            {visitedPanels.has('log') && <section className="battle-panel" hidden={tab !== 'log'} aria-label="Battle Chronicle"><BattleLog session={session} /></section>}
+            {visitedPanels.has('report') && <section className="battle-panel" hidden={tab !== 'report'} aria-label="Battle Report"><BattleReport session={session} /></section>}
           </main>
 
           <footer className="battle-actions battle-actions--primary">

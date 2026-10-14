@@ -58,7 +58,7 @@ button:focus-visible, .button:focus-visible, a:focus-visible, summary:focus-visi
   background: linear-gradient(135deg, var(--gold-bright), #a88339);
   text-shadow: 0 1px rgb(255 255 255 / 20%);
 }
-.button--danger, .danger-action { border-color: #713936 !important; color: #f2c7c2 !important; background: #3a2020 !important; }
+.button--danger, .danger-action { border-color: #713936; color: #f2c7c2; background: #3a2020; }
 .button--small { min-height: 40px; padding: 8px 12px; font-size: .82rem; }
 .button--wide { width: 100%; }
 a { color: var(--gold-bright); }
@@ -491,16 +491,6 @@ p { color: var(--muted); line-height: 1.65; }
 .stratagem-card__reason { margin: 0; color: #dfb1ab; font-size: .7rem; line-height: 1.4; }
 .stratagem-card--compact { box-shadow: none; }
 
-.reaction-status-panel .section-heading { margin-bottom: 12px; }
-.reaction-status-grid { display: grid; grid-template-columns: 1fr; gap: 6px; }
-.reaction-status-card { min-height: 60px; padding: 8px 9px 8px 12px; border: 1px solid var(--line); background: rgb(8 10 11 / 30%); display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; }
-.reaction-status-card.has-reaction { border-color: #874844; background: rgb(82 32 30 / 24%); }
-.reaction-status-card > div { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
-.reaction-status-card > div span { color: var(--muted); font-size: .68rem; }
-.reaction-hold-button { min-width: 108px; min-height: 44px; padding: 5px 9px; border-color: var(--line-gold); display: grid; gap: 0; text-transform: uppercase; }
-.reaction-hold-button strong { color: var(--gold-bright); font-size: .75rem; }
-.reaction-hold-button span { color: var(--muted); font-size: .5rem; letter-spacing: .06em; }
-.reaction-status-card.has-reaction .reaction-hold-button { border-color: var(--danger-bright); }
 
 .reaction-window { border: 2px solid var(--danger-bright); background: linear-gradient(145deg, rgb(68 34 31 / 96%), rgb(24 20 20 / 99%)); box-shadow: 0 0 0 4px rgb(165 67 63 / 12%), var(--shadow); }
 .reaction-window__heading { display: flex; justify-content: space-between; gap: 16px; }

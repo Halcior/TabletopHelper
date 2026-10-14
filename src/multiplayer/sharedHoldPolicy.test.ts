@@ -35,24 +35,24 @@ function membership(playerId: string): SharedMembership {
 }
 
 describe('shared HOLD ownership', () => {
-  it('allows a non-active player to request and refine their own HOLD', () => {
+  it('rejects new manual HOLD requests and refinements', () => {
     const before = battle()
     const held = requestReactionHold(before, 'p2', {
       trigger: 'CUSTOM_CONFIRMATION',
       context: { holdDraft: true },
       definitionsByPlayer: definitions,
     })
-    expect(authorizeSharedMutation(before, held, membership('p2'))).toEqual({ allowed: true })
+    expect(authorizeSharedMutation(before, held, membership('p2'))).toMatchObject({ allowed: false })
 
     const refined = refineReactionHold(held, held.state.timing.activeReactionWindowId ?? '', 'p2', {
       trigger: 'UNIT_SELECTED_AS_TARGET',
       context: { holdDraft: false },
       definitionsByPlayer: definitions,
     })
-    expect(authorizeSharedMutation(held, refined, membership('p2'))).toEqual({ allowed: true })
+    expect(authorizeSharedMutation(held, refined, membership('p2'))).toMatchObject({ allowed: false })
   })
 
-  it('allows only the HOLD requester to cancel that shared pause', () => {
+  it('allows the legacy requester or host to cancel an old pause', () => {
     const held = requestReactionHold(battle(), 'p2', {
       trigger: 'CUSTOM_CONFIRMATION',
       context: { holdDraft: true },
@@ -60,6 +60,6 @@ describe('shared HOLD ownership', () => {
     })
     const cancelled = cancelReactionWindow(held, held.state.timing.activeReactionWindowId ?? '')
     expect(authorizeSharedMutation(held, cancelled, membership('p2'))).toEqual({ allowed: true })
-    expect(authorizeSharedMutation(held, cancelled, membership('p1'))).toMatchObject({ allowed: false })
+    expect(authorizeSharedMutation(held, cancelled, membership('p1'))).toEqual({ allowed: true })
   })
 })

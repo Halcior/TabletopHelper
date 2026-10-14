@@ -11,6 +11,9 @@ export type UnitPerformance = UnitReference & {
   destroyedEnemies: Array<UnitReference & { round: number }>
   damageDealt: number | null
   damagePartial: boolean
+  damageReceived: number | null
+  woundsHealed: number
+  modelsRestored: number
   modelsLost: number
   remainingModels: number
   remainingWounds?: number
@@ -50,7 +53,8 @@ const valuePerModel = (unit: UnitPerformance): number => unit.startingModels > 0
  * Net casualty value uses equal cost per starting model. Restoration/correction
  * removes the latest outstanding credits across rounds, including unknown ones.
  * Kills use the last hit, and are removed when that target becomes alive again.
- * Damage is only explicit single-model wound decreases; whole-unit KO infers none.
+ * Damage uses effective combat Wounds and legacy explicit single-model decreases;
+ * model-only losses and whole-unit KO infer no Wounds. Healing preserves gross damage.
  */
 export function buildUnitPerformance(session: BattleSession, chronicle = buildBattleChronicle(session)): BattlePerformance {
   const units = session.setup.players.flatMap((player): UnitPerformance[] => {
@@ -58,7 +62,7 @@ export function buildUnitPerformance(session: BattleSession, chronicle = buildBa
     return (army?.units ?? []).map((unit) => ({
       ...battleUnit(session, player.id, unit.id), startingPoints: unit.points, startingModels: unit.startingModels, startingWounds: unit.stats?.wounds,
       modelsDestroyed: 0, enemyPointsDestroyed: 0, kills: 0, destroyedEnemies: [], damageDealt: null, damagePartial: true,
-      modelsLost: 0, remainingModels: unit.startingModels, remainingWounds: unit.startingModels === 1 ? unit.stats?.wounds : undefined,
+      damageReceived: null, woundsHealed: 0, modelsRestored: 0, modelsLost: 0, remainingModels: unit.startingModels, remainingWounds: unit.startingModels === 1 ? unit.stats?.wounds : undefined,
       survived: true, completedMissionActions: 0, missionVp: null, combatRoi: null,
     }))
   })
@@ -107,15 +111,19 @@ export function buildUnitPerformance(session: BattleSession, chronicle = buildBa
         else if (!change.destroyedBefore) kills.set(key, { attackerPlayerId, attackerUnitId, round: entry.round })
 
         const damageBatches = wounds.get(key) ?? []
-        if (target.startingModels === 1 && typeof change.woundsBefore === 'number' && typeof change.woundsAfter === 'number') {
-          const damage = change.woundsBefore - change.woundsAfter
-          if (event.type === 'UNIT_WOUNDS_CHANGED' && damage > 0) damageBatches.push({ count: damage, attackerPlayerId, attackerUnitId })
-          // A host correction fixes a mistaken wound entry; healing is real history.
-          if (change.correction && damage < 0) retract(damageBatches, -damage)
+        if (!change.correction && change.effectiveWoundsLost !== undefined && change.effectiveWoundsLost > 0) {
+          damageBatches.push({ count: change.effectiveWoundsLost, attackerPlayerId, attackerUnitId })
+        }
+        if (!change.correction) {
+          target.woundsHealed += change.woundsHealed ?? 0
+          target.modelsRestored += Math.max(0, -lost)
+        }
+        if (change.correction && change.totalWoundsBefore !== undefined && change.totalWoundsAfter !== undefined) {
+          retract(damageBatches, Math.max(0, change.totalWoundsAfter - change.totalWoundsBefore))
         }
         wounds.set(key, damageBatches)
         target.remainingModels = change.modelsAfter
-        target.remainingWounds = target.startingModels === 1 ? change.woundsAfter : undefined
+        target.remainingWounds = change.currentModelWoundsAfter
         target.modelsLost = Math.max(0, target.startingModels - change.modelsAfter)
         target.survived = !change.destroyedAfter
         if (!change.destroyedAfter) target.destructionRound = undefined
@@ -192,7 +200,9 @@ export function buildUnitPerformance(session: BattleSession, chronicle = buildBa
       performer.destroyedEnemies.push({ playerId: target.playerId, unitId: target.unitId, name: target.name, round: kill.round })
     }
   }
-  for (const batches of wounds.values()) for (const batch of batches) {
+  for (const [key, batches] of wounds) for (const batch of batches) {
+    const target = byKey.get(key)!
+    if (batch.count > 0) target.damageReceived = (target.damageReceived ?? 0) + batch.count
     const performer = byKey.get(performanceKey(batch.attackerPlayerId ?? '', batch.attackerUnitId ?? ''))
     if (performer && batch.count > 0) performer.damageDealt = (performer.damageDealt ?? 0) + batch.count
   }

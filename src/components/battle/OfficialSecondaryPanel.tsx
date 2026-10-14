@@ -15,14 +15,25 @@ import { getGameSecondaryVp, getRoundSecondaryVp, getSecondaryState } from '../.
 import type { OfficialSecondaryConfirmation, OfficialSecondaryId } from '../../rulesets/cauldronFFA3/secondaryTypes'
 import { useBattleStore } from '../../stores/battleStore'
 import { OfficialSecondaryConfirmationFields } from './OfficialSecondaryConfirmationFields'
+import { InfoDisclosure } from '../ui/InfoDisclosure'
 
-export function OfficialSecondaryPanel({ session, playerId, editable }: { session: BattleSession; playerId: string; editable: boolean }) {
+type OfficialSecondaryPanelProps = { session: BattleSession; playerId: string; editable: boolean }
+
+export function OfficialSecondaryPanel(props: OfficialSecondaryPanelProps) {
+  const { session, playerId } = props
+  // Local confirmations and discard/action drafts belong to this player's phase.
+  const context = [session.setup.gameId, playerId, officialTurnKey(session), session.state.phase].join(':')
+  return <OfficialSecondaryForm key={context} {...props} />
+}
+
+function OfficialSecondaryForm({ session, playerId, editable }: OfficialSecondaryPanelProps) {
   const [selectedVp, setSelectedVp] = useState<Record<string, number>>({})
   const [selectedDiscard, setSelectedDiscard] = useState<OfficialSecondaryId[]>([])
   const [notes, setNotes] = useState<Record<string, string>>({})
   const [actionDrafts, setActionDrafts] = useState<Record<string, { unit: string; target: string; terrainWhollyOutsideOwnTerritory?: boolean }>>({})
   const [confirmations, setConfirmations] = useState<Record<string, OfficialSecondaryConfirmation>>({})
   const [guardDraft, setGuardDraft] = useState<Record<string, string>>({})
+  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({})
   const { scoreOfficialSecondary, replaceOfficialSecondary, discardOfficialAtEndTurn, noteOfficialTarget, startOfficialSecondaryAction, acknowledgeOfficialWindow, assignOfficialGuards } = useBattleStore()
   const state = getSecondaryState(session)[playerId]
   const ffa = isOfficialFfa(session)
@@ -46,11 +57,13 @@ export function OfficialSecondaryPanel({ session, playerId, editable }: { sessio
       <div><span className="eyebrow">Chapter Approved 2026–27 · {fixed ? 'Fixed' : 'Tactical'}</span><h2>{player.name} · Secondary Missions</h2></div>
       <div className="secondary-score"><strong>{getRoundSecondaryVp(session, playerId)} / 15</strong><span>round</span><small>{getGameSecondaryVp(session, playerId)} / 45 game</small></div>
     </div>
+    <InfoDisclosure label="Secondary rules & table confirmations">
     {ffa && <p className="context-note">FFA balance patch: each Rival card keeps the Rival assigned when drawn. Physical enemy presence checks both other armies; only kills by your own army against the assigned Rival count. Primary still uses Current Rival. NML is outside all deployment zones; fixed Territories A/B/C are a separate layer. Territory boundaries count as inside; “outside” requires wholly outside. Confirm distances and footprints at the table.</p>}
     {ffa && fixed && <p className="context-note">Fixed is experimental in FFA because matchups affect target availability. Tactical is recommended.</p>}
     <p className="context-note">{fixed
       ? 'Your two Fixed cards stay active. Each can score up to 20 VP during the battle; enter its award once per eligible turn.'
       : 'Draw two new cards every own Command phase even if you already hold cards. There is no free mulligan; New Orders can replace one card for 1 CP once per battle, and some cards have When Drawn replacements. Scored cards leave your hand. At the end of your turn, you may discard one or more cards to gain 1 CP total.'}</p>
+    </InfoDisclosure>
     <div className="secondary-deck-counts">
       <div><strong>{state.active.length}</strong><span>Active</span></div>
       <div><strong>{state.deck.length}</strong><span>Deck</span></div>
@@ -74,12 +87,22 @@ export function OfficialSecondaryPanel({ session, playerId, editable }: { sessio
         const targetCard = ['OFFICIAL_A_TEMPTING_TARGET', 'OFFICIAL_BEACON', 'OFFICIAL_BURDEN_OF_TRUST'].includes(cardId)
         const missionAction = cardId === 'OFFICIAL_CLEANSE' || cardId === 'OFFICIAL_PLUNDER'
         const actionDraft = actionDrafts[cardId] ?? { unit: '', target: '' }
-        return <article className="secondary-card secondary-card--input_required secondary-card--official" key={cardId}>
+        const choiceRequired = editable && command && targetCard && (cardId === 'OFFICIAL_BURDEN_OF_TRUST' && ffa ? card.cardSpecificState?.officialGuardAssignmentTurnKey !== officialTurnKey(session) : !note)
+        const actionAvailable = editable && ownTurn && session.state.phase === 'SHOOTING' && missionAction
+        const required = choiceRequired || canScore || Boolean(redraw) || canDiscard
+        const status = canScore && actualAward > 0 ? 'Ready to Score' : required ? 'Action Required' : definition.scoreAt === 'opponent' && ownTurn ? 'Awaiting Rival' : 'Active'
+        const description = ffa ? officialFfaDescription(cardId) : definition.description
+        const firstSentence = description.split(/(?<=[.!?])\s/)[0]
+        return <article className={`secondary-card secondary-card--official${required ? ' secondary-card--input_required' : ''}`} key={cardId}>
           <div className="secondary-card__heading"><div className="secondary-card__identity"><div><span>{fixed ? 'Fixed' : 'Tactical'} · {definition.scoreAt === 'either' ? 'either turn' : definition.scoreAt === 'own' ? 'your turn' : 'Rival turn'}</span><h3>{definition.name}</h3></div></div><div className="secondary-card__vp"><strong>{fixed ? '20' : '5'}</strong><span>max VP</span></div></div>
+          <span className={`mission-status${required ? ' mission-status--required' : ''}${status === 'Ready to Score' ? ' mission-status--ready' : ''}`}>{status}</span>
           {ffa && rivalId && <p className="secondary-card__progress">Target Rival: {session.state.players[rivalId]?.name} · {officialHomeId(session, rivalId)}</p>}
           {ffa && definition.enemyScope === 'all-enemies' && <small>Enemy scope: All opponents</small>}
-          <p className="secondary-card__objective">{ffa ? officialFfaDescription(cardId) : definition.description}</p>
+          <p className="secondary-card__objective secondary-card__brief">{firstSentence}</p>
           {fixed && <p className="secondary-card__progress">{scoredOnCard} / 20 VP scored on this card</p>}
+          <details className="mission-card-details" open={required || actionAvailable || Boolean(expandedCards[cardId])} onToggle={(event) => { if (!required && !actionAvailable) { const open = event.currentTarget.open; setExpandedCards((current) => current[cardId] === open ? current : { ...current, [cardId]: open }) } }}>
+          <summary>{required ? 'Required choices & scoring' : actionAvailable ? 'Mission Action available' : 'Full rules & actions'}</summary>
+          <p className="secondary-card__full-rules">{description}</p>
           {targetCard && !ffa && cardId !== 'OFFICIAL_BEACON' && <div className="official-secondary-input"><label>{cardId === 'OFFICIAL_A_TEMPTING_TARGET' ? 'Objective selected by the Rival' : 'Units guarding objectives'}<input value={notes[cardId] ?? note ?? ''} onChange={(event) => setNotes((current) => ({ ...current, [cardId]: event.target.value }))} disabled={!editable} placeholder="Record the choice at the table" /></label>{editable && <button type="button" disabled={!(notes[cardId] ?? '').trim()} onClick={() => noteOfficialTarget(playerId, cardId, notes[cardId])}>Save choice</button>}</div>}
           {targetCard && (ffa || cardId === 'OFFICIAL_BEACON') && cardId !== 'OFFICIAL_BURDEN_OF_TRUST' && <div className="official-secondary-input">
             {note ? <strong>Locked choice: {note}</strong> : <><label>{cardId === 'OFFICIAL_A_TEMPTING_TARGET' ? 'Objective selected by the assigned Rival' : 'Chosen own unit'}<select value={notes[cardId] ?? ''} disabled={!editable || !command} onChange={(event) => setNotes((current) => ({ ...current, [cardId]: event.target.value }))}>
@@ -112,6 +135,7 @@ export function OfficialSecondaryPanel({ session, playerId, editable }: { sessio
             <button className="button--gold" type="button" disabled={awards.length === 0} onClick={() => scoreOfficialSecondary(playerId, cardId, chosenAward, confirmation)}>Condition met · score {actualAward} VP</button><small>{actualAward < chosenAward ? `Limited from ${chosenAward} VP by the round, game, or Fixed-card cap. ` : ''}Check the full condition on the table before scoring.</small>
           </div>}
           {canDiscard && <label className="review-check-row"><input type="checkbox" checked={selectedDiscard.includes(cardId)} onChange={(event) => setSelectedDiscard((current) => event.target.checked ? [...current, cardId] : current.filter((id) => id !== cardId))} /><span>Discard at the end of this turn</span></label>}
+          </details>
         </article>
       })}
     </div>
@@ -120,5 +144,6 @@ export function OfficialSecondaryPanel({ session, playerId, editable }: { sessio
     {editable && endTurn && officialWindowNeedsReview(session, playerId) && <div className="review-actions"><button type="button" onClick={() => acknowledgeOfficialWindow(playerId)}>Finished reviewing {session.state.players[session.state.activePlayerId].name}’s turn · no more cards to score</button></div>}
     {editable && endTurn && officialWindowAcknowledged(session, playerId) && <p className="secondary-feedback" role="status">✓ This turn’s Secondary review is complete.</p>}
     {state.scoreHistory.length > 0 && <details className="turn-review-details"><summary>Scoring history</summary><ul className="secondary-history">{state.scoreHistory.map((entry, index) => <li key={`${entry.round}-${entry.cardId}-${index}`}><span>Round {entry.round} · {entry.cardName}</span><strong>+{entry.pointsAwarded} VP</strong></li>)}</ul></details>}
+    {(state.completed.length > 0 || state.discarded.length > 0) && <details className="turn-review-details"><summary>Completed & discarded cards</summary><ul className="secondary-history">{[...state.completed.map((card) => ({ ...card, label: 'Completed' })), ...state.discarded.map((card) => ({ ...card, label: 'Discarded' }))].map((card, index) => <li key={`${card.cardId}-${index}`}><span>{OFFICIAL_SECONDARY_BY_ID[card.cardId as OfficialSecondaryId]?.name ?? card.cardId}</span><strong>{card.label}</strong></li>)}</ul></details>}
   </section>
 }

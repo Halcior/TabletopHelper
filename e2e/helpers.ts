@@ -4,6 +4,28 @@ import type { MockSupabase } from './mockSupabase'
 
 export const PHONE = { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }
 
+export async function selectPanel(page: Page, panel: 'overview' | 'army' | 'objectives' | 'cards' | 'log' | 'report') {
+  await expect(page.getByRole('navigation', { name: 'Battle panels' })).toBeVisible()
+  const names = { overview: 'Battle', army: 'Army', objectives: 'Objectives', cards: 'Cards', log: 'Chronicle', report: 'Report' }
+  const direct = page.locator('.battle-tabs').getByRole('button', { name: names[panel], exact: true })
+  if (await direct.isVisible()) { await direct.click(); return }
+  const legacy = page.locator('.battle-tabs').getByRole('button', { name: panel, exact: true })
+  if (await legacy.isVisible()) { await legacy.click(); return }
+  if (panel !== 'log' && panel !== 'report') { await direct.click(); return }
+  await page.getByRole('button', { name: 'More', exact: true }).click()
+  await page.getByRole('menuitem', { name: panel === 'log' ? 'Battle Chronicle' : 'Battle Report', exact: true }).click()
+}
+
+export async function setupRules(page: Page) {
+  await page.getByRole('navigation', { name: 'Battle setup steps' }).getByRole('button', { name: /Rules/ }).click()
+}
+export async function setupCommanders(page: Page) {
+  await page.getByRole('navigation', { name: 'Battle setup steps' }).getByRole('button', { name: /Commanders/ }).click()
+}
+export async function setupBattlefield(page: Page) {
+  await page.getByRole('navigation', { name: 'Battle setup steps' }).getByRole('button', { name: /Battlefield/ }).click()
+  await expect(page.getByRole('heading', { name: 'Battlefield & Start', exact: true })).toBeVisible()
+}
 export async function phone(browser: Browser, backend?: MockSupabase): Promise<{ context: BrowserContext; page: Page }> {
   const context = await browser.newContext(PHONE)
   if (backend) await backend.attach(context)

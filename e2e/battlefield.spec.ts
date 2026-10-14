@@ -1,3 +1,5 @@
+import { setupCommanders } from './helpers'
+import { selectPanel, setupBattlefield, setupRules } from './helpers'
 import { expect, test, type Page } from '@playwright/test'
 import { dismissSecondaryReveal, importTestArmy, phone } from './helpers'
 import { MockSupabase } from './mockSupabase'
@@ -5,7 +7,7 @@ import { MockSupabase } from './mockSupabase'
 const marker = (page: Page, id: string) =>
   page.locator(`.objective-node[data-objective-id="${id}"]`)
 async function openBoard(page: Page) {
-  await page.getByRole('button', { name: 'objectives', exact: true }).click()
+  await selectPanel(page, 'objectives')
   await expect(
     page.getByRole('button', { name: 'Board', exact: true }),
   ).toHaveAttribute('aria-pressed', 'true')
@@ -46,9 +48,11 @@ for (const layout of [1, 2, 3])
     const { context, page } = await phone(browser)
     try {
       await importTestArmy(page)
+      await setupRules(page)
       await page
         .getByLabel('Primary mode')
         .selectOption('chapter-approved-duel')
+      await setupCommanders(page)
       await expect(
         page.getByRole('combobox', { name: 'Force Disposition', exact: true }),
       ).toHaveCount(2)
@@ -56,9 +60,13 @@ for (const layout of [1, 2, 3])
         .getByRole('combobox', { name: 'Force Disposition', exact: true })
         .all())
         await select.selectOption('take-and-hold')
+      await setupBattlefield(page)
       await page.getByLabel('Pairing layout').selectOption(String(layout))
+      await setupBattlefield(page)
       await page.getByLabel('Attacker HOME assignment').selectOption('B')
+      await setupBattlefield(page)
       await page.getByLabel('Guidance level').selectOption('fast')
+      await setupBattlefield(page)
       await page
         .getByRole('button', { name: 'Start locally', exact: true })
         .click()
@@ -173,13 +181,17 @@ test('FFA touch editor persists seven IDs, supports reset and undo, and replays 
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await importTestArmy(page)
     await page.getByRole('button', { name: /FFA 3/ }).click()
+    await setupRules(page)
     await page
       .getByRole('combobox', { name: 'Secondary deck', exact: true })
       .selectOption('chapter-approved')
+    await setupRules(page)
     await page
       .getByRole('combobox', { name: 'Secondary strategy', exact: true })
       .selectOption('fixed')
+    await setupBattlefield(page)
     await page.getByLabel('Guidance level').selectOption('fast')
+    await setupBattlefield(page)
     await page
       .getByRole('button', { name: 'Start locally', exact: true })
       .click()
@@ -375,13 +387,17 @@ test('three phones share host geometry and control, rejecting non-host edits and
   try {
     await importTestArmy(alpha.page)
     await alpha.page.getByRole('button', { name: /FFA 3/ }).click()
+    await setupBattlefield(alpha.page)
     await alpha.page.getByLabel('Guidance level').selectOption('fast')
+    await setupRules(alpha.page)
     await alpha.page
       .getByRole('combobox', { name: 'Secondary deck', exact: true })
       .selectOption('chapter-approved')
+    await setupRules(alpha.page)
     await alpha.page
       .getByRole('combobox', { name: 'Secondary strategy', exact: true })
       .selectOption('fixed')
+    await setupBattlefield(alpha.page)
     await alpha.page
       .getByRole('button', { name: 'Create 3-player lobby', exact: true })
       .click()

@@ -68,13 +68,8 @@ export default function Home() {
       <section className="home-command-hub">
         <div className="home-command-hub__heading">
           <span className="eyebrow">Tabletop Companion</span>
-          <h1>Ready to play?</h1>
-          <p>Pick what you want to do. Everything else stays out of the way.</p>
-          <div className="home-command-hub__meta" aria-label="Application capabilities">
-            <span><i aria-hidden="true" /> Local-first</span>
-            <span><i aria-hidden="true" /> 2–3 commanders</span>
-            <span><i aria-hidden="true" /> Shared sync</span>
-          </div>
+          <h1>Command Hub</h1>
+          <p>Your battle, ready when you are.</p>
         </div>
 
         <div className="home-command-actions">
@@ -92,9 +87,9 @@ export default function Home() {
             <HomeActionContent icon="shared" label="Multiplayer" title="Host or join" detail="Use a shared room code" />
           </Link>
 
-          {armies.length > 0 && <Link className="home-action" to="/army-import">
-            <HomeActionContent icon="army" label="Roster" title="Import army" detail={`${armies.length} saved locally`} />
-          </Link>}
+          {armies.length > 0 && <a className="home-action" href="#army-library">
+            <HomeActionContent icon="army" label="Roster" title="Army Library" detail={`${armies.length} saved locally`} />
+          </a>}
         </div>
 
         {hosted && <button className="home-test-link" type="button" onClick={() => void shareTestLink()}>{shareStatus === 'copied' ? 'Test link copied' : 'Share app test link'}</button>}
@@ -131,8 +126,8 @@ export default function Home() {
         </div>
       </section>}
 
-      <section className="section-block home-armies-section">
-        <div className="section-heading"><div><span className="eyebrow">Armies</span><h2>Saved rosters</h2></div><Link to="/army-import">Add</Link></div>
+      <section id="army-library" className="section-block home-armies-section">
+        <div className="section-heading"><div><span className="eyebrow">Army Library</span><h2>Saved rosters</h2></div><Link className="button" to="/army-import">Import army</Link></div>
         {armies.length === 0 ? (
           <div className="empty-state"><p>No armies imported yet.</p></div>
         ) : (

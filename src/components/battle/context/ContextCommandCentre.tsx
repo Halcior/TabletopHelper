@@ -40,7 +40,6 @@ type Props = {
   onMulligan: (playerId: string, cardId: SecondaryId) => void
   onOpenEndTurn: () => void
   onUseStratagem: (availability: StratagemAvailability) => void
-  onHoldReaction: (playerId: string) => void
   onPassReaction: (windowId: string, playerId: string) => void
   onChangePlan: (playerId: string, planId: OperationalPlanId) => void
   onResolveEliminationChoice: (playerId: string, cardId: SecondaryId) => void
@@ -107,7 +106,6 @@ function canViewerUseAction(
     case 'OPEN_STRATAGEMS':
     case 'DISMISS':
       return true
-    case 'HOLD_REACTION':
     case 'PASS_REACTION':
       return Boolean(viewerPlayerId && itemAction.playerId === viewerPlayerId)
     default:
@@ -126,7 +124,6 @@ export function ContextCommandCentre({
   onMulligan,
   onOpenEndTurn,
   onUseStratagem,
-  onHoldReaction,
   onPassReaction,
   onChangePlan,
   onResolveEliminationChoice,
@@ -242,7 +239,6 @@ export function ContextCommandCentre({
         if (option) onUseStratagem(option.availability)
         break
       }
-      case 'HOLD_REACTION': if (itemAction.playerId) onHoldReaction(itemAction.playerId); break
       case 'PASS_REACTION': if (itemAction.playerId && itemAction.reactionWindowId) onPassReaction(itemAction.reactionWindowId, itemAction.playerId); break
       case 'DISMISS': setDismissed((current) => new Set(current).add(item.id)); break
       default: break
@@ -256,7 +252,6 @@ export function ContextCommandCentre({
   }
 
   return <section className={`context-centre context-centre--${context.guidanceLevel}`}>
-    <LatestBattleUpdateCard session={session} />
 
     <div className="context-centre__heading">
       <div><span className="eyebrow">What matters now</span><h2>{phaseLabel(context.phase)} priorities</h2></div>
@@ -268,7 +263,7 @@ export function ContextCommandCentre({
     </div>
 
     {visibleSections.map((section) => <section className={`context-section context-section--${section.id}`} key={section.id}>
-      <h3>{section.title}</h3>
+      <h3 className={visibleSections.length === 1 ? 'sr-only' : undefined}>{section.title}</h3>
       <div className="context-item-list">{section.items.map((item) => {
         const isStratagemSummary = item.type === 'AVAILABLE_STRATAGEMS'
         return <article
@@ -280,7 +275,7 @@ export function ContextCommandCentre({
           <div className="context-item__top"><span>{sourceLabel(item)}</span><strong>{statusLabel(item)}</strong></div>
           <h4>{isStratagemSummary ? stratagemCopy.title : item.title}</h4>
           <p>{isStratagemSummary ? stratagemCopy.description : item.shortDescription}</p>
-          {item.details && item.details.length > 0 && <ul>{item.details.map((detail) => <li key={detail}>{detail.replace('confirm timing', 'timing unverified')}</li>)}</ul>}
+          {item.details && item.details.length > 0 && (['BLOCKING', 'REQUIRED'].includes(item.status) ? <ul>{item.details.map((detail) => <li key={detail}>{detail.replace('confirm timing', 'timing unverified')}</li>)}</ul> : <details className="context-item__more"><summary>Timing & details</summary><ul>{item.details.map((detail) => <li key={detail}>{detail.replace('confirm timing', 'timing unverified')}</li>)}</ul></details>)}
           {item.actions.length > 0 && <div className="context-item__actions">{item.actions.map((itemAction) => {
             const allowed = viewerCanUseAction(itemAction)
             const priorityOwner = itemAction.type === 'SELECT_PRIORITY_TARGET' && priorityNeedsAlpha
@@ -299,6 +294,7 @@ export function ContextCommandCentre({
     </section>)}
 
     {visibleSections.length === 0 && <p className="context-empty">Nothing requires attention in this phase.</p>}
+    <LatestBattleUpdateCard session={session} />
 
     {(hiddenItemCount > 0 || expanded) && <button
       className="context-expand"

@@ -121,9 +121,10 @@
 @media print {
   @page { margin: 14mm; }
   html, body, .app-root, .battle-page { background: white !important; color: #111 !important; }
-  .battle-page > :not(.battle-content):not(.battle-terminal-content), .battle-content > :not(.battle-report), .battle-terminal-content > :not(.battle-report), .no-print { display: none !important; }
+  .battle-page > :not(.battle-content):not(.battle-terminal-content), .battle-content > :not(.battle-report):not(.battle-panel:has(> .battle-report)), .battle-terminal-content > :not(.battle-report), .no-print { display: none !important; }
   .battle-content, .battle-terminal-content { display: block !important; padding: 0 !important; width: 100% !important; max-width: none !important; margin: 0 !important; }
   .battle-report { display: block; }
+  .battle-panel:has(> .battle-report) { display: block !important; }
   .battle-report .panel { background: white !important; color: #111 !important; border-color: #bbb !important; box-shadow: none !important; margin-bottom: 14px; }
   .battle-report p, .battle-report small, .battle-report span, .battle-report dt, .battle-report dd, .battle-report strong { color: #111 !important; }
   .report-ranking, .performance-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }

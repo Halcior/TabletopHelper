@@ -1,16 +1,16 @@
 /*
  * One visual entrypoint with an explicit cascade contract.
  * Feature styles own component layout; responsive styles compact it; the
- * tactical theme is the final presentation layer.
+ * UI 2.0 owns shared tokens and the final component presentation. Keep feature
+ * geometry and permission-dependent state classes in their existing layers.
  */
-@layer foundation, feature, focus, responsive, polish;
+@layer foundation, feature, focus, responsive, polish, command;
 
 @import './styles.css' layer(foundation);
 
 @import './lifecycle.css' layer(feature);
 @import './contextPolish.css' layer(feature);
 @import './sharedSessions.css' layer(feature);
-@import './reactionHold.css' layer(feature);
 @import './duelMode.css' layer(feature);
 
 @import './uiSimplify.css' layer(focus);
@@ -24,3 +24,4 @@
 @import './battleChronicle.css' layer(polish);
 @import './battlefield.css' layer(polish);
 @import './tacticalTheme.css' layer(polish);
+@import './tacticalCommand.css' layer(command);

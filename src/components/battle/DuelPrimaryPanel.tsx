@@ -5,17 +5,28 @@ import {
   getDuelPrimaryCommit, type DuelCondition, type DuelReviewWindow,
 } from '../../rulesets/cauldronFFA3'
 import { useBattleStore } from '../../stores/battleStore'
+import { InfoDisclosure } from '../ui/InfoDisclosure'
 
 const WINDOW_LABEL: Record<DuelReviewWindow, string> = {
   command: 'End of Command phase', turn: 'End of turn', battle: 'End of battle',
 }
 
-export function DuelPrimaryPanel({ session, playerId, window, editable }: {
+type DuelPrimaryPanelProps = {
   session: BattleSession
   playerId: string
   window?: DuelReviewWindow
   editable: boolean
-}) {
+}
+
+export function DuelPrimaryPanel(props: DuelPrimaryPanelProps) {
+  const { session, playerId, window } = props
+  // Keep drafts on tab switches, but require fresh checks in each scoring context.
+  const context = [session.setup.gameId, playerId, session.state.round,
+    session.state.activePlayerId, session.state.phase, window ?? 'none'].join(':')
+  return <DuelPrimaryForm key={context} {...props} />
+}
+
+function DuelPrimaryForm({ session, playerId, window, editable }: DuelPrimaryPanelProps) {
   const [selections, setSelections] = useState<Record<string, number>>({})
   const [error, setError] = useState('')
   const reviewDuelPrimary = useBattleStore((state) => state.reviewDuelPrimary)
@@ -49,7 +60,9 @@ export function DuelPrimaryPanel({ session, playerId, window, editable }: {
 
   return <section className="panel turn-review-section duel-primary-panel">
     <div className="section-heading"><div><span className="eyebrow">11th edition Primary · {disposition ? DISPOSITION_NAMES[disposition] : ''}</span><h2>{session.state.players[playerId]?.name}: {mission.name}</h2></div><strong>{session.state.players[playerId]?.score.primary ?? 0} / 45 VP</strong></div>
+    <InfoDisclosure label="Primary card & pairing layout">
     <p className="context-note">Your card from the Force Disposition matrix. Read the <a href={mission.url} target="_blank" rel="noreferrer">full Primary card</a> for exact wording. {disposition && opponentDisposition && <>Open <a href={`https://gdmissions.app/11th/layouts/${disposition}/${opponentDisposition}`} target="_blank" rel="noreferrer">the pairing layouts</a> and select {['A (1)', 'B (2)', 'C (3)'][(config.officialLayout ?? 1) - 1]} to match your setup. </>}The physical layout sets objectives and terrain. Each scoring window is locked after confirmation.</p>
+    </InfoDisclosure>
     {mission.rule && <p><strong>Special rule:</strong> {mission.rule}</p>}
     {mission.action && <p><strong>Objective Action:</strong> {mission.action}</p>}
     {window ? <>
@@ -67,11 +80,11 @@ export function DuelPrimaryPanel({ session, playerId, window, editable }: {
         {error && <p className="alert alert--danger">{error}</p>}
         {editable && <button className="button--gold" type="button" onClick={submit}>Confirm {WINDOW_LABEL[window].toLowerCase()} · +{preview.awarded} VP</button>}
       </>}
-    </> : <div className="duel-primary-conditions">
+    </> : <details className="duel-primary-conditions"><summary>Conditions by scoring window</summary>
       {(['command', 'turn', 'either', 'battle'] as const).map((timing) => {
         const checks = mission.conditions.filter((entry) => entry.window === timing)
         return checks.length ? <div key={timing}><strong>{timing === 'command' ? 'Command phase (rounds 2–4; turn end in round 5)' : timing === 'battle' ? 'End of battle' : timing === 'either' ? 'End of either player’s turn' : 'End of your turn'}</strong><ul>{checks.map((entry) => <li key={entry.id}>{entry.vp} VP{entry.count ? ' each' : ''} · {entry.label}{entry.from || entry.through ? ` (rounds ${entry.from ?? 1}–${entry.through ?? 5})` : ''}</li>)}</ul></div> : null
       })}
-    </div>}
+    </details>}
   </section>
 }

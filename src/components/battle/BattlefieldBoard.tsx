@@ -1,5 +1,7 @@
-import { useMemo, useRef, useState, type PointerEvent } from 'react'
-import { createPortal } from 'react-dom'
+import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react'
+import { CommandPopover } from '../ui/CommandPopover'
+import { InfoDisclosure } from '../ui/InfoDisclosure'
+import { placeObjectiveLabels } from './objectiveLabels'
 import { buildBattleChronicle } from '../../domain/battle/chronicle'
 import type { BattleEventInput, BattleSession } from '../../domain/battle/types'
 import {
@@ -17,11 +19,17 @@ export function BattlefieldBoard({
   dispatch,
   liveObjectiveIds = [],
   onOpenList,
+  replayRequest = 0,
+  onEditingChange,
+  active = true,
 }: {
   session: BattleSession
   dispatch: (event: BattleEventInput) => void
   liveObjectiveIds?: string[]
   onOpenList?: (objectiveId: string) => void
+  replayRequest?: number
+  onEditingChange?: (editing: boolean) => void
+  active?: boolean
 }) {
   const membership = useSharedSessionStore((state) => state.membership)
   const shared = membership?.battleId === session.setup.gameId
@@ -35,6 +43,21 @@ export function BattlefieldBoard({
   const [replayIndex, setReplayIndex] = useState<number | null>(null)
   const canvas = useRef<HTMLDivElement>(null)
   const dragging = useRef<string | null>(null)
+  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 })
+  const lastReplayRequest = useRef(0)
+  useEffect(() => {
+    if (replayRequest === lastReplayRequest.current) return
+    lastReplayRequest.current = replayRequest
+    if (!draft) { setReplay(true); setReplayIndex(null); setSelectedId(null) }
+  }, [replayRequest, draft])
+  useEffect(() => { onEditingChange?.(Boolean(draft)) }, [Boolean(draft), onEditingChange])
+  useEffect(() => { if (!active) setSelectedId(null) }, [active])
+  useEffect(() => {
+    if (!canvas.current) return
+    const observer = new ResizeObserver(([entry]) => setCanvasSize({ width: entry.contentRect.width, height: entry.contentRect.height }))
+    observer.observe(canvas.current)
+    return () => observer.disconnect()
+  }, [])
   const frames = useMemo(() => buildBattlefieldReplay(session), [session])
   const entries = useMemo(() => buildBattleChronicle(session), [session])
   const frame =
@@ -85,6 +108,10 @@ export function BattlefieldBoard({
         entry.category !== 'flow',
     )
     .slice(-10)
+  const labelPoints = Object.entries(geometry.positions).flatMap(([id, point]) => point ? [{ id, ...displayBoardPoint(point, rotated), owner: controllers[id] ? controllerName(id) : undefined }] : [])
+  const labelLayout = placeObjectiveLabels(labelPoints, canvasSize.width, canvasSize.height)
+  const clusteredIds = labelPoints.filter((point) => labelPoints.some((other) => point.id !== other.id && Math.hypot((point.x - other.x) * canvasSize.width, (point.y - other.y) * canvasSize.height) < 44)).map((point) => point.id)
+  const legendIds = [...new Set([...labelLayout.overflowIds, ...clusteredIds])]
 
   function beginEdit() {
     if (!canEdit || replay || presentation.official) return
@@ -182,7 +209,7 @@ export function BattlefieldBoard({
         </div>
       </header>
       {presentation.official && (
-        <div className="battlefield-source">
+        <InfoDisclosure label="Source & Attacker / Defender" className="battlefield-source-disclosure"><div className="battlefield-source">
           <a
             href={`${presentation.sourceUrl}#page=${presentation.sourcePage}`}
             target="_blank"
@@ -216,13 +243,13 @@ export function BattlefieldBoard({
             Match this assignment to the Attacker/Defender roll. Rotation
             changes only your view.
           </small>
-        </div>
+        </div></InfoDisclosure>
       )}
       {!presentation.official && (
-        <p className="battlefield-schematic-note">
+        <InfoDisclosure label="Schematic deployment"><p className="battlefield-schematic-note">
           Deployment shapes are schematic orientation aids. Use your agreed
           physical deployment and Territory boundaries.
-        </p>
+        </p></InfoDisclosure>
       )}
       <div className="battlefield-player-legend">
         {session.setup.players.map((player) => (
@@ -565,17 +592,17 @@ export function BattlefieldBoard({
                       ? 'C'
                       : 'N'}
                 </span>
-                <span className="objective-node__label">
-                  {id.replaceAll('-', ' ')}
-                </span>
-                <span className="objective-node__owner">
-                  {controller ? controllerName(id) : 'None'}
-                </span>
               </button>
             )
           })}
+          <svg className="objective-label-connectors" viewBox={`0 0 ${canvasSize.width || 1} ${canvasSize.height || 1}`} aria-hidden="true">{labelLayout.labels.map((label) => {
+            const point = labelPoints.find((point) => point.id === label.id)!
+            return <line key={label.id} x1={point.x * canvasSize.width} y1={point.y * canvasSize.height} x2={label.x + label.width / 2} y2={label.y + label.height / 2} />
+          })}</svg>
+          {labelLayout.labels.map((label) => <span key={label.id} className={`objective-label objective-label--player-${playerIndex(controllers[label.id])}`} title={`${label.id} · ${controllerName(label.id)}`} style={{ left: label.x, top: label.y, width: label.width, height: label.height }}><strong>{label.id.replaceAll('-', ' ')}</strong>{controllers[label.id] && <small>{controllerName(label.id)}</small>}</span>)}
         </div>
       </div>
+      {legendIds.length > 0 && <div className="battlefield-label-overflow" aria-label="Objectives with labels below the board">{legendIds.map((id) => <button key={id} disabled={Boolean(draft)} onClick={() => setSelectedId(id)}>{id}{controllers[id] ? ` · ${controllerName(id)}` : ''}</button>)}</div>}
       {presentation.unplacedIds.length > 0 && (
         <section className="panel battlefield-unplaced">
           <h4>Saved objectives without a source position</h4>
@@ -600,10 +627,10 @@ export function BattlefieldBoard({
           </div>
         </section>
       )}
-      <p className="battlefield-table-note">
+      <InfoDisclosure label="The physical table decides"><p className="battlefield-table-note">
         The physical table decides LOS, distances, Territory and eligibility.
         Marker positions do not determine OC or score VP.
-      </p>
+      </p></InfoDisclosure>
       {highlights.length > 0 && (
         <details className="panel battlefield-round-highlights">
           <summary>Round {highlightRound} · recorded highlights</summary>
@@ -620,8 +647,7 @@ export function BattlefieldBoard({
           existing objective-control permissions.
         </p>
       )}
-      {selected &&
-        createPortal(
+      {selected && active && <CommandPopover label={`Objective controls for ${selected.id}`} onClose={() => setSelectedId(null)} className="objective-control-popover">
           <section
             className="panel battlefield-objective-sheet"
             aria-label={`Objective controls for ${selected.id}`}
@@ -674,9 +700,8 @@ export function BattlefieldBoard({
                 Open OC Mode
               </button>
             )}
-          </section>,
-          document.body,
-        )}
+          </section>
+        </CommandPopover>}
     </section>
   )
 }

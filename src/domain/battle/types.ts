@@ -1,4 +1,4 @@
-import type { Army, UnitState } from '../army/types'
+import type { Army, UnitState, CombatProfileState } from '../army/types'
 import type { ReactionWindow, TimingState } from '../stratagems/types'
 import type { BattlefieldGeometry } from '../battlefield/types'
 
@@ -49,6 +49,7 @@ export type BattleSetup = {
 export type ScoreBreakdown = Record<ScoreCategory, number>
 
 export type BattleCorrection =
+  | { kind: 'UNIT_COMBAT'; playerId: string; unitId: string; value: Record<string, CombatProfileState> }
   | { kind: 'CP'; playerId: string; value: number }
   | { kind: 'SCORE'; playerId: string; category: ScoreCategory; value: number }
   | { kind: 'UNIT_MODELS'; playerId: string; unitId: string; value: number }
@@ -112,6 +113,8 @@ type BattleEventMetadata = {
   timestamp: string
   actorPlayerId?: string
   undoable: boolean
+  /** Deterministic rules consequence; rebuilt from its combat event, never published separately. */
+  derivedFromCombatId?: string
 }
 
 /** Optional provenance; the existing player attribution still drives scoring. */
@@ -121,7 +124,17 @@ export type CombatAttribution = {
   note?: string
 }
 
+/** Amounts are actual losses after tabletop allocation, never nominal weapon Damage. */
+export type CombatResolution = CombatAttribution & {
+  playerId: string
+  unitId: string
+  kind: 'damage' | 'heal' | 'restore'
+  allocations: Array<{ profileId: string; wounds?: number; models?: number }>
+  allowDestroyed?: boolean
+}
+
 export type BattleEvent = BattleEventMetadata & (
+  | { type: 'UNIT_COMBAT_RESOLVED'; payload: CombatResolution }
   | { type: 'GAME_STARTED'; payload: Record<string, never> }
   | { type: 'GAME_ENDED'; payload: Record<string, never> }
   | { type: 'GAME_ABANDONED'; payload: Record<string, never> }

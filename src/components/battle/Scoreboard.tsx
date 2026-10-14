@@ -45,7 +45,7 @@ export function Scoreboard({
             </div>
             <div className="score-card__numbers">
               <div className="score-card__metric score-card__metric--vp"><strong key={feedback?.scoreDeltas[playerId] ? feedback.id : 'steady'} className={feedback?.scoreDeltas[playerId] ? 'live-score-pulse' : ''}>{totalScore(player)}</strong><span>VP</span>{Boolean(feedback?.scoreDeltas[playerId]) && <small className="live-score-delta" role="status">{feedback!.scoreDeltas[playerId] > 0 ? '+' : ''}{feedback!.scoreDeltas[playerId]}</small>}</div>
-              <div className="score-card__metric score-card__metric--cp"><strong>{player.cp}</strong><span>CP</span></div>
+              <div className="score-card__metric score-card__metric--cp" aria-label={`Command points for ${player.name}: ${player.cp} CP`}><strong>{player.cp}</strong><span>CP</span></div>
             </div>
             {canEditCp && <div className={`compact-controls${cauldron ? ' compact-controls--cp' : ''}`}>
               {!cauldron && <button

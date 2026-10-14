@@ -1,3 +1,4 @@
+import { buildBattleChronicle } from '../battle/chronicle'
 import type { BattleEvent, BattleSession } from '../battle/types'
 import { getCurrentReactionWindow } from '../stratagems/battleIntegration'
 import { CAULDRON_RULESET_ID } from '../../rulesets/cauldronFFA3/constants'
@@ -32,6 +33,7 @@ function objectiveName(session: BattleSession, objectiveId: string): string {
 
 function isMeaningfulPhysicalEvent(event: BattleEvent): boolean {
   return [
+    'UNIT_COMBAT_RESOLVED',
     'UNIT_MODEL_DESTROYED',
     'UNIT_MODEL_RESTORED',
     'UNIT_WOUNDS_CHANGED',
@@ -47,6 +49,10 @@ function isMeaningfulPhysicalEvent(event: BattleEvent): boolean {
 
 function describeCause(session: BattleSession, event: BattleEvent): { title: string; detail: string; casualtyScoringPlayerId?: string } | null {
   switch (event.type) {
+    case 'UNIT_COMBAT_RESOLVED': {
+      const entry = buildBattleChronicle(session).find((item) => item.id === event.id)
+      return { title: `${unitName(session, event.payload.playerId, event.payload.unitId)} · ${event.payload.kind} recorded`, detail: entry?.description ?? 'Combat state updated.', casualtyScoringPlayerId: event.payload.destroyedByPlayerId ?? undefined }
+    }
     case 'UNIT_DESTROYED': {
       const name = unitName(session, event.payload.playerId, event.payload.unitId)
       return {

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { CommandDialog } from '../components/ui/CommandDialog'
+import { InfoDisclosure } from '../components/ui/InfoDisclosure'
 import { AppIcon } from '../components/AppIcon'
 import type { BattleSession } from '../domain/battle/types'
 import { canStartSharedLobby, summarizeSharedLobby } from '../multiplayer/sharedLobby'
@@ -233,9 +235,9 @@ export default function SharedSessions() {
         <div><span>Ready</span><strong>{lobbySummary.readyCount}/{seatTarget}</strong></div>
         <div><span>Last</span><strong>{syncTime(lastSyncedAt)}</strong></div>
       </div>
-      {secondaryConfig && <p className="context-note" aria-label="Secondary deck selected for this room">Secondary deck: {secondaryConfig.secondaryDeck === 'chapter-approved'
+      {secondaryConfig && <InfoDisclosure label="Room rules"><p className="context-note" aria-label="Secondary deck selected for this room">Secondary deck: {secondaryConfig.secondaryDeck === 'chapter-approved'
         ? `Chapter Approved 2026–27 · ${secondaryConfig.primaryDeck === 'chapter-approved-duel' ? 'each player chooses Fixed or Tactical' : secondaryConfig.officialSecondaryStrategy === 'fixed' ? 'Fixed' : 'Tactical'}`
-        : 'Cauldron'}. {secondaryConfig.mode === 'ffa3' && secondaryConfig.secondaryDeck === 'chapter-approved' ? 'FFA cards retain their assigned Secondary Rival; enemy presence checks both opponents.' : ''}</p>}
+        : 'Cauldron'}. {secondaryConfig.mode === 'ffa3' && secondaryConfig.secondaryDeck === 'chapter-approved' ? 'FFA cards retain their assigned Secondary Rival; enemy presence checks both opponents.' : ''}</p></InfoDisclosure>}
 
       <div className="shared-lobby__content">
         <div className="shared-lobby__seats" aria-label="Player seats">
@@ -270,7 +272,7 @@ export default function SharedSessions() {
         </aside>
       </div>
 
-      {qrExpanded && <div className="shared-invite-overlay" role="dialog" aria-modal="true" aria-label="QR room invite" onClick={() => setQrExpanded(false)}>
+      {qrExpanded && <CommandDialog label="QR room invite" onClose={() => setQrExpanded(false)}>
         <div className="shared-invite-overlay__panel" onClick={(event) => event.stopPropagation()}>
           <button className="shared-invite-overlay__close" type="button" aria-label="Close QR invite" onClick={() => setQrExpanded(false)}>×</button>
           <span className="eyebrow">Join battle room</span>
@@ -279,7 +281,7 @@ export default function SharedSessions() {
           <p>Scan with another commander's phone.</p>
           <button className="button--gold" type="button" onClick={() => void shareInvite()}>{inviteStatus === 'copied' ? 'Invite copied' : 'Share invite'}</button>
         </div>
-      </div>}
+      </CommandDialog>}
 
       {pendingEventCount > 0 && <div className="alert alert--warning shared-room-focus__queue">{pendingEventCount} local change{pendingEventCount === 1 ? '' : 's'} waiting to sync.</div>}
       {backendCheckStatus === 'failed' && <div className="alert alert--danger shared-room-focus__queue">{backendCheckMessage}</div>}
@@ -315,7 +317,7 @@ export default function SharedSessions() {
 
     <div className={`shared-backend-check shared-backend-check--${backendCheckStatus}`} role="status">
       <div><span>Backend check</span><strong>{backendCheckStatus === 'checking' ? 'Checking Supabase…' : backendCheckStatus === 'ready' ? 'Ready' : backendCheckStatus === 'failed' ? 'Needs attention' : 'Waiting'}</strong></div>
-      <p>{backendCheckMessage ?? 'The app will verify the API, tables, and lobby columns before creating a room.'}</p>
+      {backendCheckStatus === 'failed' && <p>{backendCheckMessage}</p>}
       {backendCheckStatus === 'failed' && <button disabled={working} onClick={() => void checkBackend(true)}>Test again</button>}
     </div>
 
