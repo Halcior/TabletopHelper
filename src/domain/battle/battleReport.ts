@@ -32,17 +32,19 @@ export function buildBattleReport(session: BattleSession, style: NarrativeStyle 
   const ranked = session.setup.turnOrder.map((playerId) => {
     const player = session.state.players[playerId]
     const army = player.armyId ? session.setup.armies[player.armyId] : undefined
-    return { playerId, name: player.name, faction: player.faction ?? army?.faction ?? 'Unknown faction', vp: totalScore(player) }
+    const force = session.setup.doubles?.forces.find((team) => team.captainPlayerId === playerId)
+    const faction = force ? force.memberPlayerIds.map((id) => session.state.players[id].faction ?? 'Unknown faction').join(' + ') : player.faction ?? army?.faction ?? 'Unknown faction'
+    return { playerId, name: force?.name ?? player.name, faction, vp: totalScore(player) }
   }).sort((a, b) => b.vp - a.vp)
   const ranking = ranked.map((player) => ({ ...player, rank: 1 + ranked.filter((other) => other.vp > player.vp).length }))
   const winnerPlayerIds = session.state.status === 'completed' ? ranking.filter((player) => player.rank === 1).map((player) => player.playerId) : []
   const config = session.setup.rulesetId === 'cauldron-ffa-3' ? getCauldronConfig(session) : undefined
-  const mode = `${session.setup.players.length === 3 ? 'FFA 3' : session.setup.players.length === 2 ? 'Duel 1v1' : `${session.setup.players.length} players`} · ${config ? `${config.primaryDeck?.startsWith('chapter-approved') ? '11th Edition' : 'Cauldron'} Primary · ${config.secondaryDeck === 'chapter-approved' ? 'Chapter Approved' : 'Cauldron'} Secondary` : session.setup.rulesetId}`
-  const missions = config ? session.setup.players.map((player) => {
+  const mode = `${session.setup.doubles ? 'Official Doubles 2v2' : session.setup.players.length === 3 ? 'FFA 3' : session.setup.players.length === 2 ? 'Duel 1v1' : `${session.setup.players.length} players`} · ${config ? `${config.primaryDeck?.startsWith('chapter-approved') ? '11th Edition' : 'Cauldron'} Primary · ${config.secondaryDeck === 'chapter-approved' ? 'Chapter Approved' : 'Cauldron'} Secondary` : session.setup.rulesetId}`
+  const missions = config ? session.setup.players.filter((player) => session.setup.turnOrder.includes(player.id)).map((player) => {
     const mission = isOfficialPrimary(session) ? OFFICIAL_PRIMARY_MISSIONS[getOfficialPrimaryId(session, player.id)].name
       : isDuelPrimary(session) ? getDuelMission(session, player.id).name
         : config.playerConfigs[player.id]?.initialOperationalPlanId?.replaceAll('_', ' ').toLowerCase() ?? 'Primary'
-    return `${player.name}: ${mission}`
+    return `${session.setup.doubles?.forces.find((force) => force.captainPlayerId === player.id)?.name ?? player.name}: ${mission}`
   }) : [session.setup.rulesetId]
   const totals = new Map(ranking.map((player) => [player.playerId, 0]))
   let leading = ''
@@ -90,7 +92,7 @@ const modelCount = (count: number): string => `${count} ${count === 1 ? 'model' 
 
 function narrateEntry(entry: ChronicleEntry, report: BattleReport, style: NarrativeStyle): string {
   const change = entry.unitChange
-  const playerName = (id: string) => report.ranking.find((player) => player.playerId === id)?.name ?? id
+  const playerName = (id: string) => report.ranking.find((player) => player.playerId === id)?.name ?? report.performance.armies.find((player) => player.playerId === id)?.name ?? id
   let text = entry.description
   if (entry.category === 'kills' && change) {
     const attacker = change.attacker ? `${change.attacker.name} (${playerName(change.attacker.playerId)})` : change.attackerPlayerId ? playerName(change.attackerPlayerId) : 'Nieustalone źródło'
