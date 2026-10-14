@@ -3,7 +3,7 @@ import type { BattleSession } from '../../domain/battle/types'
 import { secondaryStrategyFor } from '../../rulesets/cauldronFFA3/sessionConfig'
 import { OFFICIAL_SECONDARY_BY_ID, officialFfaDescription } from '../../rulesets/cauldronFFA3/officialSecondaryDefinitions'
 import {
-  canScoreOfficialSecondary, officialActionCount, officialAwards, officialRedrawReason,
+  canScoreOfficialSecondary, doublesSecondaryUnitChoices, officialActionCount, officialAwards, officialRedrawReason,
   officialWindowAcknowledged, officialWindowNeedsReview,
   officialTurnKey,
 } from '../../rulesets/cauldronFFA3/officialSecondary'
@@ -37,6 +37,7 @@ function OfficialSecondaryForm({ session, playerId, editable }: OfficialSecondar
   const { scoreOfficialSecondary, replaceOfficialSecondary, discardOfficialAtEndTurn, noteOfficialTarget, startOfficialSecondaryAction, acknowledgeOfficialWindow, assignOfficialGuards } = useBattleStore()
   const state = getSecondaryState(session)[playerId]
   const ffa = isOfficialFfa(session)
+  const doublesUnitChoices = session.setup.doubles ? doublesSecondaryUnitChoices(session, playerId) : null
   const fixed = secondaryStrategyFor(session, playerId) === 'fixed'
   const ownTurn = session.state.activePlayerId === playerId
   const command = session.state.phase === 'COMMAND' && ownTurn
@@ -121,7 +122,9 @@ function OfficialSecondaryForm({ session, playerId, editable }: OfficialSecondar
             </>}
           </div>}
           {missionAction && <div className="official-secondary-input"><strong>{officialActionCount(session, playerId, cardId)} action(s) started this turn</strong>{editable && command === false && ownTurn && session.state.phase === 'SHOOTING' && <>
-            <label>Acting unit<select value={actionDraft.unit} onChange={(event) => updateAction(cardId, 'unit', event.target.value)}><option value="">Choose a qualifying own unit</option>{officialPlayerUnits(session, playerId).filter((unit) => !player.units[unit.id]?.destroyed && !player.units[unit.id]?.inReserve && !player.units[unit.id]?.battleShocked).map((unit) => <option key={unit.id} value={unit.id}>{unit.name}</option>)}</select></label>
+            <label>Acting unit<select value={actionDraft.unit} onChange={(event) => updateAction(cardId, 'unit', event.target.value)}><option value="">Choose a qualifying own unit</option>{doublesUnitChoices
+              ? doublesUnitChoices.map((choice) => <option key={choice.value} value={choice.value}>{choice.label}</option>)
+              : officialPlayerUnits(session, playerId).filter((unit) => !player.units[unit.id]?.destroyed && !player.units[unit.id]?.inReserve && !player.units[unit.id]?.battleShocked).map((unit) => <option key={unit.id} value={unit.id}>{unit.name}</option>)}</select></label>
             <label>{cardId === 'OFFICIAL_CLEANSE' ? 'Non-home objective' : ffa ? 'Terrain area wholly outside your Territory' : 'Terrain area outside your territory'}{cardId === 'OFFICIAL_CLEANSE' ? <select value={actionDraft.target} onChange={(event) => updateAction(cardId, 'target', event.target.value)}><option value="">Choose an objective</option>{officialNmlObjectives(session).map((id) => <option key={id} value={id}>{id}</option>)}</select> : <input value={actionDraft.target} onChange={(event) => updateAction(cardId, 'target', event.target.value)} placeholder="Location on the table" />}</label>
             {ffa && cardId === 'OFFICIAL_PLUNDER' && <label className="review-check-row"><input type="checkbox" checked={actionDraft.terrainWhollyOutsideOwnTerritory ?? false} onChange={(event) => setActionDrafts((current) => ({ ...current, [cardId]: { ...actionDraft, terrainWhollyOutsideOwnTerritory: event.target.checked } }))} /><span>The entire terrain footprint is wholly outside own Territory, without touching its boundary</span></label>}
             <button type="button" disabled={!actionDraft.unit.trim() || !actionDraft.target.trim() || (ffa && cardId === 'OFFICIAL_PLUNDER' && !actionDraft.terrainWhollyOutsideOwnTerritory)} onClick={() => { startOfficialSecondaryAction(playerId, cardId, actionDraft.unit, actionDraft.target, actionDraft); setActionDrafts((current) => ({ ...current, [cardId]: { unit: '', target: '' } })) }}>Start action in Shooting phase</button>
