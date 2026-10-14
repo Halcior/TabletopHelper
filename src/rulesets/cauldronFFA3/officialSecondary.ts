@@ -301,10 +301,11 @@ export function assignOfficialGuards(session: BattleSession, playerId: string, a
   assertOfficial(session)
   const cardId = 'OFFICIAL_BURDEN_OF_TRUST'
   const card = getSecondaryState(session)[playerId]?.active.find((entry) => entry.cardId === cardId)
-  if (!isOfficialFfa(session) || !card || session.state.activePlayerId !== playerId || session.state.phase !== 'COMMAND') throw new Error('Assign guards when drawn or at the start of your own turn.')
+  if ((!isOfficialFfa(session) && !session.setup.doubles) || !card || session.state.activePlayerId !== playerId || session.state.phase !== 'COMMAND') throw new Error('Assign guards when drawn or at the start of your own turn.')
   if (card.cardSpecificState?.officialGuardAssignmentTurnKey === officialTurnKey(session)) throw new Error('Guard assignments are already saved for this turn.')
   const controlled = Object.values(session.state.objectives).filter((objective) => objective.controllerPlayerId === playerId)
   if (Object.keys(assignments).length !== controlled.length || !controlled.every((objective) => {
+    if (session.setup.doubles) return doublesSecondaryUnitChoices(session, playerId, false).some((choice) => choice.value === assignments[objective.id])
     const unit = session.state.players[playerId].units[assignments[objective.id]]
     return unit && !unit.destroyed && !unit.inReserve
   })) throw new Error('Assign a living own unit to every objective you currently control.')
