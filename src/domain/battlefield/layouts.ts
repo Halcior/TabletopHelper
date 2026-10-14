@@ -29,7 +29,7 @@ function configOf(setup: BattleSetup): {
 
 export function isOfficialBoard(setup: BattleSetup): boolean {
   return (
-    setup.players.length === 2 &&
+    (setup.players.length === 2 || Boolean(setup.doubles)) &&
     configOf(setup).primaryDeck === 'chapter-approved-duel'
   )
 }
@@ -39,7 +39,7 @@ export function officialBoardDefinition(
 ): OfficialBoardDefinition | undefined {
   if (!isOfficialBoard(setup)) return
   const config = configOf(setup)
-  const pair = setup.players.map(
+  const pair = setup.players.filter((player) => setup.turnOrder.includes(player.id)).map(
     (player) => config.playerConfigs?.[player.id]?.forceDisposition ?? '',
   )
   if (pair.some((value) => !DISPOSITION_ORDER.includes(value))) return
@@ -131,7 +131,7 @@ export function battlefieldPresentation(
   const official = officialBoardDefinition(setup)
   if (official)
     return {
-      title: `Official Duel · Layout ${official.variant}`,
+      title: `${setup.doubles ? 'Official Doubles' : 'Official Duel'} · Layout ${official.variant}`,
       official: true,
       sourcePage: official.page,
       sourceUrl: OFFICIAL_BOARD_SOURCE.url,
