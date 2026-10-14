@@ -106,6 +106,7 @@ export type DoublesSecondaryUnitChoice = {
 export function doublesSecondaryUnitChoices(
   session: BattleSession,
   forceCaptainId: string,
+  requireActionEligible = true,
 ): DoublesSecondaryUnitChoice[] {
   const force = session.setup.doubles?.forces.find((entry) => entry.captainPlayerId === forceCaptainId)
   if (!force) return []
@@ -114,7 +115,7 @@ export function doublesSecondaryUnitChoices(
     const army = owner?.armyId ? session.setup.armies[owner.armyId] : undefined
     return (army?.units ?? []).filter((unit) => {
       const state = session.state.players[playerId]?.units[unit.id]
-      return state && !state.destroyed && !state.inReserve && !state.battleShocked
+      return state && !state.destroyed && !state.inReserve && (!requireActionEligible || !state.battleShocked)
     }).map((unit) => ({
       value: JSON.stringify([playerId, unit.id]),
       playerId,
@@ -278,6 +279,13 @@ export function noteOfficialTarget(session: BattleSession, playerId: string, car
   if (cardId === 'OFFICIAL_BEACON') {
     const card = getSecondaryState(session)[playerId].active.find((entry) => entry.cardId === cardId)!
     if (card.cardSpecificState?.officialTargetUnitId || card.cardSpecificState?.lastConfirmation) throw new Error('The when-drawn choice is locked for this card.')
+    if (session.setup.doubles) {
+      const choice = doublesSecondaryUnitChoices(session, playerId, false).find((entry) => entry.value === note)
+      if (!choice) throw new Error('Choose a living unit from either teammate for Beacon.')
+      return dispatchBattleEvents(session, [cauldronEvent('SECONDARY_CARD_STATE_UPDATED', {
+        playerId, cardId, patch: { officialTargetUnitId: choice.value, lastConfirmation: choice.label },
+      })], { actorPlayerId: playerId })
+    }
     const unit = officialPlayerUnits(session, playerId).find((entry) => entry.id === note || entry.name === note)
     if (!unit || session.state.players[playerId].units[unit.id]?.destroyed || session.state.players[playerId].units[unit.id]?.inReserve) throw new Error('Choose an own unit on the battlefield or embarked in a TRANSPORT there.')
     return dispatchBattleEvents(session, [cauldronEvent('SECONDARY_CARD_STATE_UPDATED', {
