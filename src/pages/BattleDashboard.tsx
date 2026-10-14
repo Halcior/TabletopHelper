@@ -175,7 +175,8 @@ export default function BattleDashboard() {
     if (!session || session.setup.gameId !== battleId || session.state.status !== 'active' || !rulesDataProvider) return
     const permissions = getSharedSessionPermissions(session, sharedMembership)
     if (!permissions.canControlTurn) return
-    const rulesDataByPlayer = Object.fromEntries(session.state.turnOrder.map((playerId) => {
+    const reactionOwnerIds = session.setup.doubles ? session.setup.players.map((player) => player.id) : session.state.turnOrder
+    const rulesDataByPlayer = Object.fromEntries(reactionOwnerIds.map((playerId) => {
       const armyId = session.state.players[playerId].armyId
       const army = armyId ? session.setup.armies[armyId] : undefined
       return [playerId, army ? resolveArmyRules(rulesDataProvider, army) : null]
@@ -183,7 +184,7 @@ export default function BattleDashboard() {
     const reactionPolicy = session.setup.rulesetId === CAULDRON_RULESET_ID ? cauldronReactionPolicy : undefined
     const prompt = selectAutomaticReactionPrompt(session, rulesDataByPlayer, reactionPolicy)
     if (!prompt) return
-    const definitionsByPlayer = Object.fromEntries(session.state.turnOrder.map((playerId) => [
+    const definitionsByPlayer = Object.fromEntries(reactionOwnerIds.map((playerId) => [
       playerId,
       rulesDataByPlayer[playerId]?.definitions ?? [],
     ]))
