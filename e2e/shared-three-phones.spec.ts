@@ -91,16 +91,49 @@ test('three phones start, synchronize and recover one idempotent offline action'
       const unit = session.setup.armies[armyId].units.find((unit) => unit.startingModels > 1 && (unit.stats?.wounds ?? 0) >= 3)!
       return { id: unit.id, wounds: unit.stats!.wounds!, models: unit.startingModels }
     })
-    // Cache the module on each phone before going offline. Loading a new Vite
-    // module while offline can restart its dev client rather than test the app.
-    await Promise.all([alpha.page, bravo.page, charlie.page].map((page) => page.evaluate(async () => {
-      await import('/src/stores/battleStore.ts')
-    })))
+    // Resolve the Vite module while each browser is ONLINE. A dynamic import
+    // after setOffline() can race a dev-client navigation on CI and destroy the
+    // page.evaluate execution context before combat gets recorded.
+    await Promise.all([alpha.page, bravo.page, charlie.page].map(async (page) => {
+      await page.evaluate(async () => {
+        const { useBattleStore } = await import('/src/stores/battleStore.ts')
+        Object.assign(window, { __combatTestStore: useBattleStore })
+      })
+      await expect(page).toHaveURL(/\\/battle\\//)
+    }))
     await Promise.all([alpha.context.setOffline(true), bravo.context.setOffline(true)])
-    const recordWound = async (page: Page) => page.evaluate(async (unitId) => {
-      const { useBattleStore } = await import('/src/stores/battleStore.ts')
-      useBattleStore.getState().dispatch({ type: 'UNIT_COMBAT_RESOLVED', payload: { playerId: 'player-b', unitId, kind: 'damage', destroyedByPlayerId: 'player-a', allocations: [{ profileId: 'unit', wounds: 1 }] } })
-    }, target.id)
+    const recordWound = async (page: Page) => {
+      // The guard also makes a transient evaluate/navigation retry safe: a
+      // successful dispatch must never record the same Wound a second time.
+      await expect(async () => {
+        const result = await page.evaluate(({ unitId, before }) => {
+          const store = (window as typeof window & {
+            __combatTestStore?: {
+              getState: () => {
+                session: { state: { players: Record<string, { units: Record<string, { currentModelWounds?: number }> }> } } | null
+                dispatch: (event: unknown) => void
+              }
+            }
+          }).__combatTestStore
+          const session = store?.getState().session
+          const unit = session?.state.players['player-b']?.units[unitId]
+          if (!unit) return 'not-ready'
+          if (unit.currentModelWounds === before - 1) return 'recorded'
+          if (unit.currentModelWounds !== before) return 'unexpected-state'
+          store!.getState().dispatch({
+            type: 'UNIT_COMBAT_RESOLVED',
+            payload: {
+              playerId: 'player-b', unitId, kind: 'damage',
+              destroyedByPlayerId: 'player-a',
+              allocations: [{ profileId: 'unit', wounds: 1 }],
+            },
+          })
+          return store!.getState().session?.state.players['player-b']?.units[unitId]?.currentModelWounds === before - 1
+            ? 'recorded' : 'not-recorded'
+        }, { unitId: target.id, before: target.wounds })
+        expect(result).toBe('recorded')
+      }).toPass({ timeout: 10_000, intervals: [150, 350, 700] })
+    }
     await recordWound(alpha.page)
     await recordWound(bravo.page)
     backend.failNextEventInsertAfterCommitForPlayerId = 'player-b'
