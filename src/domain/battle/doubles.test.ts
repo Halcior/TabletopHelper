@@ -5,6 +5,8 @@ import { dispatchBattleEvent } from './engine'
 import { doublesObjectiveController, doublesScorekeeperId, doublesTeamMembers } from './doubles'
 import { officialBoardDefinition } from '../battlefield/layouts'
 import { getSecondaryState } from '../../rulesets/cauldronFFA3/secondary'
+import { doublesSecondaryUnitChoices, startOfficialSecondaryAction } from '../../rulesets/cauldronFFA3/officialSecondary'
+import { cauldronEvent } from '../../rulesets/cauldronFFA3/events'
 import { getDuelMission } from '../../rulesets/cauldronFFA3/duelPrimary'
 import type { DoublesSetup } from './types'
 
@@ -81,6 +83,25 @@ describe('GW Doubles team foundation', () => {
     session = dispatchBattleEvent(session, { type: 'OBJECTIVE_CONTROL_CHANGED', payload: { objectiveId: 'CENTER-1', controllerPlayerId: 'd' } })
     expect(session.state.objectives['CENTER-1'].controllerPlayerId).toBe('c')
     expect(doublesObjectiveController(session.setup, session.state.objectives['CENTER-1'].playerOC)).toBeNull()
+  })
+
+
+  it('allows either partner to start a shared Cleanse while enforcing one target per force', () => {
+    let session = battle()
+    session = dispatchBattleEvent(session, cauldronEvent('SECONDARY_DRAWN', {
+      playerId: 'a', cardId: 'OFFICIAL_CLEANSE', round: 1, turn: 1,
+    }))
+    session = dispatchBattleEvent(session, { type: 'PHASE_CHANGED', payload: { phase: 'SHOOTING' } })
+    const options = doublesSecondaryUnitChoices(session, 'a')
+    const partner = options.find((entry) => entry.playerId === 'b' && entry.unitId === 'tank')
+    expect(partner).toBeDefined()
+    expect(options.some((entry) => entry.playerId === 'c')).toBe(false)
+    const neutral = 'CENTER-1'
+    session = startOfficialSecondaryAction(session, 'a', 'OFFICIAL_CLEANSE', partner!.value, neutral)
+    const action = session.state.events.findLast((event) => event.type === 'RULESET_EVENT' && event.payload.action === 'SECONDARY_OFFICIAL_ACTION_STARTED')
+    expect(action && 'data' in action.payload && (action.payload.data as { unit?: string }).unit).toBe(partner!.value)
+    expect(() => startOfficialSecondaryAction(session, 'a', 'OFFICIAL_CLEANSE', options.find((entry) => entry.playerId === 'a')!.value, neutral)).toThrow(/different objective/)
+    expect(() => startOfficialSecondaryAction(session, 'a', 'OFFICIAL_CLEANSE', JSON.stringify(['c', 'tank']), 'CENTER-2')).toThrow(/eligible unit/)
   })
 
   it('rejects malformed team memberships instead of silently creating extra turns', () => {
