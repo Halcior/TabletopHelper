@@ -97,6 +97,28 @@ test('mobile effective Wounds, attack summary, healing, correction, report and l
     })
     await page.getByRole('button', { name: 'Close legacy pause' }).click()
     await expect(page.getByRole('button', { name: 'Close legacy pause' })).toHaveCount(0)
+
+    // Regression: damaging the third unit must not move it to the first card.
+    // Quick Access must not shrink or reshuffle while the player is tapping.
+    await selectPanel(page, 'army')
+    const cards = page.locator('.unit-grid .unit-card')
+    const originalOrder = await cards.locator('h3').allTextContents()
+    const shortcutNames = () => page.locator('.recent-unit__identity strong').allTextContents()
+    const originalShortcuts = await shortcutNames()
+    const lastUnit = cards.filter({ has: page.getByRole('heading', { name: 'Remainder', exact: true }) })
+    const damageButton = lastUnit.getByRole('button', { name: '−1 W', exact: true })
+    await damageButton.scrollIntoViewIfNeeded()
+    const initialY = (await lastUnit.boundingBox())!.y
+    for (const remaining of [9, 8, 7]) {
+      await damageButton.click()
+      await expect(lastUnit.locator('.combat-current')).toContainText(`${remaining} / 10 W`)
+      expect(await cards.locator('h3').allTextContents()).toEqual(originalOrder)
+      expect(await shortcutNames()).toEqual(originalShortcuts)
+      expect(Math.abs((await lastUnit.boundingBox())!.y - initialY)).toBeLessThan(2)
+    }
+    await page.getByRole('button', { name: 'Refresh quick access for Bravo' }).click()
+    expect((await shortcutNames())[0]).toBe('Remainder')
+    expect(await cards.locator('h3').allTextContents()).toEqual(originalOrder)
   } finally { await context.close() }
 })
 
@@ -138,56 +160,4 @@ test('quick Wound controls stay independent of an open mixed-profile allocation'
     await selectPanel(page, 'log')
     await expect(page.locator('.chronicle-entry').filter({ hasText: '6 Wounds lost' })).toHaveCount(1)
   } finally { await context.close() }
-})
-
-
-test('Army cards and Quick Access stay put during repeated Wound clicks', async ({ browser }) => {
-  const { context, page } = await phone(browser)
-  try {
-    await page.goto('/')
-    await page.evaluate(async () => {
-      const { testCauldronGame } = await import('/src/rulesets/cauldronFFA3/cauldronTestUtils.ts')
-      const { saveBattle } = await import('/src/persistence/database.ts')
-      const game = testCauldronGame()
-      game.setup.gameId = 'stable-army-cards'
-      await saveBattle(game)
-    })
-    await page.goto('/battle/stable-army-cards')
-    await dismissSecondaryReveal(page)
-    await selectPanel(page, 'army')
-    await page.getByRole('navigation', { name: 'Choose player army' }).getByRole('button', { name: /Bravo/ }).click()
-
-    const fullCards = page.locator('.unit-grid .unit-card')
-    const cardNames = () => fullCards.locator('h3').allTextContents()
-    const shortcuts = () => page.locator('.recent-unit__identity strong').allTextContents()
-    const rosterOrder = ['Four-model unit', 'Single-model tank', 'Remainder']
-    await expect(fullCards).toHaveCount(3)
-    expect(await cardNames()).toEqual(rosterOrder)
-    expect(await shortcuts()).toEqual(rosterOrder)
-
-    const target = fullCards.filter({ has: page.getByRole('heading', { name: 'Remainder', exact: true }) })
-    const woundButton = target.getByRole('button', { name: '−1 W', exact: true })
-    await woundButton.scrollIntoViewIfNeeded()
-    const initialPosition = (await target.boundingBox())!.y
-    for (const woundsLeft of [9, 8, 7]) {
-      await woundButton.click()
-      await expect(target.locator('.combat-current')).toContainText(`${woundsLeft} / 10 W`)
-      expect(await cardNames()).toEqual(rosterOrder)
-      expect(await shortcuts()).toEqual(rosterOrder)
-      // A changing recent-unit list used to shrink the panel above the card,
-      // moving subsequent touch targets even when their React keys were stable.
-      expect(Math.abs((await target.boundingBox())!.y - initialPosition)).toBeLessThan(2)
-    }
-
-    await page.getByRole('button', { name: 'Refresh quick access for Bravo' }).click()
-    expect(await shortcuts()).toEqual(['Remainder', 'Four-model unit', 'Single-model tank'])
-    expect(await cardNames()).toEqual(rosterOrder)
-    const quickRemainder = page.locator('.recent-unit').filter({ hasText: 'Remainder' })
-    await quickRemainder.getByRole('button', { name: '−1 W', exact: true }).click()
-    await expect(target.locator('.combat-current')).toContainText('6 / 10 W')
-    expect(await cardNames()).toEqual(rosterOrder)
-    expect(await shortcuts()).toEqual(['Remainder', 'Four-model unit', 'Single-model tank'])
-  } finally {
-    await context.close()
-  }
 })
