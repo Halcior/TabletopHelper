@@ -99,7 +99,7 @@ test('three phones start, synchronize and recover one idempotent offline action'
         const { useBattleStore } = await import('/src/stores/battleStore.ts')
         Object.assign(window, { __combatTestStore: useBattleStore })
       })
-      await expect(page).toHaveURL(/\\/battle\\//)
+      await expect(page).toHaveURL(/\/battle\//)
     }))
     await Promise.all([alpha.context.setOffline(true), bravo.context.setOffline(true)])
     const recordWound = async (page: Page) => {
