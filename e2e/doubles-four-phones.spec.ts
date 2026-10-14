@@ -26,6 +26,7 @@ test('four phones play one GW Doubles turn with exactly two shared CP and VP poo
     await setupBattlefield(alpha.page)
     await alpha.page.getByLabel('Guidance level').selectOption('fast')
     await setupBattlefield(alpha.page)
+    console.info('[Doubles 2v2] Starting four-seat lobby')
     await alpha.page.getByRole('button', { name: 'Create 4-player lobby' }).click()
     await expect(alpha.page.locator('.shared-lobby-seat')).toHaveCount(4)
     const code = (await alpha.page.locator('.shared-room-focus__code strong').textContent())!.trim()
@@ -33,6 +34,7 @@ test('four phones play one GW Doubles turn with exactly two shared CP and VP poo
     await join(gamma.page, code, 'player-c')
     await join(delta.page, code, 'player-d')
 
+    console.info('[Doubles 2v2] Four seats joined; marking ready')
     for (const entry of phones) {
       const ready = entry.page.getByRole('button', { name: 'I am ready' })
       await expect(ready).toBeEnabled()
@@ -40,6 +42,7 @@ test('four phones play one GW Doubles turn with exactly two shared CP and VP poo
     }
     await expect(alpha.page.locator('.shared-lobby-seat.is-ready')).toHaveCount(4)
     await alpha.page.getByRole('button', { name: 'Start battle' }).click()
+    console.info('[Doubles 2v2] Battle started; checking scores and shared cards')
     await Promise.all(phones.map(async (entry) => {
       await expect(entry.page).toHaveURL(/\/battle\//)
       await dismissSecondaryReveal(entry.page)
@@ -67,6 +70,6 @@ test('four phones play one GW Doubles turn with exactly two shared CP and VP poo
     await expect(delta.page.locator('.report-player')).toHaveCount(2)
     await expect(delta.page.getByText('Official Doubles 2v2')).toBeVisible()
   } finally {
-    await Promise.all(phones.map((entry) => entry.context.close()))
+    await Promise.allSettled(phones.map((entry) => entry.context.close()))
   }
 })
