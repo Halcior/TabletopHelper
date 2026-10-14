@@ -20,6 +20,19 @@ type ArmyTrackerProps = {
   onClearSecondaryTargetFilter?: () => void
 }
 
+/** Freeze Quick Access while recording losses so its cards cannot jump under a finger.
+ * Refresh is explicitly requested; the full roster always follows import order.
+ */
+function quickAccessUnitIds(session: BattleSession, playerId: string): string[] {
+  const player = session.setup.players.find((entry) => entry.id === playerId)
+  const army = player?.armyId ? session.setup.armies[player.armyId] : undefined
+  if (!army) return []
+  const ids = new Set(army.units.map((unit) => unit.id))
+  const recent = selectRecentUnits(session, playerId, 3).map(({ unitId }) => unitId).filter((id) => ids.has(id))
+  const available = army.units.filter((unit) => !session.state.players[playerId]?.units[unit.id]?.destroyed).map((unit) => unit.id)
+  return [...new Set([...recent, ...available, ...army.units.map((unit) => unit.id)])].slice(0, 3)
+}
+
 function matchesSecondaryTarget(unit: UnitDefinition, cardId: SecondaryId): boolean {
   const traits = [...unit.categories, ...unit.keywords].map((value) => value.toLocaleUpperCase())
   if (cardId === 'ZNISZCZ_KOLOSA') return traits.includes('VEHICLE') || traits.includes('MONSTER')
@@ -221,6 +234,13 @@ export function ArmyTracker({
   const performanceByUnit = useMemo(() => new Map(performance.units.map((unit) => [performanceKey(unit.playerId, unit.unitId), unit])), [performance])
   const [sources, setSources] = useState<Record<string, CombatAttribution>>({})
   const [lastUnits, setLastUnits] = useState<Record<string, string | null>>({})
+  const [quickAccessByPlayer, setQuickAccessByPlayer] = useState<Record<string, string[]>>(
+    () => Object.fromEntries(session.setup.players.map((player) => [player.id, quickAccessUnitIds(session, player.id)])),
+  )
+  // Switching to another battle starts new shortcuts; combat events do not reshuffle them.
+  useEffect(() => {
+    setQuickAccessByPlayer(Object.fromEntries(session.setup.players.map((player) => [player.id, quickAccessUnitIds(session, player.id)])))
+  }, [session.setup.gameId])
   const rivalPlayerId = session.setup.rulesetId === CAULDRON_RULESET_ID
     ? getCurrentRivalPlayerId(session, session.state.activePlayerId)
     : null
@@ -251,16 +271,14 @@ export function ArmyTracker({
       !playerState.units[unit.id].destroyed && matchesSecondaryTarget(unit, secondaryTargetFilter)
     ))
     : selected.army.units
-  const recentUnitIds = selectRecentUnits(session, selected.player.id, 3).map(({ unitId }) => unitId)
-  const recentRank = new Map(recentUnitIds.map((unitId, index) => [unitId, index]))
-  const visibleUnits = [...filteredUnits].sort((left, right) => (
-    (recentRank.get(left.id) ?? Number.MAX_SAFE_INTEGER) - (recentRank.get(right.id) ?? Number.MAX_SAFE_INTEGER)
-  ))
+  // Stable roster order: receiving damage must never move an interactive card.
+  const visibleUnits = filteredUnits
+  // Shortcuts are pinned until explicitly refreshed, avoiding movement in both
+  // Quick Access and the main card grid while repeatedly tapping Wound controls.
+  const quickUnitIds = quickAccessByPlayer[selected.player.id] ?? quickAccessUnitIds(session, selected.player.id)
   const quickUnits = filterRivalTargets
     ? []
-    : (recentUnitIds.length > 0
-        ? recentUnitIds.flatMap((unitId) => selected.army.units.find((unit) => unit.id === unitId) ?? [])
-        : visibleUnits.filter((unit) => !playerState.units[unit.id].destroyed).slice(0, 3))
+    : quickUnitIds.flatMap((unitId) => selected.army.units.find((unit) => unit.id === unitId) ?? [])
 
   function openUnitCard(unitId: string) {
     document.getElementById(`unit-card-${selected.player.id}-${unitId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -293,8 +311,11 @@ export function ArmyTracker({
       </div>}
       {quickUnits.length > 0 && <section className="recent-units" aria-label={recentUnitIds.length > 0 ? 'Recently used units' : 'Quick unit access'}>
         <div className="recent-units__heading">
-          <div><span className="eyebrow">{recentUnitIds.length > 0 ? 'Recently used' : 'Quick access'}</span><h3>Units</h3></div>
-          <small>Quick damage uses the combat source selected above.</small>
+          <div><span className="eyebrow">Quick access</span><h3>Units</h3></div>
+          <small>Shortcuts stay fixed while you record damage.</small>
+          <button type="button" className="button button--small" aria-label={`Refresh quick access for ${selected.player.name}`} onClick={() => setQuickAccessByPlayer((current) => ({
+            ...current, [selected.player.id]: quickAccessUnitIds(session, selected.player.id),
+          }))}>Refresh</button>
         </div>
         <div className="recent-unit-list">{quickUnits.map((unit) => <QuickUnitControl
           key={unit.id}
