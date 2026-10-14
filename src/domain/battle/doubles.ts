@@ -29,7 +29,7 @@ export function validateDoublesSetup(
   turnOrder: string[],
   doubles: DoublesSetup,
 ): void {
-  if (doubles.rulesVersion !== 'GW-Doubles-1.1') throw new Error('Unsupported Doubles rules version.')
+  if (doubles.rulesVersion !== 'GW-Doubles-1.0') throw new Error('Unsupported Doubles rules version.')
   if (players.length !== 4 || doubles.forces.length !== 2 || turnOrder.length !== 2) {
     throw new Error('Doubles requires exactly four commanders, two forces and two shared turns.')
   }
