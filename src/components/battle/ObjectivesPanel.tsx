@@ -1,6 +1,7 @@
 import type { BattleEventInput, BattleSession } from '../../domain/battle/types'
 import { useEffect, useState } from 'react'
 import { BattlefieldBoard } from './BattlefieldBoard'
+import { doublesForceForPlayer } from '../../domain/battle/doubles'
 
 type ObjectivesPanelProps = {
   session: BattleSession
@@ -25,6 +26,7 @@ export function ObjectivesPanel(props: ObjectivesPanelProps) {
 
 function ObjectivesList({ session, dispatch, liveObjectiveIds = [], focusObjectiveId }: ObjectivesPanelProps) {
   const players = session.state.turnOrder.map((id) => session.state.players[id])
+  const ocPlayers = session.setup.players.map((player) => session.state.players[player.id])
   const objectives = Object.values(session.state.objectives)
     .sort((left, right) => Number(left.type === 'home') - Number(right.type === 'home'))
   return (
@@ -33,7 +35,7 @@ function ObjectivesList({ session, dispatch, liveObjectiveIds = [], focusObjecti
       <section className="objective-grid" aria-label="Objectives">
       {objectives.map((objective) => {
         const controller = objective.controllerPlayerId
-          ? session.state.players[objective.controllerPlayerId]?.name
+          ? doublesForceForPlayer(session.setup, objective.controllerPlayerId)?.name ?? session.state.players[objective.controllerPlayerId]?.name
           : 'None'
         return (
           <article className={`panel objective-card objective-controller--${objective.controllerPlayerId ? session.state.turnOrder.indexOf(objective.controllerPlayerId) : 'none'}${liveObjectiveIds.includes(objective.id) ? ' objective-control-live' : ''}`} key={objective.id}>
@@ -60,12 +62,12 @@ function ObjectivesList({ session, dispatch, liveObjectiveIds = [], focusObjecti
                     type: 'OBJECTIVE_CONTROL_CHANGED',
                     payload: { objectiveId: objective.id, controllerPlayerId: player.id },
                   })}
-                >{player.name}</button>
+                 >{doublesForceForPlayer(session.setup, player.id)?.name ?? player.name}</button>
               ))}
             </div>
             <details className="oc-mode" open={focusObjectiveId === objective.id ? true : undefined}>
               <summary>OC mode</summary>
-              {players.map((player) => {
+              {ocPlayers.map((player) => {
                 const oc = objective.playerOC[player.id] ?? 0
                 return (
                   <div className="oc-row" key={player.id}>
