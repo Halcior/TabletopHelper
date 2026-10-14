@@ -252,10 +252,10 @@ function applyEvent(state: GameState, event: BattleEvent, setup: BattleSetup): v
           return
         }
         case 'CP':
-          requirePlayer(state, correction.playerId).cp = Math.max(0, Math.floor(correction.value))
+          requirePlayer(state, doublesScorekeeperId(setup, correction.playerId)).cp = Math.max(0, Math.floor(correction.value))
           return
         case 'SCORE':
-          requirePlayer(state, correction.playerId).score[correction.category] = Math.max(0, Math.floor(correction.value))
+          requirePlayer(state, doublesScorekeeperId(setup, correction.playerId)).score[correction.category] = Math.max(0, Math.floor(correction.value))
           return
         case 'UNIT_MODELS': {
           const unit = requireUnit(state, correction.playerId, correction.unitId)
