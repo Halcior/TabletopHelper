@@ -95,6 +95,35 @@ export function acknowledgeOfficialWindow(session: BattleSession, playerId: stri
   })], { actorPlayerId: playerId })
 }
 
+export type DoublesSecondaryUnitChoice = {
+  value: string
+  playerId: string
+  unitId: string
+  label: string
+}
+
+/** Explicit commander/unit pair avoids collisions between imported army IDs. */
+export function doublesSecondaryUnitChoices(
+  session: BattleSession,
+  forceCaptainId: string,
+): DoublesSecondaryUnitChoice[] {
+  const force = session.setup.doubles?.forces.find((entry) => entry.captainPlayerId === forceCaptainId)
+  if (!force) return []
+  return force.memberPlayerIds.flatMap((playerId) => {
+    const owner = session.setup.players.find((player) => player.id === playerId)
+    const army = owner?.armyId ? session.setup.armies[owner.armyId] : undefined
+    return (army?.units ?? []).filter((unit) => {
+      const state = session.state.players[playerId]?.units[unit.id]
+      return state && !state.destroyed && !state.inReserve && !state.battleShocked
+    }).map((unit) => ({
+      value: JSON.stringify([playerId, unit.id]),
+      playerId,
+      unitId: unit.id,
+      label: `${owner!.name} · ${unit.name}`,
+    }))
+  })
+}
+
 export type OfficialActionConfirmation = { terrainWhollyOutsideOwnTerritory?: boolean }
 type OfficialActionStart = { playerId: string; cardId: OfficialSecondaryId; turnKey: string; unit: string; target: string } & OfficialActionConfirmation
 export function officialActionCount(session: BattleSession, playerId: string, cardId: OfficialSecondaryId): number {
@@ -110,6 +139,13 @@ export function startOfficialSecondaryAction(session: BattleSession, playerId: s
     throw new Error('Cleanse or Plunder must be started in your Shooting phase while the card is active.')
   }
   if (!unit.trim() || !target.trim()) throw new Error('Record the unit and objective or terrain area.')
+  if (session.setup.doubles) {
+    const valid = doublesSecondaryUnitChoices(session, playerId).some((candidate) => candidate.value === unit)
+    if (!valid) throw new Error('Choose an eligible unit from either member of this Doubles force.')
+    if (cardId === 'OFFICIAL_CLEANSE' && session.state.objectives[target]?.type !== 'neutral') {
+      throw new Error('Cleanse requires an eligible non-HOME objective in NML.')
+    }
+  }
   if (isOfficialFfa(session)) {
     const definition = officialPlayerUnits(session, playerId).find((entry) => entry.id === unit || entry.name === unit)
     const state = definition ? session.state.players[playerId].units[definition.id] : undefined
