@@ -92,7 +92,7 @@ const modelCount = (count: number): string => `${count} ${count === 1 ? 'model' 
 
 function narrateEntry(entry: ChronicleEntry, report: BattleReport, style: NarrativeStyle): string {
   const change = entry.unitChange
-  const playerName = (id: string) => report.ranking.find((player) => player.playerId === id)?.name ?? report.performance.armies.find((player) => player.playerId === id)?.name ?? id
+  const playerName = (id: string) => report.ranking.find((player) => player.playerId === id)?.name ?? report.performance.units.find((unit) => unit.playerId === id)?.playerName ?? id
   let text = entry.description
   if (entry.category === 'kills' && change) {
     const attacker = change.attacker ? `${change.attacker.name} (${playerName(change.attacker.playerId)})` : change.attackerPlayerId ? playerName(change.attackerPlayerId) : 'Nieustalone źródło'
