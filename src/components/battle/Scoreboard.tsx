@@ -2,8 +2,6 @@ import { totalScore } from '../../domain/battle/selectors'
 import type { BattleEventInput, BattleSession } from '../../domain/battle/types'
 import { CAULDRON_RULESET_ID } from '../../rulesets/cauldronFFA3'
 import type { LiveBattleFeedback } from './useLiveBattleFeedback'
-import { useRef, useState } from 'react'
-import { CommandPopover } from '../ui/CommandPopover'
 
 type ScoreboardProps = {
   session: BattleSession
@@ -22,8 +20,6 @@ export function Scoreboard({
   viewerPlayerId = null,
   feedback,
 }: ScoreboardProps) {
-  const [cpPlayerId, setCpPlayerId] = useState<string | null>(null)
-  const cpTrigger = useRef<HTMLButtonElement | null>(null)
   const cauldron = session.setup.rulesetId === CAULDRON_RULESET_ID
   const leadingScore = Math.max(...Object.values(session.state.players).map(totalScore))
   const orderedPlayerIds = sharedMode && viewerPlayerId
@@ -49,9 +45,9 @@ export function Scoreboard({
             </div>
             <div className="score-card__numbers">
               <div className="score-card__metric score-card__metric--vp"><strong key={feedback?.scoreDeltas[playerId] ? feedback.id : 'steady'} className={feedback?.scoreDeltas[playerId] ? 'live-score-pulse' : ''}>{totalScore(player)}</strong><span>VP</span>{Boolean(feedback?.scoreDeltas[playerId]) && <small className="live-score-delta" role="status">{feedback!.scoreDeltas[playerId] > 0 ? '+' : ''}{feedback!.scoreDeltas[playerId]}</small>}</div>
-              {canEditCp ? <button className="score-card__metric score-card__metric--cp" aria-label={`Command points for ${player.name}: ${player.cp} CP`} aria-haspopup="dialog" aria-expanded={cpPlayerId === playerId} onClick={(event) => { cpTrigger.current = event.currentTarget; setCpPlayerId(cpPlayerId === playerId ? null : playerId) }}><strong>{player.cp}</strong><span>CP <span aria-hidden="true">⌄</span></span></button> : <div className="score-card__metric score-card__metric--cp"><strong>{player.cp}</strong><span>CP</span></div>}
+              <div className="score-card__metric score-card__metric--cp" aria-label={`Command points for ${player.name}: ${player.cp} CP`}><strong>{player.cp}</strong><span>CP</span></div>
             </div>
-            {canEditCp && cpPlayerId === playerId && <CommandPopover label={`Command points for ${player.name}`} trigger={cpTrigger} onClose={() => setCpPlayerId(null)} className="cp-popover"><div className="command-popover__heading"><strong>{player.name} · {player.cp} CP</strong><button aria-label="Close command points" onClick={() => setCpPlayerId(null)}>×</button></div><div className={`compact-controls${cauldron ? ' compact-controls--cp' : ''}`}>
+            {canEditCp && <div className={`compact-controls${cauldron ? ' compact-controls--cp' : ''}`}>
               {!cauldron && <button
                 aria-label={`Remove 1 VP from ${player.name}`}
                 onClick={() => dispatch({ type: 'SCORE_ADJUSTED', payload: { playerId, category: 'adjustment', delta: -1 } })}
@@ -68,7 +64,7 @@ export function Scoreboard({
                 aria-label={`Gain 1 CP for ${player.name}`}
                 onClick={() => dispatch({ type: 'CP_GAINED', payload: { playerId, amount: 1 } })}
               >+CP</button>
-            </div></CommandPopover>}
+            </div>}
           </article>
         )
       })}

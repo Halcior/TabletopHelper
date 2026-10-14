@@ -20,7 +20,7 @@ They are not static mockups or a record of a played match.
 | Shared Sessions | Clear room code, seat and Ready states; compact healthy connection status; errors and retry remain prominent. The QR invite uses the shared dialog. |
 | Army Import | Larger readable headings, roster totals and file control with the existing import/confirmation flow. |
 | Dashboard | Compact HUD, a fully readable current phase, three scores in one phone row and the existing fixed Next Phase action. |
-| Scoreboard | CP opens a small keyboard-accessible control sheet. Existing CP and score-adjustment commands and ownership checks are retained. |
+| Scoreboard | CP +/− buttons remain directly beneath the counters, with 44px touch targets and keyboard access. Existing CP and score-adjustment commands and ownership checks are retained. |
 | Navigation | Battle, Army, Objectives, Cards and More on phones. More exposes Chronicle, Replay, Report, session details and diagnostics. Desktop retains direct Chronicle/Report tabs. |
 | Context Command Centre | Phase priorities and mandatory responses remain prominent. Optional timing explanations expand on demand; the heading no longer covers the first priority card. |
 | Objectives | Board/List/OC remain available. Neutral markers use a distinct dashed shape without repeated `None` text. Display labels avoid collisions; crowded labels remain accessible below the board. |
@@ -32,7 +32,7 @@ They are not static mockups or a record of a played match.
 | Chronicle | Filters and event hierarchy distinguish kills, control changes, large VP awards and changes of leader from routine entries. |
 | Battle Report / Performance | Ranking, three recorded highlights, VP history, standout-unit shortcuts and consistent KPI cards precede the existing complete report and export tools. Scores remain provisional while live. |
 | Replay / Finished Battle | Replay stays read-only and is available from Objectives and More. Finished battles continue to expose their Report and recorded battlefield replay. |
-| Dialogs / Motion | CP, objective control, menus and dialogs share focus, Escape, outside-dismiss and focus-return behavior. Menus support arrow/Home/End keys. Short motion respects reduced-motion and existing quiet reload/reconnect behavior. |
+| Dialogs / Motion | Objective control, menus and dialogs share focus, Escape, outside-dismiss and focus-return behavior. Menus support arrow/Home/End keys. Short motion respects reduced-motion and existing quiet reload/reconnect behavior. |
 
 ## Visual system and state
 
@@ -138,7 +138,7 @@ The verification scenarios cover:
 
 - All six requested viewport sizes: 360 × 800, 390 × 844, 430 × 932,
   768 × 1024, 1280 × 900 and 1920 × 1080.
-- Mobile navigation, menu keys, CP focus/return, saved form and editor drafts,
+- Mobile navigation, menu keys, inline CP keyboard controls, saved form and editor drafts,
   unobstructed fixed actions, priority-card placement and nonoverlapping labels.
 - Fresh Primary confirmations and Secondary action/discard drafts after changes
   of player, round, phase and scoring window, including transitions while Cards is hidden.

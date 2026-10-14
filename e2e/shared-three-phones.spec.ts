@@ -1,4 +1,4 @@
-import { openCommandPoints, setupBattlefield } from './helpers'
+import { setupBattlefield } from './helpers'
 import { expect, test, type Page } from '@playwright/test'
 import { dismissSecondaryReveal, importTestArmy, phone, scoreCard } from './helpers'
 import { MockSupabase } from './mockSupabase'
@@ -64,13 +64,13 @@ test('three phones start, synchronize and recover one idempotent offline action'
     await dismissSecondaryReveal(alpha.page)
     await expect(alpha.page.locator('.shared-secondary-card__icon')).toHaveCount(2)
 
-    await openCommandPoints(alpha.page, 'Player I')
+    await expect(alpha.page.getByRole('button', { name: 'Gain 1 CP for Player II' })).toHaveCount(0)
     await alpha.page.getByRole('button', { name: 'Gain 1 CP for Player I' }).click()
     await expect(scoreCard(bravo.page, 'Player I').locator('.score-card__numbers strong').nth(1)).toHaveText('1')
 
     await bravo.context.setOffline(true)
     await expect(bravo.page.getByText('This phone is offline')).toBeVisible()
-    await openCommandPoints(bravo.page, 'Player II')
+
     await bravo.page.getByRole('button', { name: 'Gain 1 CP for Player II' }).click()
     await expect(scoreCard(bravo.page, 'Player II').locator('.score-card__numbers strong').nth(1)).toHaveText('1')
 
