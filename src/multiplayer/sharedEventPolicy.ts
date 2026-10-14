@@ -1,4 +1,5 @@
 import type { BattleEvent, BattleSession } from '../domain/battle/types'
+import { doublesScorekeeperId, onSameDoublesForce } from '../domain/battle/doubles'
 import { combatAttributionError } from '../domain/battle/combatAttribution'
 import { validateBattlefieldGeometry } from '../domain/battlefield/layouts'
 import type { SharedMembership } from './types'
@@ -115,10 +116,10 @@ function isActiveAttackerCasualty(
   session: BattleSession,
   viewerPlayerId: string,
 ): boolean {
-  if (viewerPlayerId !== session.state.activePlayerId) return false
+  if (doublesScorekeeperId(session.setup, viewerPlayerId) !== session.state.activePlayerId) return false
   if (event.type !== 'UNIT_COMBAT_RESOLVED' && event.type !== 'UNIT_MODEL_DESTROYED' && event.type !== 'UNIT_WOUNDS_CHANGED' && event.type !== 'UNIT_DESTROYED') return false
   if (event.type === 'UNIT_COMBAT_RESOLVED' && event.payload.kind !== 'damage') return false
-  if (event.payload.playerId === viewerPlayerId) return false
+  if (event.payload.playerId === viewerPlayerId || onSameDoublesForce(session.setup, event.payload.playerId, viewerPlayerId)) return false
   if (event.payload.destroyedByPlayerId !== viewerPlayerId) return false
 
   if (event.type === 'UNIT_WOUNDS_CHANGED') {
@@ -141,7 +142,7 @@ export function authorizeSharedAction(
   if (!sessionBefore.state.players[viewerPlayerId]) return deny('Your shared player seat is not part of this battle.')
 
   const progression = events.some((event) => TURN_OWNER_EVENTS.has(event.type))
-  if (progression && viewerPlayerId !== sessionBefore.state.activePlayerId) {
+  if (progression && doublesScorekeeperId(sessionBefore.setup, viewerPlayerId) !== sessionBefore.state.activePlayerId) {
     const activeName = sessionBefore.state.players[sessionBefore.state.activePlayerId]?.name ?? 'the active player'
     return deny(`Only ${activeName} can advance the current turn.`)
   }
@@ -151,14 +152,14 @@ export function authorizeSharedAction(
   }
 
   const gameEnded = events.some((event) => event.type === 'GAME_ENDED')
-  const automaticFinalTurnEnd = gameEnded && progression && viewerPlayerId === sessionBefore.state.activePlayerId
+  const automaticFinalTurnEnd = gameEnded && progression && doublesScorekeeperId(sessionBefore.setup, viewerPlayerId) === sessionBefore.state.activePlayerId
   if (gameEnded && !automaticFinalTurnEnd && !membership.isHost) {
     return deny('Only the room host can end a shared battle manually.')
   }
 
   const primaryCommit = hasPrimaryCommit(events)
   const duelBattleReady = events.some((event) => event.type === 'RULESET_EVENT' && event.payload.action === 'DUEL_BATTLE_READY')
-  if (primaryCommit && viewerPlayerId !== sessionBefore.state.activePlayerId) {
+  if (primaryCommit && doublesScorekeeperId(sessionBefore.setup, viewerPlayerId) !== sessionBefore.state.activePlayerId) {
     return deny('Only the active commander can confirm end-of-round scoring.')
   }
 
@@ -193,7 +194,7 @@ export function authorizeSharedAction(
       const requester = window?.requestedByPlayerId
       if (requester) {
         if (requester !== viewerPlayerId && !membership.isHost) return deny('The requester or host can close a legacy pause.')
-      } else if (viewerPlayerId !== sessionBefore.state.activePlayerId) {
+      } else if (doublesScorekeeperId(sessionBefore.setup, viewerPlayerId) !== sessionBefore.state.activePlayerId) {
         return deny('Only the active commander can cancel this reaction window.')
       }
       continue
@@ -204,17 +205,20 @@ export function authorizeSharedAction(
 
     const targetPlayerId = playerScopedTarget(event, sessionBefore)
     if (targetPlayerId && targetPlayerId !== viewerPlayerId) {
-      if (event.type === 'SCORE_ADJUSTED' && (primaryCommit || duelBattleReady) && viewerPlayerId === sessionBefore.state.activePlayerId) continue
+      if (event.type === 'SCORE_ADJUSTED' && (primaryCommit || duelBattleReady) && doublesScorekeeperId(sessionBefore.setup, viewerPlayerId) === sessionBefore.state.activePlayerId) continue
+      if (onSameDoublesForce(sessionBefore.setup, viewerPlayerId, targetPlayerId)
+        && (event.type === 'CP_GAINED' || event.type === 'CP_SPENT' || event.type === 'SCORE_ADJUSTED')) continue
       return deny('A shared commander can only change their own player or army state, except casualties they inflict during their own turn.')
     }
 
     if (event.type === 'RULESET_EVENT') {
       if (event.payload.action === 'PRIMARY_COMMITTED') continue
-      if (event.payload.action === 'DUEL_BATTLE_READY' && viewerPlayerId === sessionBefore.state.activePlayerId) continue
+      if (event.payload.action === 'DUEL_BATTLE_READY' && doublesScorekeeperId(sessionBefore.setup, viewerPlayerId) === sessionBefore.state.activePlayerId) continue
       const target = rulesetPlayerId(event)
       if (target && target !== viewerPlayerId) {
         if (isPriorityAlphaRivalChoice(event)) continue
-        if (progression && viewerPlayerId === sessionBefore.state.activePlayerId) continue
+        if (progression && doublesScorekeeperId(sessionBefore.setup, viewerPlayerId) === sessionBefore.state.activePlayerId) continue
+        if (onSameDoublesForce(sessionBefore.setup, viewerPlayerId, target) && sessionBefore.state.turnOrder.includes(target)) continue
         return deny('This ruleset action belongs to another commander.')
       }
     }
