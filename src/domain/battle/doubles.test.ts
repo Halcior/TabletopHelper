@@ -78,7 +78,7 @@ describe('GW Doubles team foundation', () => {
     for (let step = 0; step < BATTLE_PHASES.length * 8; step++) session = advancePhase(session)
     expect(session.state.round).toBe(5)
     expect(session.state.status).toBe('completed')
-    expect(session.state.events.filter((event) => event.type === 'TURN_STARTED')).toHaveLength(9)
+    expect(session.state.events.filter((event) => event.type === 'TURN_STARTED')).toHaveLength(10)
   })
 
   it('routes both partners CP and VP to their one shared force score', () => {
