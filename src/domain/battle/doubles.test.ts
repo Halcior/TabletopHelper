@@ -15,7 +15,7 @@ import { getAvailableStratagems } from '../stratagems/timingEngine'
 import type { StratagemDefinition } from '../stratagems/types'
 
 const forces: DoublesSetup = {
-  rulesVersion: 'GW-Doubles-1.1',
+  rulesVersion: 'GW-Doubles-1.0',
   forces: [
     { id: 'alpha', name: 'Alpha Force', memberPlayerIds: ['a', 'b'], captainPlayerId: 'a',
       forceDisposition: 'take-and-hold', forceType: 'convenience',
@@ -53,7 +53,7 @@ describe('GW Doubles team foundation', () => {
     expect(session.setup.players).toHaveLength(4)
     expect(Object.keys(session.state.players)).toHaveLength(4)
     expect(session.state.turnOrder).toEqual(['a', 'c'])
-    expect(session.setup.doubles?.rulesVersion).toBe('GW-Doubles-1.1')
+    expect(session.setup.doubles?.rulesVersion).toBe('GW-Doubles-1.0')
     expect(Object.keys(session.state.players.b.units)).toHaveLength(3)
     expect(doublesTeamMembers(session.setup, 'b')).toEqual(['a', 'b'])
     expect(doublesScorekeeperId(session.setup, 'b')).toBe('a')
