@@ -47,7 +47,8 @@ function unitName(session: BattleSession, playerId: string, unitId: string): str
 }
 
 function casualtyAttribution(event: BattleEvent): { victimPlayerId: string; unitId: string; attackerPlayerId?: string } | undefined {
-  if (event.type !== 'UNIT_MODEL_DESTROYED' && event.type !== 'UNIT_WOUNDS_CHANGED' && event.type !== 'UNIT_DESTROYED') return undefined
+  if (event.type === 'UNIT_COMBAT_RESOLVED' && event.payload.kind !== 'damage') return undefined
+  if (event.type !== 'UNIT_COMBAT_RESOLVED' && event.type !== 'UNIT_MODEL_DESTROYED' && event.type !== 'UNIT_WOUNDS_CHANGED' && event.type !== 'UNIT_DESTROYED') return undefined
   return {
     victimPlayerId: event.payload.playerId,
     unitId: event.payload.unitId,
@@ -56,10 +57,11 @@ function casualtyAttribution(event: BattleEvent): { victimPlayerId: string; unit
 }
 
 function casualtyAttributionReset(event: BattleEvent): { playerId: string; unitId: string } | undefined {
+  if (event.type === 'UNIT_COMBAT_RESOLVED' && event.payload.kind === 'restore') return event.payload
   if (event.type === 'UNIT_MODEL_RESTORED') return event.payload
   if (event.type !== 'STATE_CORRECTED') return undefined
   const correction = event.payload.correction
-  if (correction.kind !== 'UNIT_MODELS' && correction.kind !== 'UNIT_WOUNDS') return undefined
+  if (correction.kind !== 'UNIT_COMBAT' && correction.kind !== 'UNIT_MODELS' && correction.kind !== 'UNIT_WOUNDS') return undefined
   return { playerId: correction.playerId, unitId: correction.unitId }
 }
 

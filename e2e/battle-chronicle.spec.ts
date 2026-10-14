@@ -28,7 +28,7 @@ test('mobile casualty attribution, chronicle filters, offline report exports, un
     await page.getByLabel('Combat note (applies to following losses)').isVisible().then(async (visible) => { if (!visible) await page.getByText('Optional combat note', { exact: true }).click() })
     await page.getByLabel('Combat note (applies to following losses)').fill('Confirmed final volley')
     const target = page.locator('.unit-card').filter({ has: page.getByRole('heading', { name: 'Doomsday Ark', exact: true }) })
-    await target.getByRole('button', { name: 'Destroyed', exact: true }).click()
+    await target.getByRole('button', { name: '−1 Model', exact: true }).click()
     await expect(page.locator('.battle-kill-notice')).toContainText('Caladius Grav-Tank')
     await selectPanel(page, 'report')
     await expect(page.getByRole('heading', { name: 'Battle Report', exact: true })).toBeVisible()

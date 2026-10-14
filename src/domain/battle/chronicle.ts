@@ -1,3 +1,4 @@
+import { totalCombatWounds } from './combatState'
 import { visitBattleHistory } from './engine'
 import { describeBattleEvent } from './eventLog'
 import type { BattleEvent, BattlePhase, BattleSession, GameState, MissionActionState } from './types'
@@ -12,6 +13,11 @@ export type UnitChange = {
   modelsAfter: number
   woundsBefore?: number
   woundsAfter?: number
+  totalWoundsBefore?: number
+  totalWoundsAfter?: number
+  currentModelWoundsAfter?: number
+  effectiveWoundsLost?: number
+  woundsHealed?: number
   destroyedBefore: boolean
   destroyedAfter: boolean
   correction: boolean
@@ -94,20 +100,23 @@ export function buildBattleChronicle(session: BattleSession): ChronicleEntry[] {
           scoreCategory = correction.category
         }
       }
-      if (event.type === 'UNIT_DESTROYED' || event.type === 'UNIT_MODEL_DESTROYED' || event.type === 'UNIT_WOUNDS_CHANGED') {
+      if (event.type === 'UNIT_COMBAT_RESOLVED' || event.type === 'UNIT_DESTROYED' || event.type === 'UNIT_MODEL_DESTROYED' || event.type === 'UNIT_WOUNDS_CHANGED') {
         pending.note = event.payload.note
         if (event.payload.destroyedByPlayerId) pending.playerIds.push(event.payload.destroyedByPlayerId)
       }
       if (target) {
         const unit = state.players[target.playerId]?.units[target.unitId]
         if (unit) {
-          const attribution = event.type === 'UNIT_DESTROYED' || event.type === 'UNIT_MODEL_DESTROYED' || event.type === 'UNIT_WOUNDS_CHANGED' ? event.payload : undefined
+          const attribution = event.type === 'UNIT_COMBAT_RESOLVED' || event.type === 'UNIT_DESTROYED' || event.type === 'UNIT_MODEL_DESTROYED' || event.type === 'UNIT_WOUNDS_CHANGED' ? event.payload : undefined
           const attackerPlayerId = attribution?.destroyedByPlayerId ?? undefined
+          const armyId = state.players[target.playerId].armyId
+          const definition = armyId ? session.setup.armies[armyId]?.units.find((candidate) => candidate.id === target!.unitId) : undefined
           pending.unitChange = {
             target: battleUnit(session, target.playerId, target.unitId),
             attacker: attackerPlayerId && attribution?.attackerUnitId ? battleUnit(session, attackerPlayerId, attribution.attackerUnitId) : undefined,
             attackerPlayerId, modelsBefore: unit.modelsAlive, modelsAfter: unit.modelsAlive,
             woundsBefore: unit.woundsRemaining, woundsAfter: unit.woundsRemaining,
+            totalWoundsBefore: definition ? totalCombatWounds(definition, unit) : undefined,
             destroyedBefore: unit.destroyed, destroyedAfter: unit.destroyed, correction: event.type === 'STATE_CORRECTED',
           }
         }
@@ -143,9 +152,21 @@ export function buildBattleChronicle(session: BattleSession): ChronicleEntry[] {
         change.modelsAfter = unit.modelsAlive
         change.woundsAfter = unit.woundsRemaining
         change.destroyedAfter = unit.destroyed
+        change.currentModelWoundsAfter = unit.currentModelWounds ?? unit.woundsRemaining
+        const armyId = state.players[change.target.playerId].armyId
+        const definition = armyId ? session.setup.armies[armyId]?.units.find((candidate) => candidate.id === change.target.unitId) : undefined
+        change.totalWoundsAfter = definition ? totalCombatWounds(definition, unit) : undefined
+        if (event.type === 'UNIT_COMBAT_RESOLVED' && change.totalWoundsBefore !== undefined && change.totalWoundsAfter !== undefined) {
+          if (event.payload.kind === 'damage' && event.payload.allocations.every((allocation) => allocation.wounds !== undefined)) change.effectiveWoundsLost = Math.max(0, change.totalWoundsBefore - change.totalWoundsAfter)
+          if (event.payload.kind === 'heal') change.woundsHealed = Math.max(0, change.totalWoundsAfter - change.totalWoundsBefore)
+        }
+        if (event.type === 'UNIT_WOUNDS_CHANGED' && definition?.startingModels === 1 && change.woundsBefore !== undefined && change.woundsAfter !== undefined) {
+          change.effectiveWoundsLost = Math.max(0, change.woundsBefore - change.woundsAfter)
+          change.woundsHealed = Math.max(0, change.woundsAfter - change.woundsBefore)
+        }
         const lost = Math.max(0, change.modelsBefore - change.modelsAfter)
         const killed = !change.destroyedBefore && change.destroyedAfter
-        const combat = ['UNIT_DESTROYED', 'UNIT_MODEL_DESTROYED', 'UNIT_MODEL_RESTORED', 'UNIT_WOUNDS_CHANGED'].includes(event.type)
+        const combat = ['UNIT_COMBAT_RESOLVED', 'UNIT_DESTROYED', 'UNIT_MODEL_DESTROYED', 'UNIT_MODEL_RESTORED', 'UNIT_WOUNDS_CHANGED'].includes(event.type)
         if (combat) {
           pending.category = lost > 0 || killed ? 'kills' : 'combat'
           pending.highlight = killed || (change.destroyedBefore && !change.destroyedAfter)
@@ -156,10 +177,19 @@ export function buildBattleChronicle(session: BattleSession): ChronicleEntry[] {
           else if (lost > 0) pending.description = `${source} → ${change.target.name} (${targetOwner}): ${lost} model${lost === 1 ? '' : 's'} destroyed`
           else if (change.destroyedBefore && !change.destroyedAfter) pending.description = `${change.target.name} (${targetOwner}) restored to the battlefield`
         }
-        if (change.correction && (lost !== 0 || change.woundsBefore !== change.woundsAfter || change.destroyedBefore !== change.destroyedAfter)) {
+        if (combat && (event.type === 'UNIT_COMBAT_RESOLVED' || event.type === 'UNIT_WOUNDS_CHANGED' || event.type === 'UNIT_MODEL_RESTORED')) {
+          const restored = Math.max(0, change.modelsAfter - change.modelsBefore)
+          const source = change.attacker?.name ?? (change.attackerPlayerId ? state.players[change.attackerPlayerId]?.name : 'Unknown / environment')
+          const effects = [change.effectiveWoundsLost ? `${change.effectiveWoundsLost} Wounds lost` : '', lost ? `${lost} model${lost === 1 ? '' : 's'} destroyed` : '', restored ? `${restored} model${restored === 1 ? '' : 's'} restored` : '', change.woundsHealed ? `${change.woundsHealed} Wounds healed` : ''].filter(Boolean)
+          const healing = restored > 0 || Boolean(change.woundsHealed)
+          const remaining = `${change.modelsAfter} model${change.modelsAfter === 1 ? '' : 's'} remaining${change.currentModelWoundsAfter !== undefined && !unit.destroyed ? ` · current model ${change.currentModelWoundsAfter} W` : ''}`
+          pending.description = `${healing ? '' : `${source} → `}${change.target.name}: ${effects.join(' · ') || 'no change'} · ${remaining}${killed ? ' · unit destroyed' : change.destroyedBefore && !change.destroyedAfter ? ' · returned to battlefield' : ''}`
+          pending.highlight = effects.length > 0
+        }
+        if (change.correction && (lost !== 0 || change.woundsBefore !== change.woundsAfter || change.totalWoundsBefore !== change.totalWoundsAfter || change.destroyedBefore !== change.destroyedAfter)) {
           pending.category = 'combat'
           pending.highlight = true
-          pending.description = `Host correction · ${change.target.name}: ${change.modelsAfter} models${change.woundsAfter === undefined ? '' : `, ${change.woundsAfter} W`}`
+          pending.description = `Host correction · ${change.target.name}: ${change.modelsAfter} models${change.currentModelWoundsAfter === undefined ? '' : ` · current model ${change.currentModelWoundsAfter} W`}`
         }
       }
       if (pending.objectiveId) {

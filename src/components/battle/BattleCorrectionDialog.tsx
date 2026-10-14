@@ -1,3 +1,5 @@
+import { combatProfiles, readCombatState } from '../../domain/battle/combatState'
+import type { CombatProfileState } from '../../domain/army/types'
 import { useState } from 'react'
 import { CommandDialog } from '../ui/CommandDialog'
 import type { BattleCorrection, BattleSession, ScoreCategory } from '../../domain/battle/types'
@@ -13,8 +15,7 @@ type BattleCorrectionDialogProps = {
 const kinds: Array<{ value: CorrectionKind; label: string }> = [
   { value: 'CP', label: 'Command Points' },
   { value: 'SCORE', label: 'Score' },
-  { value: 'UNIT_MODELS', label: 'Unit models alive' },
-  { value: 'UNIT_WOUNDS', label: 'Unit wounds' },
+  { value: 'UNIT_COMBAT', label: 'Combat profiles / current model Wounds' },
   { value: 'UNIT_BATTLESHOCK', label: 'Unit Battle-shock' },
   { value: 'OBJECTIVE_CONTROL', label: 'Objective controller' },
   { value: 'OBJECTIVE_OC', label: 'Objective OC' },
@@ -35,12 +36,22 @@ export function BattleCorrectionDialog({ session, onApply, onClose }: BattleCorr
   const units = Object.values(player?.units ?? {})
   const selectedUnitId = units.some((unit) => unit.unitId === unitId) ? unitId : units[0]?.unitId ?? ''
 
+  const definition = player?.armyId ? session.setup.armies[player.armyId]?.units.find((item) => item.id === selectedUnitId) : undefined
+  const [profileDrafts, setProfileDrafts] = useState<Record<string, Record<string, CombatProfileState>>>({})
+  const draftKey = `${playerId}:${selectedUnitId}`
+  const profiles = definition ? combatProfiles(definition) : []
+  const profileValues = profileDrafts[draftKey] ?? (definition ? readCombatState(definition, player.units[selectedUnitId]) : null) ?? Object.fromEntries(profiles.map((profile) => [profile.id, { modelsAlive: 0, woundsPerModel: profile.woundsPerModel, currentModelWounds: 0 }]))
+  function updateProfile(id: string, field: keyof CombatProfileState, value: number) {
+    setProfileDrafts((current) => ({ ...current, [draftKey]: { ...profileValues, [id]: { ...profileValues[id], [field]: value } } }))
+  }
+
   function submit(event: React.FormEvent) {
     event.preventDefault()
     const cleanReason = reason.trim()
     if (!cleanReason) return
     let correction: BattleCorrection
     switch (kind) {
+      case 'UNIT_COMBAT': correction = { kind, playerId, unitId: selectedUnitId, value: profileValues }; break
       case 'CP': correction = { kind, playerId, value }; break
       case 'SCORE': correction = { kind, playerId, category, value }; break
       case 'UNIT_MODELS': correction = { kind, playerId, unitId: selectedUnitId, value }; break
@@ -54,9 +65,9 @@ export function BattleCorrectionDialog({ session, onApply, onClose }: BattleCorr
   }
 
   const needsPlayer = kind !== 'OBJECTIVE_CONTROL'
-  const needsUnit = kind === 'UNIT_MODELS' || kind === 'UNIT_WOUNDS' || kind === 'UNIT_BATTLESHOCK'
+  const needsUnit = kind === 'UNIT_COMBAT' || kind === 'UNIT_MODELS' || kind === 'UNIT_WOUNDS' || kind === 'UNIT_BATTLESHOCK'
   const needsObjective = kind === 'OBJECTIVE_CONTROL' || kind === 'OBJECTIVE_OC'
-  const needsNumber = kind !== 'UNIT_BATTLESHOCK' && kind !== 'OBJECTIVE_CONTROL'
+  const needsNumber = kind !== 'UNIT_COMBAT' && kind !== 'UNIT_BATTLESHOCK' && kind !== 'OBJECTIVE_CONTROL'
 
   return <CommandDialog label="Correct battle state" onClose={onClose}>
     <section className="panel battle-confirmation correction-dialog">
@@ -87,6 +98,11 @@ export function BattleCorrectionDialog({ session, onApply, onClose }: BattleCorr
           {session.state.turnOrder.map((id) => <option key={id} value={id}>{session.state.players[id].name}</option>)}
         </select></label>}
         {kind === 'UNIT_BATTLESHOCK' && <label className="correction-check"><input type="checkbox" checked={battleShocked} onChange={(event) => setBattleShocked(event.target.checked)} /><span>Unit is Battle-shocked</span></label>}
+        {kind === 'UNIT_COMBAT' && profiles.map((profile) => <fieldset key={profile.id}><legend>{profile.name}</legend>
+          <label><span>Models alive</span><input type="number" min="0" max={profile.startingModels} value={profileValues[profile.id]?.modelsAlive ?? 0} onChange={(event) => updateProfile(profile.id, 'modelsAlive', Number(event.target.value))} /></label>
+          <label><span>Wounds per model</span><input type="number" min="1" max="10000" disabled={profile.woundsPerModel !== undefined} value={profileValues[profile.id]?.woundsPerModel ?? ''} onChange={(event) => updateProfile(profile.id, 'woundsPerModel', Number(event.target.value))} /></label>
+          <label><span>Current model Wounds</span><input type="number" min="0" max={profileValues[profile.id]?.woundsPerModel} value={profileValues[profile.id]?.currentModelWounds ?? ''} onChange={(event) => updateProfile(profile.id, 'currentModelWounds', Number(event.target.value))} /></label>
+        </fieldset>)}
         {needsNumber && <label><span>Correct value</span><input type="number" min="0" step="1" value={value} onChange={(event) => setValue(Number(event.target.value))} /></label>}
         <label className="correction-reason"><span>Reason</span><input maxLength={160} placeholder="e.g. accidental double tap" required value={reason} onChange={(event) => setReason(event.target.value)} /></label>
         <div className="battle-confirmation__actions">

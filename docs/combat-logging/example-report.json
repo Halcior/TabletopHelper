@@ -1,0 +1,464 @@
+{
+  "schemaVersion": 1,
+  "gameId": "combat-mobile",
+  "status": "active",
+  "mode": "FFA 3 · 11th Edition Primary · Chapter Approved Secondary",
+  "missions": [
+    "Alpha: Meatgrinder",
+    "Bravo: Meatgrinder",
+    "Charlie: Meatgrinder"
+  ],
+  "roundsPlayed": 1,
+  "maxRounds": 5,
+  "ranking": [
+    {
+      "playerId": "p-a",
+      "name": "Alpha",
+      "faction": "army-a faction",
+      "vp": 0,
+      "rank": 1
+    },
+    {
+      "playerId": "p-b",
+      "name": "Bravo",
+      "faction": "army-b faction",
+      "vp": 0,
+      "rank": 1
+    },
+    {
+      "playerId": "p-c",
+      "name": "Charlie",
+      "faction": "army-c faction",
+      "vp": 0,
+      "rank": 1
+    }
+  ],
+  "winnerPlayerIds": [],
+  "rounds": [
+    {
+      "round": 1,
+      "highlights": [
+        {
+          "id": "event-bbd7a5b8-d10d-401d-a4c0-673f51095999",
+          "event": {
+            "type": "UNIT_COMBAT_RESOLVED",
+            "payload": {
+              "playerId": "p-b",
+              "unitId": "infantry",
+              "kind": "damage",
+              "allocations": [
+                {
+                  "profileId": "unit",
+                  "wounds": 1
+                }
+              ],
+              "destroyedByPlayerId": "p-a",
+              "attackerUnitId": "tank"
+            },
+            "id": "event-bbd7a5b8-d10d-401d-a4c0-673f51095999",
+            "actionId": "action-28d59fd6-93e7-4a62-ae51-c2969a4e0cbe",
+            "timestamp": "2026-10-14T09:09:13.502Z",
+            "undoable": true
+          },
+          "round": 1,
+          "phase": "SHOOTING",
+          "turnPlayerId": "p-a",
+          "playerIds": [
+            "p-b",
+            "p-a"
+          ],
+          "category": "combat",
+          "highlight": true,
+          "description": "Caladius Grav-Tank → Custodian Wardens: 1 Wounds lost · 4 models remaining · current model 2 W",
+          "unitChange": {
+            "target": {
+              "playerId": "p-b",
+              "unitId": "infantry",
+              "name": "Custodian Wardens"
+            },
+            "attacker": {
+              "playerId": "p-a",
+              "unitId": "tank",
+              "name": "Caladius Grav-Tank"
+            },
+            "attackerPlayerId": "p-a",
+            "modelsBefore": 4,
+            "modelsAfter": 4,
+            "totalWoundsBefore": 12,
+            "destroyedBefore": false,
+            "destroyedAfter": false,
+            "correction": false,
+            "currentModelWoundsAfter": 2,
+            "totalWoundsAfter": 11,
+            "effectiveWoundsLost": 1
+          }
+        },
+        {
+          "id": "event-8ee65dd0-e7cf-46e0-9acf-549a1fa49f48",
+          "event": {
+            "type": "UNIT_COMBAT_RESOLVED",
+            "payload": {
+              "playerId": "p-b",
+              "unitId": "infantry",
+              "kind": "damage",
+              "allocations": [
+                {
+                  "profileId": "unit",
+                  "wounds": 2
+                }
+              ],
+              "destroyedByPlayerId": "p-a",
+              "attackerUnitId": "tank"
+            },
+            "id": "event-8ee65dd0-e7cf-46e0-9acf-549a1fa49f48",
+            "actionId": "action-9b7c9683-c610-401e-9a4c-00fe357cbff3",
+            "timestamp": "2026-10-14T09:09:13.687Z",
+            "undoable": true
+          },
+          "round": 1,
+          "phase": "SHOOTING",
+          "turnPlayerId": "p-a",
+          "playerIds": [
+            "p-b",
+            "p-a"
+          ],
+          "category": "kills",
+          "highlight": true,
+          "description": "Caladius Grav-Tank → Custodian Wardens: 2 Wounds lost · 1 model destroyed · 3 models remaining · current model 3 W",
+          "unitChange": {
+            "target": {
+              "playerId": "p-b",
+              "unitId": "infantry",
+              "name": "Custodian Wardens"
+            },
+            "attacker": {
+              "playerId": "p-a",
+              "unitId": "tank",
+              "name": "Caladius Grav-Tank"
+            },
+            "attackerPlayerId": "p-a",
+            "modelsBefore": 4,
+            "modelsAfter": 3,
+            "totalWoundsBefore": 11,
+            "destroyedBefore": false,
+            "destroyedAfter": false,
+            "correction": false,
+            "currentModelWoundsAfter": 3,
+            "totalWoundsAfter": 9,
+            "effectiveWoundsLost": 2
+          }
+        },
+        {
+          "id": "event-35fca6f0-dd51-484e-bd84-ffd2aabee6ea",
+          "event": {
+            "type": "UNIT_COMBAT_RESOLVED",
+            "payload": {
+              "playerId": "p-b",
+              "unitId": "infantry",
+              "kind": "damage",
+              "allocations": [
+                {
+                  "profileId": "unit",
+                  "wounds": 8
+                }
+              ],
+              "destroyedByPlayerId": "p-a",
+              "attackerUnitId": "tank",
+              "note": "Effective losses after tabletop allocation"
+            },
+            "id": "event-35fca6f0-dd51-484e-bd84-ffd2aabee6ea",
+            "actionId": "action-bcf2961a-bd04-4d6e-8649-61f248b6dc6e",
+            "timestamp": "2026-10-14T09:09:13.820Z",
+            "undoable": true
+          },
+          "round": 1,
+          "phase": "SHOOTING",
+          "turnPlayerId": "p-a",
+          "playerIds": [
+            "p-b",
+            "p-a"
+          ],
+          "category": "kills",
+          "highlight": true,
+          "description": "Caladius Grav-Tank → Custodian Wardens: 8 Wounds lost · 2 models destroyed · 1 model remaining · current model 1 W",
+          "note": "Effective losses after tabletop allocation",
+          "unitChange": {
+            "target": {
+              "playerId": "p-b",
+              "unitId": "infantry",
+              "name": "Custodian Wardens"
+            },
+            "attacker": {
+              "playerId": "p-a",
+              "unitId": "tank",
+              "name": "Caladius Grav-Tank"
+            },
+            "attackerPlayerId": "p-a",
+            "modelsBefore": 3,
+            "modelsAfter": 1,
+            "totalWoundsBefore": 9,
+            "destroyedBefore": false,
+            "destroyedAfter": false,
+            "correction": false,
+            "currentModelWoundsAfter": 1,
+            "totalWoundsAfter": 1,
+            "effectiveWoundsLost": 8
+          }
+        }
+      ],
+      "leaderChanges": []
+    }
+  ],
+  "performance": {
+    "units": [
+      {
+        "playerId": "p-a",
+        "unitId": "infantry",
+        "name": "Four-model unit",
+        "startingPoints": 170,
+        "startingModels": 4,
+        "startingWounds": 3,
+        "modelsDestroyed": 0,
+        "enemyPointsDestroyed": 0,
+        "kills": 0,
+        "destroyedEnemies": [],
+        "damageDealt": null,
+        "damagePartial": true,
+        "damageReceived": null,
+        "woundsHealed": 0,
+        "modelsRestored": 0,
+        "modelsLost": 0,
+        "remainingModels": 4,
+        "survived": true,
+        "completedMissionActions": 0,
+        "missionVp": null,
+        "combatRoi": 0
+      },
+      {
+        "playerId": "p-a",
+        "unitId": "tank",
+        "name": "Caladius Grav-Tank",
+        "startingPoints": 225,
+        "startingModels": 1,
+        "startingWounds": 14,
+        "modelsDestroyed": 3,
+        "enemyPointsDestroyed": 127.5,
+        "kills": 0,
+        "destroyedEnemies": [],
+        "damageDealt": 11,
+        "damagePartial": true,
+        "damageReceived": null,
+        "woundsHealed": 0,
+        "modelsRestored": 0,
+        "modelsLost": 0,
+        "remainingModels": 1,
+        "remainingWounds": 14,
+        "survived": true,
+        "completedMissionActions": 0,
+        "missionVp": null,
+        "combatRoi": 56.666666666666664
+      },
+      {
+        "playerId": "p-a",
+        "unitId": "remainder",
+        "name": "Remainder",
+        "startingPoints": 1005,
+        "startingModels": 1,
+        "startingWounds": 10,
+        "modelsDestroyed": 0,
+        "enemyPointsDestroyed": 0,
+        "kills": 0,
+        "destroyedEnemies": [],
+        "damageDealt": null,
+        "damagePartial": true,
+        "damageReceived": null,
+        "woundsHealed": 0,
+        "modelsRestored": 0,
+        "modelsLost": 0,
+        "remainingModels": 1,
+        "remainingWounds": 10,
+        "survived": true,
+        "completedMissionActions": 0,
+        "missionVp": null,
+        "combatRoi": 0
+      },
+      {
+        "playerId": "p-b",
+        "unitId": "infantry",
+        "name": "Custodian Wardens",
+        "startingPoints": 170,
+        "startingModels": 4,
+        "startingWounds": 3,
+        "modelsDestroyed": 0,
+        "enemyPointsDestroyed": 0,
+        "kills": 0,
+        "destroyedEnemies": [],
+        "damageDealt": null,
+        "damagePartial": true,
+        "damageReceived": 11,
+        "woundsHealed": 0,
+        "modelsRestored": 0,
+        "modelsLost": 3,
+        "remainingModels": 1,
+        "remainingWounds": 1,
+        "survived": true,
+        "completedMissionActions": 0,
+        "missionVp": null,
+        "combatRoi": 0
+      },
+      {
+        "playerId": "p-b",
+        "unitId": "tank",
+        "name": "Single-model tank",
+        "startingPoints": 225,
+        "startingModels": 1,
+        "startingWounds": 14,
+        "modelsDestroyed": 0,
+        "enemyPointsDestroyed": 0,
+        "kills": 0,
+        "destroyedEnemies": [],
+        "damageDealt": null,
+        "damagePartial": true,
+        "damageReceived": null,
+        "woundsHealed": 0,
+        "modelsRestored": 0,
+        "modelsLost": 0,
+        "remainingModels": 1,
+        "remainingWounds": 14,
+        "survived": true,
+        "completedMissionActions": 0,
+        "missionVp": null,
+        "combatRoi": 0
+      },
+      {
+        "playerId": "p-b",
+        "unitId": "remainder",
+        "name": "Remainder",
+        "startingPoints": 1005,
+        "startingModels": 1,
+        "startingWounds": 10,
+        "modelsDestroyed": 0,
+        "enemyPointsDestroyed": 0,
+        "kills": 0,
+        "destroyedEnemies": [],
+        "damageDealt": null,
+        "damagePartial": true,
+        "damageReceived": null,
+        "woundsHealed": 0,
+        "modelsRestored": 0,
+        "modelsLost": 0,
+        "remainingModels": 1,
+        "remainingWounds": 10,
+        "survived": true,
+        "completedMissionActions": 0,
+        "missionVp": null,
+        "combatRoi": 0
+      },
+      {
+        "playerId": "p-c",
+        "unitId": "infantry",
+        "name": "Four-model unit",
+        "startingPoints": 170,
+        "startingModels": 4,
+        "startingWounds": 3,
+        "modelsDestroyed": 0,
+        "enemyPointsDestroyed": 0,
+        "kills": 0,
+        "destroyedEnemies": [],
+        "damageDealt": null,
+        "damagePartial": true,
+        "damageReceived": null,
+        "woundsHealed": 0,
+        "modelsRestored": 0,
+        "modelsLost": 0,
+        "remainingModels": 4,
+        "survived": true,
+        "completedMissionActions": 0,
+        "missionVp": null,
+        "combatRoi": 0
+      },
+      {
+        "playerId": "p-c",
+        "unitId": "tank",
+        "name": "Single-model tank",
+        "startingPoints": 225,
+        "startingModels": 1,
+        "startingWounds": 14,
+        "modelsDestroyed": 0,
+        "enemyPointsDestroyed": 0,
+        "kills": 0,
+        "destroyedEnemies": [],
+        "damageDealt": null,
+        "damagePartial": true,
+        "damageReceived": null,
+        "woundsHealed": 0,
+        "modelsRestored": 0,
+        "modelsLost": 0,
+        "remainingModels": 1,
+        "remainingWounds": 14,
+        "survived": true,
+        "completedMissionActions": 0,
+        "missionVp": null,
+        "combatRoi": 0
+      },
+      {
+        "playerId": "p-c",
+        "unitId": "remainder",
+        "name": "Remainder",
+        "startingPoints": 1005,
+        "startingModels": 1,
+        "startingWounds": 10,
+        "modelsDestroyed": 0,
+        "enemyPointsDestroyed": 0,
+        "kills": 0,
+        "destroyedEnemies": [],
+        "damageDealt": null,
+        "damagePartial": true,
+        "damageReceived": null,
+        "woundsHealed": 0,
+        "modelsRestored": 0,
+        "modelsLost": 0,
+        "remainingModels": 1,
+        "remainingWounds": 10,
+        "survived": true,
+        "completedMissionActions": 0,
+        "missionVp": null,
+        "combatRoi": 0
+      }
+    ],
+    "armies": [
+      {
+        "playerId": "p-a",
+        "startingPoints": 1400,
+        "enemyPointsDestroyed": 127.5,
+        "ownPointsLost": 0,
+        "kills": 0,
+        "playerOnlyPoints": 0
+      },
+      {
+        "playerId": "p-b",
+        "startingPoints": 1400,
+        "enemyPointsDestroyed": 0,
+        "ownPointsLost": 127.5,
+        "kills": 0,
+        "playerOnlyPoints": 0
+      },
+      {
+        "playerId": "p-c",
+        "startingPoints": 1400,
+        "enemyPointsDestroyed": 0,
+        "ownPointsLost": 0,
+        "kills": 0,
+        "playerOnlyPoints": 0
+      }
+    ],
+    "awards": [],
+    "unattributedPoints": 0,
+    "partial": false
+  },
+  "narrativeStyle": "tactical",
+  "narrative": [
+    "Runda 1. Caladius Grav-Tank zadał 1 Wounds jednostce Custodian Wardens po rozpatrzeniu alokacji; pozostałe modele: 4, bieżący model ma 2 W. Caladius Grav-Tank (Alpha) zniszczył 1 model Custodian Wardens; łącznie utracono 2 Wounds; pozostałe modele: 3, bieżący model ma 3 W. Caladius Grav-Tank (Alpha) zniszczył 2 modele Custodian Wardens; łącznie utracono 8 Wounds; pozostałe modele: 1, bieżący model ma 1 W. Notatka gracza: „Effective losses after tabletop allocation”.",
+    "To podgląd trwającej bitwy; wynik nie jest końcowy."
+  ]
+}

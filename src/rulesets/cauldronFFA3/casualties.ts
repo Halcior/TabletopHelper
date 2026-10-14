@@ -1,5 +1,6 @@
 import type { UnitDefinition } from '../../domain/army/types'
-import type { BattleEvent, BattleSession } from '../../domain/battle/types'
+import { buildBattleChronicle } from '../../domain/battle/chronicle'
+import type { BattleSession } from '../../domain/battle/types'
 import { getCurrentRivalPlayerId } from './rivalRotation'
 import type { CasualtyRecord, WyniszczenieProgress } from './types'
 
@@ -68,39 +69,13 @@ export function buildCasualtyLedger(session: BattleSession): CasualtyRecord[] {
     }
   }
 
-  for (const event of session.state.events as BattleEvent[]) {
-    if (event.type === 'ROUND_STARTED') {
-      currentRound = event.payload.round
-      continue
-    }
-    if (event.type === 'UNIT_MODEL_DESTROYED') {
-      addCasualties(
-        event.payload.playerId,
-        event.payload.unitId,
-        Math.max(1, event.payload.amount),
-        event.payload.destroyedByPlayerId,
-      )
-      continue
-    }
-    if (event.type === 'UNIT_DESTROYED') {
-      const remaining = alive.get(unitKey(event.payload.playerId, event.payload.unitId)) ?? 0
-      addCasualties(event.payload.playerId, event.payload.unitId, remaining, event.payload.destroyedByPlayerId)
-      continue
-    }
-    if (event.type === 'UNIT_MODEL_RESTORED') {
-      restoreCasualties(event.payload.playerId, event.payload.unitId, Math.max(1, event.payload.amount))
-      continue
-    }
-    if (event.type === 'UNIT_WOUNDS_CHANGED') {
-      const definition = unitDefinition(session, event.payload.playerId, event.payload.unitId)
-      if (definition?.startingModels !== 1) continue
-      const currentlyAlive = (alive.get(unitKey(event.payload.playerId, event.payload.unitId)) ?? 1) > 0
-      if (event.payload.woundsRemaining <= 0 && currentlyAlive) {
-        addCasualties(event.payload.playerId, event.payload.unitId, 1, event.payload.destroyedByPlayerId)
-      } else if (event.payload.woundsRemaining > 0 && !currentlyAlive) {
-        restoreCasualties(event.payload.playerId, event.payload.unitId, 1)
-      }
-    }
+  for (const entry of buildBattleChronicle(session)) {
+    currentRound = entry.round
+    const change = entry.unitChange
+    if (!change) continue
+    const lost = change.modelsBefore - change.modelsAfter
+    if (lost > 0) addCasualties(change.target.playerId, change.target.unitId, lost, change.correction ? undefined : change.attackerPlayerId)
+    else if (lost < 0) restoreCasualties(change.target.playerId, change.target.unitId, -lost)
   }
 
   return [...counts.entries()].flatMap(([key, modelsDestroyed]) => {

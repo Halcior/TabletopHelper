@@ -31,6 +31,7 @@ function playerScopedTarget(event: BattleEvent, session: BattleSession): string 
     case 'CP_GAINED':
     case 'CP_SPENT':
     case 'SCORE_ADJUSTED':
+    case 'UNIT_COMBAT_RESOLVED':
     case 'UNIT_MODEL_DESTROYED':
     case 'UNIT_MODEL_RESTORED':
     case 'UNIT_WOUNDS_CHANGED':
@@ -76,7 +77,7 @@ function hasPrimaryCommit(events: BattleEvent[]): boolean {
 
 function automaticCasualtyBeneficiary(events: BattleEvent[], viewerPlayerId: string): string | undefined {
   for (const event of events) {
-    if (event.type !== 'UNIT_MODEL_DESTROYED' && event.type !== 'UNIT_WOUNDS_CHANGED' && event.type !== 'UNIT_DESTROYED') continue
+    if (event.type !== 'UNIT_COMBAT_RESOLVED' && event.type !== 'UNIT_MODEL_DESTROYED' && event.type !== 'UNIT_WOUNDS_CHANGED' && event.type !== 'UNIT_DESTROYED') continue
     if (event.payload.playerId !== viewerPlayerId) continue
     const beneficiary = event.payload.destroyedByPlayerId
     if (beneficiary && beneficiary !== viewerPlayerId) return beneficiary
@@ -115,7 +116,8 @@ function isActiveAttackerCasualty(
   viewerPlayerId: string,
 ): boolean {
   if (viewerPlayerId !== session.state.activePlayerId) return false
-  if (event.type !== 'UNIT_MODEL_DESTROYED' && event.type !== 'UNIT_WOUNDS_CHANGED' && event.type !== 'UNIT_DESTROYED') return false
+  if (event.type !== 'UNIT_COMBAT_RESOLVED' && event.type !== 'UNIT_MODEL_DESTROYED' && event.type !== 'UNIT_WOUNDS_CHANGED' && event.type !== 'UNIT_DESTROYED') return false
+  if (event.type === 'UNIT_COMBAT_RESOLVED' && event.payload.kind !== 'damage') return false
   if (event.payload.playerId === viewerPlayerId) return false
   if (event.payload.destroyedByPlayerId !== viewerPlayerId) return false
 
@@ -183,16 +185,14 @@ export function authorizeSharedAction(
     }
 
     if (event.type === 'REACTION_HOLD_REQUESTED' || event.type === 'REACTION_HOLD_REFINED') {
-      const requester = event.payload.window.requestedByPlayerId
-      if (requester !== viewerPlayerId) return deny('You can only manage your own reaction hold.')
-      continue
+      return deny('Manual HOLD has been retired. Use a Stratagem directly when its timing is valid.')
     }
 
     if (event.type === 'REACTION_WINDOW_CANCELLED') {
       const window = sessionBefore.state.timing.reactionWindows[event.payload.reactionWindowId]
       const requester = window?.requestedByPlayerId
       if (requester) {
-        if (requester !== viewerPlayerId) return deny('Only the player who requested HOLD can cancel it.')
+        if (requester !== viewerPlayerId && !membership.isHost) return deny('The requester or host can close a legacy pause.')
       } else if (viewerPlayerId !== sessionBefore.state.activePlayerId) {
         return deny('Only the active commander can cancel this reaction window.')
       }

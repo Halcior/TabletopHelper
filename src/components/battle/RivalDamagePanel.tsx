@@ -1,3 +1,7 @@
+import { selectRecentUnits } from '../../domain/battle/recentUnits'
+import { CombatControls } from './CombatControls'
+import { getSharedRuntimeMembership } from '../../multiplayer/sharedRuntime'
+import { buildBattleChronicle } from '../../domain/battle/chronicle'
 import { useEffect, useMemo, useState } from 'react'
 import type { BattleEvent, BattleEventInput, BattleSession } from '../../domain/battle/types'
 import { CAULDRON_SECONDARY_BY_ID } from '../../rulesets/cauldronFFA3/secondaryDefinitions'
@@ -17,7 +21,7 @@ type DamageNotice = {
 }
 
 function casualtyEvent(event: BattleEvent, attackerPlayerId: string, victimPlayerId: string, unitId: string): boolean {
-  if (event.type !== 'UNIT_MODEL_DESTROYED' && event.type !== 'UNIT_WOUNDS_CHANGED' && event.type !== 'UNIT_DESTROYED') return false
+  if (event.type !== 'UNIT_COMBAT_RESOLVED' && event.type !== 'UNIT_MODEL_DESTROYED' && event.type !== 'UNIT_WOUNDS_CHANGED' && event.type !== 'UNIT_DESTROYED') return false
   return event.payload.playerId === victimPlayerId
     && event.payload.unitId === unitId
     && event.payload.destroyedByPlayerId === attackerPlayerId
@@ -58,7 +62,7 @@ export function RivalDamagePanel({
   const [unitChoices, setUnitChoices] = useState<Record<string, string>>({})
   const setupAttacker = session.setup.players.find((player) => player.id === attackerPlayerId)
   const attackingUnits = setupAttacker?.armyId ? session.setup.armies[setupAttacker.armyId]?.units ?? [] : []
-  const lastAttributed = [...session.state.events].reverse().find((event) => (event.type === 'UNIT_DESTROYED' || event.type === 'UNIT_MODEL_DESTROYED' || event.type === 'UNIT_WOUNDS_CHANGED') && event.payload.destroyedByPlayerId === attackerPlayerId && event.payload.attackerUnitId)
+  const lastAttributed = [...session.state.events].reverse().find((event) => (event.type === 'UNIT_COMBAT_RESOLVED' || event.type === 'UNIT_DESTROYED' || event.type === 'UNIT_MODEL_DESTROYED' || event.type === 'UNIT_WOUNDS_CHANGED') && event.payload.destroyedByPlayerId === attackerPlayerId && event.payload.attackerUnitId)
   const suggestion = lastAttributed && 'attackerUnitId' in lastAttributed.payload ? lastAttributed.payload.attackerUnitId ?? '' : ''
   const chosenUnitId = unitChoices[attackerPlayerId] ?? suggestion
   const attackerUnitId = chosenUnitId && !attacker?.units[chosenUnitId]?.destroyed ? chosenUnitId : null
@@ -89,6 +93,7 @@ export function RivalDamagePanel({
     ))
     setNotice((current) => current ? {
       ...current,
+      title: buildBattleChronicle(session).find((entry) => entry.id === casualty.id)?.description ?? current.title,
       resolved: true,
       actionId: casualty.actionId,
       unitDestroyed: session.state.players[current.victimPlayerId]?.units[current.unitId]?.destroyed ?? false,
@@ -128,38 +133,8 @@ export function RivalDamagePanel({
     })
   }
 
-  function loseModel(unitId: string, unitName: string) {
-    beginNotice(unitId, `${unitName} · −1 model`)
-    dispatch({
-      type: 'UNIT_MODEL_DESTROYED',
-      payload: { playerId: victimPlayerId, unitId, amount: 1, destroyedByPlayerId: attackerPlayerId, attackerUnitId },
-    })
-  }
-
-  function loseWounds(unitId: string, unitName: string, current: number, amount: number) {
-    beginNotice(unitId, `${unitName} · −${Math.min(amount, current)}W`)
-    dispatch({
-      type: 'UNIT_WOUNDS_CHANGED',
-      payload: {
-        playerId: victimPlayerId,
-        unitId,
-        woundsRemaining: Math.max(0, current - amount),
-        destroyedByPlayerId: attackerPlayerId,
-        attackerUnitId,
-      },
-    })
-  }
-
-  function destroyUnit(unitId: string, unitName: string) {
-    beginNotice(unitId, `${unitName} · destroyed`)
-    dispatch({
-      type: 'UNIT_DESTROYED',
-      payload: { playerId: victimPlayerId, unitId, destroyedByPlayerId: attackerPlayerId, attackerUnitId },
-    })
-  }
-
   const latestActionId = session.state.events.at(-1)?.actionId
-  const noticeUndoAvailable = Boolean(notice?.resolved && notice.actionId && notice.actionId === latestActionId)
+  const noticeUndoAvailable = Boolean(getSharedRuntimeMembership()?.battleId !== session.setup.gameId && notice?.resolved && notice.actionId && notice.actionId === latestActionId)
 
   return <section className="rival-damage-panel" aria-label="Record damage to an opponent">
     <div className="rival-damage-panel__heading">
@@ -172,7 +147,7 @@ export function RivalDamagePanel({
     </div>
 
     <label className="rival-attacking-unit"><span>Attacking unit (optional)</span><select value={attackerUnitId ?? ''} onChange={(event) => setUnitChoices((current) => ({ ...current, [attackerPlayerId]: event.target.value }))}>
-      <option value="">Unknown unit · credit {attacker.name}</option>{attackingUnits.filter((unit) => !attacker.units[unit.id]?.destroyed).map((unit) => <option value={unit.id} key={unit.id}>{unit.name}</option>)}
+      <option value="">Unknown unit · credit {attacker.name}</option>{attackingUnits.filter((unit) => !attacker.units[unit.id]?.destroyed).map((unit) => <option value={unit.id} key={`${victimPlayerId}:${unit.id}`}>{unit.name}</option>)}
     </select></label>
     {opponentIds.length > 1 && <div className="rival-damage-panel__targets" role="group" aria-label="Choose damaged opponent">
       {opponentIds.map((playerId) => {
@@ -199,6 +174,7 @@ export function RivalDamagePanel({
           : 'You can attack and record losses normally, but Rival-only kill scoring does not count this opponent.'}</span>
       </div>
 
+      <div className="combat-recent-targets" aria-label="Recent combat targets">{selectRecentUnits(session, victimPlayerId, 3).map(({ unitId }) => { const unit = army.units.find((item) => item.id === unitId); return unit && !victim.units[unitId]?.destroyed ? <button key={unitId} onClick={() => setQuery(unit.name)}>{unit.name}</button> : null })}</div>
       <label className="rival-damage-panel__search">
         <span>Find {victim.name} unit · {army.faction}</span>
         <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search unit…" />
@@ -213,15 +189,9 @@ export function RivalDamagePanel({
           const vital = multiModel
             ? `${state.modelsAlive}/${unit.startingModels} models`
             : maximumWounds ? `${wounds}/${maximumWounds} W` : 'Active'
-          return <article className="rival-damage-row" key={unit.id}>
+          return <article className="rival-damage-row" key={`${victimPlayerId}:${unit.id}`}>
             <div className="rival-damage-row__identity"><strong>{unit.name}</strong><span>{vital}</span></div>
-            <div className="rival-damage-row__actions">
-              {multiModel ? <button type="button" disabled={state.modelsAlive <= 0} onClick={() => loseModel(unit.id, unit.name)}>−1 model</button> : maximumWounds ? <>
-                <button type="button" disabled={wounds <= 0} onClick={() => loseWounds(unit.id, unit.name, wounds, 1)}>−1W</button>
-                <button type="button" disabled={wounds <= 0} onClick={() => loseWounds(unit.id, unit.name, wounds, 3)}>−3W</button>
-              </> : null}
-              <button type="button" className="danger-action" disabled={state.destroyed} onClick={() => destroyUnit(unit.id, unit.name)}>Destroyed</button>
-            </div>
+            <CombatControls unit={unit} state={state} playerId={victimPlayerId} source={{ destroyedByPlayerId: attackerPlayerId, attackerUnitId }} damageOnly compact dispatch={(event) => { beginNotice(unit.id, unit.name); dispatch(event) }} />
           </article>
         })}
         {units.length === 0 && <p className="context-note">No matching active enemy units.</p>}

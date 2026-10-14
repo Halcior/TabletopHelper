@@ -809,8 +809,7 @@ textarea:focus {
 }
 
 .quick-status-panel,
-.shared-perspective,
-.reaction-hold-control {
+.shared-perspective {
   border-color: var(--line);
   background: linear-gradient(180deg, #151b1d, #101516);
 }

@@ -40,7 +40,6 @@ type Props = {
   onMulligan: (playerId: string, cardId: SecondaryId) => void
   onOpenEndTurn: () => void
   onUseStratagem: (availability: StratagemAvailability) => void
-  onHoldReaction: (playerId: string) => void
   onPassReaction: (windowId: string, playerId: string) => void
   onChangePlan: (playerId: string, planId: OperationalPlanId) => void
   onResolveEliminationChoice: (playerId: string, cardId: SecondaryId) => void
@@ -107,7 +106,6 @@ function canViewerUseAction(
     case 'OPEN_STRATAGEMS':
     case 'DISMISS':
       return true
-    case 'HOLD_REACTION':
     case 'PASS_REACTION':
       return Boolean(viewerPlayerId && itemAction.playerId === viewerPlayerId)
     default:
@@ -126,7 +124,6 @@ export function ContextCommandCentre({
   onMulligan,
   onOpenEndTurn,
   onUseStratagem,
-  onHoldReaction,
   onPassReaction,
   onChangePlan,
   onResolveEliminationChoice,
@@ -242,7 +239,6 @@ export function ContextCommandCentre({
         if (option) onUseStratagem(option.availability)
         break
       }
-      case 'HOLD_REACTION': if (itemAction.playerId) onHoldReaction(itemAction.playerId); break
       case 'PASS_REACTION': if (itemAction.playerId && itemAction.reactionWindowId) onPassReaction(itemAction.reactionWindowId, itemAction.playerId); break
       case 'DISMISS': setDismissed((current) => new Set(current).add(item.id)); break
       default: break

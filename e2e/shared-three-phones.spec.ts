@@ -83,6 +83,46 @@ test('three phones start, synchronize and recover one idempotent offline action'
     await expect.poll(() => backend.attemptsFor(stored[0].event_id)).toBeGreaterThanOrEqual(2)
     expect(backend.storedEvents('CP_GAINED', 'player-b')).toHaveLength(1)
     await expect(bravo.page.getByText('This phone is offline')).toBeHidden()
+
+    const target = await alpha.page.evaluate(async () => {
+      const { useBattleStore } = await import('/src/stores/battleStore.ts')
+      const session = useBattleStore.getState().session!
+      const armyId = session.state.players['player-b'].armyId!
+      const unit = session.setup.armies[armyId].units.find((unit) => unit.startingModels > 1 && (unit.stats?.wounds ?? 0) >= 3)!
+      return { id: unit.id, wounds: unit.stats!.wounds!, models: unit.startingModels }
+    })
+    // Cache the module on each phone before going offline. Loading a new Vite
+    // module while offline can restart its dev client rather than test the app.
+    await Promise.all([alpha.page, bravo.page, charlie.page].map((page) => page.evaluate(async () => {
+      await import('/src/stores/battleStore.ts')
+    })))
+    await Promise.all([alpha.context.setOffline(true), bravo.context.setOffline(true)])
+    const recordWound = async (page: Page) => page.evaluate(async (unitId) => {
+      const { useBattleStore } = await import('/src/stores/battleStore.ts')
+      useBattleStore.getState().dispatch({ type: 'UNIT_COMBAT_RESOLVED', payload: { playerId: 'player-b', unitId, kind: 'damage', destroyedByPlayerId: 'player-a', allocations: [{ profileId: 'unit', wounds: 1 }] } })
+    }, target.id)
+    await recordWound(alpha.page)
+    await recordWound(bravo.page)
+    backend.failNextEventInsertAfterCommitForPlayerId = 'player-b'
+    await Promise.all([alpha.context.setOffline(false), bravo.context.setOffline(false)])
+    for (const page of [alpha.page, bravo.page, charlie.page]) {
+      await expect.poll(() => page.evaluate(async (unitId) => {
+        const { useBattleStore } = await import('/src/stores/battleStore.ts')
+        const state = useBattleStore.getState().session!.state.players['player-b'].units[unitId]
+        return { wounds: state.currentModelWounds, models: state.modelsAlive }
+      }, target.id)).toEqual({ wounds: target.wounds - 2, models: target.models })
+    }
+    expect(backend.storedEvents('UNIT_COMBAT_RESOLVED', 'player-b')).toHaveLength(2)
+    expect(new Set(backend.storedEvents('UNIT_COMBAT_RESOLVED', 'player-b').map((event) => event.event_id)).size).toBe(2)
+    const rejected = await charlie.page.evaluate(async (unitId) => {
+      const { useBattleStore } = await import('/src/stores/battleStore.ts')
+      const before = useBattleStore.getState().session!.state.events.length
+      useBattleStore.getState().dispatch({ type: 'UNIT_COMBAT_RESOLVED', payload: { playerId: 'player-b', unitId, kind: 'damage', destroyedByPlayerId: 'player-c', allocations: [{ profileId: 'unit', wounds: 1 }] } })
+      return { unchanged: before === useBattleStore.getState().session!.state.events.length, error: useBattleStore.getState().error }
+    }, target.id)
+    expect(rejected.unchanged).toBe(true)
+    expect(rejected.error).toContain('only change their own')
+
   } finally {
     await Promise.all([alpha.context.close(), bravo.context.close(), charlie.context.close()])
   }

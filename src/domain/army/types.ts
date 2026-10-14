@@ -90,9 +90,17 @@ export type UnitState = {
   modelsAlive: number
   woundsRemaining?: number
   currentModelWounds?: number
+  /** Per-profile casualties; absent on older saves until an explicit combat action. */
+  combatProfiles?: Record<string, CombatProfileState>
   destroyed: boolean
   battleShocked: boolean
   inReserve: boolean
   oncePerBattleAbilities: Record<string, boolean>
   notes?: string
+}
+
+export type CombatProfileState = {
+  modelsAlive: number
+  woundsPerModel?: number
+  currentModelWounds?: number
 }

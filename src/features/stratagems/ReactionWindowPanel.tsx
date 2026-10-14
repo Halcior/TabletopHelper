@@ -34,7 +34,7 @@ export function ReactionWindowPanel({
       <div className="reaction-window__heading">
         <div>
           <span className="eyebrow">Reaction {window.requestedByPlayerId ? 'hold' : 'window'}</span>
-          <h2>{draftHold ? 'HOLD — timing selection' : window.requestedByPlayerId ? 'Reaction hold' : 'Reaction window'}</h2>
+          <h2>{draftHold ? 'Legacy pause' : window.requestedByPlayerId ? 'Legacy reaction pause' : 'Reaction window'}</h2>
           {!draftHold && <span className="reaction-trigger">{window.trigger.replaceAll('_', ' ')}</span>}
           <p>{playerName(window.activePlayerId)} action is paused.</p>
           {!draftHold && priorityPlayerId && <strong className="reaction-priority">Priority: {playerName(priorityPlayerId)}</strong>}
@@ -44,7 +44,7 @@ export function ReactionWindowPanel({
       {window.requestedByPlayerId && (
         <div className="reaction-hold-notice">
           {draftHold
-            ? `${playerName(window.requestedByPlayerId)} called HOLD and is identifying the reaction timing.`
+            ? `${playerName(window.requestedByPlayerId)} opened this pause in an older version. The requester or room host can close it.`
             : `${playerName(window.requestedByPlayerId)} requested time to react.`}
         </div>
       )}
@@ -52,7 +52,7 @@ export function ReactionWindowPanel({
         Auto-detected from recorded table state. A fully structured timing matched; no attack or dice result was inferred.
       </div>}
       {draftHold
-        ? <p className="reaction-waiting">Keep the tabletop action paused until the reacting player finishes timing selection or cancels HOLD.</p>
+        ? <p className="reaction-waiting">Close this legacy pause using the recovery control above to resume the battle.</p>
         : <div className="reaction-response-list">
           {Object.values(window.responses).map((response) => {
             const options = optionsByPlayer[response.playerId] ?? []

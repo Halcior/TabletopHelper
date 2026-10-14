@@ -16,7 +16,7 @@ import { PhaseEndTimingReview } from '../components/battle/context/PhaseEndTimin
 import { EndRoundReview } from '../components/battle/EndRoundReview'
 import { ObjectivesPanel } from '../components/battle/ObjectivesPanel'
 import { humanizePhase, PhaseStepper } from '../components/battle/PhaseStepper'
-import { ReactionHoldControl } from '../components/battle/ReactionHoldControl'
+import { OpponentStratagems } from '../components/battle/OpponentStratagems'
 import { Scoreboard } from '../components/battle/Scoreboard'
 import { SecondaryEndTurnReview } from '../components/battle/SecondaryEndTurnReview'
 import { SecondaryDetailPanel } from '../components/battle/SecondaryPanel'
@@ -41,7 +41,7 @@ import {
 import { selectNextBattleAction } from '../domain/context/progression'
 import { getCurrentReactionWindow, isBattleFlowPaused } from '../domain/stratagems/battleIntegration'
 import { getAvailableStratagems } from '../domain/stratagems/timingEngine'
-import type { ReactionContext, StratagemAvailability, TimingTrigger } from '../domain/stratagems/types'
+import type { StratagemAvailability } from '../domain/stratagems/types'
 import { ReactionWindowPanel } from '../features/stratagems'
 import { getSharedSessionPermissions } from '../multiplayer/permissions'
 import { sharedBattleHasStarted } from '../multiplayer/sharedLobby'
@@ -131,8 +131,6 @@ export default function BattleDashboard() {
     dispatch,
     useStratagem,
     processReactionTrigger,
-    requestReactionHold,
-    refineReactionHold,
     cancelReactionWindow,
     passReaction,
     startMissionAction,
@@ -252,9 +250,6 @@ export default function BattleDashboard() {
     return undefined
   })() : undefined
   const playerIds = Object.keys(session.state.players)
-  const reactionHoldPlayers = session.state.turnOrder
-    .filter((playerId) => playerId !== active.id)
-    .map((playerId) => ({ id: playerId, name: session.state.players[playerId].name }))
   const playerNames = Object.fromEntries(Object.values(session.state.players).map((player) => [player.id, player.name]))
   const rulesDataByPlayer = Object.fromEntries(playerIds.map((playerId) => {
     const armyId = session.state.players[playerId].armyId
@@ -375,37 +370,6 @@ export default function BattleDashboard() {
     })
   }
 
-  function handleReactionHoldStart(playerId: string) {
-    if (currentWindow) return
-    requestReactionHold(playerId, {
-      trigger: 'CUSTOM_CONFIRMATION',
-      context: {
-        actingPlayerId: active.id,
-        holdDraft: true,
-      },
-      definitionsByPlayer,
-      reactionPolicy,
-    })
-  }
-
-  function handleReactionHoldRefine(
-    reactionWindowId: string,
-    playerId: string,
-    trigger: TimingTrigger,
-    context: ReactionContext = {},
-  ) {
-    refineReactionHold(reactionWindowId, playerId, {
-      trigger,
-      context: {
-        ...context,
-        actingPlayerId: active.id,
-        holdDraft: false,
-      },
-      definitionsByPlayer,
-      reactionPolicy,
-    })
-  }
-
   function handlePhaseEndStratagem(option: RelevantStratagem) {
     if (!canControlTurn || currentWindow) return
     useStratagem({
@@ -482,21 +446,6 @@ export default function BattleDashboard() {
     onPass={(playerId: string) => passReaction(currentWindow.id, playerId)}
   /> : null
 
-  const sharedReactionHold = sharedBattle && !canControlTurn ? <div className="shared-reaction-hold-shell">
-    <ReactionHoldControl
-      phase={session.state.phase}
-      activePlayerName={active.name}
-      players={reactionHoldPlayers}
-      session={session}
-      definitionsByPlayer={definitionsByPlayer}
-      sharedMode
-      viewerPlayerId={viewerPlayerId}
-      disabled={Boolean(currentWindow)}
-      onHoldStart={handleReactionHoldStart}
-      onHoldRefine={handleReactionHoldRefine}
-      onHoldCancel={cancelReactionWindow}
-    />
-  </div> : null
 
   return (
     <div className="battle-page" style={{ '--battle-hud-height': `${headerHeight}px` } as CSSProperties}>
@@ -568,7 +517,7 @@ export default function BattleDashboard() {
         <PhaseStepper phase={session.state.phase} />
         {sharedBattle && <SharedSyncWarning battleId={session.setup.gameId} />}
         {sharedBattle && <div className={`shared-flow-notice${canControlTurn ? ' shared-flow-notice--active' : ''}`}>{canControlTurn ? `Your turn · ${viewer?.name ?? active.name}` : `Waiting for ${sharedPermissions.waitingForPlayerName ?? active.name} · playing as ${viewer?.name ?? 'player'}`}</div>}
-        {sharedReactionHold}
+        {currentWindow?.requestedByPlayerId && <section className="panel legacy-reaction-recovery"><p>This saved battle has an unfinished legacy reaction pause.</p><button disabled={sharedBattle && viewerPlayerId !== currentWindow.requestedByPlayerId && !sharedMembership?.isHost} onClick={() => cancelReactionWindow(currentWindow.id)}>Close legacy pause</button></section>}
         {error && <div className="alert alert--danger battle-alert">{error}</div>}
 
         {reviewOpen ? <EndRoundReview
@@ -635,7 +584,6 @@ export default function BattleDashboard() {
                   onMulligan={mulliganSecondary}
                   onOpenEndTurn={() => { if (canControlTurn) setTurnReviewOpen(true) }}
                   onUseStratagem={handleContextStratagem}
-                  onHoldReaction={handleReactionHoldStart}
                   onPassReaction={passReaction}
                   onChangePlan={changePlan}
                   onResolveEliminationChoice={resolveEliminationChoice}
@@ -670,17 +618,7 @@ export default function BattleDashboard() {
                   onOpenCards={() => setTab('cards')}
                 />}
                 <BattleQuickStatus session={session} onOpenObjectives={() => setTab('objectives')} />
-                {!sharedBattle && <ReactionHoldControl
-                  phase={session.state.phase}
-                  activePlayerName={active.name}
-                  players={reactionHoldPlayers}
-                  session={session}
-                  definitionsByPlayer={definitionsByPlayer}
-                  disabled={Boolean(currentWindow)}
-                  onHoldStart={handleReactionHoldStart}
-                  onHoldRefine={handleReactionHoldRefine}
-                  onHoldCancel={cancelReactionWindow}
-                />}
+                <OpponentStratagems key={`${session.setup.gameId}:${session.state.round}:${active.id}:${session.state.phase}`} session={session} definitionsByPlayer={definitionsByPlayer} sharedMode={sharedBattle} viewerPlayerId={viewerPlayerId} reactionPolicy={reactionPolicy} onUse={useStratagem} />
               </aside>
             </div>}
             </section>

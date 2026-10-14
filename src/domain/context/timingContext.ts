@@ -1,3 +1,4 @@
+import { buildBattleChronicle } from '../battle/chronicle'
 import type { BattleEvent, BattleSession } from '../battle/types'
 import type { ReactionContext, TimingTrigger } from '../stratagems/types'
 
@@ -47,6 +48,12 @@ function targetUnitContext(session: BattleSession, playerId: string, unitId: str
 }
 
 function casualtyCheckpoint(session: BattleSession, event: BattleEvent): CurrentTimingCheckpoint | null {
+  if (event.type === 'UNIT_COMBAT_RESOLVED') {
+    if (event.payload.kind !== 'damage') return null
+    const change = buildBattleChronicle(session).find((entry) => entry.id === event.id)?.unitChange
+    if (!change || change.modelsBefore <= change.modelsAfter) return null
+    return { triggers: change.destroyedAfter && !change.destroyedBefore ? ['MODEL_DESTROYED', 'UNIT_DESTROYED'] : ['MODEL_DESTROYED'], sourceEventId: event.id, context: { ...targetUnitContext(session, event.payload.playerId, event.payload.unitId), eventId: event.id, actingPlayerId: event.payload.destroyedByPlayerId ?? event.actorPlayerId } }
+  }
   if (
     event.type !== 'UNIT_MODEL_DESTROYED'
     && event.type !== 'UNIT_WOUNDS_CHANGED'

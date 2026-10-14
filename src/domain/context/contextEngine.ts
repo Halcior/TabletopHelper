@@ -296,9 +296,7 @@ function reactionItems(input: BuildBattleContextInput, players: BattleContext['r
     severity: total === 0 ? 'QUIET' : 'ATTENTION',
     source: 'REACTION',
     phase: session.state.phase,
-    actions: players.filter((player) => player.exactCount + player.potentialCount > 0).map((player) => (
-      action(`hold-reaction-${player.playerId}`, 'HOLD_REACTION', `Review · ${player.playerName}`, { playerId: player.playerId })
-    )),
+    actions: [],
   }]
 }
 

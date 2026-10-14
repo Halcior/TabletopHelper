@@ -1,3 +1,4 @@
+import { CombatControls } from './CombatControls'
 import { useEffect, useMemo, useState } from 'react'
 import type { Army, UnitDefinition, UnitState, WeaponProfile } from '../../domain/army/types'
 import { getActiveMissionActionForUnit } from '../../domain/battle/missionActions'
@@ -130,14 +131,7 @@ function UnitCard({
   dispatch: (event: BattleEventInput) => void
   canEdit: boolean
 }) {
-  const multiModel = unit.startingModels > 1
-  const maximumWounds = unit.stats?.wounds
-  const wounds = state.woundsRemaining ?? maximumWounds ?? 0
   const readOnlyTitle = canEdit ? undefined : `${ownerName} manages this army state on their device.`
-  const destroy = () => {
-    if (!canEdit) return
-    dispatch({ type: 'UNIT_DESTROYED', payload: { playerId: ownerId, unitId: unit.id, ...combatSource } })
-  }
   const recordBattleShock = (passed: boolean) => {
     if (!canEdit) return
     dispatch({ type: 'BATTLESHOCK_TEST_RESOLVED', payload: { playerId: ownerId, unitId: unit.id, passed } })
@@ -152,39 +146,7 @@ function UnitCard({
       </div>
       {missionActionName && <div className="unit-mission-action"><span>Mission Action</span><strong>{missionActionName}</strong><small>Cannot Shoot or declare a charge this turn.</small></div>}
       {!canEdit && <p className="shared-readonly-note">Read only on this device · {ownerName} records this unit's state.</p>}
-      {multiModel ? <>
-        <div className="model-pips" aria-label={`${state.modelsAlive} of ${unit.startingModels} models alive`}>
-          {Array.from({ length: unit.startingModels }, (_, index) => <span aria-hidden="true" className={index < state.modelsAlive ? 'alive' : ''} key={index} />)}
-        </div>
-        <div className="unit-vital"><strong>{state.modelsAlive} / {unit.startingModels}</strong><span>models alive</span></div>
-        <div className="unit-actions">
-          <button disabled={!canEdit || state.modelsAlive === 0} title={readOnlyTitle} onClick={() => dispatch({
-            type: 'UNIT_MODEL_DESTROYED', payload: { playerId: ownerId, unitId: unit.id, amount: 1, ...combatSource },
-          })}>− Model</button>
-          <button disabled={!canEdit || state.modelsAlive >= unit.startingModels} title={readOnlyTitle} onClick={() => dispatch({
-            type: 'UNIT_MODEL_RESTORED', payload: { playerId: ownerId, unitId: unit.id, amount: 1 },
-          })}>+ Model</button>
-        </div>
-        <p className="unit-summary">W{unit.stats?.wounds ?? '—'} / model · OC{unit.stats?.objectiveControl ?? '—'} / model</p>
-      </> : maximumWounds ? <>
-        <div className="unit-vital unit-vital--wounds"><span>Wounds</span><strong>{wounds} / {maximumWounds}</strong></div>
-        <div className="unit-actions unit-actions--three">
-          <button disabled={!canEdit || wounds <= 0} title={readOnlyTitle} onClick={() => dispatch({
-            type: 'UNIT_WOUNDS_CHANGED',
-            payload: { playerId: ownerId, unitId: unit.id, woundsRemaining: wounds - 1, ...combatSource },
-          })}>− Wound</button>
-          <button disabled={!canEdit || wounds >= maximumWounds} title={readOnlyTitle} onClick={() => dispatch({
-            type: 'UNIT_WOUNDS_CHANGED', payload: { playerId: ownerId, unitId: unit.id, woundsRemaining: wounds + 1 },
-          })}>+ Wound</button>
-          <button className="danger-action" disabled={!canEdit || state.destroyed} title={readOnlyTitle} onClick={destroy}>Destroyed</button>
-        </div>
-        <p className="unit-summary">OC{unit.stats?.objectiveControl ?? '—'}</p>
-      </> : <div className="unit-actions">
-        <button className="danger-action" disabled={!canEdit || state.destroyed} title={readOnlyTitle} onClick={destroy}>Destroyed</button>
-        <button disabled={!canEdit || !state.destroyed} title={readOnlyTitle} onClick={() => dispatch({
-          type: 'UNIT_MODEL_RESTORED', payload: { playerId: ownerId, unitId: unit.id, amount: 1 },
-        })}>Restore</button>
-      </div>}
+      <CombatControls unit={unit} state={state} playerId={ownerId} source={combatSource} dispatch={dispatch} canEdit={canEdit} />
       <div className="unit-battleshock-actions">
         <span>Battle-shock test</span>
         <div>
@@ -201,6 +163,7 @@ function UnitCard({
         <UnitReference unit={unit} state={state} army={army} ownerId={ownerId} dispatch={dispatch} canEdit={canEdit} />
       </details>
       {performance && <details className="unit-performance-inline"><summary>Battle performance · {performance.kills} kills · {Math.round(performance.enemyPointsDestroyed)} pts</summary>
+        <p>Effective damage: {performance.damageDealt ?? 'Unknown'} W · received: {performance.damageReceived ?? 'Unknown'} W (partial). Healed: {performance.woundsHealed} W · restored: {performance.modelsRestored} models.</p>
         <p>{performance.modelsDestroyed} enemy models · {performance.combatRoi === null ? '—' : `${Math.round(performance.combatRoi)}%`} Combat ROI · {performance.completedMissionActions} completed actions</p>
         <small>Net model value; equal points per starting model. Full comparison is in Battle Report.</small>
       </details>}
@@ -232,51 +195,12 @@ function QuickUnitControl({
     ? `${state.modelsAlive}/${unit.startingModels} models`
     : maximumWounds ? `${wounds}/${maximumWounds} W` : state.destroyed ? 'Destroyed' : 'Active'
 
-  function recordLoss() {
-    if (!canEdit) return
-    if (multiModel) {
-      dispatch({ type: 'UNIT_MODEL_DESTROYED', payload: { playerId: ownerId, unitId: unit.id, amount: 1, ...combatSource } })
-    } else if (maximumWounds) {
-      dispatch({ type: 'UNIT_WOUNDS_CHANGED', payload: { playerId: ownerId, unitId: unit.id, woundsRemaining: wounds - 1, ...combatSource } })
-    } else {
-      dispatch({ type: 'UNIT_DESTROYED', payload: { playerId: ownerId, unitId: unit.id, ...combatSource } })
-    }
-  }
-
-  function restoreLoss() {
-    if (!canEdit) return
-    if (multiModel || !maximumWounds) {
-      dispatch({ type: 'UNIT_MODEL_RESTORED', payload: { playerId: ownerId, unitId: unit.id, amount: 1 } })
-    } else {
-      dispatch({ type: 'UNIT_WOUNDS_CHANGED', payload: { playerId: ownerId, unitId: unit.id, woundsRemaining: wounds + 1 } })
-    }
-  }
-
-  const canRecordLoss = multiModel ? state.modelsAlive > 0 : maximumWounds ? wounds > 0 : !state.destroyed
-  const canRestoreLoss = multiModel
-    ? state.modelsAlive < unit.startingModels
-    : maximumWounds ? wounds < maximumWounds : state.destroyed
-
   return <article className={`recent-unit${state.destroyed ? ' is-destroyed' : ''}`}>
     <button className="recent-unit__identity" type="button" onClick={onOpen}>
       <strong>{unit.name}</strong>
       <span>{vital}</span>
     </button>
-    <div className="recent-unit__actions">
-      <button
-        className="recent-unit__loss"
-        type="button"
-        aria-label={`Record one ${multiModel ? 'destroyed model' : maximumWounds ? 'lost wound' : 'destruction'} for ${unit.name}`}
-        disabled={!canEdit || !canRecordLoss}
-        onClick={recordLoss}
-      >{multiModel ? '−1' : maximumWounds ? '−1W' : 'KO'}</button>
-      <button
-        type="button"
-        aria-label={`Restore one ${multiModel ? 'model' : maximumWounds ? 'wound' : 'unit'} for ${unit.name}`}
-        disabled={!canEdit || !canRestoreLoss}
-        onClick={restoreLoss}
-      >{multiModel ? '+1' : maximumWounds ? '+1W' : '↺'}</button>
-    </div>
+    <CombatControls unit={unit} state={state} playerId={ownerId} source={combatSource} dispatch={dispatch} canEdit={canEdit} compact />
   </article>
 }
 
@@ -315,7 +239,7 @@ export function ArmyTracker({
   const sourceKey = `${session.setup.gameId}:${session.state.activePlayerId}:${selected.player.id}`
   const source = sources[sourceKey] ?? { destroyedByPlayerId: session.state.activePlayerId === selected.player.id ? null : session.state.activePlayerId }
   const attackerId = source.destroyedByPlayerId
-  const recentAttack = attackerId ? [...session.state.events].reverse().find((event) => (event.type === 'UNIT_DESTROYED' || event.type === 'UNIT_MODEL_DESTROYED' || event.type === 'UNIT_WOUNDS_CHANGED') && event.payload.destroyedByPlayerId === attackerId && event.payload.attackerUnitId) : undefined
+  const recentAttack = attackerId ? [...session.state.events].reverse().find((event) => (event.type === 'UNIT_COMBAT_RESOLVED' || event.type === 'UNIT_DESTROYED' || event.type === 'UNIT_MODEL_DESTROYED' || event.type === 'UNIT_WOUNDS_CHANGED') && event.payload.destroyedByPlayerId === attackerId && event.payload.attackerUnitId) : undefined
   const suggestedUnit = recentAttack && 'attackerUnitId' in recentAttack.payload ? recentAttack.payload.attackerUnitId : null
   const chosenUnit = attackerId ? Object.hasOwn(lastUnits, attackerId) ? lastUnits[attackerId] : suggestedUnit : null
   const combatSource: CombatAttribution = { ...source, attackerUnitId: chosenUnit && !session.state.players[attackerId ?? '']?.units[chosenUnit]?.destroyed ? chosenUnit : null }

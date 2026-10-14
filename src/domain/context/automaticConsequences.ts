@@ -19,10 +19,10 @@ function unitName(session: BattleSession, playerId: string, unitId: string): str
 }
 
 function isPhysicalKillEvent(event: BattleSession['state']['events'][number]): event is BattleSession['state']['events'][number] & {
-  type: 'UNIT_DESTROYED' | 'UNIT_WOUNDS_CHANGED' | 'UNIT_MODEL_DESTROYED'
+  type: 'UNIT_COMBAT_RESOLVED' | 'UNIT_DESTROYED' | 'UNIT_WOUNDS_CHANGED' | 'UNIT_MODEL_DESTROYED'
   payload: { playerId: string; unitId: string }
 } {
-  return event.type === 'UNIT_DESTROYED'
+  return (event.type === 'UNIT_COMBAT_RESOLVED' && event.payload.kind === 'damage') || event.type === 'UNIT_DESTROYED'
     || event.type === 'UNIT_WOUNDS_CHANGED'
     || event.type === 'UNIT_MODEL_DESTROYED'
 }

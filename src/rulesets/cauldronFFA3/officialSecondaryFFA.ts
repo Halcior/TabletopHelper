@@ -1,3 +1,4 @@
+import { buildBattleChronicle } from '../../domain/battle/chronicle'
 import type { UnitDefinition } from '../../domain/army/types'
 import type { BattleSession } from '../../domain/battle/types'
 import { getUnitDefinition } from '../../domain/battle/missionActions'
@@ -61,52 +62,13 @@ export type OfficialKill = {
 
 /** Replay only model counts: partial kills count for model cards, the last model for unit cards. */
 export function officialKillLedger(session: BattleSession): OfficialKill[] {
-  const alive = new Map<string, number>()
-  for (const player of session.setup.players) {
-    for (const unit of officialPlayerUnits(session, player.id)) alive.set(`${player.id}:${unit.id}`, unit.startingModels)
-  }
-  const kills: OfficialKill[] = []
-  let round = 1
-  let turnPlayerId = session.setup.turnOrder[0]
-  for (const event of session.state.events) {
-    if (event.type === 'ROUND_STARTED') round = event.payload.round
-    if (event.type === 'TURN_STARTED') turnPlayerId = event.payload.playerId
-    if (event.type === 'STATE_CORRECTED') {
-      const change = event.payload.correction
-      if (change.kind === 'UNIT_MODELS') {
-        const definition = getUnitDefinition(session, change.playerId, change.unitId)
-        alive.set(`${change.playerId}:${change.unitId}`, Math.max(0, Math.min(definition?.startingModels ?? change.value, Math.floor(change.value))))
-      }
-      if (change.kind === 'UNIT_WOUNDS' && getUnitDefinition(session, change.playerId, change.unitId)?.startingModels === 1) {
-        alive.set(`${change.playerId}:${change.unitId}`, change.value > 0 ? 1 : 0)
-      }
-      continue
-    }
-    if (event.type === 'UNIT_MODEL_RESTORED') {
-      const key = `${event.payload.playerId}:${event.payload.unitId}`
-      const maximum = getUnitDefinition(session, event.payload.playerId, event.payload.unitId)?.startingModels ?? 0
-      alive.set(key, Math.min(maximum, (alive.get(key) ?? 0) + Math.max(1, event.payload.amount)))
-      continue
-    }
-    if (event.type !== 'UNIT_DESTROYED' && event.type !== 'UNIT_MODEL_DESTROYED' && event.type !== 'UNIT_WOUNDS_CHANGED') continue
-    const key = `${event.payload.playerId}:${event.payload.unitId}`
-    const before = alive.get(key) ?? 0
-    let lost = 0
-    if (event.type === 'UNIT_DESTROYED') lost = before
-    if (event.type === 'UNIT_MODEL_DESTROYED') lost = Math.min(before, Math.max(1, event.payload.amount))
-    if (event.type === 'UNIT_WOUNDS_CHANGED') {
-      if (getUnitDefinition(session, event.payload.playerId, event.payload.unitId)?.startingModels !== 1) continue
-      if (event.payload.woundsRemaining > 0) { alive.set(key, 1); continue }
-      lost = before
-    }
-    alive.set(key, before - lost)
-    if (lost > 0) kills.push({
-      eventId: event.id, killerPlayerId: event.payload.destroyedByPlayerId ?? undefined,
-      targetPlayerId: event.payload.playerId, unitId: event.payload.unitId,
-      round, turnPlayerId, modelsDestroyed: lost, unitDestroyed: before - lost === 0,
-    })
-  }
-  return kills
+  return buildBattleChronicle(session).flatMap((entry): OfficialKill[] => {
+    const change = entry.unitChange
+    if (!change || change.correction || change.modelsBefore <= change.modelsAfter) return []
+    return [{ eventId: entry.id, killerPlayerId: change.attackerPlayerId, targetPlayerId: change.target.playerId,
+      unitId: change.target.unitId, round: entry.round, turnPlayerId: entry.turnPlayerId,
+      modelsDestroyed: change.modelsBefore - change.modelsAfter, unitDestroyed: !change.destroyedBefore && change.destroyedAfter }]
+  })
 }
 
 export function officialRivalKills(session: BattleSession, playerId: string, cardId: OfficialSecondaryId, thisTurn = true): OfficialKill[] {

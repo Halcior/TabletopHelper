@@ -1,3 +1,4 @@
+import { resolveCombat } from '../../domain/battle/combatState'
 import type { UnitDefinition } from '../../domain/army/types'
 import { dispatchBattleEvents } from '../../domain/battle/engine'
 import { getPlayerTurnNumber, getUnitDefinition } from '../../domain/battle/missionActions'
@@ -475,6 +476,10 @@ function isUnitDestroyedByEvent(session: BattleSession, event: BattleEventInput)
   if (!('payload' in event) || !('unitId' in event.payload) || !('playerId' in event.payload)) return false
   const unit = session.state.players[event.payload.playerId]?.units[event.payload.unitId]
   if (!unit || unit.destroyed) return false
+  if (event.type === 'UNIT_COMBAT_RESOLVED') {
+    const definition = getUnitDefinition(session, event.payload.playerId, event.payload.unitId)
+    return event.payload.kind === 'damage' && Boolean(definition && resolveCombat(definition, unit, event.payload).destroyed)
+  }
   if (event.type === 'UNIT_DESTROYED') return true
   if (event.type === 'UNIT_WOUNDS_CHANGED') return event.payload.woundsRemaining <= 0
   if (event.type === 'UNIT_MODEL_DESTROYED') return unit.modelsAlive - Math.max(1, event.payload.amount) <= 0
@@ -488,7 +493,7 @@ function destructionDetails(session: BattleSession, event: BattleEventInput): {
   unit: UnitDefinition
 } | undefined {
   if (!isUnitDestroyedByEvent(session, event)) return undefined
-  if (event.type !== 'UNIT_DESTROYED' && event.type !== 'UNIT_WOUNDS_CHANGED' && event.type !== 'UNIT_MODEL_DESTROYED') return undefined
+  if (event.type !== 'UNIT_COMBAT_RESOLVED' && event.type !== 'UNIT_DESTROYED' && event.type !== 'UNIT_WOUNDS_CHANGED' && event.type !== 'UNIT_MODEL_DESTROYED') return undefined
   const unit = getUnitDefinition(session, event.payload.playerId, event.payload.unitId)
   if (!unit) return undefined
   return {
@@ -578,10 +583,10 @@ function priorityTargetConsequenceEvents(session: BattleSession, event: BattleEv
 }
 
 /** Dispatches a normal Battle event and attaches any automatic Cauldron Secondary consequence to the same undo action. */
-export function dispatchCauldronBattleEvent(session: BattleSession, event: BattleEventInput): BattleSession {
-  if (isOfficialSecondary(session)) return dispatchBattleEvents(session, [event])
+export function combatConsequenceInputs(session: BattleSession, event: BattleEventInput): BattleEventInput[] {
+  if (isOfficialSecondary(session)) return []
   const match = eliminationMatches(session, event)
-  const inputs: BattleEventInput[] = [event, ...priorityTargetConsequenceEvents(session, event)]
+  const inputs: BattleEventInput[] = [...priorityTargetConsequenceEvents(session, event)]
   if (match?.matchingCardIds.length === 1) {
     inputs.push(...completionInputs(session, match.playerId, match.matchingCardIds))
   } else if (match && match.matchingCardIds.length > 1) {
@@ -598,7 +603,13 @@ export function dispatchCauldronBattleEvent(session: BattleSession, event: Battl
       } satisfies PendingEliminationChoice,
     }))
   }
-  return dispatchBattleEvents(session, inputs, { actorPlayerId: match?.playerId })
+  return inputs
+}
+
+export function dispatchCauldronBattleEvent(session: BattleSession, event: BattleEventInput): BattleSession {
+  if (event.type === 'UNIT_COMBAT_RESOLVED' || isOfficialSecondary(session)) return dispatchBattleEvents(session, [event])
+  const match = eliminationMatches(session, event)
+  return dispatchBattleEvents(session, [event, ...combatConsequenceInputs(session, event)], { actorPlayerId: match?.playerId })
 }
 
 export function resolveEliminationChoice(

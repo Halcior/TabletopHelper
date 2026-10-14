@@ -28,11 +28,13 @@ export function describeBattleEvent(event: BattleEvent, setup: BattleSetup): str
       const target = 'playerId' in correction ? playerName(setup, correction.playerId) : correction.objectiveId
       const value = correction.kind === 'OBJECTIVE_CONTROL'
         ? correction.controllerPlayerId ? playerName(setup, correction.controllerPlayerId) : 'uncontrolled'
+        : correction.kind === 'UNIT_COMBAT' ? 'model profiles confirmed'
         : correction.kind === 'UNIT_BATTLESHOCK'
           ? correction.value ? 'Battle-shocked' : 'steady'
           : correction.value
       return `Host correction · ${target} · ${correction.kind.replaceAll('_', ' ').toLowerCase()} = ${value} · ${event.payload.reason}`
     }
+    case 'UNIT_COMBAT_RESOLVED': return `${unitName(setup, event.payload.playerId, event.payload.unitId)} · ${event.payload.kind} recorded`
     case 'UNIT_MODEL_DESTROYED': return `${unitName(setup, event.payload.playerId, event.payload.unitId)} lost ${event.payload.amount} model`
     case 'UNIT_MODEL_RESTORED': return `${unitName(setup, event.payload.playerId, event.payload.unitId)} restored ${event.payload.amount} model`
     case 'UNIT_WOUNDS_CHANGED': return `${unitName(setup, event.payload.playerId, event.payload.unitId)} set to ${event.payload.woundsRemaining} wounds`

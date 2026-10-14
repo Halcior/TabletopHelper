@@ -297,7 +297,7 @@ function startSyncLoop(inspection: SharedRoomInspection, membership: SharedMembe
     const before = previous.session
     if (!current || current.setup.gameId !== membership.battleId) return
     const previousIds = new Set(before?.state.events.map((event) => event.id) ?? [])
-    const newEvents = current.state.events.filter((event) => !previousIds.has(event.id))
+    const newEvents = current.state.events.filter((event) => !event.derivedFromCombatId && !previousIds.has(event.id))
     if (newEvents.length > 0) void publishLocalEvents(newEvents)
   })
 

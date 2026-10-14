@@ -1,4 +1,6 @@
+import { combatConsequenceInputs } from '../../rulesets/cauldronFFA3/secondary'
 import { z } from 'zod'
+import { combatProfiles, readCombatState, resolveCombat, setCombatState } from './combatState'
 import type { UnitDefinition, UnitState } from '../army/types'
 import { isReactionWindowBlocking, withReactionResponse } from '../stratagems/reactionEngine'
 import {
@@ -57,8 +59,8 @@ function initialUnitState(unit: UnitDefinition): UnitState {
   return {
     unitId: unit.id,
     modelsAlive: unit.startingModels,
-    woundsRemaining: unit.startingModels === 1 ? unit.stats?.wounds : undefined,
-    currentModelWounds: unit.startingModels > 1 ? unit.stats?.wounds : undefined,
+    woundsRemaining: unit.startingModels === 1 ? combatProfiles(unit)[0]?.woundsPerModel : undefined,
+    currentModelWounds: unit.startingModels > 1 && combatProfiles(unit).length === 1 ? combatProfiles(unit)[0].woundsPerModel : undefined,
     destroyed: false,
     battleShocked: false,
     inReserve: false,
@@ -237,6 +239,13 @@ function applyEvent(state: GameState, event: BattleEvent, setup: BattleSetup): v
       if (!reason) throw new Error('A correction requires a reason.')
       const correction = event.payload.correction
       switch (correction.kind) {
+        case 'UNIT_COMBAT': {
+          const unit = requireUnit(state, correction.playerId, correction.unitId)
+          const definition = unitDefinition(setup, correction.playerId, correction.unitId)
+          if (!definition) throw new Error('Unit profile not found.')
+          setCombatState(definition, unit, structuredClone(correction.value))
+          return
+        }
         case 'CP':
           requirePlayer(state, correction.playerId).cp = Math.max(0, Math.floor(correction.value))
           return
@@ -246,6 +255,8 @@ function applyEvent(state: GameState, event: BattleEvent, setup: BattleSetup): v
         case 'UNIT_MODELS': {
           const unit = requireUnit(state, correction.playerId, correction.unitId)
           const definition = unitDefinition(setup, correction.playerId, correction.unitId)
+          delete unit.combatProfiles
+          unit.currentModelWounds = undefined
           unit.modelsAlive = Math.max(0, Math.min(definition?.startingModels ?? correction.value, Math.floor(correction.value)))
           unit.destroyed = unit.modelsAlive === 0
           if (unit.destroyed) unit.woundsRemaining = 0
@@ -258,6 +269,7 @@ function applyEvent(state: GameState, event: BattleEvent, setup: BattleSetup): v
           const unit = requireUnit(state, correction.playerId, correction.unitId)
           const definition = unitDefinition(setup, correction.playerId, correction.unitId)
           const maximum = definition?.stats?.wounds ?? Number.POSITIVE_INFINITY
+          delete unit.combatProfiles
           unit.woundsRemaining = Math.max(0, Math.min(maximum, Math.floor(correction.value)))
           unit.destroyed = unit.woundsRemaining === 0
           if (definition?.startingModels === 1) unit.modelsAlive = unit.destroyed ? 0 : 1
@@ -279,8 +291,23 @@ function applyEvent(state: GameState, event: BattleEvent, setup: BattleSetup): v
         }
       }
     }
+    case 'UNIT_COMBAT_RESOLVED': {
+      const unit = requireUnit(state, event.payload.playerId, event.payload.unitId)
+      const definition = unitDefinition(setup, event.payload.playerId, event.payload.unitId)
+      if (!definition) throw new Error('Unit profile not found.')
+      Object.assign(unit, resolveCombat(definition, unit, event.payload))
+      return
+    }
     case 'UNIT_MODEL_DESTROYED': {
       const unit = requireUnit(state, event.payload.playerId, event.payload.unitId)
+      const definition = unitDefinition(setup, event.payload.playerId, event.payload.unitId)
+      const profile = definition && combatProfiles(definition)
+      if (definition && profile?.length === 1 && readCombatState(definition, unit)) {
+        Object.assign(unit, resolveCombat(definition, unit, { ...event.payload, kind: 'damage', allocations: [{ profileId: profile[0].id, models: Math.max(1, event.payload.amount) }] }))
+        return
+      }
+      delete unit.combatProfiles
+      unit.currentModelWounds = undefined
       unit.modelsAlive = Math.max(0, unit.modelsAlive - Math.max(1, event.payload.amount))
       unit.destroyed = unit.modelsAlive === 0
       if (unit.destroyed) unit.woundsRemaining = 0
@@ -289,6 +316,12 @@ function applyEvent(state: GameState, event: BattleEvent, setup: BattleSetup): v
     case 'UNIT_MODEL_RESTORED': {
       const unit = requireUnit(state, event.payload.playerId, event.payload.unitId)
       const definition = unitDefinition(setup, event.payload.playerId, event.payload.unitId)
+      const profile = definition && combatProfiles(definition)
+      if (definition && profile?.length === 1 && readCombatState(definition, unit)) {
+        Object.assign(unit, resolveCombat(definition, unit, { ...event.payload, kind: 'restore', allowDestroyed: true, allocations: [{ profileId: profile[0].id, models: Math.max(1, event.payload.amount) }] }))
+        return
+      }
+      delete unit.combatProfiles
       unit.modelsAlive = Math.min(definition?.startingModels ?? unit.modelsAlive, unit.modelsAlive + Math.max(1, event.payload.amount))
       unit.destroyed = unit.modelsAlive === 0
       if (!unit.destroyed && definition?.startingModels === 1 && unit.woundsRemaining === 0) {
@@ -300,6 +333,7 @@ function applyEvent(state: GameState, event: BattleEvent, setup: BattleSetup): v
       const unit = requireUnit(state, event.payload.playerId, event.payload.unitId)
       const definition = unitDefinition(setup, event.payload.playerId, event.payload.unitId)
       const maximum = definition?.stats?.wounds ?? Number.POSITIVE_INFINITY
+      delete unit.combatProfiles
       unit.woundsRemaining = Math.max(0, Math.min(maximum, event.payload.woundsRemaining))
       unit.destroyed = unit.woundsRemaining === 0
       if (definition?.startingModels === 1) unit.modelsAlive = unit.destroyed ? 0 : 1
@@ -307,6 +341,8 @@ function applyEvent(state: GameState, event: BattleEvent, setup: BattleSetup): v
     }
     case 'UNIT_DESTROYED': {
       const unit = requireUnit(state, event.payload.playerId, event.payload.unitId)
+      if (unit.combatProfiles) for (const group of Object.values(unit.combatProfiles)) { group.modelsAlive = 0; group.currentModelWounds = 0 }
+      unit.currentModelWounds = 0
       unit.modelsAlive = 0
       unit.woundsRemaining = 0
       unit.destroyed = true
@@ -431,8 +467,22 @@ function applyEvent(state: GameState, event: BattleEvent, setup: BattleSetup): v
 
 function projectState(setup: BattleSetup, events: BattleEvent[]): GameState {
   const state = baseState(setup)
-  for (const event of events) applyEvent(state, event, setup)
-  state.events = [...events]
+  const unique = [...new Map(events.filter((event) => !event.derivedFromCombatId).map((event) => [event.id, event])).values()]
+  const history: BattleEvent[] = []
+  for (const event of unique) {
+    state.events = history
+    const consequences = event.type === 'UNIT_COMBAT_RESOLVED' && setup.rulesetId === 'cauldron-ffa-3'
+      ? combatConsequenceInputs({ setup, state, redoActions: [] }, event) : []
+    applyEvent(state, event, setup)
+    history.push(event)
+    for (const [index, input] of consequences.entries()) {
+      const derived = { ...input, id: `${event.id}:consequence:${index}`, actionId: event.actionId, timestamp: event.timestamp,
+        actorPlayerId: event.actorPlayerId, undoable: event.undoable, derivedFromCombatId: event.id } as BattleEvent
+      applyEvent(state, derived, setup)
+      history.push(derived)
+    }
+  }
+  state.events = history
   return state
 }
 
