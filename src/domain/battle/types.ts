@@ -47,7 +47,7 @@ export type DoublesForce = {
 }
 
 export type DoublesSetup = {
-  rulesVersion: 'GW-Doubles-1.1'
+  rulesVersion: 'GW-Doubles-1.0'
   forces: [DoublesForce, DoublesForce]
 }
 
