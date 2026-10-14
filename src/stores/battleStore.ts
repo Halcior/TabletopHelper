@@ -9,7 +9,7 @@ import {
   redoLastAction,
   undoLastAction,
 } from '../domain/battle/engine'
-import type { BattleCorrection, BattleEventInput, BattleSession, GuidanceLevel } from '../domain/battle/types'
+import type { BattleCorrection, BattleEventInput, BattleSession, DoublesSetup, GuidanceLevel } from '../domain/battle/types'
 import {
   cancelMissionAction as cancelMissionActionInBattle,
   completeMissionAction as completeMissionActionInBattle,
@@ -39,6 +39,7 @@ import {
   mulliganSecondary as mulliganSecondaryInBattle,
   resolveEliminationChoice as resolveEliminationChoiceInBattle,
   selectPriorityTargetCandidates as selectPriorityTargetCandidatesInBattle,
+  type CauldronMode,
   type CauldronObjectiveLayout,
   type PrimaryDeck,
   type SecondaryDeck,
@@ -70,6 +71,8 @@ type BattleStore = {
     officialSecondaryStrategies?: Record<string, OfficialSecondaryStrategy>,
     officialLayout?: 1 | 2 | 3,
     battlefieldAttackerHomeZone?: 'A' | 'B',
+    mode?: CauldronMode,
+    doubles?: DoublesSetup,
   ) => Promise<string>
   loadBattle: (id: string) => Promise<void>
   resumeLatest: () => Promise<string | null>
@@ -149,10 +152,10 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
   loading: false,
   error: null,
 
-  async startCauldronBattle(players, armies, guidanceLevel, objectiveLayout, secondaryDeck, officialSecondaryStrategy, fixedSecondarySelections, primaryDeck, officialSecondaryStrategies, officialLayout, battlefieldAttackerHomeZone) {
+  async startCauldronBattle(players, armies, guidanceLevel, objectiveLayout, secondaryDeck, officialSecondaryStrategy, fixedSecondarySelections, primaryDeck, officialSecondaryStrategies, officialLayout, battlefieldAttackerHomeZone, mode, doubles) {
     set({ loading: true, error: null })
     try {
-      const session = createCauldronGame({ players, armies, guidanceLevel, objectiveLayout, secondaryDeck, officialSecondaryStrategy, fixedSecondarySelections, primaryDeck, officialSecondaryStrategies, officialLayout, battlefieldAttackerHomeZone })
+      const session = createCauldronGame({ players, armies, guidanceLevel, objectiveLayout, secondaryDeck, officialSecondaryStrategy, fixedSecondarySelections, primaryDeck, officialSecondaryStrategies, officialLayout, battlefieldAttackerHomeZone, mode, doubles })
       await saveBattle(session)
       set({ session, loading: false })
       return session.setup.gameId
