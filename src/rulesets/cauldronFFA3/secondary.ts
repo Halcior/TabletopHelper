@@ -286,7 +286,7 @@ export function createSecondaryInitializationEvents(
   random: () => number = Math.random,
 ): BattleEventInput[] {
   if (isOfficialSecondary(session)) {
-    return session.setup.players.flatMap((player) => {
+    return (session.setup.doubles ? session.setup.players.filter((player) => session.state.turnOrder.includes(player.id)) : session.setup.players).flatMap((player) => {
       if (secondaryStrategyFor(session, player.id) === 'fixed') {
         const selected = getCauldronConfig(session).fixedSecondarySelections?.[player.id]
         if (!selected || selected.length !== 2 || new Set(selected).size !== 2 || selected.some((id) => !OFFICIAL_SECONDARY_BY_ID[id]?.fixed)) {
