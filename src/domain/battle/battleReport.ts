@@ -17,6 +17,8 @@ export type BattleReport = {
   maxRounds: number
   ranking: Array<{ playerId: string; name: string; faction: string; vp: number; rank: number }>
   winnerPlayerIds: string[]
+  /** Physical commander labels remain distinct from force-level ranking. */
+  commanderNames?: Record<string, string>
   rounds: Array<{ round: number; highlights: ChronicleEntry[]; leaderChanges: string[] }>
   performance: BattlePerformance
   narrativeStyle: NarrativeStyle
@@ -67,6 +69,7 @@ export function buildBattleReport(session: BattleSession, style: NarrativeStyle 
   const report: BattleReport = {
     schemaVersion: 1, gameId: session.setup.gameId, status: session.state.status, mode, missions,
     roundsPlayed: session.state.round, maxRounds: session.setup.maxRounds, ranking, winnerPlayerIds,
+    commanderNames: Object.fromEntries(session.setup.players.map((player) => [player.id, player.name])),
     rounds, performance, narrativeStyle: style, narrative: [],
   }
   report.narrative = generateOfflineNarrative(report, style)
@@ -92,7 +95,7 @@ const modelCount = (count: number): string => `${count} ${count === 1 ? 'model' 
 
 function narrateEntry(entry: ChronicleEntry, report: BattleReport, style: NarrativeStyle): string {
   const change = entry.unitChange
-  const playerName = (id: string) => report.ranking.find((player) => player.playerId === id)?.name ?? report.performance.units.find((unit) => unit.playerId === id)?.playerName ?? id
+  const playerName = (id: string) => report.ranking.find((player) => player.playerId === id)?.name ?? report.commanderNames?.[id] ?? id
   let text = entry.description
   if (entry.category === 'kills' && change) {
     const attacker = change.attacker ? `${change.attacker.name} (${playerName(change.attacker.playerId)})` : change.attackerPlayerId ? playerName(change.attackerPlayerId) : 'Nieustalone źródło'
