@@ -6,6 +6,7 @@ import { CAULDRON_RULESET_ID, getCauldronConfig, getCurrentRivalPlayerId } from 
 import { evaluateOperationalPlan } from '../../rulesets/cauldronFFA3/operationalPlans'
 import { getActiveSecondaryViews } from '../../rulesets/cauldronFFA3/secondary'
 import { useBattleStore } from '../../stores/battleStore'
+import { doublesScorekeeperId, doublesForceForPlayer } from '../../domain/battle/doubles'
 import { AppIcon } from '../AppIcon'
 import { RivalDamagePanel } from './RivalDamagePanel'
 import { getSecondaryPresentation } from './secondaryPresentation'
@@ -46,15 +47,15 @@ export function SharedPlayerPerspective({
   const dispatch = useBattleStore((store) => store.dispatch)
   if (!viewer || !active) return null
 
-  const ownTurn = viewerPlayerId === active.id
-  const currentRival = viewerPlayerId === currentRivalPlayerId
+  const ownTurn = doublesScorekeeperId(session.setup, viewerPlayerId) === active.id
+  const currentRival = currentRivalPlayerId ? doublesScorekeeperId(session.setup, viewerPlayerId) === currentRivalPlayerId : false
   const viewerRivalId = session.setup.rulesetId === CAULDRON_RULESET_ID
     ? getCurrentRivalPlayerId(session, viewerPlayerId)
     : null
   const viewerRival = viewerRivalId ? session.state.players[viewerRivalId] : null
   const reactionWindow = getCurrentReactionWindow(session)
   const reactionPending = reactionWindow?.responses[viewerPlayerId]?.status === 'PENDING'
-  const activeSecondaries = showCards ? getActiveSecondaryViews(session, viewerPlayerId) : []
+  const activeSecondaries = showCards ? getActiveSecondaryViews(session, doublesScorekeeperId(session.setup, viewerPlayerId)) : []
   const missionActions = selectActiveMissionActions(session, viewerPlayerId)
   const plan = showCards && !(session.setup.rulesetId === CAULDRON_RULESET_ID && (getCauldronConfig(session).primaryDeck ?? 'cauldron') !== 'cauldron')
     ? evaluateOperationalPlan(session, viewerPlayerId) : null
@@ -70,7 +71,7 @@ export function SharedPlayerPerspective({
     ? 'Your turn'
     : currentRival
       ? 'You are Rival'
-      : `Watching ${active.name}`
+      : `Watching ${doublesForceForPlayer(session.setup, active.id)?.name ?? active.name}`
   const urgentTitle = reactionPending
     ? 'Reaction required'
     : ownTurn && requiredActionCount > 0
