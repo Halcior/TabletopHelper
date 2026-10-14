@@ -12,6 +12,7 @@ import type { DoublesSetup } from './types'
 import { authorizeSharedMutation } from '../../multiplayer/sharedEventPolicy'
 import type { SharedMembership } from '../../multiplayer/types'
 import { getAvailableStratagems } from '../stratagems/timingEngine'
+import { buildUnitPerformance } from './unitPerformance'
 import type { StratagemDefinition } from '../stratagems/types'
 
 const forces: DoublesSetup = {
@@ -108,6 +109,19 @@ describe('GW Doubles team foundation', () => {
     expect(() => startOfficialSecondaryAction(session, 'a', 'OFFICIAL_CLEANSE', JSON.stringify(['c', 'tank']), 'CENTER-2')).toThrow(/eligible unit/)
   })
 
+
+  it('credits Plunder to the teammate unit actually selected, without ID collisions', () => {
+    let session = battle()
+    session = dispatchBattleEvent(session, cauldronEvent('SECONDARY_DRAWN', {
+      playerId: 'a', cardId: 'OFFICIAL_PLUNDER', round: 1, turn: 1,
+    }))
+    session = dispatchBattleEvent(session, { type: 'PHASE_CHANGED', payload: { phase: 'SHOOTING' } })
+    const partnerUnit = doublesSecondaryUnitChoices(session, 'a').find((choice) => choice.playerId === 'b' && choice.unitId === 'tank')!
+    session = startOfficialSecondaryAction(session, 'a', 'OFFICIAL_PLUNDER', partnerUnit.value, 'RUIN-2')
+    const result = buildUnitPerformance(session)
+    expect(result.units.find((unit) => unit.playerId === 'b' && unit.unitId === 'tank')?.completedMissionActions).toBe(1)
+    expect(result.units.find((unit) => unit.playerId === 'a' && unit.unitId === 'tank')?.completedMissionActions).toBe(0)
+  })
 
   it('authorizes both allied phones for shared turn and CP, without granting access to teammate units', () => {
     const before = battle()
