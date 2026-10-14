@@ -98,7 +98,7 @@ describe('GW Doubles team foundation', () => {
     expect(options.some((entry) => entry.playerId === 'c')).toBe(false)
     const neutral = 'CENTER-1'
     session = startOfficialSecondaryAction(session, 'a', 'OFFICIAL_CLEANSE', partner!.value, neutral)
-    const action = session.state.events.findLast((event) => event.type === 'RULESET_EVENT' && event.payload.action === 'SECONDARY_OFFICIAL_ACTION_STARTED')
+    const action = [...session.state.events].reverse().find((event) => event.type === 'RULESET_EVENT' && event.payload.action === 'SECONDARY_OFFICIAL_ACTION_STARTED')
     expect(action && 'data' in action.payload && (action.payload.data as { unit?: string }).unit).toBe(partner!.value)
     expect(() => startOfficialSecondaryAction(session, 'a', 'OFFICIAL_CLEANSE', options.find((entry) => entry.playerId === 'a')!.value, neutral)).toThrow(/different objective/)
     expect(() => startOfficialSecondaryAction(session, 'a', 'OFFICIAL_CLEANSE', JSON.stringify(['c', 'tank']), 'CENTER-2')).toThrow(/eligible unit/)
