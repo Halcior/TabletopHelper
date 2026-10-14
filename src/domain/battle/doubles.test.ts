@@ -11,6 +11,8 @@ import { getDuelMission } from '../../rulesets/cauldronFFA3/duelPrimary'
 import type { DoublesSetup } from './types'
 import { authorizeSharedMutation } from '../../multiplayer/sharedEventPolicy'
 import type { SharedMembership } from '../../multiplayer/types'
+import { getAvailableStratagems } from '../stratagems/timingEngine'
+import type { StratagemDefinition } from '../stratagems/types'
 
 const forces: DoublesSetup = {
   rulesVersion: 'GW-Doubles-1.1',
@@ -122,6 +124,30 @@ describe('GW Doubles team foundation', () => {
     expect(authorizeSharedMutation(before, teammateDamage, seat('b')).allowed).toBe(false)
     const enemyDamage = dispatchBattleEvent(before, { type: 'UNIT_MODEL_DESTROYED', payload: { playerId: 'd', unitId: 'infantry', amount: 1, destroyedByPlayerId: 'b' } }, { actorPlayerId: 'b' })
     expect(authorizeSharedMutation(before, enemyDamage, seat('b')).allowed).toBe(true)
+  })
+
+
+  it('enforces shared team CP and once-per-phase Stratagem usage across teammates', () => {
+    let session = battle()
+    session = dispatchBattleEvent(session, { type: 'CP_GAINED', payload: { playerId: 'b', amount: 2 } })
+    const definition: StratagemDefinition = {
+      id: 'test-team-stratagem', name: 'Team test', kind: 'STRATAGEM', cpCost: 1,
+      description: 'Test a single shared resource and usage limit.', ownerScope: 'ACTIVE_PLAYER',
+      phases: ['ANY'], triggers: ['PHASE_START'], reaction: false,
+      usageLimits: ['ONCE_PER_PHASE'], source: 'Test',
+    }
+    const available = (playerId: string) => getAvailableStratagems({
+      playerId, gameState: session.state, trigger: 'PHASE_START', definitions: [definition],
+    })[0]
+    expect(available('a').canUse).toBe(true)
+    expect(available('b').canUse).toBe(true)
+    expect(available('c')).toBeUndefined()
+    session = dispatchBattleEvent(session, { type: 'STRATAGEM_USED', payload: {
+      playerId: 'b', stratagemId: definition.id, stratagemName: definition.name, cpCost: 1,
+    } })
+    expect(available('a').canUse).toBe(false)
+    expect(available('b').canUse).toBe(false)
+    expect(session.state.timing.stratagemUsage['a::test-team-stratagem']?.usedThisPhase).toBe(1)
   })
 
   it('rejects malformed team memberships instead of silently creating extra turns', () => {
