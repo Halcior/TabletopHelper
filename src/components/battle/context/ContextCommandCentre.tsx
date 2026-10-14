@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { StartMissionActionInput } from '../../../domain/battle/missionActions'
 import type { BattleEventInput, BattleSession } from '../../../domain/battle/types'
+import { doublesScorekeeperId } from '../../../domain/battle/doubles'
 import type { BattleContext, ContextAction, ContextItem, RelevantStratagem } from '../../../domain/context'
 import type { StratagemAvailability } from '../../../domain/stratagems/types'
 import { getCurrentRivalPlayerId } from '../../../rulesets/cauldronFFA3'
@@ -136,7 +137,7 @@ export function ContextCommandCentre({
   const [candidateIds, setCandidateIds] = useState<string[]>([])
   const [expanded, setExpanded] = useState(false)
   const playerId = session.state.activePlayerId
-  const viewerControlsTurn = !sharedMode || viewerPlayerId === playerId
+  const viewerControlsTurn = !sharedMode || Boolean(viewerPlayerId && doublesScorekeeperId(session.setup, viewerPlayerId) === playerId)
   const rivalPlayerId = getCurrentRivalPlayerId(session, playerId)
   const secondary = getSecondaryState(session)[playerId]
   const pendingChoice = getPendingEliminationChoice(session, playerId)
@@ -203,6 +204,7 @@ export function ContextCommandCentre({
     if (itemAction.type === 'SELECT_PRIORITY_TARGET' && priorityNeedsGamma) {
       return !sharedMode || viewerPlayerId === playerId
     }
+    if (session.setup.doubles && viewerControlsTurn && itemAction.type !== 'PASS_REACTION') return true
     return canViewerUseAction(itemAction, playerId, sharedMode, viewerPlayerId)
   }
 
