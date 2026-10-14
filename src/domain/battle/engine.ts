@@ -284,7 +284,7 @@ function applyEvent(state: GameState, event: BattleEvent, setup: BattleSetup): v
           return
         case 'OBJECTIVE_CONTROL':
           if (correction.controllerPlayerId !== null) requirePlayer(state, correction.controllerPlayerId)
-          requireObjective(state, correction.objectiveId).controllerPlayerId = correction.controllerPlayerId
+          requireObjective(state, correction.objectiveId).controllerPlayerId = correction.controllerPlayerId === null ? null : doublesScorekeeperId(setup, correction.controllerPlayerId)
           return
         case 'OBJECTIVE_OC': {
           requirePlayer(state, correction.playerId)
@@ -366,7 +366,7 @@ function applyEvent(state: GameState, event: BattleEvent, setup: BattleSetup): v
       requirePlayer(state, event.payload.playerId)
       const objective = requireObjective(state, event.payload.objectiveId)
       objective.playerOC[event.payload.playerId] = Math.max(0, event.payload.oc)
-      objective.controllerPlayerId = resolveObjectiveController(objective.playerOC)
+      objective.controllerPlayerId = setup.doubles ? doublesObjectiveController(setup, objective.playerOC) : resolveObjectiveController(objective.playerOC)
       return
     }
     case 'OBJECTIVE_CONTROL_CHANGED': {
