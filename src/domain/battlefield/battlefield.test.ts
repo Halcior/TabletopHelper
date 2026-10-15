@@ -110,17 +110,17 @@ describe('official source geometry', () => {
         })
       }
 
-  it('uses transcribed objective glyph centres from page 9 and keeps unmatched IDs unplaced', () => {
+  it('uses transcribed objective glyph centres from page 9 without fabricating absent IDs', () => {
     const session = duel()
     const geometry = session.state.battlefield!
     expect(geometry.positions['A-HOME']).toEqual({ x: 0.374741, y: 0.1697 })
     expect(geometry.positions['B-HOME']).toEqual({ x: 0.585527, y: 0.788059 })
     expect(geometry.positions['CENTER-1']).toEqual({ x: 0.500396, y: 0.499928 })
-    expect(geometry.positions['CENTER-2']).toBeNull()
+    expect(Object.hasOwn(geometry.positions, 'CENTER-2')).toBe(false)
     expect(
       battlefieldPresentation(session.setup, geometry).unplacedIds,
-    ).toEqual(['CENTER-2'])
-    expect(session.setup.objectives).toHaveLength(6)
+    ).toEqual([])
+    expect(session.setup.objectives).toHaveLength(5)
     expect(
       session.setup.objectives.every((objective) =>
         objective.id.endsWith('-HOME')
@@ -136,7 +136,9 @@ describe('official source geometry', () => {
       expect(
         battlefieldPresentation(session.setup, session.state.battlefield!)
           .unplacedIds,
-      ).toEqual(['EXPANSION-1', 'EXPANSION-2'])
+      ).toEqual([])
+      expect(Object.keys(session.state.objectives)).toHaveLength(4)
+      expect('EXPANSION-1' in session.state.objectives).toBe(false)
     }
   })
 
