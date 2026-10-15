@@ -117,24 +117,28 @@ function commandItems(session: BattleSession): ContextItem[] {
   if (session.state.phase !== 'COMMAND') return []
   const playerId = session.state.activePlayerId
   const cpRecorded = selectCommandPointRecordedThisTurn(session)
+  const officialBothSides = session.setup.rulesetConfig && typeof session.setup.rulesetConfig === 'object'
+    && 'primaryDeck' in session.setup.rulesetConfig
+    && session.setup.rulesetConfig.primaryDeck === 'chapter-approved-duel'
   const guidedCpPending = session.setup.guidanceLevel === 'guided' && !cpRecorded
   const items: ContextItem[] = [{
     id: `command-cp-${playerId}`,
     type: 'COMMAND_POINT',
     title: cpRecorded
-      ? '+1 Command Point recorded'
-      : guidedCpPending ? 'Gain 1 Command Point before advancing' : 'Gain 1 Command Point',
+      ? (officialBothSides ? 'Both sides received Core CP' : '+1 Command Point recorded')
+      : guidedCpPending ? (officialBothSides ? 'Give both sides Core CP before advancing' : 'Gain 1 Command Point before advancing')
+        : (officialBothSides ? 'Give both sides +1 Core CP' : 'Gain 1 Command Point'),
     shortDescription: cpRecorded
-      ? 'The Command phase gain is already in the battle log.'
+      ? (officialBothSides ? 'Both opposing sides gained one Core CP this Command phase.' : 'The Command phase gain is already in the battle log.')
       : guidedCpPending
         ? 'Guided Mode requires the Command phase CP gain to be recorded before leaving this phase.'
-        : 'Record the Command phase CP gain.',
+        : (officialBothSides ? 'Record +1 Core CP for each side this phase.' : 'Record the Command phase CP gain.'),
     status: cpRecorded ? 'DONE' : guidedCpPending ? 'BLOCKING' : 'AVAILABLE',
     severity: cpRecorded ? 'QUIET' : guidedCpPending ? 'CRITICAL' : 'ATTENTION',
     source: 'SYSTEM',
     phase: 'COMMAND',
     relatedPlayerId: playerId,
-    actions: cpRecorded ? [] : [action('gain-command-cp', 'GAIN_COMMAND_POINT', '+1 CP', { playerId })],
+    actions: cpRecorded ? [] : [action('gain-command-cp', 'GAIN_COMMAND_POINT', officialBothSides ? '+1 CP for both sides' : '+1 CP', { playerId })],
   }]
   if (session.setup.rulesetId !== CAULDRON_RULESET_ID) return items
   if (isOfficialSecondary(session)) return items
