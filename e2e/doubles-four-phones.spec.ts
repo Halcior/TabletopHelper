@@ -45,8 +45,15 @@ test('four phones play one GW Doubles turn with exactly two shared CP and VP poo
     console.info('[Doubles 2v2] Battle started; checking scores and shared cards')
     await Promise.all(phones.map(async (entry) => {
       await expect(entry.page).toHaveURL(/\/battle\//)
-      await dismissSecondaryReveal(entry.page)
       await expect(entry.page.locator('.score-card')).toHaveCount(2)
+    }))
+    // The draw reveal is mounted by an effect after navigation, so do not
+    // race its first render. A skipped early dismissal can intercept CP taps.
+    await expect(alpha.page.getByRole('button', { name: 'Keep cards', exact: true })).toBeVisible()
+    await dismissSecondaryReveal(alpha.page)
+    await expect(alpha.page.locator('.secondary-draw-reveal')).toHaveCount(0)
+    await Promise.all(phones.slice(1).map(async (entry) => {
+      await dismissSecondaryReveal(entry.page)
     }))
 
     // Either allied phone may manipulate the one CP pool; the opponents may not.
