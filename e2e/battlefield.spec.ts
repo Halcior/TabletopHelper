@@ -91,7 +91,7 @@ for (const layout of [1, 2, 3])
         '152.4',
       )
       await expect(page.locator('.objective-node')).toHaveCount(5)
-      await expect(page.locator('.battlefield-unplaced button')).toHaveCount(1)
+      await expect(page.locator('.battlefield-unplaced button')).toHaveCount(0)
       await expect(page.locator('[data-deployment-zone]')).toHaveCount(2)
       await expect(page.locator('.battlefield-territory')).not.toHaveCount(0)
       const savedX = Number(
