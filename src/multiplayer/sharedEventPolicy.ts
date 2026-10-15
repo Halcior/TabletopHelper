@@ -157,6 +157,25 @@ export function authorizeSharedAction(
     return deny('Only the room host can end a shared battle manually.')
   }
 
+  // Core 08.02 is a single *paired* action. At each official Duel/Doubles
+  // Command step, both opposing scorekeepers gain one CP simultaneously.
+  // A normal shared participant may never use this exception to edit an enemy
+  // CP value outside that exact one-off group.
+  const config = sessionBefore.setup.rulesetConfig
+  const officialDuel = Boolean(config && typeof config === 'object' && 'primaryDeck' in config
+    && config.primaryDeck === 'chapter-approved-duel')
+  const currentTurnIndex = sessionBefore.state.events.findLastIndex((event) => event.type === 'TURN_STARTED')
+  const alreadyGranted = sessionBefore.state.events.slice(currentTurnIndex + 1)
+    .some((event) => event.type === 'CP_GAINED'
+      && sessionBefore.state.turnOrder.includes(event.payload.playerId))
+  const pairedCoreCp = officialDuel
+    && sessionBefore.state.phase === 'COMMAND' && !alreadyGranted
+    && doublesScorekeeperId(sessionBefore.setup, viewerPlayerId) === sessionBefore.state.activePlayerId
+    && events.length === sessionBefore.state.turnOrder.length
+    && events.every((event) => event.type === 'CP_GAINED' && event.payload.amount === 1)
+    && new Set(events.map((event) => event.type === 'CP_GAINED' ? event.payload.playerId : '')).size === sessionBefore.state.turnOrder.length
+    && events.every((event) => event.type === 'CP_GAINED' && sessionBefore.state.turnOrder.includes(event.payload.playerId))
+
   const primaryCommit = hasPrimaryCommit(events)
   const duelBattleReady = events.some((event) => event.type === 'RULESET_EVENT' && event.payload.action === 'DUEL_BATTLE_READY')
   if (primaryCommit && doublesScorekeeperId(sessionBefore.setup, viewerPlayerId) !== sessionBefore.state.activePlayerId) {
@@ -205,6 +224,7 @@ export function authorizeSharedAction(
 
     const targetPlayerId = playerScopedTarget(event, sessionBefore)
     if (targetPlayerId && targetPlayerId !== viewerPlayerId) {
+      if (pairedCoreCp && event.type === 'CP_GAINED') continue
       if (event.type === 'SCORE_ADJUSTED' && (primaryCommit || duelBattleReady) && doublesScorekeeperId(sessionBefore.setup, viewerPlayerId) === sessionBefore.state.activePlayerId) continue
       if (onSameDoublesForce(sessionBefore.setup, viewerPlayerId, targetPlayerId)
         && (event.type === 'CP_GAINED' || event.type === 'CP_SPENT' || event.type === 'SCORE_ADJUSTED')) continue
