@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { testArmy } from '../../rulesets/cauldronFFA3/cauldronTestUtils'
-import { createCauldronGame } from '../../rulesets/cauldronFFA3/session'
+import { createCauldronGame, grantCommandPhaseCp } from '../../rulesets/cauldronFFA3/session'
+import { selectCommandPointRecordedThisTurn } from '../context/selectors'
 import { advancePhase, dispatchBattleEvent } from './engine'
 import { doublesObjectiveController, doublesScorekeeperId, doublesTeamMembers } from './doubles'
 import { officialBoardDefinition } from '../battlefield/layouts'
@@ -81,6 +82,27 @@ describe('GW Doubles team foundation', () => {
     expect(session.state.round).toBe(5)
     expect(session.state.status).toBe('completed')
     expect(session.state.events.filter((event) => event.type === 'TURN_STARTED')).toHaveLength(10)
+  })
+
+  it('grants Core CP to both forces exactly once per Command phase and permits either ally to confirm', () => {
+    const initial = battle()
+    const after = grantCommandPhaseCp(initial)
+    expect(after.state.players.a.cp).toBe(1)
+    expect(after.state.players.b.cp).toBe(0)
+    expect(after.state.players.c.cp).toBe(1)
+    expect(after.state.players.d.cp).toBe(0)
+    expect(selectCommandPointRecordedThisTurn(after)).toBe(true)
+    expect(() => grantCommandPhaseCp(after)).toThrow(/already been recorded/)
+    const beta: SharedMembership = { roomId: 'room', roomCode: 'ABCDEF', battleId: initial.setup.gameId, playerId: 'b', clientId: 'phone-b', isHost: false }
+    const gamma: SharedMembership = { ...beta, playerId: 'c', clientId: 'phone-c' }
+    expect(authorizeSharedMutation(initial, after, beta).allowed).toBe(true)
+    expect(authorizeSharedMutation(initial, after, gamma).allowed).toBe(false)
+    let next = after
+    for (let i = 0; i < BATTLE_PHASES.length; i++) next = advancePhase(next)
+    expect(next.state.activePlayerId).toBe('c')
+    const secondTeamTurn = grantCommandPhaseCp(next)
+    expect(secondTeamTurn.state.players.a.cp).toBe(2)
+    expect(secondTeamTurn.state.players.c.cp).toBe(2)
   })
 
   it('routes both partners CP and VP to their one shared force score', () => {
