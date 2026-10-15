@@ -5,6 +5,7 @@ import {
 } from '../../domain/battle/engine'
 import type { BattleSession } from '../../domain/battle/types'
 import { validateDoublesSetup } from '../../domain/battle/doubles'
+import { officialObjectivesForPair } from '../../domain/battlefield/layouts'
 import {
   CAULDRON_BATTLE_ROUNDS,
   CAULDRON_DUEL_PLAYER_COUNT,
@@ -13,7 +14,6 @@ import {
   CAULDRON_RULESET_ID,
   CAULDRON_SECONDARY_CAP,
   CAULDRON_TOTAL_CAP,
-  OFFICIAL_DUEL_OBJECTIVES,
   OFFICIAL_FFA_OBJECTIVES,
   OPERATIONAL_PLAN_IDS,
   cauldronObjectivesForPlayerCount,
@@ -154,7 +154,12 @@ export function createCauldronGame(input: CauldronGameInput): BattleSession {
     players,
     armies: [...new Map(input.armies.map((army) => [army.id, army])).values()],
     turnOrder,
-    objectives: input.primaryDeck === 'chapter-approved-duel' ? OFFICIAL_DUEL_OBJECTIVES
+    objectives: input.primaryDeck === 'chapter-approved-duel'
+      ? officialObjectivesForPair(
+        input.doubles?.forces[0].forceDisposition ?? input.players[0].forceDisposition ?? '',
+        input.doubles?.forces[1].forceDisposition ?? input.players[1].forceDisposition ?? '',
+        input.officialLayout ?? 1,
+      )
       : playerCount === 3 && input.secondaryDeck === 'chapter-approved' ? OFFICIAL_FFA_OBJECTIVES
       : cauldronObjectivesForPlayerCount(playerCount, objectiveLayout),
     maxRounds: CAULDRON_BATTLE_ROUNDS,
