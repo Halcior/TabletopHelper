@@ -176,6 +176,27 @@ export function createCauldronGame(input: CauldronGameInput): BattleSession {
   return session
 }
 
+/**
+ * 11th-edition Core 08.02: BOTH sides gain 1 Core CP at the start of each
+ * Command phase, not only the side whose turn it is. Doubles grants one per
+ * force (captain scorekeeper), never one per physical commander.
+ * Our Cauldron house formats retain their existing active-only convention.
+ */
+export function grantCommandPhaseCp(session: BattleSession): BattleSession {
+  if (session.state.status !== 'active' || session.state.phase !== 'COMMAND')
+    throw new Error('Core CP is recorded during an active Command phase.')
+  const activeId = session.state.activePlayerId
+  const recipients = isDuelPrimary(session) ? session.state.turnOrder : [activeId]
+  const lastTurnIndex = session.state.events.findLastIndex((event) => event.type === 'TURN_STARTED')
+  const eventsThisTurn = session.state.events.slice(lastTurnIndex + 1)
+  if (eventsThisTurn.some((event) => event.type === 'CP_GAINED' && recipients.includes(event.payload.playerId)))
+    throw new Error('Core CP has already been recorded in this Command phase.')
+  return dispatchBattleEvents(session, recipients.map((playerId) => ({
+    type: 'CP_GAINED' as const,
+    payload: { playerId, amount: 1 },
+  })), { actorPlayerId: activeId })
+}
+
 export function isCauldronEndOfRound(session: BattleSession): boolean {
   return session.state.phase === 'END_TURN'
     && session.state.activePlayerId === session.state.turnOrder.at(-1)
