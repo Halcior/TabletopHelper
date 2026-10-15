@@ -68,8 +68,10 @@ test('four phones play one GW Doubles turn with exactly two shared CP and VP poo
     // The same two team missions appear to both partners, not four copies.
     await selectPanel(alpha.page, 'cards')
     await selectPanel(beta.page, 'cards')
-    await expect(alpha.page.locator('.secondary-card--official')).toHaveCount(2)
-    await expect(beta.page.locator('.secondary-card--official')).toHaveCount(2)
+    // Battle and Cards panels stay mounted to preserve draft state; inspect
+    // only the visible Cards panel rather than counting both mounted copies.
+    await expect(alpha.page.locator('.battle-panel:not([hidden]) .secondary-card--official')).toHaveCount(2)
+    await expect(beta.page.locator('.battle-panel:not([hidden]) .secondary-card--official')).toHaveCount(2)
 
     // Chronicle and after-action report must retain all four commanders but only
     // two ranked sides.
