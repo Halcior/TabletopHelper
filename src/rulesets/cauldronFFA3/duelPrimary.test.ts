@@ -9,7 +9,7 @@ import {
 import { OFFICIAL_SECONDARY_IDS } from './officialSecondaryDefinitions'
 import { acknowledgeOfficialWindow, officialPendingReviewPlayers } from './officialSecondary'
 import { confirmCauldronEndRound } from './roundEnd'
-import { advanceCauldronPhase, createCauldronGame } from './session'
+import { advanceCauldronPhase, createCauldronGame, grantCommandPhaseCp } from './session'
 import { getSecondaryState } from './secondary'
 
 function game(left: typeof DISPOSITIONS[number] = 'take-and-hold', right: typeof DISPOSITIONS[number] = 'purge-the-foe') {
@@ -28,6 +28,15 @@ function game(left: typeof DISPOSITIONS[number] = 'take-and-hold', right: typeof
 }
 
 describe('11th edition official duel', () => {
+  it('awards Core CP to both players during every Command phase, once only', () => {
+    const first = game()
+    const after = grantCommandPhaseCp(first)
+    expect(after.state.players['p-a'].cp).toBe(1)
+    expect(after.state.players['p-b'].cp).toBe(1)
+    expect(after.state.events.filter((event) => event.type === 'CP_GAINED')).toHaveLength(2)
+    expect(() => grantCommandPhaseCp(after)).toThrow(/already been recorded/)
+  })
+
   it('maps every ordered Force Disposition pairing to one of 25 distinct cards', () => {
     expect(Object.keys(DUEL_MISSIONS)).toHaveLength(25)
     expect(new Set(DISPOSITIONS.flatMap((own) => DISPOSITIONS.map((enemy) => DUEL_PRIMARY_MATRIX[own][enemy]))).size).toBe(25)
