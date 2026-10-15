@@ -236,7 +236,7 @@ describe('custom geometry, replay and permissions', () => {
       official: false,
       title: 'Cauldron Duel · schematic',
     })
-    expect(Object.keys(geometry.positions)).toHaveLength(6)
+    expect(Object.keys(geometry.positions)).toHaveLength(session.setup.objectives.length)
   })
 
   it('persists normalized positions and dimensions, including undo, redo and legacy rehydration', () => {
