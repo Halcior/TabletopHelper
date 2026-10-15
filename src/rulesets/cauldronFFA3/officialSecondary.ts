@@ -95,6 +95,36 @@ export function acknowledgeOfficialWindow(session: BattleSession, playerId: stri
   })], { actorPlayerId: playerId })
 }
 
+export type DoublesSecondaryUnitChoice = {
+  value: string
+  playerId: string
+  unitId: string
+  label: string
+}
+
+/** Explicit commander/unit pair avoids collisions between imported army IDs. */
+export function doublesSecondaryUnitChoices(
+  session: BattleSession,
+  forceCaptainId: string,
+  requireActionEligible = true,
+): DoublesSecondaryUnitChoice[] {
+  const force = session.setup.doubles?.forces.find((entry) => entry.captainPlayerId === forceCaptainId)
+  if (!force) return []
+  return force.memberPlayerIds.flatMap((playerId) => {
+    const owner = session.setup.players.find((player) => player.id === playerId)
+    const army = owner?.armyId ? session.setup.armies[owner.armyId] : undefined
+    return (army?.units ?? []).filter((unit) => {
+      const state = session.state.players[playerId]?.units[unit.id]
+      return state && !state.destroyed && !state.inReserve && (!requireActionEligible || !state.battleShocked)
+    }).map((unit) => ({
+      value: JSON.stringify([playerId, unit.id]),
+      playerId,
+      unitId: unit.id,
+      label: `${owner!.name} · ${unit.name}`,
+    }))
+  })
+}
+
 export type OfficialActionConfirmation = { terrainWhollyOutsideOwnTerritory?: boolean }
 type OfficialActionStart = { playerId: string; cardId: OfficialSecondaryId; turnKey: string; unit: string; target: string } & OfficialActionConfirmation
 export function officialActionCount(session: BattleSession, playerId: string, cardId: OfficialSecondaryId): number {
@@ -110,6 +140,13 @@ export function startOfficialSecondaryAction(session: BattleSession, playerId: s
     throw new Error('Cleanse or Plunder must be started in your Shooting phase while the card is active.')
   }
   if (!unit.trim() || !target.trim()) throw new Error('Record the unit and objective or terrain area.')
+  if (session.setup.doubles) {
+    const valid = doublesSecondaryUnitChoices(session, playerId).some((candidate) => candidate.value === unit)
+    if (!valid) throw new Error('Choose an eligible unit from either member of this Doubles force.')
+    if (cardId === 'OFFICIAL_CLEANSE' && session.state.objectives[target]?.type !== 'neutral') {
+      throw new Error('Cleanse requires an eligible non-HOME objective in NML.')
+    }
+  }
   if (isOfficialFfa(session)) {
     const definition = officialPlayerUnits(session, playerId).find((entry) => entry.id === unit || entry.name === unit)
     const state = definition ? session.state.players[playerId].units[definition.id] : undefined
@@ -242,6 +279,13 @@ export function noteOfficialTarget(session: BattleSession, playerId: string, car
   if (cardId === 'OFFICIAL_BEACON') {
     const card = getSecondaryState(session)[playerId].active.find((entry) => entry.cardId === cardId)!
     if (card.cardSpecificState?.officialTargetUnitId || card.cardSpecificState?.lastConfirmation) throw new Error('The when-drawn choice is locked for this card.')
+    if (session.setup.doubles) {
+      const choice = doublesSecondaryUnitChoices(session, playerId, false).find((entry) => entry.value === note)
+      if (!choice) throw new Error('Choose a living unit from either teammate for Beacon.')
+      return dispatchBattleEvents(session, [cauldronEvent('SECONDARY_CARD_STATE_UPDATED', {
+        playerId, cardId, patch: { officialTargetUnitId: choice.value, lastConfirmation: choice.label },
+      })], { actorPlayerId: playerId })
+    }
     const unit = officialPlayerUnits(session, playerId).find((entry) => entry.id === note || entry.name === note)
     if (!unit || session.state.players[playerId].units[unit.id]?.destroyed || session.state.players[playerId].units[unit.id]?.inReserve) throw new Error('Choose an own unit on the battlefield or embarked in a TRANSPORT there.')
     return dispatchBattleEvents(session, [cauldronEvent('SECONDARY_CARD_STATE_UPDATED', {
@@ -257,10 +301,11 @@ export function assignOfficialGuards(session: BattleSession, playerId: string, a
   assertOfficial(session)
   const cardId = 'OFFICIAL_BURDEN_OF_TRUST'
   const card = getSecondaryState(session)[playerId]?.active.find((entry) => entry.cardId === cardId)
-  if (!isOfficialFfa(session) || !card || session.state.activePlayerId !== playerId || session.state.phase !== 'COMMAND') throw new Error('Assign guards when drawn or at the start of your own turn.')
+  if ((!isOfficialFfa(session) && !session.setup.doubles) || !card || session.state.activePlayerId !== playerId || session.state.phase !== 'COMMAND') throw new Error('Assign guards when drawn or at the start of your own turn.')
   if (card.cardSpecificState?.officialGuardAssignmentTurnKey === officialTurnKey(session)) throw new Error('Guard assignments are already saved for this turn.')
   const controlled = Object.values(session.state.objectives).filter((objective) => objective.controllerPlayerId === playerId)
   if (Object.keys(assignments).length !== controlled.length || !controlled.every((objective) => {
+    if (session.setup.doubles) return doublesSecondaryUnitChoices(session, playerId, false).some((choice) => choice.value === assignments[objective.id])
     const unit = session.state.players[playerId].units[assignments[objective.id]]
     return unit && !unit.destroyed && !unit.inReserve
   })) throw new Error('Assign a living own unit to every objective you currently control.')

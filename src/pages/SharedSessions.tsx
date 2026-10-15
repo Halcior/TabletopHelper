@@ -92,7 +92,7 @@ export default function SharedSessions() {
     const occupied = new Set(inspection.participants
       .filter((participant) => participantIsActive(participant))
       .map((participant) => participant.playerId))
-    const firstFree = inspection.room.sessionSnapshot.state.turnOrder.find((playerId) => !occupied.has(playerId))
+    const firstFree = inspection.room.sessionSnapshot.setup.players.map((player) => player.id).find((playerId) => !occupied.has(playerId))
     setJoinPlayerId(firstFree ?? '')
   }, [inspection, membership])
 
@@ -120,7 +120,7 @@ export default function SharedSessions() {
 
   const lobbySession = inspection?.room.sessionSnapshot ?? latestBattle
   const secondaryConfig = lobbySession?.setup.rulesetId === CAULDRON_RULESET_ID ? getCauldronConfig(lobbySession) : null
-  const lobbyPlayerIds = lobbySession?.state.turnOrder ?? []
+  const lobbyPlayerIds = lobbySession?.setup.players.map((player) => player.id) ?? []
   const seatTarget = lobbyPlayerIds.length
   const lobbySummary = useMemo(
     () => summarizeSharedLobby(lobbyPlayerIds, participants, clock),
@@ -338,7 +338,7 @@ export default function SharedSessions() {
           <button className="button--gold" disabled={working || roomCode.length !== 6} onClick={findRoom}>{working ? 'Finding…' : 'Continue'}</button>
         </div>}
         {inspection && <div className="shared-seat-picker">
-          {inspection.room.sessionSnapshot.state.turnOrder.map((playerId) => {
+          {inspection.room.sessionSnapshot.setup.players.map((player) => player.id).map((playerId) => {
             const player = inspection.room.sessionSnapshot.state.players[playerId]
             const occupant = inspection.participants.find((participant) => participant.playerId === playerId)
             const occupiedNow = occupant ? participantIsActive(occupant, clock) : false
@@ -364,7 +364,7 @@ export default function SharedSessions() {
           <div className="shared-host-summary"><strong>Round {latestBattle.state.round}</strong><span>{latestBattle.state.phase.replaceAll('_', ' ')}</span></div>
           <label>You are
             <select value={hostPlayerId} onChange={(event) => setHostPlayerId(event.target.value)}>
-              {latestBattle.state.turnOrder.map((playerId) => <option key={playerId} value={playerId}>{latestBattle.state.players[playerId].name}</option>)}
+              {latestBattle.setup.players.map((player) => <option key={player.id} value={player.id}>{player.name}</option>)}
             </select>
           </label>
           <button className="button button--gold button--wide" disabled={working || backendCheckStatus === 'checking'} onClick={host}>{working ? 'Creating…' : 'Create lobby'}</button>

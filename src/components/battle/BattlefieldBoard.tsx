@@ -3,6 +3,7 @@ import { CommandPopover } from '../ui/CommandPopover'
 import { InfoDisclosure } from '../ui/InfoDisclosure'
 import { placeObjectiveLabels } from './objectiveLabels'
 import { buildBattleChronicle } from '../../domain/battle/chronicle'
+import { doublesScorekeeperId, doublesForceForPlayer } from '../../domain/battle/doubles'
 import type { BattleEventInput, BattleSession } from '../../domain/battle/types'
 import {
   battlefieldPresentation,
@@ -88,10 +89,10 @@ export function BattlefieldBoard({
       )
   const selected = selectedId ? session.state.objectives[selectedId] : undefined
   const playerIndex = (id: string | null | undefined) =>
-    id ? session.setup.turnOrder.indexOf(id) : -1
+    id ? session.setup.turnOrder.indexOf(doublesScorekeeperId(session.setup, id)) : -1
   const controllerName = (id: string) =>
     controllers[id]
-      ? (session.state.players[controllers[id]!]?.name ?? 'Unknown')
+      ? (doublesForceForPlayer(session.setup, controllers[id]!)?.name ?? session.state.players[controllers[id]!]?.name ?? 'Unknown')
       : 'Uncontrolled'
   const displayedIds = new Set(
     frames
@@ -252,13 +253,13 @@ export function BattlefieldBoard({
         </p></InfoDisclosure>
       )}
       <div className="battlefield-player-legend">
-        {session.setup.players.map((player) => (
+        {session.setup.players.filter((player) => !session.setup.doubles || session.state.turnOrder.includes(player.id)).map((player) => (
           <span
             key={player.id}
             className={`battlefield-player battlefield-player--${playerIndex(player.id)}${player.id === activeId ? ' is-active' : ''}`}
           >
             <i />
-            {player.deploymentZone} · {player.name}
+            {player.deploymentZone} · {doublesForceForPlayer(session.setup, player.id)?.name ?? player.name}
             {player.id === activeId ? ' · active' : ''}
           </span>
         ))}
@@ -317,9 +318,9 @@ export function BattlefieldBoard({
           </div>
           <p>{frame?.description}</p>
           <div className="battlefield-replay__scores">
-            {session.setup.players.map((player) => (
+            {session.setup.players.filter((player) => !session.setup.doubles || session.state.turnOrder.includes(player.id)).map((player) => (
               <span key={player.id}>
-                {player.name}{' '}
+                {doublesForceForPlayer(session.setup, player.id)?.name ?? player.name}{' '}
                 <strong>{frame?.scores[player.id] ?? 0} VP</strong>
               </span>
             ))}
@@ -677,7 +678,7 @@ export function BattlefieldBoard({
               >
                 None / Uncontrolled
               </button>
-              {session.setup.players.map((player) => (
+              {session.setup.players.filter((player) => !session.setup.doubles || session.state.turnOrder.includes(player.id)).map((player) => (
                 <button
                   disabled={replay || session.state.status !== 'active'}
                   className={`objective-choice--player-${playerIndex(player.id)}`}

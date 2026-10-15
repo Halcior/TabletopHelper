@@ -1,5 +1,5 @@
 import officialData from './officialLayouts.json'
-import type { BattleSetup } from '../battle/types'
+import type { BattleSetup, ObjectiveDefinition } from '../battle/types'
 import type {
   BattlefieldGeometry,
   BoardPoint,
@@ -29,9 +29,41 @@ function configOf(setup: BattleSetup): {
 
 export function isOfficialBoard(setup: BattleSetup): boolean {
   return (
-    setup.players.length === 2 &&
+    (setup.players.length === 2 || Boolean(setup.doubles)) &&
     configOf(setup).primaryDeck === 'chapter-approved-duel'
   )
+}
+
+/**
+ * Build the actual objective set for a NEW official battle from the pinned
+ * Event Companion glyphs. Older saved sessions retain their existing IDs.
+ * Layouts contain 4, 5 or 6 physical objectives; phantom IDs must never score.
+ */
+export function officialObjectivesForPair(
+  dispositionA: string,
+  dispositionB: string,
+  layout: number = 1,
+): ObjectiveDefinition[] {
+  if (!DISPOSITION_ORDER.includes(dispositionA) || !DISPOSITION_ORDER.includes(dispositionB)
+    || !Number.isInteger(layout) || layout < 1 || layout > 3) {
+    throw new Error('Choose valid official Force Dispositions and layout A/B/C.')
+  }
+  const pair = [dispositionA, dispositionB].sort(
+    (a, b) => DISPOSITION_ORDER.indexOf(a) - DISPOSITION_ORDER.indexOf(b),
+  )
+  const definition = OFFICIAL[[...pair, 'ABC'[layout - 1]].join('|')]
+  if (!definition) throw new Error('Official objective geometry was not found for the selected mission pairing.')
+  const home = [
+    { id: 'A-HOME', name: 'A-HOME', type: 'home' as const },
+    { id: 'B-HOME', name: 'B-HOME', type: 'home' as const },
+  ]
+  const central = definition.objectives.central.map((_, index) => ({
+    id: `CENTER-${index + 1}`, name: `CENTER-${index + 1}`, type: 'neutral' as const,
+  }))
+  const expansion = definition.objectives.expansion.map((_, index) => ({
+    id: `EXPANSION-${index + 1}`, name: `EXPANSION-${index + 1}`, type: 'neutral' as const,
+  }))
+  return [...home, ...central, ...expansion]
 }
 
 export function officialBoardDefinition(
@@ -39,7 +71,7 @@ export function officialBoardDefinition(
 ): OfficialBoardDefinition | undefined {
   if (!isOfficialBoard(setup)) return
   const config = configOf(setup)
-  const pair = setup.players.map(
+  const pair = setup.players.filter((player) => setup.turnOrder.includes(player.id)).map(
     (player) => config.playerConfigs?.[player.id]?.forceDisposition ?? '',
   )
   if (pair.some((value) => !DISPOSITION_ORDER.includes(value))) return
@@ -131,7 +163,7 @@ export function battlefieldPresentation(
   const official = officialBoardDefinition(setup)
   if (official)
     return {
-      title: `Official Duel · Layout ${official.variant}`,
+      title: `${setup.doubles ? 'Official Doubles' : 'Official Duel'} · Layout ${official.variant}`,
       official: true,
       sourcePage: official.page,
       sourceUrl: OFFICIAL_BOARD_SOURCE.url,

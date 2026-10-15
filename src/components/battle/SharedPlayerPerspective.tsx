@@ -6,6 +6,7 @@ import { CAULDRON_RULESET_ID, getCauldronConfig, getCurrentRivalPlayerId } from 
 import { evaluateOperationalPlan } from '../../rulesets/cauldronFFA3/operationalPlans'
 import { getActiveSecondaryViews } from '../../rulesets/cauldronFFA3/secondary'
 import { useBattleStore } from '../../stores/battleStore'
+import { doublesScorekeeperId, doublesForceForPlayer } from '../../domain/battle/doubles'
 import { AppIcon } from '../AppIcon'
 import { RivalDamagePanel } from './RivalDamagePanel'
 import { getSecondaryPresentation } from './secondaryPresentation'
@@ -43,18 +44,20 @@ export function SharedPlayerPerspective({
 }: SharedPlayerPerspectiveProps) {
   const viewer = session.state.players[viewerPlayerId]
   const active = session.state.players[session.state.activePlayerId]
+  const teamCaptainId = doublesScorekeeperId(session.setup, viewerPlayerId)
+  const teamScore = session.state.players[teamCaptainId]
   const dispatch = useBattleStore((store) => store.dispatch)
   if (!viewer || !active) return null
 
-  const ownTurn = viewerPlayerId === active.id
-  const currentRival = viewerPlayerId === currentRivalPlayerId
+  const ownTurn = doublesScorekeeperId(session.setup, viewerPlayerId) === active.id
+  const currentRival = currentRivalPlayerId ? doublesScorekeeperId(session.setup, viewerPlayerId) === currentRivalPlayerId : false
   const viewerRivalId = session.setup.rulesetId === CAULDRON_RULESET_ID
     ? getCurrentRivalPlayerId(session, viewerPlayerId)
     : null
   const viewerRival = viewerRivalId ? session.state.players[viewerRivalId] : null
   const reactionWindow = getCurrentReactionWindow(session)
   const reactionPending = reactionWindow?.responses[viewerPlayerId]?.status === 'PENDING'
-  const activeSecondaries = showCards ? getActiveSecondaryViews(session, viewerPlayerId) : []
+  const activeSecondaries = showCards ? getActiveSecondaryViews(session, doublesScorekeeperId(session.setup, viewerPlayerId)) : []
   const missionActions = selectActiveMissionActions(session, viewerPlayerId)
   const plan = showCards && !(session.setup.rulesetId === CAULDRON_RULESET_ID && (getCauldronConfig(session).primaryDeck ?? 'cauldron') !== 'cauldron')
     ? evaluateOperationalPlan(session, viewerPlayerId) : null
@@ -70,7 +73,7 @@ export function SharedPlayerPerspective({
     ? 'Your turn'
     : currentRival
       ? 'You are Rival'
-      : `Watching ${active.name}`
+      : `Watching ${doublesForceForPlayer(session.setup, active.id)?.name ?? active.name}`
   const urgentTitle = reactionPending
     ? 'Reaction required'
     : ownTurn && requiredActionCount > 0
@@ -84,16 +87,16 @@ export function SharedPlayerPerspective({
 
   return <section className={`panel shared-perspective${ownTurn ? ' shared-perspective--active' : currentRival ? ' shared-perspective--rival' : ''}${reactionPending ? ' shared-perspective--reaction' : ''}`}>
     <div className="shared-perspective__heading">
-      <div><span className="eyebrow">You</span><h3>{viewer.name}</h3><small>{viewer.faction ?? 'Army'}</small></div>
+      <div><span className="eyebrow">You</span><h3>{viewer.name}</h3><small>{session.setup.doubles ? `${doublesForceForPlayer(session.setup, viewerPlayerId)?.name ?? 'Team'} · ${viewer.faction ?? 'Army'}` : viewer.faction ?? 'Army'}</small></div>
       <span className="shared-perspective__role">{role}</span>
     </div>
 
     {urgentTitle && <div className="shared-perspective__alert"><strong>{urgentTitle}</strong><span>{urgentCopy}</span></div>}
 
     <div className="shared-perspective__numbers">
-      <div><strong>{totalScore(viewer)}</strong><span>VP</span></div>
-      <div><strong>{viewer.cp}</strong><span>CP</span></div>
-      <div><strong>{viewerRival?.name ?? '—'}</strong><span>Rival</span></div>
+      <div><strong>{totalScore(teamScore ?? viewer)}</strong><span>VP</span></div>
+      <div><strong>{teamScore?.cp ?? viewer.cp}</strong><span>CP</span></div>
+      <div><strong>{viewerRivalId ? doublesForceForPlayer(session.setup, viewerRivalId)?.name ?? viewerRival?.name : '—'}</strong><span>{session.setup.doubles ? 'Enemy force' : 'Rival'}</span></div>
     </div>
 
     {plan && <div className="player-focus-line"><span>Plan</span><strong>{plan.name} · {planProgress}</strong></div>}

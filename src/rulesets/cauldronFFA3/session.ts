@@ -4,6 +4,8 @@ import {
   getPhaseTransitionEvents,
 } from '../../domain/battle/engine'
 import type { BattleSession } from '../../domain/battle/types'
+import { validateDoublesSetup } from '../../domain/battle/doubles'
+import { officialObjectivesForPair } from '../../domain/battlefield/layouts'
 import {
   CAULDRON_BATTLE_ROUNDS,
   CAULDRON_DUEL_PLAYER_COUNT,
@@ -12,7 +14,6 @@ import {
   CAULDRON_RULESET_ID,
   CAULDRON_SECONDARY_CAP,
   CAULDRON_TOTAL_CAP,
-  OFFICIAL_DUEL_OBJECTIVES,
   OFFICIAL_FFA_OBJECTIVES,
   OPERATIONAL_PLAN_IDS,
   cauldronObjectivesForPlayerCount,
@@ -34,8 +35,24 @@ import type { CauldronConfig, CauldronGameInput, DeploymentZone, TurnPosition } 
 
 function validateCauldronInput(input: CauldronGameInput): void {
   const playerCount = input.players.length
-  if (playerCount !== CAULDRON_DUEL_PLAYER_COUNT && playerCount !== CAULDRON_PLAYER_COUNT) {
-    throw new Error('Cauldron requires either two players (Duel) or three players (FFA 3).')
+  const doubles = input.mode === 'doubles2v2'
+  if (doubles) {
+    if (!input.doubles) throw new Error('Doubles requires two configured forces.')
+    const order = input.doubles.forces.map((force) => force.captainPlayerId)
+    validateDoublesSetup(input.players, order, input.doubles)
+    for (const force of input.doubles.forces) {
+      if (!DISPOSITIONS.includes(force.forceDisposition as typeof DISPOSITIONS[number])) throw new Error('Choose an official Force Disposition for each force.')
+      const warlordArmy = input.armies.find((army) => army.id === input.players.find((player) => player.id === force.warlord.playerId)?.armyId)
+      const warlord = warlordArmy?.units.find((unit) => unit.id === force.warlord.unitId)
+      if (!warlord || ![...warlord.categories, ...warlord.keywords].some((trait) => trait.toUpperCase() === 'CHARACTER')) {
+        throw new Error('Each Doubles force needs exactly one selected CHARACTER Warlord.')
+      }
+    }
+    if (input.primaryDeck !== 'chapter-approved-duel' || input.secondaryDeck !== 'chapter-approved') {
+      throw new Error('Official Doubles uses the Chapter Approved Duel matrix and Secondary deck.')
+    }
+  } else if (playerCount !== CAULDRON_DUEL_PLAYER_COUNT && playerCount !== CAULDRON_PLAYER_COUNT) {
+    throw new Error('Cauldron requires two players (Duel), three players (FFA 3), or an official Doubles force.')
   }
   const armyIds = new Set(input.armies.map((army) => army.id))
   const playerIds = input.players.map((player) => player.id)
@@ -46,7 +63,7 @@ function validateCauldronInput(input: CauldronGameInput): void {
     if (input.primaryDeck === 'chapter-approved-ffa' && (!player.officialPrimaryId || !OFFICIAL_PRIMARY_MISSIONS[player.officialPrimaryId])) {
       throw new Error(`Choose an 11th edition Primary for ${player.name}.`)
     }
-    if (input.primaryDeck === 'chapter-approved-duel' && (!player.forceDisposition || !DISPOSITIONS.includes(player.forceDisposition))) {
+    if (input.primaryDeck === 'chapter-approved-duel' && !doubles && (!player.forceDisposition || !DISPOSITIONS.includes(player.forceDisposition))) {
       throw new Error(`Choose a Force Disposition for ${player.name}.`)
     }
   }
@@ -56,13 +73,29 @@ function validateCauldronInput(input: CauldronGameInput): void {
       throw new Error('Gather Intel needs the 7-objective layout with CENTER.')
     }
   }
-  if (input.primaryDeck === 'chapter-approved-duel' && (playerCount !== 2 || input.secondaryDeck !== 'chapter-approved')) {
+  if (input.primaryDeck === 'chapter-approved-duel' && ((playerCount !== 2 && !doubles) || input.secondaryDeck !== 'chapter-approved')) {
     throw new Error('The 11th edition duel requires two players and Chapter Approved Secondaries.')
   }
   const zones = input.players.map((player) => player.deploymentZone)
   const turns = input.players.map((player) => player.turnPosition)
-  if (new Set(zones).size !== playerCount) throw new Error('Every Cauldron player needs a unique deployment zone.')
-  if (new Set(turns).size !== playerCount) throw new Error('Every Cauldron player needs a unique turn position.')
+  if (doubles) {
+    for (const force of input.doubles!.forces) {
+      const members = force.memberPlayerIds.map((id) => input.players.find((player) => player.id === id)!)
+      if (members[0].deploymentZone !== members[1].deploymentZone || members[0].turnPosition !== members[1].turnPosition) {
+        throw new Error('Doubles teammates must share their deployment zone and turn position.')
+      }
+    }
+    const captains = input.doubles!.forces.map((force) => input.players.find((player) => player.id === force.captainPlayerId)!)
+    if (new Set(captains.map((player) => player.deploymentZone)).size !== 2 || captains.some((player) => !['A', 'B'].includes(player.deploymentZone))) {
+      throw new Error('Doubles forces must deploy in opposing zones A and B.')
+    }
+    if (new Set(captains.map((player) => player.turnPosition)).size !== 2 || captains.some((player) => ![1, 2].includes(player.turnPosition))) {
+      throw new Error('Doubles requires exactly two team turn positions.')
+    }
+  } else {
+    if (new Set(zones).size !== playerCount) throw new Error('Every Cauldron player needs a unique deployment zone.')
+    if (new Set(turns).size !== playerCount) throw new Error('Every Cauldron player needs a unique turn position.')
+  }
   if (playerCount === 2) {
     if (zones.some((zone) => zone !== 'A' && zone !== 'B')) throw new Error('Cauldron Duel uses deployment zones A and B.')
     if (turns.some((turn) => turn !== 1 && turn !== 2)) throw new Error('Cauldron Duel uses turn positions 1 and 2.')
@@ -71,9 +104,9 @@ function validateCauldronInput(input: CauldronGameInput): void {
 
 export function createCauldronGame(input: CauldronGameInput): BattleSession {
   validateCauldronInput(input)
-  const playerCount = input.players.length as 2 | 3
+  const playerCount = input.players.length as 2 | 3 | 4
   const mode = input.mode ?? (playerCount === 2 ? 'duel' : 'ffa3')
-  const objectiveLayout = playerCount === CAULDRON_DUEL_PLAYER_COUNT
+  const objectiveLayout = playerCount === CAULDRON_DUEL_PLAYER_COUNT || mode === 'doubles2v2'
     ? 'classic-6'
     : input.secondaryDeck === 'chapter-approved' ? 'expanded-7' : input.objectiveLayout ?? 'classic-6'
   const config: CauldronConfig = {
@@ -98,7 +131,7 @@ export function createCauldronGame(input: CauldronGameInput): BattleSession {
       turnPosition: player.turnPosition,
       initialOperationalPlanId: player.operationalPlanId,
       officialPrimaryId: player.officialPrimaryId,
-      forceDisposition: player.forceDisposition,
+      forceDisposition: input.doubles?.forces.find((force) => force.captainPlayerId === player.id)?.forceDisposition as typeof DISPOSITIONS[number] | undefined ?? player.forceDisposition,
     }])),
   }
   const players = input.players.map((player) => ({
@@ -111,6 +144,7 @@ export function createCauldronGame(input: CauldronGameInput): BattleSession {
   }))
   // Hotfix 2.1.1: this order is fixed for all five Battle Rounds. No later initiative reroll exists.
   const turnOrder = [...input.players]
+    .filter((player) => mode !== 'doubles2v2' || input.doubles!.forces.some((force) => force.captainPlayerId === player.id))
     .sort((left, right) => left.turnPosition - right.turnPosition)
     .map((player) => player.id)
   let session = createBattleSession({
@@ -120,12 +154,18 @@ export function createCauldronGame(input: CauldronGameInput): BattleSession {
     players,
     armies: [...new Map(input.armies.map((army) => [army.id, army])).values()],
     turnOrder,
-    objectives: input.primaryDeck === 'chapter-approved-duel' ? OFFICIAL_DUEL_OBJECTIVES
+    objectives: input.primaryDeck === 'chapter-approved-duel'
+      ? officialObjectivesForPair(
+        input.doubles?.forces[0].forceDisposition ?? input.players[0].forceDisposition ?? '',
+        input.doubles?.forces[1].forceDisposition ?? input.players[1].forceDisposition ?? '',
+        input.officialLayout ?? 1,
+      )
       : playerCount === 3 && input.secondaryDeck === 'chapter-approved' ? OFFICIAL_FFA_OBJECTIVES
       : cauldronObjectivesForPlayerCount(playerCount, objectiveLayout),
     maxRounds: CAULDRON_BATTLE_ROUNDS,
     guidanceLevel: input.guidanceLevel,
     rulesetConfig: config,
+    doubles: input.doubles,
     battlefieldAttackerHomeZone: input.battlefieldAttackerHomeZone,
   })
   session = dispatchBattleEvents(session, [
@@ -134,6 +174,27 @@ export function createCauldronGame(input: CauldronGameInput): BattleSession {
     ...createSecondaryInitializationEvents(session, input.secondaryDeckOrders),
   ], { undoable: false, timestamp: session.setup.createdAt })
   return session
+}
+
+/**
+ * 11th-edition Core 08.02: BOTH sides gain 1 Core CP at the start of each
+ * Command phase, not only the side whose turn it is. Doubles grants one per
+ * force (captain scorekeeper), never one per physical commander.
+ * Our Cauldron house formats retain their existing active-only convention.
+ */
+export function grantCommandPhaseCp(session: BattleSession): BattleSession {
+  if (session.state.status !== 'active' || session.state.phase !== 'COMMAND')
+    throw new Error('Core CP is recorded during an active Command phase.')
+  const activeId = session.state.activePlayerId
+  const recipients = isDuelPrimary(session) ? session.state.turnOrder : [activeId]
+  const lastTurnIndex = session.state.events.map((event) => event.type).lastIndexOf('TURN_STARTED')
+  const eventsThisTurn = session.state.events.slice(lastTurnIndex + 1)
+  if (eventsThisTurn.some((event) => event.type === 'CP_GAINED' && recipients.includes(event.payload.playerId)))
+    throw new Error('Core CP has already been recorded in this Command phase.')
+  return dispatchBattleEvents(session, recipients.map((playerId) => ({
+    type: 'CP_GAINED' as const,
+    payload: { playerId, amount: 1 },
+  })), { actorPlayerId: activeId })
 }
 
 export function isCauldronEndOfRound(session: BattleSession): boolean {

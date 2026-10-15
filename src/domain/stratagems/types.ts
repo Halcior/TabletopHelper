@@ -60,6 +60,8 @@ export type TimingStateView = {
   players: Record<string, { cp: number }>
   timing?: TimingState
   events?: readonly { type: string; payload: unknown }[]
+  /** Optional 2v2 force identity for shared CP and Stratagem usage. */
+  doubles?: { forces: readonly { captainPlayerId: string; memberPlayerIds: readonly string[] }[] }
 }
 
 export type TimingEvaluationContext = {

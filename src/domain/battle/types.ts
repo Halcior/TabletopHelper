@@ -32,6 +32,25 @@ export type ObjectiveDefinition = {
   type: 'home' | 'neutral' | 'other'
 }
 
+export type DoublesForce = {
+  id: string
+  name: string
+  /** Two independently owned armies, sharing a battlefield turn and score. */
+  memberPlayerIds: [string, string]
+  /** Existing Duel scoring/turn slot, not an exclusive authority to play. */
+  captainPlayerId: string
+  /** Chosen from a disposition available to either army in the force. */
+  forceDisposition: string
+  /** Games Workshop Doubles distinction; not inferred solely from faction names. */
+  forceType: 'unified' | 'convenience'
+  warlord: { playerId: string; unitId: string }
+}
+
+export type DoublesSetup = {
+  rulesVersion: 'GW-Doubles-1.0'
+  forces: [DoublesForce, DoublesForce]
+}
+
 export type BattleSetup = {
   gameId: string
   rulesetId: string
@@ -42,6 +61,7 @@ export type BattleSetup = {
   maxRounds: number
   guidanceLevel: GuidanceLevel
   rulesetConfig?: unknown
+  doubles?: DoublesSetup
   battlefieldAttackerHomeZone?: 'A' | 'B'
   createdAt: string
 }
@@ -214,6 +234,8 @@ export type GameState = {
   phase: BattlePhase
   turnOrder: string[]
   maxRounds: number
+  /** Event-projected rules mode; canonical source is setup.doubles. */
+  doubles?: DoublesSetup
   players: Record<string, PlayerState>
   objectives: Record<string, ObjectiveState>
   snapshots: {

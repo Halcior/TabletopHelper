@@ -15,7 +15,7 @@ export function BattleReport({ session }: { session: BattleSession }) {
   const report = useMemo(() => buildBattleReport(session, style), [session, style])
   const frames = useMemo(() => buildBattlefieldReplay(session), [session])
   const highlights = useMemo(() => reportHighlights(buildBattleChronicle(session), leadChangeEventIds(frames)), [session, frames])
-  const playerName = (id: string) => report.ranking.find((player) => player.playerId === id)?.name ?? id
+  const playerName = (id: string) => session.state.players[id]?.name ?? report.ranking.find((player) => player.playerId === id)?.name ?? id
   const units = report.performance.units.filter((unit) => playerId === 'all' || unit.playerId === playerId).sort((a, b) => (
     sort === 'roi' ? (b.combatRoi ?? -1) - (a.combatRoi ?? -1) : sort === 'actions' ? b.completedMissionActions - a.completedMissionActions
       : sort === 'kills' ? b.kills - a.kills : b.enemyPointsDestroyed - a.enemyPointsDestroyed

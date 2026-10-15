@@ -279,9 +279,14 @@ export function selectCommandPointRecordedThisTurn(session: BattleSession): bool
       break
     }
   }
-  return session.state.events.slice(turnStartIndex + 1).some((event) => (
-    event.type === 'CP_GAINED' && event.payload.playerId === session.state.activePlayerId
-  ))
+  const gains = new Set(session.state.events.slice(turnStartIndex + 1)
+    .filter((event) => event.type === 'CP_GAINED')
+    .map((event) => event.payload.playerId))
+  const official = session.setup.rulesetConfig && typeof session.setup.rulesetConfig === 'object'
+    && 'primaryDeck' in session.setup.rulesetConfig
+    && session.setup.rulesetConfig.primaryDeck === 'chapter-approved-duel'
+  return (official ? session.state.turnOrder : [session.state.activePlayerId])
+    .every((playerId) => gains.has(playerId))
 }
 
 export function selectSecondaryBlockers(session: BattleSession, playerId = session.state.activePlayerId) {

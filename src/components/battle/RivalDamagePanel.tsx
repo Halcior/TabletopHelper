@@ -1,6 +1,7 @@
 import { selectRecentUnits } from '../../domain/battle/recentUnits'
 import { CombatControls } from './CombatControls'
 import { getSharedRuntimeMembership } from '../../multiplayer/sharedRuntime'
+import { doublesScorekeeperId } from '../../domain/battle/doubles'
 import { buildBattleChronicle } from '../../domain/battle/chronicle'
 import { useEffect, useMemo, useState } from 'react'
 import type { BattleEvent, BattleEventInput, BattleSession } from '../../domain/battle/types'
@@ -52,7 +53,9 @@ export function RivalDamagePanel({
   dispatch: (event: BattleEventInput) => void
 }) {
   const attacker = session.state.players[attackerPlayerId]
-  const opponentIds = session.state.turnOrder.filter((playerId) => playerId !== attackerPlayerId && Boolean(session.state.players[playerId]))
+  const opponentIds = session.setup.doubles
+    ? session.setup.players.map((player) => player.id).filter((playerId) => doublesScorekeeperId(session.setup, playerId) !== doublesScorekeeperId(session.setup, attackerPlayerId))
+    : session.state.turnOrder.filter((playerId) => playerId !== attackerPlayerId && Boolean(session.state.players[playerId]))
   const defaultVictimId = currentRivalPlayerId && opponentIds.includes(currentRivalPlayerId)
     ? currentRivalPlayerId
     : opponentIds[0] ?? ''
@@ -111,7 +114,7 @@ export function RivalDamagePanel({
   const victim = session.state.players[victimPlayerId]
   const setupPlayer = session.setup.players.find((player) => player.id === victimPlayerId)
   const army = setupPlayer?.armyId ? session.setup.armies[setupPlayer.armyId] : undefined
-  const victimIsRival = victimPlayerId === currentRivalPlayerId
+  const victimIsRival = session.setup.doubles ? doublesScorekeeperId(session.setup, victimPlayerId) === currentRivalPlayerId : victimPlayerId === currentRivalPlayerId
 
   const units = useMemo(() => {
     if (!army || !victim) return []
@@ -152,7 +155,7 @@ export function RivalDamagePanel({
     {opponentIds.length > 1 && <div className="rival-damage-panel__targets" role="group" aria-label="Choose damaged opponent">
       {opponentIds.map((playerId) => {
         const player = session.state.players[playerId]
-        const isRival = playerId === currentRivalPlayerId
+        const isRival = session.setup.doubles ? doublesScorekeeperId(session.setup, playerId) === currentRivalPlayerId : playerId === currentRivalPlayerId
         return <button
           type="button"
           key={playerId}

@@ -1,4 +1,5 @@
 import type { BattleSession } from '../../domain/battle/types'
+import { doublesScorekeeperId } from '../../domain/battle/doubles'
 import { getCauldronConfig } from './sessionConfig'
 import type { DeploymentZone } from './types'
 
@@ -11,6 +12,12 @@ export function getCurrentRival(playerSlot: DeploymentZone, battleRound: number)
 }
 
 export function getCurrentRivalPlayerId(session: BattleSession, playerId: string, battleRound = session.state.round): string {
+  if (session.setup.doubles) {
+    const ownCaptain = doublesScorekeeperId(session.setup, playerId)
+    const opponent = session.state.turnOrder.find((id) => id !== ownCaptain)
+    if (!opponent) throw new Error('Doubles requires two opposing forces.')
+    return opponent
+  }
   const config = getCauldronConfig(session)
   const configuredPlayerIds = Object.keys(config.playerConfigs)
   if (configuredPlayerIds.length === 2) {

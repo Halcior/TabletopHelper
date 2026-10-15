@@ -85,6 +85,16 @@ export function buildUnitPerformance(session: BattleSession, chronicle = buildBa
   }
 
   function resolveMissionUnit(playerId: string, value: string): UnitReference | undefined {
+    if (session.setup.doubles && value.startsWith('[')) {
+      try {
+        const pair: unknown = JSON.parse(value)
+        if (Array.isArray(pair) && pair.length === 2 && pair.every((part) => typeof part === 'string')) {
+          const [ownerId, unitId] = pair as [string, string]
+          const force = session.setup.doubles.forces.find((team) => team.captainPlayerId === playerId)
+          if (force?.memberPlayerIds.includes(ownerId)) return byKey.get(performanceKey(ownerId, unitId))
+        }
+      } catch { /* Legacy free-text action value; use the original resolver. */ }
+    }
     const exact = byKey.get(performanceKey(playerId, value))
     if (exact) return exact
     const matches = units.filter((unit) => unit.playerId === playerId && unit.name === value)

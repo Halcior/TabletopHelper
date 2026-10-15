@@ -11,6 +11,7 @@ import {
   resetTurnUsage,
 } from '../stratagems/usage'
 import { resolveObjectiveController } from './objectives'
+import { doublesObjectiveController, doublesScorekeeperId, validateDoublesSetup } from './doubles'
 import { combatAttributionError } from './combatAttribution'
 import { defaultBattlefieldGeometry, validateBattlefieldGeometry } from '../battlefield/layouts'
 import {
@@ -34,6 +35,7 @@ export type CreateBattleInput = {
   maxRounds?: number
   guidanceLevel?: BattleSetup['guidanceLevel']
   rulesetConfig?: unknown
+  doubles?: BattleSetup['doubles']
   battlefieldAttackerHomeZone?: 'A' | 'B'
   createdAt?: string
 }
@@ -73,7 +75,8 @@ function validateSetup(input: CreateBattleInput): BattleSetup {
   const playerIds = input.players.map((player) => player.id)
   if (new Set(playerIds).size !== playerIds.length) throw new Error('Player IDs must be unique.')
   const turnOrder = input.turnOrder ?? playerIds
-  if (turnOrder.length !== playerIds.length || turnOrder.some((id) => !playerIds.includes(id))) {
+  if (input.doubles) validateDoublesSetup(input.players, turnOrder, input.doubles)
+  else if (turnOrder.length !== playerIds.length || turnOrder.some((id) => !playerIds.includes(id))) {
     throw new Error('Turn order must contain every player exactly once.')
   }
   if (new Set(turnOrder).size !== turnOrder.length) throw new Error('Turn order cannot contain duplicates.')
@@ -99,6 +102,7 @@ function validateSetup(input: CreateBattleInput): BattleSetup {
     maxRounds: Math.max(1, Math.floor(input.maxRounds ?? 5)),
     guidanceLevel: input.guidanceLevel ?? 'guided',
     rulesetConfig: input.rulesetConfig,
+    doubles: input.doubles,
     battlefieldAttackerHomeZone: input.battlefieldAttackerHomeZone,
     createdAt: input.createdAt ?? new Date().toISOString(),
   }
@@ -131,6 +135,7 @@ function baseState(setup: BattleSetup): GameState {
     phase: 'COMMAND',
     turnOrder: [...setup.turnOrder],
     maxRounds: setup.maxRounds,
+    doubles: setup.doubles,
     players,
     objectives,
     snapshots: { roundStart: [], turnStart: [] },
@@ -220,17 +225,17 @@ function applyEvent(state: GameState, event: BattleEvent, setup: BattleSetup): v
       state.timing.stratagemUsage = resetPhaseUsage(state.timing.stratagemUsage)
       return
     case 'CP_GAINED': {
-      const player = requirePlayer(state, event.payload.playerId)
+      const player = requirePlayer(state, doublesScorekeeperId(setup, event.payload.playerId))
       player.cp += Math.max(0, event.payload.amount)
       return
     }
     case 'CP_SPENT': {
-      const player = requirePlayer(state, event.payload.playerId)
+      const player = requirePlayer(state, doublesScorekeeperId(setup, event.payload.playerId))
       player.cp = Math.max(0, player.cp - Math.max(0, event.payload.amount))
       return
     }
     case 'SCORE_ADJUSTED': {
-      const player = requirePlayer(state, event.payload.playerId)
+      const player = requirePlayer(state, doublesScorekeeperId(setup, event.payload.playerId))
       player.score[event.payload.category] = Math.max(0, player.score[event.payload.category] + event.payload.delta)
       return
     }
@@ -247,10 +252,10 @@ function applyEvent(state: GameState, event: BattleEvent, setup: BattleSetup): v
           return
         }
         case 'CP':
-          requirePlayer(state, correction.playerId).cp = Math.max(0, Math.floor(correction.value))
+          requirePlayer(state, doublesScorekeeperId(setup, correction.playerId)).cp = Math.max(0, Math.floor(correction.value))
           return
         case 'SCORE':
-          requirePlayer(state, correction.playerId).score[correction.category] = Math.max(0, Math.floor(correction.value))
+          requirePlayer(state, doublesScorekeeperId(setup, correction.playerId)).score[correction.category] = Math.max(0, Math.floor(correction.value))
           return
         case 'UNIT_MODELS': {
           const unit = requireUnit(state, correction.playerId, correction.unitId)
@@ -280,13 +285,13 @@ function applyEvent(state: GameState, event: BattleEvent, setup: BattleSetup): v
           return
         case 'OBJECTIVE_CONTROL':
           if (correction.controllerPlayerId !== null) requirePlayer(state, correction.controllerPlayerId)
-          requireObjective(state, correction.objectiveId).controllerPlayerId = correction.controllerPlayerId
+          requireObjective(state, correction.objectiveId).controllerPlayerId = correction.controllerPlayerId === null ? null : doublesScorekeeperId(setup, correction.controllerPlayerId)
           return
         case 'OBJECTIVE_OC': {
           requirePlayer(state, correction.playerId)
           const objective = requireObjective(state, correction.objectiveId)
           objective.playerOC[correction.playerId] = Math.max(0, Math.floor(correction.value))
-          objective.controllerPlayerId = resolveObjectiveController(objective.playerOC)
+          objective.controllerPlayerId = setup.doubles ? doublesObjectiveController(setup, objective.playerOC) : resolveObjectiveController(objective.playerOC)
           return
         }
       }
@@ -362,12 +367,12 @@ function applyEvent(state: GameState, event: BattleEvent, setup: BattleSetup): v
       requirePlayer(state, event.payload.playerId)
       const objective = requireObjective(state, event.payload.objectiveId)
       objective.playerOC[event.payload.playerId] = Math.max(0, event.payload.oc)
-      objective.controllerPlayerId = resolveObjectiveController(objective.playerOC)
+      objective.controllerPlayerId = setup.doubles ? doublesObjectiveController(setup, objective.playerOC) : resolveObjectiveController(objective.playerOC)
       return
     }
     case 'OBJECTIVE_CONTROL_CHANGED': {
       if (event.payload.controllerPlayerId !== null) requirePlayer(state, event.payload.controllerPlayerId)
-      requireObjective(state, event.payload.objectiveId).controllerPlayerId = event.payload.controllerPlayerId
+      requireObjective(state, event.payload.objectiveId).controllerPlayerId = event.payload.controllerPlayerId === null ? null : doublesScorekeeperId(setup, event.payload.controllerPlayerId)
       return
     }
     case 'MISSION_ACTION_STARTED': {
@@ -425,7 +430,7 @@ function applyEvent(state: GameState, event: BattleEvent, setup: BattleSetup): v
       requirePlayer(state, event.payload.playerId)
       state.timing.stratagemUsage = recordUsage(
         state.timing.stratagemUsage,
-        event.payload.playerId,
+        doublesScorekeeperId(setup, event.payload.playerId),
         event.payload.stratagemId,
         state.round,
         state.activePlayerId,

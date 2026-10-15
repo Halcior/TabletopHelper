@@ -1,4 +1,5 @@
 import type { BattleSession } from '../domain/battle/types'
+import { doublesScorekeeperId } from '../domain/battle/doubles'
 import type { SharedMembership } from './types'
 
 export type SharedSessionPermissions = {
@@ -29,7 +30,7 @@ export function getSharedSessionPermissions(
   }
 
   const viewerPlayerId = membership?.playerId ?? null
-  const isViewerTurn = viewerPlayerId === activePlayerId
+  const isViewerTurn = Boolean(viewerPlayerId && doublesScorekeeperId(session.setup, viewerPlayerId) === activePlayerId)
   return {
     shared: true,
     viewerPlayerId,
