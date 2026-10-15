@@ -4,7 +4,8 @@ import type { BattleEventInput, BattleSession } from '../../../domain/battle/typ
 import { doublesScorekeeperId } from '../../../domain/battle/doubles'
 import type { BattleContext, ContextAction, ContextItem, RelevantStratagem } from '../../../domain/context'
 import type { StratagemAvailability } from '../../../domain/stratagems/types'
-import { getCurrentRivalPlayerId } from '../../../rulesets/cauldronFFA3'
+import { getCurrentRivalPlayerId, isDuelPrimary } from '../../../rulesets/cauldronFFA3'
+import { useBattleStore } from '../../../stores/battleStore'
 import {
   getPendingEliminationChoice,
   getPriorityTargetCandidates,
@@ -212,7 +213,8 @@ export function ContextCommandCentre({
     if (!viewerCanUseAction(itemAction)) return
     switch (itemAction.type) {
       case 'GAIN_COMMAND_POINT':
-        dispatch({ type: 'CP_GAINED', payload: { playerId, amount: 1 } })
+        if (isDuelPrimary(session)) useBattleStore.getState().grantCommandPhaseCp()
+        else dispatch({ type: 'CP_GAINED', payload: { playerId, amount: 1 } })
         break
       case 'OPEN_RIVAL_ARMY':
         setPanel({ type: 'army', playerId: itemAction.playerId, secondaryId: itemAction.secondaryId as SecondaryId | undefined })
