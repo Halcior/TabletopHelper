@@ -164,7 +164,7 @@ export function authorizeSharedAction(
   const config = sessionBefore.setup.rulesetConfig
   const officialDuel = Boolean(config && typeof config === 'object' && 'primaryDeck' in config
     && config.primaryDeck === 'chapter-approved-duel')
-  const currentTurnIndex = sessionBefore.state.events.findLastIndex((event) => event.type === 'TURN_STARTED')
+  const currentTurnIndex = sessionBefore.state.events.map((event) => event.type).lastIndexOf('TURN_STARTED')
   const alreadyGranted = sessionBefore.state.events.slice(currentTurnIndex + 1)
     .some((event) => event.type === 'CP_GAINED'
       && sessionBefore.state.turnOrder.includes(event.payload.playerId))
