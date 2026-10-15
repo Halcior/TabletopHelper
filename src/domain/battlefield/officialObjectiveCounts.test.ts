@@ -8,10 +8,10 @@ describe('Pinned GW objective count and mission pairing', () => {
     for (const dispositionA of DISPOSITIONS) {
       for (const dispositionB of DISPOSITIONS) {
         for (const layout of [1, 2, 3]) {
-          const key = [dispositionA, dispositionB].sort((a, b) => {
+          const key = [[dispositionA, dispositionB].sort((a, b) => {
             const order = ['take-and-hold', 'purge-the-foe', 'disruption', 'reconnaissance', 'priority-assets']
             return order.indexOf(a) - order.indexOf(b)
-          }).concat('ABC'[layout - 1]).join('|')
+          }), 'ABC'[layout - 1]].join('|')
           const source = officialData.layouts[key as keyof typeof officialData.layouts]
           expect(source, key).toBeDefined()
           const expected = 2 + source.objectives.central.length + source.objectives.expansion.length
