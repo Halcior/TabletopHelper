@@ -187,7 +187,7 @@ export function grantCommandPhaseCp(session: BattleSession): BattleSession {
     throw new Error('Core CP is recorded during an active Command phase.')
   const activeId = session.state.activePlayerId
   const recipients = isDuelPrimary(session) ? session.state.turnOrder : [activeId]
-  const lastTurnIndex = session.state.events.findLastIndex((event) => event.type === 'TURN_STARTED')
+  const lastTurnIndex = session.state.events.map((event) => event.type).lastIndexOf('TURN_STARTED')
   const eventsThisTurn = session.state.events.slice(lastTurnIndex + 1)
   if (eventsThisTurn.some((event) => event.type === 'CP_GAINED' && recipients.includes(event.payload.playerId)))
     throw new Error('Core CP has already been recorded in this Command phase.')
