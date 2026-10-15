@@ -14,7 +14,7 @@
 | Attacker vs Defender independent of first-turn roll | Implemented | Implemented by team | `battlefieldAttackerHomeZone`, separate `turnOrder` |
 | Five Battle Rounds | Implemented | Implemented | engine progression / ten 2v2 team turns test |
 | Tactical or Fixed, two active Secondaries | Implemented | One deck per **team**, not per person | `createSecondaryInitializationEvents` |
-| One Core CP per side at the relevant CP step | Implemented | One Core CP per **force** | engine projections and two-person turn order |
+| Core 08.02: **both** opposing sides gain 1 Core CP at each Command step | **Fixed**: paired atomic CP event | **Fixed**: one CP per force (not per commander), both forces per Command step | `grantCommandPhaseCp`, `sharedEventPolicy`, domain tests |
 | Shared CP and VP (max Primary 45, Secondary 45, Battle Ready 10) | Per player | Per force | scorekeeper projection and report tests |
 | Primary max 15 VP per round | Implemented | Per team | `duelPrimaryPreview` |
 | Secondary max 15 VP/round, max 45 VP/game; Fixed card max 20 | Implemented | Per team | `scoreOfficialSecondary` |
