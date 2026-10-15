@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { grantCommandPhaseCp as grantCauldronCoreCp } from '../rulesets/cauldronFFA3/session'
 import type { Army } from '../domain/army/types'
 import {
   abandonBattle as abandonBattleInEngine,
@@ -77,6 +78,7 @@ type BattleStore = {
   loadBattle: (id: string) => Promise<void>
   resumeLatest: () => Promise<string | null>
   dispatch: (event: BattleEventInput) => void
+  grantCommandPhaseCp: () => void
   useStratagem: (input: UseStratagemInput) => void
   processReactionTrigger: (input: ReactionTriggerInput) => void
   cancelReactionWindow: (reactionWindowId: string) => void
@@ -197,6 +199,10 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
         ? dispatchCauldronBattleEvent(session, event)
         : dispatchBattleEvent(session, event)
     ), set)
+  },
+
+  grantCommandPhaseCp() {
+    applySessionUpdate(get().session, (session) => grantCauldronCoreCp(session), set)
   },
 
   useStratagem(input) {
