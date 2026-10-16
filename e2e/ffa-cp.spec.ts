@@ -1,11 +1,12 @@
 import { expect, test } from '@playwright/test'
-import { phone, scoreCard } from './helpers'
+import { phone, scoreCard, setupRules } from './helpers'
 
 test('new FFA starts with automatic +2 CP for every commander and keeps manual CP controls', async ({ browser }) => {
   const { context, page } = await phone(browser)
   try {
     await page.goto('/battle/setup?mode=ffa3')
-    await expect(page.getByRole('note')).toContainText('Every commander automatically receives +2 CP')
+    await setupRules(page)
+    await expect(page.getByText('Every commander automatically receives +2 CP', { exact: false })).toBeVisible()
     const gameId = await page.evaluate(async () => {
       const { createCauldronGame } = await import('/src/rulesets/cauldronFFA3/session.ts')
       const { testArmy } = await import('/src/rulesets/cauldronFFA3/cauldronTestUtils.ts')
