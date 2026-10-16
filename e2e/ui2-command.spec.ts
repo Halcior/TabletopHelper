@@ -18,10 +18,10 @@ test('mobile navigation, CP keyboard control, card drafts, editor drafts and rea
     await expect(gainCp).toBeVisible()
     await gainCp.focus()
     await page.keyboard.press('Enter')
-    await expect(cp).toHaveAccessibleName('Command points for Custodes: 4 CP')
+    await expect(cp).toHaveAccessibleName('Command points for Custodes: 6 CP')
     await expect(gainCp).toBeFocused()
     await page.getByRole('button', { name: 'Spend 1 CP for Custodes' }).click()
-    await expect(cp).toHaveAccessibleName('Command points for Custodes: 3 CP')
+    await expect(cp).toHaveAccessibleName('Command points for Custodes: 5 CP')
     await expect(page.getByRole('dialog', { name: 'Command points for Custodes', exact: true })).toHaveCount(0)
 
     await selectPanel(page, 'cards')

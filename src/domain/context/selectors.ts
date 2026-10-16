@@ -5,6 +5,7 @@ import { getCurrentReactionWindow } from '../stratagems/battleIntegration'
 import { getAvailableStratagems } from '../stratagems/timingEngine'
 import type { ReactionPolicy, StratagemAvailability, TimingTrigger } from '../stratagems/types'
 import { CAULDRON_RULESET_ID, getCurrentRivalPlayerId } from '../../rulesets/cauldronFFA3'
+import { ffaRoundCpRecorded, usesBalancedFfaCp } from '../../rulesets/cauldronFFA3/ffaCp'
 import {
   getActiveSecondaryViews,
   getPendingEliminationChoice,
@@ -272,6 +273,7 @@ export function selectReactionPlayers(
 }
 
 export function selectCommandPointRecordedThisTurn(session: BattleSession): boolean {
+  if (session.setup.rulesetId === CAULDRON_RULESET_ID && usesBalancedFfaCp(session)) return ffaRoundCpRecorded(session)
   let turnStartIndex = -1
   for (let index = session.state.events.length - 1; index >= 0; index -= 1) {
     if (session.state.events[index].type === 'TURN_STARTED') {

@@ -19,6 +19,7 @@ import {
   cauldronObjectivesForPlayerCount,
 } from './constants'
 import { cauldronEvent } from './events'
+import { ffaRoundCpGrantEvents, usesBalancedFfaCp } from './ffaCp'
 import { officialPendingChoices, officialPendingReviewPlayers } from './officialSecondary'
 import { isOfficialPrimary, OFFICIAL_PRIMARY_MISSIONS } from './officialPrimary'
 import { FFA_PRIMARY_BALANCE_VERSION } from './officialPrimaryBalance'
@@ -112,6 +113,7 @@ export function createCauldronGame(input: CauldronGameInput): BattleSession {
   const config: CauldronConfig = {
     version: 1,
     mode,
+    ffaCpPolicy: mode === 'ffa3' ? input.ffaCpPolicy ?? 'balanced-round-v1' : undefined,
     playerCount,
     objectiveLayout,
     primaryDeck: input.primaryDeck ?? 'cauldron',
@@ -172,6 +174,7 @@ export function createCauldronGame(input: CauldronGameInput): BattleSession {
     cauldronEvent('ROUND_SNAPSHOT_CAPTURED', captureRoundSnapshot(session, 1)),
     cauldronEvent('TURN_SNAPSHOT_CAPTURED', captureTurnSnapshot(session, turnOrder[0], 1)),
     ...createSecondaryInitializationEvents(session, input.secondaryDeckOrders),
+    ...ffaRoundCpGrantEvents(session),
   ], { undoable: false, timestamp: session.setup.createdAt })
   return session
 }
@@ -185,6 +188,7 @@ export function createCauldronGame(input: CauldronGameInput): BattleSession {
 export function grantCommandPhaseCp(session: BattleSession): BattleSession {
   if (session.state.status !== 'active' || session.state.phase !== 'COMMAND')
     throw new Error('Core CP is recorded during an active Command phase.')
+  if (usesBalancedFfaCp(session)) throw new Error('FFA Core CP is automatically granted to all players at the start of each Battle Round.')
   const activeId = session.state.activePlayerId
   const recipients = isDuelPrimary(session) ? session.state.turnOrder : [activeId]
   const lastTurnIndex = session.state.events.map((event) => event.type).lastIndexOf('TURN_STARTED')

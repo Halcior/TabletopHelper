@@ -52,8 +52,12 @@ test('four phones play one GW Doubles turn with exactly two shared CP and VP poo
     await expect(alpha.page.getByRole('button', { name: 'Keep cards', exact: true })).toBeVisible()
     await dismissSecondaryReveal(alpha.page)
     await expect(alpha.page.locator('.secondary-draw-reveal')).toHaveCount(0)
+    // All four phones share the SAME two Secondary cards. Only the first
+    // phone should resolve the deck's when-drawn choices. Other clients can
+    // close the visual reveal without racing to submit the same choices.
     await Promise.all(phones.slice(1).map(async (entry) => {
-      await dismissSecondaryReveal(entry.page)
+      const keep = entry.page.getByRole('button', { name: 'Keep cards', exact: true })
+      if (await keep.isVisible().catch(() => false)) await keep.click()
     }))
 
     // Either allied phone may manipulate the one CP pool; the opponents may not.

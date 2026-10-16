@@ -2,6 +2,9 @@ import type { BattleEvent, BattleSession } from '../domain/battle/types'
 import { doublesScorekeeperId, onSameDoublesForce } from '../domain/battle/doubles'
 import { combatAttributionError } from '../domain/battle/combatAttribution'
 import { validateBattlefieldGeometry } from '../domain/battlefield/layouts'
+import { dispatchBattleEvents } from '../domain/battle/engine'
+import type { BattleEventInput } from '../domain/battle/types'
+import { calculateFfaRoundCpAward, FFA_ROUND_CP_ACTION, usesBalancedFfaCp } from '../rulesets/cauldronFFA3/ffaCp'
 import type { SharedMembership } from './types'
 
 export type SharedMutationDecision = {
@@ -22,6 +25,37 @@ const AUTOMATIC_ELIMINATION_ACTIONS = new Set([
   'SECONDARY_COMPLETED',
   'SECONDARY_ELIMINATION_CHOICE_REQUIRED',
 ])
+
+/**
+ * A new FFA round can allocate CP to opponents, but only as part of the
+ * single authoritative end-of-round action. Compare to the exact projected
+ * post-scoring VP totals; never authorize arbitrary opponent CP edits.
+ */
+function isValidFfaRoundGrant(session: BattleSession, events: BattleEvent[]): boolean {
+  if (!usesBalancedFfaCp(session)) return false
+  const markerIndex = events.findIndex((event) => event.type === 'RULESET_EVENT'
+    && event.payload.action === FFA_ROUND_CP_ACTION)
+  if (markerIndex < 0 || !events.some((event) => event.type === 'ROUND_STARTED'
+    && event.payload.round === session.state.round + 1)) return false
+  if (session.state.activePlayerId !== session.state.turnOrder.at(-1)) return false
+  if (events.filter((event) => event.type === 'RULESET_EVENT'
+    && event.payload.action === FFA_ROUND_CP_ACTION).length !== 1) return false
+  const awards = events.slice(markerIndex + 1)
+  if (awards.length !== session.state.turnOrder.length
+    || awards.some((event) => event.type !== 'CP_GAINED')) return false
+  try {
+    const projected = dispatchBattleEvents(session, events.slice(0, markerIndex)
+      .map((event) => ({ type: event.type, payload: event.payload }) as BattleEventInput), { undoable: false })
+    const expected = calculateFfaRoundCpAward(projected)
+    const marker = events[markerIndex]
+    if (marker.type !== 'RULESET_EVENT'
+      || JSON.stringify(marker.payload.data) !== JSON.stringify(expected)) return false
+    return session.state.turnOrder.every((id) => awards.some((event) => event.type === 'CP_GAINED'
+      && event.payload.playerId === id && event.payload.amount === expected.grants[id]))
+  } catch {
+    return false
+  }
+}
 
 function deny(reason: string): SharedMutationDecision {
   return { allowed: false, reason }
@@ -176,6 +210,13 @@ export function authorizeSharedAction(
     && new Set(events.map((event) => event.type === 'CP_GAINED' ? event.payload.playerId : '')).size === sessionBefore.state.turnOrder.length
     && events.every((event) => event.type === 'CP_GAINED' && sessionBefore.state.turnOrder.includes(event.payload.playerId))
 
+  const ffaRoundGrantPresent = events.some((event) => event.type === 'RULESET_EVENT'
+    && event.payload.action === FFA_ROUND_CP_ACTION)
+  const validFfaRoundGrant = ffaRoundGrantPresent && isValidFfaRoundGrant(sessionBefore, events)
+  if (ffaRoundGrantPresent && !validFfaRoundGrant) {
+    return deny('FFA CP grants must match the one-time round allocation and the committed VP standings.')
+  }
+
   const primaryCommit = hasPrimaryCommit(events)
   const duelBattleReady = events.some((event) => event.type === 'RULESET_EVENT' && event.payload.action === 'DUEL_BATTLE_READY')
   if (primaryCommit && doublesScorekeeperId(sessionBefore.setup, viewerPlayerId) !== sessionBefore.state.activePlayerId) {
@@ -224,6 +265,7 @@ export function authorizeSharedAction(
 
     const targetPlayerId = playerScopedTarget(event, sessionBefore)
     if (targetPlayerId && targetPlayerId !== viewerPlayerId) {
+      if (validFfaRoundGrant && event.type === 'CP_GAINED') continue
       if (pairedCoreCp && event.type === 'CP_GAINED') continue
       if (event.type === 'SCORE_ADJUSTED' && (primaryCommit || duelBattleReady) && doublesScorekeeperId(sessionBefore.setup, viewerPlayerId) === sessionBefore.state.activePlayerId) continue
       if (onSameDoublesForce(sessionBefore.setup, viewerPlayerId, targetPlayerId)

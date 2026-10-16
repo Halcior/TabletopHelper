@@ -3,6 +3,8 @@ import { getCurrentReactionWindow } from '../stratagems/battleIntegration'
 import { CAULDRON_RULESET_ID } from '../../rulesets/cauldronFFA3'
 import { isOfficialPrimary } from '../../rulesets/cauldronFFA3/officialPrimary'
 import { isDuelPrimary } from '../../rulesets/cauldronFFA3/duelPrimary'
+import { FFA_ROUND_CP_ACTION, type FfaRoundCpAward, usesBalancedFfaCp } from '../../rulesets/cauldronFFA3/ffaCp'
+import { getCauldronEventData } from '../../rulesets/cauldronFFA3/events'
 import {
   canChangeOperationalPlan,
   evaluateOperationalPlan,
@@ -117,6 +119,9 @@ function commandItems(session: BattleSession): ContextItem[] {
   if (session.state.phase !== 'COMMAND') return []
   const playerId = session.state.activePlayerId
   const cpRecorded = selectCommandPointRecordedThisTurn(session)
+  const balancedFfa = session.setup.rulesetId === CAULDRON_RULESET_ID && usesBalancedFfaCp(session)
+  const ffaAward = balancedFfa ? getCauldronEventData<FfaRoundCpAward>(session, FFA_ROUND_CP_ACTION).find((award) => award.round === session.state.round) : undefined
+  const underdog = ffaAward?.bonusPlayerIds.map((id) => session.state.players[id]?.name ?? id).join(', ')
   const officialBothSides = session.setup.rulesetConfig && typeof session.setup.rulesetConfig === 'object'
     && 'primaryDeck' in session.setup.rulesetConfig
     && session.setup.rulesetConfig.primaryDeck === 'chapter-approved-duel'
@@ -124,21 +129,27 @@ function commandItems(session: BattleSession): ContextItem[] {
   const items: ContextItem[] = [{
     id: `command-cp-${playerId}`,
     type: 'COMMAND_POINT',
-    title: cpRecorded
-      ? (officialBothSides ? 'Both sides received Core CP' : '+1 Command Point recorded')
+    title: balancedFfa
+      ? (cpRecorded ? 'FFA: +2 CP each this Battle Round' : 'FFA round CP allocation missing')
+      : cpRecorded ? (officialBothSides ? 'Both sides received Core CP' : '+1 Command Point recorded')
       : guidedCpPending ? (officialBothSides ? 'Give both sides Core CP before advancing' : 'Gain 1 Command Point before advancing')
         : (officialBothSides ? 'Give both sides +1 Core CP' : 'Gain 1 Command Point'),
-    shortDescription: cpRecorded
-      ? (officialBothSides ? 'Both opposing sides gained one Core CP this Command phase.' : 'The Command phase gain is already in the battle log.')
-      : guidedCpPending
-        ? 'Guided Mode requires the Command phase CP gain to be recorded before leaving this phase.'
-        : (officialBothSides ? 'Record +1 Core CP for each side this phase.' : 'Record the Command phase CP gain.'),
+    shortDescription: balancedFfa
+      ? (cpRecorded
+        ? (underdog ? `Automatic allocation: +2 CP each; Underdog +1 CP: ${underdog}. No extra Core CP in Command phase.`
+          : 'Automatic allocation: +2 CP each at round start. No extra Core CP in Command phase.')
+        : 'The automatic round allocation was not recorded; do not award CP manually twice.')
+      : cpRecorded
+        ? (officialBothSides ? 'Both opposing sides gained one Core CP this Command phase.' : 'The Command phase gain is already in the battle log.')
+        : guidedCpPending
+          ? 'Guided Mode requires the Command phase CP gain to be recorded before leaving this phase.'
+          : (officialBothSides ? 'Record +1 Core CP for each side this phase.' : 'Record the Command phase CP gain.'),
     status: cpRecorded ? 'DONE' : guidedCpPending ? 'BLOCKING' : 'AVAILABLE',
     severity: cpRecorded ? 'QUIET' : guidedCpPending ? 'CRITICAL' : 'ATTENTION',
     source: 'SYSTEM',
     phase: 'COMMAND',
     relatedPlayerId: playerId,
-    actions: cpRecorded ? [] : [action('gain-command-cp', 'GAIN_COMMAND_POINT', officialBothSides ? '+1 CP for both sides' : '+1 CP', { playerId })],
+    actions: cpRecorded || balancedFfa ? [] : [action('gain-command-cp', 'GAIN_COMMAND_POINT', officialBothSides ? '+1 CP for both sides' : '+1 CP', { playerId })],
   }]
   if (session.setup.rulesetId !== CAULDRON_RULESET_ID) return items
   if (isOfficialSecondary(session)) return items

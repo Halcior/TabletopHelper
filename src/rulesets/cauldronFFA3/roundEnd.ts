@@ -1,6 +1,7 @@
 import { dispatchBattleEvents, getPhaseTransitionEvents } from '../../domain/battle/engine'
 import type { BattleSession } from '../../domain/battle/types'
 import { cauldronEvent, getCauldronEventData } from './events'
+import { ffaRoundCpGrantEvents } from './ffaCp'
 import {
   createDeferredWyniszczenieEvents,
   getPrimaryTurnCommit,
@@ -54,10 +55,19 @@ export function confirmCauldronEndRound(
   const transitions = getPhaseTransitionEvents(session)
   const transitionWithSnapshots = addSnapshotEvents(session, transitions)
 
-  return dispatchBattleEvents(session, [
+  const roundEvents = [
     ...secondaryEvents,
     ...deferredPrimaryEvents,
     cauldronEvent('PRIMARY_COMMITTED', { round: session.state.round } satisfies RoundCommit),
     ...addSecondaryRefillEvents(session, transitionWithSnapshots),
-  ], { actorPlayerId: session.state.activePlayerId })
+  ]
+  // The Underdog calculation MUST use the committed end-of-round scores:
+  // preview the exact transition without persisting it, then append CP events
+  // in the same multiplayer action (no split second-grant or reload race).
+  const nextRound = roundEvents.some((event) => event.type === 'ROUND_STARTED')
+  const preview = nextRound ? dispatchBattleEvents(session, roundEvents) : null
+  const ffaCp = preview ? ffaRoundCpGrantEvents(preview) : []
+  return dispatchBattleEvents(session, [...roundEvents, ...ffaCp], {
+    actorPlayerId: session.state.activePlayerId,
+  })
 }
