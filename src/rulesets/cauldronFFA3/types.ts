@@ -6,6 +6,7 @@ import type { OfficialSecondaryId, SecondaryId } from './secondaryTypes'
 export type DeploymentZone = 'A' | 'B' | 'C'
 export type TurnPosition = 1 | 2 | 3
 export type CauldronMode = 'duel' | 'ffa3' | 'doubles2v2'
+export type FfaCpPolicy = 'balanced-round-v1' | 'legacy-turn'
 export type CauldronObjectiveLayout = 'classic-6' | 'expanded-7'
 export type SecondaryDeck = 'cauldron' | 'chapter-approved'
 export type PrimaryDeck = 'cauldron' | 'chapter-approved-ffa' | 'chapter-approved-duel'
@@ -38,6 +39,8 @@ export type CauldronGameInput = {
   armies: Army[]
   guidanceLevel: 'guided' | 'fast'
   mode?: CauldronMode
+  /** New FFA: automatic round start grants; legacy-turn is for existing game fixtures. */
+  ffaCpPolicy?: FfaCpPolicy
   doubles?: DoublesSetup
   objectiveLayout?: CauldronObjectiveLayout
   primaryDeck?: PrimaryDeck
@@ -65,6 +68,8 @@ export type CauldronPlayerConfig = {
 export type CauldronConfig = {
   version: 1
   mode?: CauldronMode
+  /** Omitted from old saved games: retains their original +1 own Command phase economy. */
+  ffaCpPolicy?: FfaCpPolicy
   playerCount?: 2 | 3 | 4
   objectiveLayout?: CauldronObjectiveLayout
   primaryDeck?: PrimaryDeck
