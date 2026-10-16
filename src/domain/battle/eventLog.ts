@@ -55,6 +55,15 @@ export function describeBattleEvent(event: BattleEvent, setup: BattleSetup): str
     case 'STRATAGEM_USED': return `${playerName(setup, event.payload.playerId)} used "${event.payload.stratagemName}" (${event.payload.cpCost} CP)`
     case 'REACTION_WINDOW_RESOLVED': return 'Reaction window resolved'
     case 'REACTION_WINDOW_CANCELLED': return 'Reaction window cancelled'
-    case 'RULESET_EVENT': return `${event.payload.rulesetId}: ${event.payload.action.replaceAll('_', ' ').toLowerCase()}`
+    case 'RULESET_EVENT': {
+      if (event.payload.action === 'FFA_ROUND_CP_GRANTED') {
+        const data = event.payload.data as { round: number; baseCp: number; bonusPlayerIds: string[] }
+        const underdog = data.bonusPlayerIds.length > 0
+          ? ` · Underdog +1 CP: ${data.bonusPlayerIds.map((id) => playerName(setup, id)).join(', ')}`
+          : ''
+        return `FFA Round ${data.round}: +${data.baseCp} CP to all players${underdog}`
+      }
+      return `${event.payload.rulesetId}: ${event.payload.action.replaceAll('_', ' ').toLowerCase()}`
+    }
   }
 }
