@@ -52,6 +52,9 @@ export function testCauldronGame(options: {
     gameId: 'cauldron-test',
     createdAt: '2026-08-31T10:00:00.000Z',
     guidanceLevel: 'guided',
+    // Historical tests cover the original FFA CP behaviour; dedicated CP
+    // regression tests exercise the new default balanced-round-v1 policy.
+    ffaCpPolicy: 'legacy-turn',
     secondaryDeckOrders: options.secondaryDeckOrders,
     armies,
     players: [
