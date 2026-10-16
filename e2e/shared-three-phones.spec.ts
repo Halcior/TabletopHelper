@@ -64,6 +64,13 @@ test('three phones start, synchronize and recover one idempotent offline action'
     await dismissSecondaryReveal(alpha.page)
     await expect(alpha.page.locator('.shared-secondary-card__icon')).toHaveCount(2)
 
+    // New FFA games begin with two CP for *every* physical player,
+    // including opponents and players who have not taken their own turn.
+    for (const member of [alpha.page, bravo.page, charlie.page]) {
+      for (const name of ['Player I', 'Player II', 'Player III']) {
+        await expect(scoreCard(member, name).locator('.score-card__numbers strong').nth(1)).toHaveText('2')
+      }
+    }
     await expect(alpha.page.getByRole('button', { name: 'Gain 1 CP for Player II' })).toHaveCount(0)
     await alpha.page.getByRole('button', { name: 'Gain 1 CP for Player I' }).click()
     await expect(scoreCard(bravo.page, 'Player I').locator('.score-card__numbers strong').nth(1)).toHaveText('3')
