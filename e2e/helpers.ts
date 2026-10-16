@@ -37,9 +37,9 @@ export async function importTestArmy(page: Page): Promise<void> {
   await page.locator('input[type="file"]').setInputFiles(path.resolve('test-data/1700.json'))
   await expect(page.getByRole('heading', { name: 'Adeptus Custodes' })).toBeVisible()
   await page.getByRole('button', { name: 'Save army' }).click()
-  await expect(page.getByRole('region', { name: 'Army saved' })).toBeVisible()
+  await expect(page.getByRole('status', { name: 'Army saved' })).toBeVisible()
   await expect(page).toHaveURL(/\/army-import$/)
-  await page.getByRole('region', { name: 'Army saved' }).getByRole('link', { name: 'Create battle' }).click()
+  await page.getByRole('status', { name: 'Army saved' }).getByRole('link', { name: 'Create battle' }).click()
   await expect(page).toHaveURL(/\/battle\/setup/)
 }
 
