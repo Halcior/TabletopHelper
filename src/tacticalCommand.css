@@ -514,3 +514,30 @@ summary { min-height: 44px; padding-block: 10px; cursor: pointer; font-size: var
 @media (max-width: 480px) {
   .combat-quick-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+
+/* Sequential New Recruit imports: keep the roster library visible between saves. */
+.import-saved {
+  margin-top: 16px;
+  padding: 20px;
+  border-color: color-mix(in srgb, var(--status-success), var(--border) 50%);
+  display: grid;
+  gap: 14px;
+}
+.import-saved h2 { margin: 4px 0 8px; font-size: var(--type-section); overflow-wrap: anywhere; }
+.import-saved p { margin: 0; color: var(--text-secondary); font-size: var(--type-body); line-height: 1.5; }
+.import-saved__actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.import-saved__actions > .button { min-height: 44px; }
+.import-session-list { margin-top: 16px; padding: 20px; }
+.import-session-list__heading { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; }
+.import-session-list__heading h2 { margin: 4px 0 0; font-size: var(--type-section); }
+.import-session-list__items { list-style: none; padding: 0; margin: 12px 0 0; }
+.import-session-list__items li { display: flex; justify-content: space-between; gap: 12px; align-items: center; border-top: 1px solid var(--border); padding: 12px 0; }
+.import-session-list__items li > div { display: grid; gap: 4px; min-width: 0; }
+.import-session-list__items li strong { overflow-wrap: anywhere; }
+.import-session-list__items li span { color: var(--text-secondary); font-size: var(--type-label); }
+@media (max-width: 480px) {
+  .import-saved__actions > .button { flex: 1 1 150px; justify-content: center; }
+  .import-session-list { padding: 16px; }
+  .import-session-list__items li > .button { flex: none; }
+}
