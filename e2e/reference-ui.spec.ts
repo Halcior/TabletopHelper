@@ -27,10 +27,19 @@ for (const [width, height] of [[375, 812], [390, 844], [768, 1024], [1440, 1000]
         image.src = source
         await image.decode()
       })
+      if (width <= 820) {
+        const formatCards = await page.locator('.setup-mode-picker > button').evaluateAll((cards) =>
+          cards.map((card) => Math.round(card.getBoundingClientRect().height)))
+        expect(Math.max(...formatCards), `Format cards must stay compact at ${width}px`).toBeLessThanOrEqual(190)
+      }
       await shot(page, width, 'setup', true)
       const { ffa } = await seedDesignBattles(page)
       await page.goto(`/battle/${ffa}`)
       await expect(page.locator('.score-card')).toHaveCount(3)
+      const missionStrip = page.getByRole('region', { name: 'Mission score summary' })
+      await expect(missionStrip).toBeVisible()
+      await expect(missionStrip.getByRole('button', { name: 'Open mission cards: Primary' })).toBeVisible()
+      await expect(missionStrip.getByRole('button', { name: 'Open mission cards: Secondary' })).toBeVisible()
       await shot(page, width, 'live')
       await selectPanel(page, 'objectives')
       await expect(page.locator('.battlefield-canvas > svg').first()).toBeVisible()
@@ -38,6 +47,8 @@ for (const [width, height] of [[375, 812], [390, 844], [768, 1024], [1440, 1000]
       await shot(page, width, 'objectives')
       await selectPanel(page, 'log')
       await expect(page.locator('.chronicle-entry').first()).toBeVisible()
+      await expect(page.locator('.chronicle-entry--scoring').first()).toBeVisible()
+      await expect(page.locator('.chronicle-entry--objective-control').first()).toBeVisible()
       await page.locator('.chronicle-timeline').evaluate((element) => element.scrollIntoView({ block: 'start', behavior: 'instant' }))
       await shot(page, width, 'chronicle')
       await selectPanel(page, 'report')
