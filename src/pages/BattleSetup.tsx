@@ -34,6 +34,7 @@ import { useSharedSessionStore } from '../multiplayer/sharedSessionStore'
 import { useBattleStore } from '../stores/battleStore'
 import { InfoDisclosure } from '../components/ui/InfoDisclosure'
 import { RulesSourceBadge } from '../components/ui/RulesSourceBadge'
+import { FormatGlyph } from '../components/ui/FormatGlyph'
 import { describeRules, recommendedRules } from '../rulesets/rulesSource'
 
 type PlayerDraft = CauldronPlayerInput
@@ -295,13 +296,13 @@ export default function BattleSetup() {
       <h2>Choose your rules</h2>
       <div className="setup-mode-picker panel" role="group" aria-label="Battle format">
         <button type="button" className={duel ? 'button--gold' : ''} aria-pressed={duel} onClick={() => changeMode('duel')}>
-          <strong>Duel 1v1</strong><span>Official · 2 players</span>
+          <FormatGlyph mode="duel" /><strong>Duel 1v1</strong><span>2 players<br />Head to head</span><RulesSourceBadge source={duel ? rules.source : 'official'} />
         </button>
         <button type="button" className={doubles ? 'button--gold' : ''} aria-pressed={doubles} onClick={() => changeMode('doubles2v2')}>
-          <strong>Doubles 2v2</strong><span>Official · 4 players</span>
+          <FormatGlyph mode="doubles2v2" /><strong>Doubles 2v2</strong><span>4 players<br />Shared forces</span><RulesSourceBadge source="official" />
         </button>
         <button type="button" className={mode === 'ffa3' ? 'button--gold' : ''} aria-pressed={mode === 'ffa3'} onClick={() => changeMode('ffa3')}>
-          <strong>FFA 3</strong><span>Community · 3 players</span>
+          <FormatGlyph mode="ffa3" /><strong>FFA 3</strong><span>3 players<br />Rotating Rival</span><RulesSourceBadge source="community" />
         </button>
       </div>
 

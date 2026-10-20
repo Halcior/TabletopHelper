@@ -37,6 +37,7 @@ export function CombatControls({ unit, state, playerId, source = {}, dispatch, c
   }
   return <div className={`combat-controls${compact ? ' combat-controls--compact' : ''}`}>
     <div className="combat-vitals"><strong>{state.modelsAlive} / {unit.startingModels} models</strong><span>{combatStatus(unit, state)}</span></div>
+    <div className={`combat-model-track${state.destroyed ? ' combat-model-track--destroyed' : ''}`} aria-hidden="true"><span style={{ width: `${unit.startingModels > 0 ? Math.max(0, Math.min(100, state.modelsAlive / unit.startingModels * 100)) : 0}%` }} /></div>
     {profiles.length > 1 && <label><span>Allocate to model profile</span><select aria-label={`Model profile for ${unit.name}`} value={selected} onChange={(event) => setSelected(event.target.value)}><option value="">Choose profile…</option>{profiles.map((item) => <option key={item.id} value={item.id}>{item.name} · {groups?.[item.id]?.modelsAlive ?? '?'} / {item.startingModels}</option>)}</select></label>}
     {!groups && <p className="context-note">Old losses have no model profile allocation. Use Correct battle state → Combat profiles to confirm survivors.</p>}
     {group && <p className="combat-current">Current model: <strong>{alive ? group.currentModelWounds ?? '?' : 0} / {group.woundsPerModel ?? '?'} W</strong></p>}

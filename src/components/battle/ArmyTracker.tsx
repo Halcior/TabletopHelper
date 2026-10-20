@@ -1,4 +1,5 @@
 import { CombatControls } from './CombatControls'
+import { AppIcon } from '../AppIcon'
 import { useEffect, useMemo, useState } from 'react'
 import type { Army, UnitDefinition, UnitState, WeaponProfile } from '../../domain/army/types'
 import { getActiveMissionActionForUnit } from '../../domain/battle/missionActions'
@@ -153,7 +154,7 @@ function UnitCard({
   return (
     <article id={`unit-card-${ownerId}-${unit.id}`} className={`unit-card${state.destroyed ? ' is-destroyed' : ''}${canEdit ? '' : ' unit-card--readonly'}`}>
       <div className="unit-card__header">
-        <div><h3>{unit.name}</h3><p>{unit.points} pts{unit.isWarlord ? ' · Warlord' : ''}</p></div>
+        <div className="unit-card__identity"><span className="unit-card__insignia" aria-hidden="true"><AppIcon name="army" /></span><div><h3>{unit.name}</h3><p>{unit.points} pts{unit.isWarlord ? ' · Warlord' : ''}</p></div></div>
         <span className={`unit-state${state.destroyed ? ' unit-state--destroyed' : ''}`}>{state.destroyed ? 'Destroyed' : 'Alive'}</span>
         {state.battleShocked && <span className="status-badge status-badge--danger">Battle-shocked</span>}
       </div>

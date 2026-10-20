@@ -205,7 +205,7 @@ export function ContextCommandCentre({
     }
   }
 
-  return <section className={`context-centre context-centre--${context.guidanceLevel}`}>
+  return <section className={`context-centre context-centre--${context.guidanceLevel}${visibleSections.length === 0 ? " context-centre--idle" : ""}`}>
 
     <div className="context-centre__heading">
       <div><span className="eyebrow">What matters now</span><h2>{phaseLabel(context.phase)} priorities</h2></div>

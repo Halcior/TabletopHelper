@@ -17,7 +17,7 @@ export default function App() {
       <AppBackground />
       {!inBattle && (
         <header className="app-header">
-          <Link className="brand" to="/" aria-label="Tabletop Companion home"><span className="brand-mark"><AppIcon name="mark" /></span><span>Tabletop <strong>Companion</strong></span></Link>
+          <Link className="brand" to="/" aria-label="TabletopHelper home"><span className="brand-mark"><AppIcon name="mark" /></span><span>Tabletop<strong>Helper</strong></span></Link>
           <nav>
             <NavLink to="/" end><AppIcon name="home" /><span>Home</span></NavLink>
             <NavLink to="/shared"><AppIcon name="shared" /><span>Shared</span></NavLink>

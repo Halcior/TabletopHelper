@@ -1,4 +1,4 @@
-# Tabletop Companion
+# TabletopHelper
 
 An offline-first tabletop battle co-pilot built with React, strict TypeScript, Vite, Zustand, Zod, Dexie, Vitest, and Playwright.
 
@@ -24,6 +24,8 @@ Current capabilities:
 ## Visual language
 
 The interface uses a layered graphite tactical-map background with original SVG contour art, a grid and a vignette. Gold identifies the current phase and primary action; blue carries information, green confirms state and red marks danger. Stable player colours identify commanders separately. Operational screens use compact system typography and 44px-or-larger mobile controls. `src/visualSystem.css` is the single CSS entry point: `tacticalCommand.css` owns layout/tokens; `appBackground.css` and `productPolish.css` provide the final presentation. The background is static, with a lighter mobile version and reduced-motion support.
+
+The reference-driven visual implementation, before/after screenshots and original artwork provenance are documented in [Reference UI implementation](docs/reference-ui/README.md).
 
 ## Rules Source and setup defaults
 
