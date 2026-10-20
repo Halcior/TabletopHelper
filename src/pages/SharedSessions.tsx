@@ -204,11 +204,11 @@ export default function SharedSessions() {
     const localOnly = ['localhost', '127.0.0.1'].includes(window.location.hostname)
     const url = buildSharedInviteUrl(window.location.origin, membership.roomCode)
     const text = localOnly
-      ? `Tabletop Companion room code: ${membership.roomCode}`
-      : `Join my Tabletop Companion battle: ${membership.roomCode}`
+      ? `TabletopHelper room code: ${membership.roomCode}`
+      : `Join my TabletopHelper battle: ${membership.roomCode}`
     try {
       if (navigator.share) {
-        await navigator.share({ title: 'Tabletop Companion shared battle', text, ...(localOnly ? {} : { url }) })
+        await navigator.share({ title: 'TabletopHelper shared battle', text, ...(localOnly ? {} : { url }) })
         return
       }
       await navigator.clipboard.writeText(localOnly ? membership.roomCode : url)

@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react'
 import { CommandPopover } from '../ui/CommandPopover'
 import { InfoDisclosure } from '../ui/InfoDisclosure'
+import { AppIcon } from '../AppIcon'
+import { RulesSourceBadge } from '../ui/RulesSourceBadge'
+import { rulesForSession } from '../../rulesets/rulesSource'
 import { placeObjectiveLabels } from './objectiveLabels'
 import { buildBattleChronicle } from '../../domain/battle/chronicle'
 import { doublesScorekeeperId, doublesForceForPlayer } from '../../domain/battle/doubles'
@@ -654,6 +657,7 @@ export function BattlefieldBoard({
             aria-label={`Objective controls for ${selected.id}`}
           >
             <div className="battlefield-objective-sheet__heading">
+              <span className="objective-control-sigil" aria-hidden="true"><AppIcon name="target" /></span>
               <div>
                 <span className="eyebrow">
                   {replay
@@ -670,6 +674,7 @@ export function BattlefieldBoard({
                 ×
               </button>
             </div>
+            <div className="objective-control-meta"><RulesSourceBadge source={rulesForSession(session).source} /><span>{selected.type.toLowerCase().replaceAll('_', ' ')} objective · {replay ? 'Recorded control' : 'Live control'}</span></div>
             <div className="battlefield-objective-sheet__choices">
               <button
                 disabled={replay || session.state.status !== 'active'}

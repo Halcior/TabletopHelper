@@ -56,7 +56,7 @@ export default function Home() {
     const url = window.location.origin
     try {
       if (navigator.share) {
-        await navigator.share({ title: 'Tabletop Companion', url })
+        await navigator.share({ title: 'TabletopHelper', url })
         return
       }
       await navigator.clipboard.writeText(url)
@@ -71,7 +71,7 @@ export default function Home() {
     <div className="page-shell home-page home-page--focused">
       <section className="home-command-hub">
         <div className="home-command-hub__heading">
-          <span className="eyebrow">Tabletop Companion</span>
+          <span className="eyebrow">TabletopHelper</span>
           <h1>Command Hub</h1>
           <p>Your battle, ready when you are.</p>
         </div>

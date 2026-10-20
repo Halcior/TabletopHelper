@@ -264,7 +264,7 @@ export default function BattleDashboard() {
       <header ref={headerRef} className={`battle-status battle-status--player-${activePlayerIndex}${liveFeedback.phaseChanged ? ' battle-transition-live' : ''}`}>
         <div className="battle-round"><span>Battle round</span><strong>{session.state.round}<small>/ {session.state.maxRounds}</small></strong></div>
         <div className="battle-turn">
-          <span className="battle-turn__eyebrow">{battleActive ? `${active.name} turn` : 'Session status'}</span>
+          <span className="battle-turn__eyebrow"><span className="battle-wordmark">Tabletop<strong>Helper</strong></span><span>{battleActive ? `${active.name} turn` : 'Session status'}</span></span>
           <h1 aria-label={headerTitle}><span className="hud-round">Round {session.state.round} / {session.state.maxRounds} · </span>{headerTitle}</h1>
           {battleActive && <div className="battle-turn__mobile-meta" aria-label={`Active commander ${active.name}${rival ? `, Rival ${rival.name}` : ''}`}>
             <strong>Active: {active.name}</strong>
