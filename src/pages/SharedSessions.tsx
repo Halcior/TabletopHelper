@@ -3,6 +3,8 @@ import { QRCodeSVG } from 'qrcode.react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { CommandDialog } from '../components/ui/CommandDialog'
 import { InfoDisclosure } from '../components/ui/InfoDisclosure'
+import { RulesSourceBadge } from '../components/ui/RulesSourceBadge'
+import { rulesForSession } from '../rulesets/rulesSource'
 import { AppIcon } from '../components/AppIcon'
 import type { BattleSession } from '../domain/battle/types'
 import { canStartSharedLobby, summarizeSharedLobby } from '../multiplayer/sharedLobby'
@@ -220,15 +222,16 @@ export default function SharedSessions() {
   if (!configured) return <div className="page-shell shared-session-page">
     <section className="hero-panel shared-session-hero">
       <span className="eyebrow">Shared battle</span>
-      <h1>Multiplayer needs backend configuration.</h1>
-      <p>Add the Supabase environment values for this build, then reload the app.</p>
-      <Link className="button" to="/">Return home</Link>
+      <h1>Shared play is unavailable</h1>
+      <p>This installation supports local play. You can still track a battle together on one device.</p>
+      <Link className="button button--gold" to="/battle/setup">Set up a local battle</Link>
     </section>
   </div>
 
   if (membership) return <div className="page-shell shared-session-page shared-lobby-page">
     <section className="panel shared-room-focus shared-lobby">
       <div className="shared-room-focus__code"><span>{roomStartedAt ? 'Battle room' : 'Waiting room'}</span><strong>{membership.roomCode}</strong></div>
+      {lobbySession && <div className="shared-room-format"><RulesSourceBadge source={rulesForSession(lobbySession).source} /><span>{rulesForSession(lobbySession).title}</span></div>}
       <div className="shared-room-focus__status shared-lobby__counters">
         <div><span>Sync</span><strong>{connectionStatus}</strong></div>
         <div><span>Online</span><strong>{lobbySummary.onlineCount}/{seatTarget}</strong></div>
@@ -316,7 +319,7 @@ export default function SharedSessions() {
     {error && <div className="alert alert--danger">{error}</div>}
 
     <div className={`shared-backend-check shared-backend-check--${backendCheckStatus}`} role="status">
-      <div><span>Backend check</span><strong>{backendCheckStatus === 'checking' ? 'Checking Supabase…' : backendCheckStatus === 'ready' ? 'Ready' : backendCheckStatus === 'failed' ? 'Needs attention' : 'Waiting'}</strong></div>
+      <div><span>Shared connection</span><strong>{backendCheckStatus === 'checking' ? 'Connecting…' : backendCheckStatus === 'ready' ? 'Ready' : backendCheckStatus === 'failed' ? 'Needs attention' : 'Waiting'}</strong></div>
       {backendCheckStatus === 'failed' && <p>{backendCheckMessage}</p>}
       {backendCheckStatus === 'failed' && <button disabled={working} onClick={() => void checkBackend(true)}>Test again</button>}
     </div>
@@ -338,6 +341,7 @@ export default function SharedSessions() {
           <button className="button--gold" disabled={working || roomCode.length !== 6} onClick={findRoom}>{working ? 'Finding…' : 'Continue'}</button>
         </div>}
         {inspection && <div className="shared-seat-picker">
+          <RulesSourceBadge source={rulesForSession(inspection.room.sessionSnapshot).source} />
           {inspection.room.sessionSnapshot.setup.players.map((player) => player.id).map((playerId) => {
             const player = inspection.room.sessionSnapshot.state.players[playerId]
             const occupant = inspection.participants.find((participant) => participant.playerId === playerId)

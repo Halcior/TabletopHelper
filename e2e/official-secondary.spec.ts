@@ -1,4 +1,4 @@
-import { setupBattlefield, setupCommanders, setupRules } from './helpers'
+import { setupBattlefield, setupCommanders, setupRules, chooseCauldronPreset } from './helpers'
 import { expect, test } from '@playwright/test'
 import { dismissSecondaryReveal, importTestArmy, phone } from './helpers'
 
@@ -6,6 +6,7 @@ test('selects the official Tactical deck when starting a Duel', async ({ browser
   const { context, page } = await phone(browser)
   try {
     await importTestArmy(page)
+    await chooseCauldronPreset(page)
     await setupRules(page)
     await page.getByLabel('Secondary deck').selectOption('chapter-approved')
     await setupBattlefield(page)
@@ -34,6 +35,7 @@ test('chooses two Fixed cards for each commander', async ({ browser }) => {
   const { context, page } = await phone(browser)
   try {
     await importTestArmy(page)
+    await chooseCauldronPreset(page)
     await setupRules(page)
     await page.getByLabel('Secondary deck').selectOption('chapter-approved')
     await setupRules(page)

@@ -31,10 +31,9 @@ test('design review uses the real Home, Setup, Import, battlefield, cards, army,
     await expect(page.getByRole('status', { name: 'Army saved' })).toBeVisible()
     await page.getByRole('status', { name: 'Army saved' }).getByRole('link', { name: 'Create battle' }).click()
     await expect(page).toHaveURL(/\/battle\/setup/)
-    await expect(page.getByRole('heading', { name: /New Cauldron Duel/ })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /New Duel 1v1 battle/ })).toBeVisible()
     await image(page, 'setup-mobile')
     if (capture && !baseline) {
-      await page.getByLabel('Primary mode').selectOption('chapter-approved-duel')
       await page.getByRole('button', { name: 'Next: Commanders' }).click()
       await image(page, 'setup-commanders-mobile')
       await page.getByRole('button', { name: 'Next: Battlefield' }).click()

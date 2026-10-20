@@ -11,7 +11,6 @@ test('two phones review their own asymmetric Primary, including opponent-turn Pu
   try {
     await importTestArmy(alpha.page)
     await setupRules(alpha.page)
-    await alpha.page.getByLabel('Primary mode').selectOption('chapter-approved-duel')
     await setupCommanders(alpha.page)
     await alpha.page.getByRole('combobox', { name: 'Force Disposition' }).nth(0).selectOption('purge-the-foe')
     await alpha.page.getByRole('combobox', { name: 'Force Disposition' }).nth(1).selectOption('disruption')

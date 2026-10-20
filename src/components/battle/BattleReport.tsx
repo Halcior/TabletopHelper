@@ -5,6 +5,8 @@ import { buildBattleChronicle } from '../../domain/battle/chronicle'
 import { buildBattlefieldReplay } from '../../domain/battlefield/replay'
 import { leadChangeEventIds, reportHighlights } from './reportPresentation'
 import { ScoreHistoryChart } from './ScoreHistoryChart'
+import { RulesSourceBadge } from '../ui/RulesSourceBadge'
+import { rulesForSession } from '../../rulesets/rulesSource'
 
 const points = (value: number): string => String(Math.round(value * 10) / 10)
 
@@ -30,7 +32,7 @@ export function BattleReport({ session }: { session: BattleSession }) {
   return <section className="battle-report" aria-label="Battle Report">
     <header className="panel report-heading">
       <div><span className="eyebrow">{report.status === 'active' ? 'Live preview' : report.status === 'completed' ? 'After-action archive' : 'Retained battle archive'}</span><h2>Battle Report</h2>
-        <p>{report.mode}</p><small>Round {report.roundsPlayed} / {report.maxRounds} · {report.status === 'active' ? 'Scores are provisional' : report.status === 'completed' ? 'Final scores' : 'Abandoned · no winner declared'}</small></div>
+        <p>{report.mode}</p><RulesSourceBadge source={rulesForSession(session).source} /><small>Round {report.roundsPlayed} / {report.maxRounds} · {report.status === 'active' ? 'Scores are provisional' : report.status === 'completed' ? 'Final scores' : 'Abandoned · no winner declared'}</small></div>
       <div className="report-export no-print" role="group" aria-label="Export Battle Report">
         <button onClick={() => downloadBattleReport(report, 'markdown')}>Export Markdown</button>
         <button onClick={() => downloadBattleReport(report, 'json')}>Export JSON</button>

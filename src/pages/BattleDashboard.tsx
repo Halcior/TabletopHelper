@@ -3,6 +3,8 @@ import { Link, Navigate, useParams } from 'react-router-dom'
 import { AppIcon, type AppIconName } from '../components/AppIcon'
 import { CommandPopover } from '../components/ui/CommandPopover'
 import { InfoDisclosure } from '../components/ui/InfoDisclosure'
+import { RulesSourceBadge } from '../components/ui/RulesSourceBadge'
+import { rulesForSession } from '../rulesets/rulesSource'
 import { CommandDialog } from '../components/ui/CommandDialog'
 import { ArmyTracker } from '../components/battle/ArmyTracker'
 import { BattleQuickStatus } from '../components/battle/BattleQuickStatus'
@@ -12,12 +14,10 @@ import { useLiveBattleFeedback } from '../components/battle/useLiveBattleFeedbac
 import { BattleMenu } from '../components/battle/BattleMenu'
 import { BattleSummary } from '../components/battle/BattleSummary'
 import { ContextCommandCentre } from '../components/battle/context/ContextCommandCentre'
-import { PhaseEndTimingReview } from '../components/battle/context/PhaseEndTimingReview'
 import { EndRoundReview } from '../components/battle/EndRoundReview'
 import { ObjectivesPanel } from '../components/battle/ObjectivesPanel'
 import { humanizePhase, PhaseStepper } from '../components/battle/PhaseStepper'
 import { doublesScorekeeperId, doublesForceForPlayer } from '../domain/battle/doubles'
-import { OpponentStratagems } from '../components/battle/OpponentStratagems'
 import { Scoreboard } from '../components/battle/Scoreboard'
 import { SecondaryEndTurnReview } from '../components/battle/SecondaryEndTurnReview'
 import { SecondaryDetailPanel } from '../components/battle/SecondaryPanel'
@@ -28,32 +28,18 @@ import { SharedPlayerPerspective } from '../components/battle/SharedPlayerPerspe
 import { SharedSessionStatus } from '../components/battle/SharedSessionStatus'
 import { SharedSyncWarning } from '../components/battle/SharedSyncWarning'
 import { downloadBattleDiagnosticReport } from '../diagnostics/battleReport'
-import type { Army } from '../domain/army/types'
 import { canUndo } from '../domain/battle/selectors'
 import { BATTLE_PHASES } from '../domain/battle/types'
-import {
-  buildBattleContext,
-  selectAutomaticReactionPrompt,
-  selectReactionPlayersAtCheckpoint,
-  selectRelevantStratagemsAtCheckpoint,
-  type CurrentTimingCheckpoint,
-  type RelevantStratagem,
-} from '../domain/context'
+import { buildBattleContext } from '../domain/context'
 import { selectNextBattleAction } from '../domain/context/progression'
 import { getCurrentReactionWindow, isBattleFlowPaused } from '../domain/stratagems/battleIntegration'
-import { getAvailableStratagems } from '../domain/stratagems/timingEngine'
-import type { StratagemAvailability } from '../domain/stratagems/types'
-import { ReactionWindowPanel } from '../features/stratagems'
 import { getSharedSessionPermissions } from '../multiplayer/permissions'
 import { sharedBattleHasStarted } from '../multiplayer/sharedLobby'
 import { useSharedSessionStore } from '../multiplayer/sharedSessionStore'
-import type { RulesDataProvider, RulesDataResolution } from '../rulesData/types'
 import {
   CAULDRON_RULESET_ID,
-  cauldronReactionPolicy,
   getCurrentRivalPlayerId,
   getPendingEliminationChoice,
-  getCauldronConfig,
   isCauldronEndOfRound,
   isOfficialPrimary,
   getOfficialPrimaryId,
@@ -79,16 +65,6 @@ const DASHBOARD_TAB_ICONS: Record<DashboardTab, AppIconName> = {
   report: 'report',
 }
 
-const rulesDataCache = new WeakMap<Army, RulesDataResolution>()
-
-function resolveArmyRules(provider: RulesDataProvider, army: Army): RulesDataResolution {
-  const cached = rulesDataCache.get(army)
-  if (cached) return cached
-  const resolution = provider.resolveArmyStratagems(army)
-  rulesDataCache.set(army, resolution)
-  return resolution
-}
-
 export default function BattleDashboard() {
   const { battleId } = useParams()
   const [tab, setSelectedTab] = useState<DashboardTab>('overview')
@@ -112,14 +88,10 @@ export default function BattleDashboard() {
   }
   const [reviewOpen, setReviewOpen] = useState(false)
   const [turnReviewOpen, setTurnReviewOpen] = useState(false)
-  const [phaseEndReviewOpen, setPhaseEndReviewOpen] = useState(false)
   const [terminalLogOpen, setTerminalLogOpen] = useState(false)
   const [terminalReportOpen, setTerminalReportOpen] = useState(false)
   const [terminalBoardOpen, setTerminalBoardOpen] = useState(false)
   const [contextFocusItemId, setContextFocusItemId] = useState<string | null>(null)
-  const [rulesDataProvider, setRulesDataProvider] = useState<RulesDataProvider | null>(null)
-  const [rulesDataAttribution, setRulesDataAttribution] = useState<{ label: string; url: string } | null>(null)
-  const [rulesDataError, setRulesDataError] = useState<string | null>(null)
   const [armySecondaryFilter, setArmySecondaryFilter] = useState<SecondaryId | null>(null)
   const [armyPreferredPlayerId, setArmyPreferredPlayerId] = useState<string | null>(null)
   const sharedMembership = useSharedSessionStore((state) => state.membership)
@@ -130,10 +102,7 @@ export default function BattleDashboard() {
     error,
     loadBattle,
     dispatch,
-    useStratagem,
-    processReactionTrigger,
     cancelReactionWindow,
-    passReaction,
     startMissionAction,
     completeMissionAction,
     mulliganSecondary,
@@ -157,49 +126,8 @@ export default function BattleDashboard() {
   }, [battleId, loadBattle])
 
   useEffect(() => {
-    let active = true
-    void import('../rulesData/40kdc')
-      .then(({ create40kdcRulesDataProvider, FORTY_KDC_ATTRIBUTION }) => {
-        if (active) {
-          setRulesDataProvider(create40kdcRulesDataProvider())
-          setRulesDataAttribution(FORTY_KDC_ATTRIBUTION)
-        }
-      })
-      .catch(() => {
-        if (active) setRulesDataError('Stratagem metadata could not be loaded.')
-      })
-    return () => { active = false }
-  }, [])
-
-  useEffect(() => {
-    if (!session || session.setup.gameId !== battleId || session.state.status !== 'active' || !rulesDataProvider) return
-    const permissions = getSharedSessionPermissions(session, sharedMembership)
-    if (!permissions.canControlTurn) return
-    const reactionOwnerIds = session.setup.doubles ? session.setup.players.map((player) => player.id) : session.state.turnOrder
-    const rulesDataByPlayer = Object.fromEntries(reactionOwnerIds.map((playerId) => {
-      const armyId = session.state.players[playerId].armyId
-      const army = armyId ? session.setup.armies[armyId] : undefined
-      return [playerId, army ? resolveArmyRules(rulesDataProvider, army) : null]
-    }))
-    const reactionPolicy = session.setup.rulesetId === CAULDRON_RULESET_ID ? cauldronReactionPolicy : undefined
-    const prompt = selectAutomaticReactionPrompt(session, rulesDataByPlayer, reactionPolicy)
-    if (!prompt) return
-    const definitionsByPlayer = Object.fromEntries(reactionOwnerIds.map((playerId) => [
-      playerId,
-      rulesDataByPlayer[playerId]?.definitions ?? [],
-    ]))
-    processReactionTrigger({
-      trigger: prompt.trigger,
-      context: prompt.context,
-      definitionsByPlayer,
-      reactionPolicy,
-    })
-  }, [battleId, processReactionTrigger, rulesDataProvider, session, sharedMembership])
-
-  useEffect(() => {
     if (!session || session.state.status !== 'active') return
     setTab('overview')
-    setPhaseEndReviewOpen(false)
     setContextFocusItemId(null)
     setArmySecondaryFilter(null)
     setArmyPreferredPlayerId(null)
@@ -212,7 +140,7 @@ export default function BattleDashboard() {
     observer.observe(headerRef.current)
     return () => observer.disconnect()
   }, [session?.setup.gameId, session?.state.status, loading])
-  if (loading && session?.setup.gameId !== battleId) return <div className="page-shell"><div className="loading-state">Restoring battle…</div></div>
+  if (loading && session?.setup.gameId !== battleId) return <div className="page-shell"><div className="loading-state" role="status">Restoring battle…</div></div>
   if (!session || session.setup.gameId !== battleId) return <div className="page-shell"><div className="empty-state"><h1>Battle unavailable</h1><p>{error ?? 'The local battle could not be found.'}</p><Link className="button" to="/">Return home</Link></div></div>
   if (sharedMembership?.battleId === session.setup.gameId && !sharedBattleHasStarted(sharedRoomStartedAt)) {
     return <Navigate to={`/shared?room=${sharedMembership.roomCode}`} replace />
@@ -231,10 +159,8 @@ export default function BattleDashboard() {
   const officialSecondary = cauldron && isOfficialSecondary(session)
   const officialPrimary = cauldron && isOfficialPrimary(session)
   const duelPrimary = cauldron && isDuelPrimary(session)
-  const cauldronModeLabel = session.setup.doubles ? 'Official GW Doubles 2v2' : cauldron && getCauldronConfig(session).mode === 'duel'
-    ? duelPrimary ? 'Chapter Approved Duel 1v1' : 'Cauldron Duel 1v1'
-    : 'Cauldron FFA 3'
-  const reactionPolicy = cauldron ? cauldronReactionPolicy : undefined
+  const battleRules = rulesForSession(session)
+  const cauldronModeLabel = battleRules.title
   const dashboardTabs: DashboardTab[] = cauldron
     ? ['overview', 'army', 'objectives', 'cards', 'log', 'report']
     : ['overview', 'army', 'objectives', 'log', 'report']
@@ -253,38 +179,18 @@ export default function BattleDashboard() {
   })() : undefined
   const activeSideName = doublesForceForPlayer(session.setup, active.id)?.name ?? active.name
   const rivalSideName = rivalId ? doublesForceForPlayer(session.setup, rivalId)?.name ?? rival?.name : null
-  const playerIds = Object.keys(session.state.players)
-  const playerNames = Object.fromEntries(Object.values(session.state.players).map((player) => [player.id, player.name]))
-  const rulesDataByPlayer = Object.fromEntries(playerIds.map((playerId) => {
-    const armyId = session.state.players[playerId].armyId
-    const army = armyId ? session.setup.armies[armyId] : undefined
-    return [playerId, army && rulesDataProvider ? resolveArmyRules(rulesDataProvider, army) : null]
-  }))
-  const definitionsByPlayer = Object.fromEntries(playerIds.map((playerId) => [
-    playerId,
-    rulesDataByPlayer[playerId]?.definitions ?? [],
-  ]))
-  const battleContext = battleActive ? buildBattleContext({ session, rulesDataByPlayer, reactionPolicy }) : null
+  const battleContext = battleActive ? buildBattleContext({ session }) : null
   const currentWindow = battleActive ? getCurrentReactionWindow(session) : null
-  const windowOptionsByPlayer = currentWindow
-    ? Object.fromEntries(Object.values(currentWindow.responses).map((response) => [response.playerId, getAvailableStratagems({
-      playerId: response.playerId,
-      gameState: session.state,
-      phase: currentWindow.phase,
-      trigger: currentWindow.trigger,
-      context: currentWindow.context,
-      definitions: definitionsByPlayer[response.playerId] ?? [],
-      reactionOnly: true,
-      reactionPolicy,
-    }).filter(({ definition }) => response.availableOptionIds.includes(definition.id))]))
-    : {}
+  const canCloseLegacyPause = !sharedBattle || (currentWindow?.requestedByPlayerId
+    ? viewerPlayerId === currentWindow.requestedByPlayerId || Boolean(sharedMembership?.isHost)
+    : canControlTurn)
   const flowPaused = battleActive && isBattleFlowPaused(session)
   const pendingScoringChoice = battleActive && cauldron ? getPendingEliminationChoice(session, active.id) : undefined
   const activeMissionActions = battleActive
     ? Object.values(session.state.missionActions).filter((action) => action.status === 'ACTIVE')
     : []
   const endBlocker = flowPaused
-    ? 'Resolve the open reaction window before ending the battle.'
+    ? 'Close the saved legacy pause before ending the battle.'
     : pendingScoringChoice
       ? 'Resolve the pending Secondary scoring choice before ending the battle.'
       : activeMissionActions.length > 0
@@ -303,40 +209,7 @@ export default function BattleDashboard() {
       ? 'Battle complete'
       : `Round ${session.state.round + 1} · ${nextPlayer.name}`
     : `${nextPlayer.name} · Command`
-  const progressionBlockers = battleContext?.blockingItems.filter((item) => item.type !== 'END_TURN_REVIEW') ?? []
-
-  const phaseEndCheckpointKey = `${session.state.round}:${active.id}:${session.state.phase}`
-  const phaseEndCheckpoint: CurrentTimingCheckpoint = {
-    triggers: ['PHASE_END'],
-    context: {
-      actingPlayerId: active.id,
-      phaseEndCheckpointKey,
-    },
-  }
-  const phaseEndStratagems = battleActive && session.state.phase !== 'END_TURN'
-    ? selectRelevantStratagemsAtCheckpoint(
-        session,
-        rulesDataByPlayer,
-        phaseEndCheckpoint,
-        active.id,
-        { allowCustomFallback: false },
-      )
-    : []
-  const phaseEndReactionPlayers = battleActive && session.state.phase !== 'END_TURN'
-    ? selectReactionPlayersAtCheckpoint(
-        session,
-        rulesDataByPlayer,
-        phaseEndCheckpoint,
-        { allowCustomFallback: false, reactionPolicy },
-      )
-    : []
-  const phaseEndHasReactions = phaseEndReactionPlayers.some((player) => player.exactCount + player.potentialCount > 0)
-  const phaseEndHasTimingOpportunities = phaseEndStratagems.length > 0 || phaseEndHasReactions
-  const phaseEndReactionsHandled = !phaseEndHasReactions || Object.values(session.state.timing.reactionWindows).some((window) => (
-    window.trigger === 'PHASE_END'
-    && window.context.phaseEndCheckpointKey === phaseEndCheckpointKey
-    && window.status === 'RESOLVED'
-  ))
+  const progressionBlockers = battleContext?.blockingItems.filter((item) => item.type !== 'END_TURN_REVIEW' && item.source !== 'REACTION') ?? []
 
   const nextLabel = progressionBlockers.length > 0
     ? `Resolve ${progressionBlockers.length} item${progressionBlockers.length === 1 ? '' : 's'}`
@@ -349,57 +222,14 @@ export default function BattleDashboard() {
     ? progressionBlockers[0].title
     : cauldronTurnReview
       ? 'Scoring & Mission Actions'
-      : phaseEndHasTimingOpportunities && guidanceLevel === 'guided'
-        ? 'End-of-phase timing check'
-        : phaseIndex < BATTLE_PHASES.length - 1
-          ? humanizePhase(BATTLE_PHASES[phaseIndex + 1])
-          : nextTurnDestination
+      : phaseIndex < BATTLE_PHASES.length - 1
+        ? humanizePhase(BATTLE_PHASES[phaseIndex + 1])
+        : nextTurnDestination
   const headerTitle = battleActive
     ? `${phaseLabel} phase`
     : session.state.status === 'completed'
       ? 'Battle complete'
       : 'Battle abandoned'
-
-  function handleContextStratagem(availability: StratagemAvailability) {
-    if (!canControlTurn) return
-    const trigger = availability.definition.triggers.includes('PHASE_START')
-      ? 'PHASE_START'
-      : availability.definition.triggers.includes('CUSTOM_CONFIRMATION')
-        ? 'CUSTOM_CONFIRMATION'
-        : availability.definition.triggers[0] ?? 'CUSTOM_CONFIRMATION'
-    useStratagem({
-      playerId: active.id,
-      definition: availability.definition,
-      trigger,
-    })
-  }
-
-  function handlePhaseEndStratagem(option: RelevantStratagem) {
-    if (!canControlTurn || currentWindow) return
-    useStratagem({
-      playerId: active.id,
-      definition: option.definition,
-      trigger: 'PHASE_END',
-      context: phaseEndCheckpoint.context,
-    })
-  }
-
-  function handleOpenPhaseEndReactions() {
-    if (!canControlTurn || currentWindow || !phaseEndHasReactions) return
-    processReactionTrigger({
-      trigger: 'PHASE_END',
-      context: phaseEndCheckpoint.context,
-      definitionsByPlayer,
-      reactionPolicy,
-    })
-  }
-
-  function handleFinishPhaseEndReview() {
-    if (!canControlTurn || currentWindow) return
-    if (guidanceLevel === 'guided' && !phaseEndReactionsHandled) return
-    setPhaseEndReviewOpen(false)
-    nextPhase()
-  }
 
   function handleNextAction() {
     if (!canControlTurn) return
@@ -407,7 +237,7 @@ export default function BattleDashboard() {
       blockerCount: progressionBlockers.length,
       flowPaused,
       endTurnReview: cauldronTurnReview,
-      phaseEndHasTimingOpportunities,
+      phaseEndHasTimingOpportunities: false,
       guidanceLevel,
     })
     if (action === 'FOCUS_BLOCKER') {
@@ -421,10 +251,6 @@ export default function BattleDashboard() {
       setTurnReviewOpen(true)
       return
     }
-    if (action === 'OPEN_TIMING_REVIEW') {
-      setPhaseEndReviewOpen(true)
-      return
-    }
     nextPhase()
   }
 
@@ -432,24 +258,6 @@ export default function BattleDashboard() {
     if (item === 'army') setArmyPreferredPlayerId(null)
     setTab(item)
   }
-
-  const reactionWindowPanel = currentWindow ? <ReactionWindowPanel
-    window={currentWindow}
-    playerNames={playerNames}
-    optionsByPlayer={windowOptionsByPlayer}
-    sharedMode={sharedBattle}
-    viewerPlayerId={viewerPlayerId}
-    onUse={(playerId: string, availability: StratagemAvailability) => useStratagem({
-      playerId,
-      definition: availability.definition,
-      trigger: currentWindow.trigger,
-      context: currentWindow.context,
-      reactionWindowId: currentWindow.id,
-      reactionPolicy,
-    })}
-    onPass={(playerId: string) => passReaction(currentWindow.id, playerId)}
-  /> : null
-
 
   return (
     <div className="battle-page" style={{ '--battle-hud-height': `${headerHeight}px` } as CSSProperties}>
@@ -465,6 +273,7 @@ export default function BattleDashboard() {
         </div>
         <div className="battle-context">
           <InfoDisclosure label="Session details" className="hud-session-details">
+          <RulesSourceBadge source={battleRules.source} />
           {battleActive && rival && <div className="rival-callout"><span>Current Rival</span><strong>{rival.name}</strong></div>}
           {battleActive && <span className={`mode-badge mode-badge--${guidanceLevel}`}>{guidanceLevel} mode</span>}
           {cauldron && <span className="ruleset-label">{cauldronModeLabel}</span>}
@@ -521,7 +330,7 @@ export default function BattleDashboard() {
         <PhaseStepper phase={session.state.phase} />
         {sharedBattle && <SharedSyncWarning battleId={session.setup.gameId} />}
         {sharedBattle && <div className={`shared-flow-notice${canControlTurn ? ' shared-flow-notice--active' : ''}`}>{canControlTurn ? `Your turn · ${viewer?.name ?? active.name}` : `Waiting for ${sharedPermissions.waitingForPlayerName ?? active.name} · playing as ${viewer?.name ?? 'player'}`}</div>}
-        {currentWindow?.requestedByPlayerId && <section className="panel legacy-reaction-recovery"><p>This saved battle has an unfinished legacy reaction pause.</p><button disabled={sharedBattle && viewerPlayerId !== currentWindow.requestedByPlayerId && !sharedMembership?.isHost} onClick={() => cancelReactionWindow(currentWindow.id)}>Close legacy pause</button></section>}
+        {currentWindow && <section className="panel legacy-reaction-recovery"><p>This saved battle has an unfinished legacy reaction pause.</p><button disabled={!canCloseLegacyPause} onClick={() => cancelReactionWindow(currentWindow.id)}>Close legacy pause</button></section>}
         {error && <div className="alert alert--danger battle-alert">{error}</div>}
 
         {reviewOpen ? <EndRoundReview
@@ -542,21 +351,7 @@ export default function BattleDashboard() {
             if (endOfRound) setReviewOpen(true)
             else nextPhase()
           }}
-        /> : phaseEndReviewOpen ? <main className="battle-content phase-end-review-shell">
-          {reactionWindowPanel}
-          <PhaseEndTimingReview
-            phase={session.state.phase}
-            stratagems={phaseEndStratagems}
-            reactionPlayers={phaseEndReactionPlayers}
-            reactionWindowOpen={Boolean(currentWindow)}
-            reactionsHandled={phaseEndReactionsHandled}
-            enforceReactionWindow={guidanceLevel === 'guided'}
-            onUseStratagem={handlePhaseEndStratagem}
-            onOpenReactions={handleOpenPhaseEndReactions}
-            onContinue={handleFinishPhaseEndReview}
-            onCancel={() => { if (!currentWindow) setPhaseEndReviewOpen(false) }}
-          />
-        </main> : <>
+        /> : <>
           <nav className="battle-tabs" aria-label="Battle panels">
             {dashboardTabs.map((item) => (
               <button aria-pressed={tab === item} className={`${tab === item ? 'selected ' : ''}${['log', 'report'].includes(item) ? 'battle-tabs__desktop' : ''}`} key={item} onClick={() => selectDashboardTab(item)}><AppIcon name={DASHBOARD_TAB_ICONS[item]} /><span>{item === 'overview' ? 'Battle' : item === 'log' ? 'Chronicle' : item.charAt(0).toUpperCase() + item.slice(1)}</span></button>
@@ -570,10 +365,9 @@ export default function BattleDashboard() {
             <button role="menuitem" onClick={() => { setMoreOpen(false); setSessionDetailsOpen(true) }}><AppIcon name="mission" />Session details</button>
             <button role="menuitem" onClick={() => { setMoreOpen(false); downloadBattleDiagnosticReport(session, useSharedSessionStore.getState()) }}><AppIcon name="import" />Export diagnostics</button>
           </CommandPopover>}
-          {sessionDetailsOpen && <CommandDialog label="Session details" onClose={() => setSessionDetailsOpen(false)}><section className="panel"><div className="command-popover__heading"><h2>Session details</h2><button aria-label="Close session details" onClick={() => setSessionDetailsOpen(false)}>×</button></div><p>{cauldronModeLabel}</p><p>{guidanceLevel} mode · Round {session.state.round} / {session.state.maxRounds}</p>{rival && <p>{session.setup.doubles ? 'Opposing force' : 'Current Rival'}: {rivalSideName}</p>}{officialPrimary && <p>Primary: {OFFICIAL_PRIMARY_MISSIONS[getOfficialPrimaryId(session, active.id)].name}</p>}{duelPrimary && <p>Primary: {getDuelMission(session, active.id).name}</p>}{officialSecondary && <p>Chapter Approved · {secondaryStrategyFor(session, primaryViewerId) === 'fixed' ? 'Fixed' : 'Tactical'}</p>}</section></CommandDialog>}
+          {sessionDetailsOpen && <CommandDialog label="Session details" onClose={() => setSessionDetailsOpen(false)}><section className="panel"><div className="command-popover__heading"><h2>Session details</h2><button aria-label="Close session details" onClick={() => setSessionDetailsOpen(false)}>×</button></div><RulesSourceBadge source={battleRules.source} /><p>{cauldronModeLabel}</p><p className="context-note">{battleRules.description}</p><p>{guidanceLevel} mode · Round {session.state.round} / {session.state.maxRounds}</p>{rival && <p>{session.setup.doubles ? 'Opposing force' : 'Current Rival'}: {rivalSideName}</p>}{officialPrimary && <p>Primary: {OFFICIAL_PRIMARY_MISSIONS[getOfficialPrimaryId(session, active.id)].name}</p>}{duelPrimary && <p>Primary: {getDuelMission(session, active.id).name}</p>}{officialSecondary && <p>Chapter Approved · {secondaryStrategyFor(session, primaryViewerId) === 'fixed' ? 'Fixed' : 'Tactical'}</p>}</section></CommandDialog>}
 
           <main className="battle-content">
-            {reactionWindowPanel}
             <section className="battle-panel" hidden={tab !== 'overview'} aria-label="Battle overview">
             {battleContext && <div className="tactical-dashboard tactical-dashboard--context">
               <div className="tactical-column tactical-column--primary">
@@ -587,8 +381,6 @@ export default function BattleDashboard() {
                   onStartMissionAction={startMissionAction}
                   onMulligan={mulliganSecondary}
                   onOpenEndTurn={() => { if (canControlTurn) setTurnReviewOpen(true) }}
-                  onUseStratagem={handleContextStratagem}
-                  onPassReaction={passReaction}
                   onChangePlan={changePlan}
                   onResolveEliminationChoice={resolveEliminationChoice}
                   onSelectPriorityCandidates={selectPriorityTargetCandidates}
@@ -602,11 +394,6 @@ export default function BattleDashboard() {
                 {officialPrimary && <OfficialPrimaryPanel session={session} playerId={sharedBattle ? viewerPlayerId ?? active.id : active.id} />}
                 {duelPrimary && <DuelPrimaryPanel session={session} playerId={primaryViewerId} window={duelReviewWindow} editable={!sharedBattle || Boolean(viewerPlayerId)} />}
                 {officialSecondary && <OfficialSecondaryPanel session={session} playerId={primaryViewerId} editable={!sharedBattle || viewerPlayerId === (viewerPlayerId ?? active.id)} />}
-                {rulesDataProvider && rulesDataAttribution
-                  ? <a className="rules-data-attribution" href={rulesDataAttribution.url} target="_blank" rel="noreferrer">{rulesDataAttribution.label}</a>
-                  : rulesDataError
-                    ? <span className="rules-data-attribution rules-data-attribution--error">{rulesDataError}</span>
-                    : <span className="rules-data-attribution">Loading Stratagem metadata…</span>}
               </div>
               <aside className="tactical-column tactical-column--context-aside">
                 {sharedBattle && viewerPlayerId && <SharedPlayerPerspective
@@ -622,7 +409,6 @@ export default function BattleDashboard() {
                   onOpenCards={() => setTab('cards')}
                 />}
                 <BattleQuickStatus session={session} onOpenObjectives={() => setTab('objectives')} />
-                <OpponentStratagems key={`${session.setup.gameId}:${session.state.round}:${active.id}:${session.state.phase}`} session={session} definitionsByPlayer={definitionsByPlayer} sharedMode={sharedBattle} viewerPlayerId={viewerPlayerId} reactionPolicy={reactionPolicy} onUse={useStratagem} />
               </aside>
             </div>}
             </section>
@@ -652,7 +438,7 @@ export default function BattleDashboard() {
               className="button--gold next-phase"
               disabled={!canControlTurn}
               onClick={handleNextAction}
-            ><span className="next-phase__copy"><strong>{!canControlTurn ? `Waiting for ${active.name}` : flowPaused && progressionBlockers.length === 0 ? 'Reaction pending' : nextLabel}</strong><small>{!canControlTurn ? `Room ${sharedMembership?.roomCode ?? ''}` : flowPaused && progressionBlockers.length === 0 ? 'Resolve reaction to continue' : nextDestination}</small></span><AppIcon name="next" className="next-phase__icon" /></button>
+            ><span className="next-phase__copy"><strong>{!canControlTurn ? `Waiting for ${active.name}` : flowPaused && progressionBlockers.length === 0 ? 'Legacy pause' : nextLabel}</strong><small>{!canControlTurn ? `Room ${sharedMembership?.roomCode ?? ''}` : flowPaused && progressionBlockers.length === 0 ? 'Close legacy pause to continue' : nextDestination}</small></span><AppIcon name="next" className="next-phase__icon" /></button>
           </footer>
         </>}
       </>}

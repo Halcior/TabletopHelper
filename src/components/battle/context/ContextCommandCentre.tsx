@@ -2,8 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { StartMissionActionInput } from '../../../domain/battle/missionActions'
 import type { BattleEventInput, BattleSession } from '../../../domain/battle/types'
 import { doublesScorekeeperId } from '../../../domain/battle/doubles'
-import type { BattleContext, ContextAction, ContextItem, RelevantStratagem } from '../../../domain/context'
-import type { StratagemAvailability } from '../../../domain/stratagems/types'
+import type { BattleContext, ContextAction, ContextItem } from '../../../domain/context'
 import { getCurrentRivalPlayerId, isDuelPrimary } from '../../../rulesets/cauldronFFA3'
 import { useBattleStore } from '../../../stores/battleStore'
 import {
@@ -24,7 +23,6 @@ type PanelState =
   | { type: 'army'; playerId?: string; unitId?: string; secondaryId?: SecondaryId }
   | { type: 'objectives' }
   | { type: 'mission'; secondaryId?: SecondaryId; missionActionType?: 'SABOTAGE' }
-  | { type: 'stratagems' }
   | { type: 'mulligan' }
   | { type: 'priority' }
   | { type: 'elimination' }
@@ -41,8 +39,6 @@ type Props = {
   onStartMissionAction: (input: StartMissionActionInput) => void
   onMulligan: (playerId: string, cardId: SecondaryId) => void
   onOpenEndTurn: () => void
-  onUseStratagem: (availability: StratagemAvailability) => void
-  onPassReaction: (windowId: string, playerId: string) => void
   onChangePlan: (playerId: string, planId: OperationalPlanId) => void
   onResolveEliminationChoice: (playerId: string, cardId: SecondaryId) => void
   onSelectPriorityCandidates: (playerId: string, unitIds: string[]) => void
@@ -69,31 +65,6 @@ function phaseLabel(phase: BattleContext['phase']): string {
   return phase.replaceAll('_', ' ').toLocaleLowerCase().replace(/^./, (letter) => letter.toLocaleUpperCase())
 }
 
-function stratagemContextCopy(options: RelevantStratagem[]): { title: string; description: string } {
-  const availableNow = options.filter((option) => !option.manualConfirmationRequired && option.availability.canUse).length
-  const unverified = options.filter((option) => option.manualConfirmationRequired && option.availability.canUse).length
-  if (availableNow > 0 && unverified > 0) return {
-    title: `${availableNow} available now · ${unverified} timing to confirm`,
-    description: 'Confirmed timing is shown separately from phase-only matches.',
-  }
-  if (availableNow > 0) return {
-    title: `${availableNow} Stratagem${availableNow === 1 ? '' : 's'} available now`,
-    description: 'Structured timing matches the current game context.',
-  }
-  if (unverified > 0) return {
-    title: `${unverified} Stratagem${unverified === 1 ? '' : 's'} with timing to confirm`,
-    description: 'These match the phase, but the exact trigger is not structured.',
-  }
-  return {
-    title: 'Stratagem references',
-    description: 'No listed Stratagem is currently confirmed as usable.',
-  }
-}
-
-function hideQuietReaction(item: ContextItem): boolean {
-  return item.type === 'REACTION_STATUS' && item.status === 'INFO' && item.actions.length === 0
-}
-
 function canViewerUseAction(
   itemAction: ContextAction,
   activePlayerId: string,
@@ -105,11 +76,8 @@ function canViewerUseAction(
     case 'OPEN_RIVAL_ARMY':
     case 'OPEN_UNIT':
     case 'CHANGE_OBJECTIVE_CONTROL':
-    case 'OPEN_STRATAGEMS':
     case 'DISMISS':
       return true
-    case 'PASS_REACTION':
-      return Boolean(viewerPlayerId && itemAction.playerId === viewerPlayerId)
     default:
       return viewerPlayerId === activePlayerId
   }
@@ -125,8 +93,6 @@ export function ContextCommandCentre({
   onStartMissionAction,
   onMulligan,
   onOpenEndTurn,
-  onUseStratagem,
-  onPassReaction,
   onChangePlan,
   onResolveEliminationChoice,
   onSelectPriorityCandidates,
@@ -153,7 +119,7 @@ export function ContextCommandCentre({
   const prioritySelectionResolved = Boolean(priorityCard && !priorityNeedsAlpha && !priorityNeedsGamma)
   const availableSections = useMemo(() => context.sections.map((section) => ({
     ...section,
-    items: section.items.filter((item) => !dismissed.has(item.id) && !hideQuietReaction(item)),
+    items: section.items.filter((item) => !dismissed.has(item.id) && item.source !== 'STRATAGEM' && item.source !== 'REACTION'),
   })).filter((section) => section.items.length > 0), [context.sections, dismissed])
   const visibleSections = useMemo(() => {
     if (expanded) return availableSections
@@ -173,10 +139,7 @@ export function ContextCommandCentre({
   }, [availableSections, expanded])
   const hiddenItemCount = availableSections.reduce((sum, section) => sum + section.items.length, 0)
     - visibleSections.reduce((sum, section) => sum + section.items.length, 0)
-  const stratagemOptions = useMemo(() => [...context.relevantStratagems].sort((left, right) => (
-    Number(left.manualConfirmationRequired) - Number(right.manualConfirmationRequired)
-  )), [context.relevantStratagems])
-  const stratagemCopy = stratagemContextCopy(context.relevantStratagems)
+  const blockerCount = availableSections.flatMap((section) => section.items).filter((item) => item.status === 'BLOCKING').length
 
   useEffect(() => {
     setDismissed(new Set())
@@ -237,22 +200,9 @@ export function ContextCommandCentre({
       case 'RESOLVE_ELIMINATION_CHOICE': setPanel({ type: 'elimination' }); break
       case 'MULLIGAN_SECONDARY': setPanel({ type: 'mulligan' }); break
       case 'CHANGE_OPERATIONAL_PLAN': setPanel({ type: 'plan' }); break
-      case 'OPEN_STRATAGEMS': setPanel({ type: 'stratagems' }); break
-      case 'USE_STRATAGEM': {
-        const option = context.relevantStratagems.find(({ definition }) => definition.id === itemAction.stratagemId)
-        if (option) onUseStratagem(option.availability)
-        break
-      }
-      case 'PASS_REACTION': if (itemAction.playerId && itemAction.reactionWindowId) onPassReaction(itemAction.reactionWindowId, itemAction.playerId); break
       case 'DISMISS': setDismissed((current) => new Set(current).add(item.id)); break
       default: break
     }
-  }
-
-  function useContextStratagem(option: RelevantStratagem) {
-    if (!viewerControlsTurn) return
-    onUseStratagem(option.availability)
-    if (option.availability.canUse) setPanel(null)
   }
 
   return <section className={`context-centre context-centre--${context.guidanceLevel}`}>
@@ -261,15 +211,14 @@ export function ContextCommandCentre({
       <div><span className="eyebrow">What matters now</span><h2>{phaseLabel(context.phase)} priorities</h2></div>
       {sharedMode && !viewerControlsTurn
         ? <span className="context-clear">Watching {session.state.players[playerId]?.name ?? 'active player'}</span>
-        : context.blockingItems.length > 0
-          ? <span className="context-blocker-count">{context.blockingItems.length} to resolve</span>
+        : blockerCount > 0
+          ? <span className="context-blocker-count">{blockerCount} to resolve</span>
           : <span className="context-clear">Safe to advance</span>}
     </div>
 
     {visibleSections.map((section) => <section className={`context-section context-section--${section.id}`} key={section.id}>
       <h3 className={visibleSections.length === 1 ? 'sr-only' : undefined}>{section.title}</h3>
       <div className="context-item-list">{section.items.map((item) => {
-        const isStratagemSummary = item.type === 'AVAILABLE_STRATAGEMS'
         return <article
           className={`context-item context-item--${item.severity.toLowerCase()} context-item--${item.status.toLowerCase()}`}
           id={`context-${item.id}`}
@@ -277,8 +226,8 @@ export function ContextCommandCentre({
           tabIndex={-1}
         >
           <div className="context-item__top"><span>{sourceLabel(item)}</span><strong>{statusLabel(item)}</strong></div>
-          <h4>{isStratagemSummary ? stratagemCopy.title : item.title}</h4>
-          <p>{isStratagemSummary ? stratagemCopy.description : item.shortDescription}</p>
+          <h4>{item.title}</h4>
+          <p>{item.shortDescription}</p>
           {item.details && item.details.length > 0 && (['BLOCKING', 'REQUIRED'].includes(item.status) ? <ul>{item.details.map((detail) => <li key={detail}>{detail.replace('confirm timing', 'timing unverified')}</li>)}</ul> : <details className="context-item__more"><summary>Timing & details</summary><ul>{item.details.map((detail) => <li key={detail}>{detail.replace('confirm timing', 'timing unverified')}</li>)}</ul></details>)}
           {item.actions.length > 0 && <div className="context-item__actions">{item.actions.map((itemAction) => {
             const allowed = viewerCanUseAction(itemAction)
@@ -365,17 +314,6 @@ export function ContextCommandCentre({
           >{candidate.name}<span>{candidate.points} pts</span></button>)}</div>
         </> : prioritySelectionResolved ? <p className="context-note">Alpha targets are locked{priorityTargetId ? ' and Gamma is selected' : '; no separate Gamma target is available'}. Score this card at the end of the current turn.</p>
           : <p className="context-note">Target selection is already resolved.</p>}
-    </ContextOverlay>}
-    {panel?.type === 'stratagems' && <ContextOverlay title="Stratagems in this phase" eyebrow={`${phaseLabel(context.phase)} phase`} onClose={() => setPanel(null)}>
-      {!viewerControlsTurn && <p className="context-note">You can review these Stratagems, but only {session.state.players[playerId]?.name ?? 'the active player'} can spend CP on their turn.</p>}
-      <div className="context-stratagem-list">{stratagemOptions.map((option) => <article className={option.manualConfirmationRequired ? 'context-stratagem context-stratagem--unverified' : 'context-stratagem'} key={option.definition.id}>
-        <div><strong>{option.definition.name}</strong><span>{option.definition.cpCost} CP · {option.classification.toLocaleLowerCase()}</span></div>
-        <span className={`stratagem-confidence ${option.manualConfirmationRequired ? 'stratagem-confidence--unverified' : 'stratagem-confidence--exact'}`}>{option.manualConfirmationRequired ? 'Timing unverified' : 'Available timing matched'}</span>
-        <p>{option.definition.description || (option.manualConfirmationRequired ? 'Timing requires player confirmation.' : 'Structured timing available.')}</p>
-        {option.manualConfirmationRequired && <small>Phase matches, but the exact trigger is not structured. Confirm the timing at the table before spending CP.</small>}
-        {!option.availability.canUse && <small>{option.availability.reasons.join(' ')}</small>}
-        <div><button className="button--gold" disabled={!option.availability.canUse || !viewerControlsTurn} onClick={() => useContextStratagem(option)}>{!viewerControlsTurn ? 'Active player only' : option.manualConfirmationRequired ? 'Confirm timing & use' : 'Use Stratagem'}</button>{option.manualConfirmationRequired && <button onClick={() => { setDismissed((current) => new Set(current).add(`stratagems-${playerId}-${context.phase}`)); setPanel(null) }}>Not now</button>}</div>
-      </article>)}</div>
     </ContextOverlay>}
     {panel?.type === 'plan' && <ContextOverlay title="Operational Plan" eyebrow="Command option" onClose={() => setPanel(null)}><CauldronPlanPanel session={session} onChangePlan={(ownerId, planId) => { onChangePlan(ownerId, planId); setPanel(null) }} /></ContextOverlay>}
   </section>

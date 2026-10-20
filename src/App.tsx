@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { Link, NavLink, Route, Routes, useLocation } from 'react-router-dom'
 import { AppIcon } from './components/AppIcon'
+import { AppBackground } from './components/AppBackground'
 
 const ArmyImport = lazy(() => import('./pages/ArmyImport'))
 const BattleDashboard = lazy(() => import('./pages/BattleDashboard'))
@@ -13,6 +14,7 @@ export default function App() {
   const inBattle = location.pathname.startsWith('/battle/') && !location.pathname.startsWith('/battle/setup')
   return (
     <div className="app-root">
+      <AppBackground />
       {!inBattle && (
         <header className="app-header">
           <Link className="brand" to="/" aria-label="Tabletop Companion home"><span className="brand-mark"><AppIcon name="mark" /></span><span>Tabletop <strong>Companion</strong></span></Link>
@@ -23,7 +25,7 @@ export default function App() {
           </nav>
         </header>
       )}
-      <Suspense fallback={<div className="page-shell"><div className="loading-state">Loading tabletop…</div></div>}>
+      <Suspense fallback={<div className="page-shell"><div className="loading-state" role="status">Loading tabletop…</div></div>}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/shared" element={<SharedSessions />} />
