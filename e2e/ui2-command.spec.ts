@@ -198,7 +198,9 @@ for (const [width, height] of [[360, 800], [390, 844], [430, 932], [768, 1024], 
           // of manufacturing a Stratagem reminder just to fill the panel.
           const item = await page.locator('.context-item:visible, .context-empty:visible').first().boundingBox()
           expect(heading!.y - centre!.y).toBeLessThanOrEqual(24)
-          expect(heading!.y + heading!.height).toBeLessThanOrEqual(item!.y)
+          // Chromium reports fractional pixel edges; 1px tolerance prevents a
+          // false overlap failure (0.14px observed) without hiding occlusion.
+          expect(heading!.y + heading!.height).toBeLessThanOrEqual(item!.y + 1)
         }
         if (panel === 'cards') {
           const counts = await page.locator('.official-secondary-panel:visible .secondary-deck-counts').boundingBox()
