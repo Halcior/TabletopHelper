@@ -1,3 +1,4 @@
+import { PlayerFactionMarks } from '../../features/factionVisuals/components'
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react'
 import { CommandPopover } from '../ui/CommandPopover'
 import { InfoDisclosure } from '../ui/InfoDisclosure'
@@ -262,7 +263,7 @@ export function BattlefieldBoard({
             className={`battlefield-player battlefield-player--${playerIndex(player.id)}${player.id === activeId ? ' is-active' : ''}`}
           >
             <i />
-            {player.deploymentZone} · {doublesForceForPlayer(session.setup, player.id)?.name ?? player.name}
+            <PlayerFactionMarks session={session} playerId={player.id} /> {player.deploymentZone} · {doublesForceForPlayer(session.setup, player.id)?.name ?? player.name}
             {player.id === activeId ? ' · active' : ''}
           </span>
         ))}

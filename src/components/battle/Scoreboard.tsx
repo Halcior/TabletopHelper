@@ -1,3 +1,4 @@
+import { PlayerFactionMarks } from '../../features/factionVisuals/components'
 import { totalScore } from '../../domain/battle/selectors'
 import { doublesForceForPlayer, doublesScorekeeperId } from '../../domain/battle/doubles'
 import type { BattleEventInput, BattleSession } from '../../domain/battle/types'
@@ -44,7 +45,7 @@ export function Scoreboard({
         return (
           <article className={`score-card score-card--player-${playerIndex}${active ? ' is-active' : ''}${rival ? ' is-rival' : ''}${viewer ? ' is-viewer' : ''}${leadingScore > 0 && totalScore(player) === leadingScore ? ' is-leading' : ''}`} key={playerId} aria-label={`${name}${active ? ' · active turn' : ''}`}>
             <div className="score-card__identity">
-              <div className="score-card__name"><i aria-hidden="true" />{name}</div>
+              <div className="score-card__name"><i aria-hidden="true" /><PlayerFactionMarks session={session} playerId={playerId} />{name}</div>
               {force ? <small>{members}</small> : player.faction && <small>{player.faction}</small>}
               <span className="score-card__role">{role}</span>
             </div>

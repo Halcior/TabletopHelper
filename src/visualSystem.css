@@ -27,3 +27,5 @@
 @import './tacticalCommand.css' layer(command);
 @import './appBackground.css' layer(product);
 @import './productPolish.css' layer(product);
+
+@import './features/factionVisuals/factionVisuals.css' layer(product);
