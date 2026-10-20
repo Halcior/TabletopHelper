@@ -369,6 +369,16 @@ export default function BattleDashboard() {
 
           <main className="battle-content">
             <section className="battle-panel" hidden={tab !== 'overview'} aria-label="Battle overview">
+            {(officialPrimary || duelPrimary) && <section className="battle-mission-strip" aria-label="Mission score summary">
+              <button type="button" className="battle-mission-strip__metric" onClick={() => selectDashboardTab('cards')} aria-label="Open mission cards: Primary">
+                <span className="battle-mission-strip__label">Primary · {duelPrimary ? getDuelMission(session, primaryViewerId).name : OFFICIAL_PRIMARY_MISSIONS[getOfficialPrimaryId(session, primaryViewerId)].name}</span>
+                <strong>{session.state.players[primaryViewerId]?.score.primary ?? 0}<small> VP</small></strong>
+              </button>
+              {officialSecondary && <button type="button" className="battle-mission-strip__metric" onClick={() => selectDashboardTab('cards')} aria-label="Open mission cards: Secondary">
+                <span className="battle-mission-strip__label">Secondary · {secondaryStrategyFor(session, primaryViewerId) === 'fixed' ? 'Fixed' : 'Tactical'}</span>
+                <strong>{session.state.players[primaryViewerId]?.score.secondary ?? 0}<small> VP</small></strong>
+              </button>}
+            </section>}
             {battleContext && <div className="tactical-dashboard tactical-dashboard--context">
               <div className="tactical-column tactical-column--primary">
                 <ContextCommandCentre
