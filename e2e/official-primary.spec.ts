@@ -1,4 +1,4 @@
-import { selectPanel, setupBattlefield, setupCommanders, setupRules } from './helpers'
+import { selectPanel, setupBattlefield, setupCommanders, setupRules, openCustomRules } from './helpers'
 import { expect, test } from '@playwright/test'
 import { dismissSecondaryReveal, importTestArmy, phone, resolvePriorityTargetIfNeeded, scoreCard } from './helpers'
 
@@ -8,7 +8,8 @@ test('three commanders with the same army freely choose balanced Primary mission
     await importTestArmy(page)
     await page.getByRole('button', { name: /FFA 3/ }).click()
     await setupRules(page)
-    await page.getByLabel('Primary mode').selectOption('chapter-approved-ffa')
+    await openCustomRules(page)
+    await page.getByLabel('Secondary deck').selectOption('cauldron')
     await setupCommanders(page)
     const primaryPickers = page.getByLabel('11th edition Primary')
     await expect(primaryPickers).toHaveCount(3)

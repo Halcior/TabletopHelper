@@ -1,4 +1,4 @@
-import { setupBattlefield } from './helpers'
+import { setupBattlefield, chooseCauldronPreset } from './helpers'
 import { expect, test, type Page } from '@playwright/test'
 import { dismissSecondaryReveal, importTestArmy, phone, scoreCard } from './helpers'
 import { MockSupabase } from './mockSupabase'
@@ -29,6 +29,7 @@ test('three phones start, synchronize and recover one idempotent offline action'
   try {
     await importTestArmy(alpha.page)
     await alpha.page.getByRole('button', { name: /FFA 3/ }).click()
+    await chooseCauldronPreset(alpha.page)
     await setupBattlefield(alpha.page)
     await alpha.page.getByLabel('Guidance level').selectOption('fast')
     await setupBattlefield(alpha.page)

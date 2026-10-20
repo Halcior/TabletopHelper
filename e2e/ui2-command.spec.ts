@@ -73,8 +73,6 @@ test('setup validates the owning step and preserves every choice without interme
   try {
     await importTestArmy(page)
     await page.getByRole('button', { name: /FFA 3/ }).click()
-    await page.getByLabel('Primary mode').selectOption('chapter-approved-ffa')
-    await page.getByLabel('Secondary deck').selectOption('chapter-approved')
     await page.getByRole('combobox', { name: 'Secondary strategy', exact: true }).selectOption('fixed')
     await page.getByRole('button', { name: 'Next: Commanders' }).click()
     await page.getByLabel('Player name', { exact: true }).nth(0).fill('')
@@ -196,7 +194,9 @@ for (const [width, height] of [[360, 800], [390, 844], [430, 932], [768, 1024], 
           expect(cpButtons.every((button) => button.width >= 44 && button.height >= 44)).toBe(true)
           const centre = await page.locator('.context-centre:visible').boundingBox()
           const heading = await page.locator('.context-centre__heading:visible').boundingBox()
-          const item = await page.locator('.context-item:visible').first().boundingBox()
+          // A phase with no pending missions now shows an empty state instead
+          // of manufacturing a Stratagem reminder just to fill the panel.
+          const item = await page.locator('.context-item:visible, .context-empty:visible').first().boundingBox()
           expect(heading!.y - centre!.y).toBeLessThanOrEqual(24)
           expect(heading!.y + heading!.height).toBeLessThanOrEqual(item!.y)
         }

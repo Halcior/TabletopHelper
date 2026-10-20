@@ -22,6 +22,18 @@ export async function setupRules(page: Page) {
 export async function setupCommanders(page: Page) {
   await page.getByRole('navigation', { name: 'Battle setup steps' }).getByRole('button', { name: /Commanders/ }).click()
 }
+export async function openCustomRules(page: Page) {
+  await setupRules(page)
+  const advanced = page.locator('.setup-custom-settings')
+  if (!await advanced.evaluate((element) => (element as HTMLDetailsElement).open)) await advanced.locator('summary').click()
+}
+
+// Legacy/mixed-deck scenarios opt into house rules explicitly. New-game tests
+// exercise the recommended defaults without this helper.
+export async function chooseCauldronPreset(page: Page) {
+  await openCustomRules(page)
+  await page.getByRole('button', { name: 'Use Cauldron preset', exact: true }).click()
+}
 export async function setupBattlefield(page: Page) {
   await page.getByRole('navigation', { name: 'Battle setup steps' }).getByRole('button', { name: /Battlefield/ }).click()
   await expect(page.getByRole('heading', { name: 'Battlefield & Start', exact: true })).toBeVisible()

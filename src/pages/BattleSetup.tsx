@@ -33,6 +33,8 @@ import {
 import { useSharedSessionStore } from '../multiplayer/sharedSessionStore'
 import { useBattleStore } from '../stores/battleStore'
 import { InfoDisclosure } from '../components/ui/InfoDisclosure'
+import { RulesSourceBadge } from '../components/ui/RulesSourceBadge'
+import { describeRules, recommendedRules } from '../rulesets/rulesSource'
 
 type PlayerDraft = CauldronPlayerInput
 
@@ -43,20 +45,32 @@ const DEFAULT_PLAYERS: PlayerDraft[] = [
   { id: 'player-d', name: 'Player IV', armyId: '', deploymentZone: 'B', turnPosition: 2, operationalPlanId: 'TWIERDZA' },
 ]
 
+function setupMode(value: string | null): CauldronMode {
+  return value === 'ffa3' || value === 'doubles2v2' ? value : 'duel'
+}
+
+function playersForMode(players: PlayerDraft[], mode: CauldronMode): PlayerDraft[] {
+  return players.map((player, index) => ({
+    ...player,
+    deploymentZone: (mode === 'doubles2v2' ? index < 2 ? 'A' : 'B' : 'ABC'[index] ?? 'B') as DeploymentZone,
+    turnPosition: (mode === 'doubles2v2' ? index < 2 ? 1 : 2 : index + 1) as TurnPosition,
+  }))
+}
+
 export default function BattleSetup() {
   const [step, setStep] = useState<1 | 2 | 3>(1)
   const [params] = useSearchParams()
   const navigate = useNavigate()
   const preferredArmyId = params.get('armyId')
-  const [mode, setMode] = useState<CauldronMode>(params.get('mode') === 'ffa3' ? 'ffa3' : params.get('mode') === 'doubles2v2' ? 'doubles2v2' : 'duel')
+  const [mode, setMode] = useState<CauldronMode>(() => setupMode(params.get('mode')))
   const [objectiveLayout, setObjectiveLayout] = useState<CauldronObjectiveLayout>('expanded-7')
   const [armies, setArmies] = useState<Army[]>([])
-  const [players, setPlayers] = useState<PlayerDraft[]>(DEFAULT_PLAYERS)
+  const [players, setPlayers] = useState<PlayerDraft[]>(() => playersForMode(DEFAULT_PLAYERS, setupMode(params.get('mode'))))
   const [guidance, setGuidance] = useState<GuidanceLevel>('guided')
-  const [secondaryDeck, setSecondaryDeck] = useState<SecondaryDeck>('cauldron')
-  const [primaryDeck, setPrimaryDeck] = useState<PrimaryDeck>('cauldron')
+  const [secondaryDeck, setSecondaryDeck] = useState<SecondaryDeck>(() => recommendedRules(mode).secondaryDeck)
+  const [primaryDeck, setPrimaryDeck] = useState<PrimaryDeck>(() => recommendedRules(mode).primaryDeck)
   const [officialStrategy, setOfficialStrategy] = useState<OfficialSecondaryStrategy>('tactical')
-  const [duelStrategies, setDuelStrategies] = useState<Record<string, OfficialSecondaryStrategy>>({ 'player-a': 'tactical', 'player-b': 'tactical' })
+  const [duelStrategies, setDuelStrategies] = useState<Record<string, OfficialSecondaryStrategy>>({ 'player-a': 'tactical', 'player-b': 'tactical', 'player-c': 'tactical' })
   const [officialLayout, setOfficialLayout] = useState<1 | 2 | 3>(1)
   const [teamNames, setTeamNames] = useState(['Team Alpha', 'Team Bravo'])
   const [teamTypes, setTeamTypes] = useState<['unified' | 'convenience', 'unified' | 'convenience']>(['convenience', 'convenience'])
@@ -77,6 +91,9 @@ export default function BattleSetup() {
   const activePlayers = useMemo(() => mode === 'duel' ? players.slice(0, 2) : mode === 'ffa3' ? players.slice(0, 3) : players, [mode, players])
   const doubles = mode === 'doubles2v2'
   const officialPair = mode !== 'ffa3'
+  const rules = describeRules({ mode, primaryDeck, secondaryDeck })
+  const recommended = recommendedRules(mode)
+  const usingRecommended = primaryDeck === recommended.primaryDeck && secondaryDeck === recommended.secondaryDeck
   const teamCaptainIndex = (team: number) => team === 0 ? 0 : 2
   const warlordOptions = (team: number) => activePlayers.slice(team * 2, team * 2 + 2).flatMap((player) => {
     const army = armies.find((entry) => entry.id === player.armyId)
@@ -122,16 +139,26 @@ export default function BattleSetup() {
   }
 
   function changeMode(nextMode: CauldronMode) {
+    if (nextMode === mode) return
     setLocalError(null)
     setInvalidFieldId(null)
     setMode(nextMode)
-    setPrimaryDeck(nextMode === 'doubles2v2' ? 'chapter-approved-duel' : 'cauldron')
-    if (nextMode === 'doubles2v2') setSecondaryDeck('chapter-approved')
-    setPlayers((current) => current.map((player, index) => {
-      const zone = nextMode === 'doubles2v2' ? (index < 2 ? 'A' : 'B') : ('ABC'[index] ?? 'B')
-      const turn = nextMode === 'doubles2v2' ? (index < 2 ? 1 : 2) : index + 1
-      return { ...player, deploymentZone: zone as DeploymentZone, turnPosition: turn as TurnPosition }
-    }))
+    applyRecommended(nextMode)
+    setPlayers((current) => playersForMode(current, nextMode))
+  }
+
+  function applyRecommended(nextMode: CauldronMode) {
+    const defaults = recommendedRules(nextMode)
+    setPrimaryDeck(defaults.primaryDeck)
+    setSecondaryDeck(defaults.secondaryDeck)
+    setOfficialStrategy('tactical')
+    setDuelStrategies({ 'player-a': 'tactical', 'player-b': 'tactical', 'player-c': 'tactical' })
+    setObjectiveLayout('expanded-7')
+  }
+
+  function changePrimary(next: PrimaryDeck) {
+    setPrimaryDeck(next)
+    if (next === 'chapter-approved-duel') setSecondaryDeck('chapter-approved')
   }
 
   function randomizeZones() {
@@ -247,9 +274,9 @@ export default function BattleSetup() {
     }
   }
 
-  if (loadingArmies) return <div className="page-shell"><div className="loading-state">Loading saved armies…</div></div>
+  if (loadingArmies) return <div className="page-shell"><div className="loading-state" role="status">Loading saved armies…</div></div>
   if (armies.length === 0) return <div className="page-shell"><div className="empty-state">
-    <h1>No saved armies</h1><p>Import at least one army. The same army may temporarily be assigned to multiple players.</p>
+    <span className="eyebrow">Your first battle</span><h1>Add your first army</h1><p>Import a New Recruit JSON roster, then choose your format and commanders. You can add more rosters before playing.</p>
     <Link className="button button--gold" to="/army-import">Import army</Link>
   </div></div>
 
@@ -258,41 +285,62 @@ export default function BattleSetup() {
   return (
     <div className="page-shell setup-page">
       <section className="page-intro">
-        <span className="eyebrow">Cauldron v{CAULDRON_RULESET_VERSION}</span>
-        <h1>{doubles ? 'Warhammer Doubles 2v2' : duel ? 'New Cauldron Duel' : 'New Cauldron FFA 3 battle'}</h1>
-        <p>Rules, commanders, then battlefield. Your choices stay here until you start.</p>
+        <span className="eyebrow">Battle setup · Step {step} of 3</span>
+        <h1>{doubles ? 'New Doubles 2v2 battle' : duel ? 'New Duel 1v1 battle' : 'New FFA 3 battle'}</h1>
+        <p>Choose a format, assign commanders and prepare the battlefield.</p>
       </section>
       <nav className="setup-steps" aria-label="Battle setup steps">{(['Rules', 'Commanders', 'Battlefield & Start'] as const).map((label, index) => <button type="button" key={label} aria-current={step === index + 1 ? 'step' : undefined} onClick={() => goToStep((index + 1) as 1 | 2 | 3)}><span>{index + 1}</span><strong>{label}</strong></button>)}</nav>
       <form noValidate onSubmit={(event) => void submit(event)}>
       <section className="setup-step" hidden={step !== 1} aria-label="Rules">
       <h2>Choose your rules</h2>
-      <div className="setup-mode-picker panel" role="group" aria-label="Cauldron battle mode">
+      <div className="setup-mode-picker panel" role="group" aria-label="Battle format">
         <button type="button" className={duel ? 'button--gold' : ''} aria-pressed={duel} onClick={() => changeMode('duel')}>
-          <strong>Duel 1v1</strong><span>2 players · Cauldron or Chapter Approved</span>
-        </button>
-        <button type="button" className={mode === 'ffa3' ? 'button--gold' : ''} aria-pressed={mode === 'ffa3'} onClick={() => changeMode('ffa3')}>
-          <strong>FFA 3</strong><span>3 players · rotating Rival</span>
+          <strong>Duel 1v1</strong><span>Official · 2 players</span>
         </button>
         <button type="button" className={doubles ? 'button--gold' : ''} aria-pressed={doubles} onClick={() => changeMode('doubles2v2')}>
-          <strong>Doubles 2v2</strong><span>4 commanders · 2 shared forces · GW v1.0</span>
+          <strong>Doubles 2v2</strong><span>Official · 4 players</span>
+        </button>
+        <button type="button" className={mode === 'ffa3' ? 'button--gold' : ''} aria-pressed={mode === 'ffa3'} onClick={() => changeMode('ffa3')}>
+          <strong>FFA 3</strong><span>Community · 3 players</span>
         </button>
       </div>
 
+        <section className="panel rules-source" aria-labelledby="rules-source-heading">
+          <div className="rules-source__heading"><h3 id="rules-source-heading">Rules Source</h3><RulesSourceBadge source={rules.source} /></div>
+          <h4>{rules.title}</h4>
+          <p className="rules-source__description">{rules.description}</p>
+          <dl className="rules-source__decks"><div><dt>Primary</dt><dd>{rules.primary}</dd></div><div><dt>Secondary</dt><dd>{rules.secondary}</dd></div></dl>
+          <button type="button" className="rules-source__recommended" aria-pressed={usingRecommended} onClick={() => applyRecommended(mode)}>
+            <span aria-hidden="true">{usingRecommended ? '✓' : '↺'}</span><span><strong>{usingRecommended ? 'Recommended preset selected' : 'Use recommended preset'}</strong><small>{officialPair ? 'Official missions · Tactical by default' : 'Balanced FFA v1 · Tactical · 7 objectives'}</small></span>
+          </button>
+          <InfoDisclosure label="Rules references & format notes">
+            <p className="context-note">{officialPair ? 'Official identifies the selected mission format. Players confirm roster eligibility and physical conditions at the table.' : 'FFA uses community Primary scoring, Rival targeting and Balanced CP. Selecting Chapter Approved cards does not make FFA an official format.'}</p>
+            <div className="rules-source__links"><a href={doubles ? 'https://assets.warhammer-community.com/eng_12-06_warhammer40000_doubles_event_companion-xyapytrwkz-9a6fljmnob.pdf' : 'https://assets.warhammer-community.com/eng_12-06_warhammer40000_event_companion-s3bfb5f9s1-ivswuij3fo.pdf'} target="_blank" rel="noreferrer">{doubles ? 'GW Doubles Event Companion v1.0' : 'GW Event Companion v1.0'}</a><a href="https://www.warhammer-community.com/en-gb/downloads/warhammer-40000/" target="_blank" rel="noreferrer">GW downloads & updates</a></div>
+          </InfoDisclosure>
+        </section>
+        {!doubles && <details className="panel setup-custom-settings">
+          <summary>Custom / Homebrew settings</summary>
+          <p className="context-note">Choose Cauldron or mix the available mission decks. Custom selections are labelled Community format.</p>
+          <button type="button" onClick={() => { setPrimaryDeck('cauldron'); setSecondaryDeck('cauldron') }}>Use Cauldron preset</button>
+          <div className="setup-custom-settings__fields">
+            <label>Primary mode<select value={primaryDeck} onChange={(event) => changePrimary(event.target.value as PrimaryDeck)}>
+              {officialPair ? <option value="chapter-approved-duel">Chapter Approved Duel · official matrix</option> : <option value="chapter-approved-ffa">Balanced FFA v1 · community Primary</option>}
+              <option value="cauldron">Cauldron · objectives + Operational Plan</option>
+            </select></label>
+            {primaryDeck !== 'chapter-approved-duel' && <label>Secondary deck<select value={secondaryDeck} onChange={(event) => setSecondaryDeck(event.target.value as SecondaryDeck)}>
+              <option value="chapter-approved">Chapter Approved 2026–27 · {duel ? '18 cards' : 'FFA adaptation'}</option>
+              <option value="cauldron">Cauldron v{CAULDRON_RULESET_VERSION} · 15 cards</option>
+            </select></label>}
+          </div>
+        </details>}
         <div className="panel setup-primary-picker">
-          <label>Primary mode<select value={primaryDeck} onChange={(event) => setPrimaryDeck(event.target.value as PrimaryDeck)}>
-            {!doubles && <option value="cauldron">Cauldron · objectives + Operational Plan</option>}
-            {officialPair ? <option value="chapter-approved-duel">11th edition official {doubles ? 'Doubles' : 'Duel'} · Force Disposition matrix</option> : <option value="chapter-approved-ffa">11th edition FFA · a different Primary for each player</option>}
-          </select></label>
+          <h3>{primaryDeck === 'cauldron' ? 'Cauldron missions' : 'Mission format'}</h3>
           {mode === 'ffa3' && <p className="context-note" role="note"><strong>Balanced CP (FFA):</strong> Every commander automatically receives +2 CP when each Battle Round starts. From Round 3, players tied for the lowest VP get +1 Underdog CP (no bonus if all scores are tied). No extra Core CP in individual Command phases. Manual +CP/−CP stays available for abilities and corrections.</p>}
           {primaryDeck === 'chapter-approved-ffa' && <InfoDisclosure label="How this Primary works"><p className="context-note">Balanced FFA adaptation of five 11th edition mirror cards, with adjusted VP values. Each player freely selects a Primary below for the whole battle; it is not automatically assigned by Detachment. Primary uses your Current Rival for that Battle Round, including HOME, territory, comparisons and destroyed units. Secondary cards keep the Rival assigned when drawn. Rounds 1/3/5: A → B → C → A. Rounds 2/4: A → C → B → A. Primary scores up to 15 VP per round and 45 VP per battle. Operational Plans do not score.</p></InfoDisclosure>}
-          {primaryDeck === 'chapter-approved-duel' && <InfoDisclosure label="How this Primary works"><p className="context-note">Official 1v1 matrix: each player chooses a Force Disposition available to their Detachment. Their row against the opponent’s choice determines their own Primary. Use one of three terrain layouts for that pairing. The physical battlefield decides control, actions and markers; confirm each condition at the correct scoring window. 45 Primary + 45 Secondary + 10 Battle Ready VP.</p></InfoDisclosure>}
+          {primaryDeck === 'chapter-approved-duel' && <InfoDisclosure label="How this Primary works"><p className="context-note">Official {doubles ? 'Doubles matrix: each force chooses one Force Disposition available to either army' : '1v1 matrix: each player chooses a Force Disposition available to their Detachment'}. Their row against the opponent’s choice determines their own Primary. Use one of three terrain layouts for that pairing. The physical battlefield decides control, actions and markers; confirm each condition at the correct scoring window. 45 Primary + 45 Secondary + 10 Battle Ready VP.</p></InfoDisclosure>}
+          {primaryDeck === 'cauldron' && <p className="context-note">Objectives and Operational Plans use Cauldron community scoring. Assign a plan to each commander in the next step.</p>}
         </div>
-        <section className="panel setup-secondary-picker">
-          {primaryDeck !== 'chapter-approved-duel' && <label>Secondary deck<select value={secondaryDeck} onChange={(event) => setSecondaryDeck(event.target.value as SecondaryDeck)}>
-            <option value="cauldron">Cauldron v{CAULDRON_RULESET_VERSION} · 15 cards</option>
-            <option value="chapter-approved">Chapter Approved 2026–27 · 18 official cards</option>
-          </select></label>}
-          {secondaryDeck === 'chapter-approved' && primaryDeck !== 'chapter-approved-duel' && <>
+        {secondaryDeck === 'chapter-approved' && primaryDeck !== 'chapter-approved-duel' && <section className="panel setup-secondary-picker">
             <label>Secondary strategy<select value={officialStrategy} onChange={(event) => setOfficialStrategy(event.target.value as OfficialSecondaryStrategy)}>
               <option value="tactical">Tactical · draw two each Command phase</option>
               <option value="fixed">Fixed · choose two eligible cards per player</option>
@@ -300,8 +348,7 @@ export default function BattleSetup() {
             <InfoDisclosure label="Secondary strategy details"><p className="context-note">{officialStrategy === 'fixed'
               ? 'Fixed: choose two eligible cards for each player. They remain active throughout the battle and each can score up to 20 VP.'
               : 'Tactical: draw two cards at each own Command phase. There is no free general mulligan: once per battle New Orders replaces one card for 1 CP; specific When Drawn cards have their own replacement rules. At your turn end, discard active cards to gain 1 CP.'} Secondary scores up to 15 VP per round and 45 VP per battle. {duel ? 'Duel uses the two-player card text.' : 'FFA cards keep their assigned Secondary Rival. Enemy presence checks both other armies. Only your army’s kills against that assigned Rival score. Tactical is recommended; Fixed is experimental because target availability depends on the matchup.'}</p></InfoDisclosure>
-          </>}
-        </section>
+        </section>}
       </section>
       <section className="setup-step" hidden={step !== 2} aria-label="Commanders">
         <h2>Assign your commanders</h2>
@@ -362,10 +409,10 @@ export default function BattleSetup() {
                 {OFFICIAL_PRIMARY_IDS.map((id) => <option key={id} value={id}>{OFFICIAL_PRIMARY_MISSIONS[id].name}</option>)}
               </select></label>
               {player.officialPrimaryId && <InfoDisclosure label="Selected Primary rules"><p className="plan-description">{BALANCED_OFFICIAL_PRIMARY_MISSIONS[player.officialPrimaryId].description} <a href={BALANCED_OFFICIAL_PRIMARY_MISSIONS[player.officialPrimaryId].url} target="_blank" rel="noreferrer">Read original card</a></p><ul className="context-note">{BALANCED_OFFICIAL_PRIMARY_MISSIONS[player.officialPrimaryId].rules.map((rule) => <li key={rule}>{rule}</li>)}</ul></InfoDisclosure>}
-            </> : <><label>Operational Plan<select value={player.operationalPlanId} onChange={(event) => updatePlayer(index, 'operationalPlanId', event.target.value as OperationalPlanId)}>
+            </> : primaryDeck === 'cauldron' ? <><label>Operational Plan<select value={player.operationalPlanId} onChange={(event) => updatePlayer(index, 'operationalPlanId', event.target.value as OperationalPlanId)}>
               {OPERATIONAL_PLAN_IDS.map((planId) => <option key={planId} value={planId}>{OPERATIONAL_PLAN_DEFINITIONS[planId].name}</option>)}
             </select></label>
-            <p className="plan-description">{OPERATIONAL_PLAN_DEFINITIONS[player.operationalPlanId].description}</p></>}
+            <p className="plan-description">{OPERATIONAL_PLAN_DEFINITIONS[player.operationalPlanId].description}</p></> : null}
             {primaryDeck === 'chapter-approved-duel' && (!doubles || index === 0 || index === 2) && <label>Secondary strategy<select value={duelStrategies[player.id]} onChange={(event) => setDuelStrategies((current) => ({ ...current, [player.id]: event.target.value as OfficialSecondaryStrategy }))}>
               <option value="tactical">Tactical · draw from deck</option><option value="fixed">Fixed · choose two cards</option>
             </select></label>}
@@ -384,7 +431,7 @@ export default function BattleSetup() {
       </section>
       <section className="setup-step" hidden={step !== 3} aria-label="Battlefield and start">
         <h2>Battlefield & Start</h2>
-        <section className="panel setup-summary" aria-label="Battle setup summary"><span className="eyebrow">Ready to deploy</span><h3>{doubles ? 'Official Doubles 2v2' : duel ? 'Duel 1v1' : 'FFA 3'}</h3><p>{primaryDeck === 'cauldron' ? 'Cauldron Primary' : '11th edition Primary'} · {primaryDeck === 'chapter-approved-duel' || secondaryDeck === 'chapter-approved' ? 'Chapter Approved Secondary' : 'Cauldron Secondary'}</p><ul>{activePlayers.map((player) => <li key={player.id}><strong>{player.name}</strong><span>Zone {player.deploymentZone} · Turn {player.turnPosition}</span><small>{armies.find((army) => army.id === player.armyId)?.faction}</small></li>)}</ul></section>
+        <section className="panel setup-summary" aria-label="Battle setup summary"><div className="rules-source__heading"><span className="eyebrow">Ready to deploy</span><RulesSourceBadge source={rules.source} /></div><h3>{rules.title}</h3><p>{rules.primary} · {rules.secondary}</p><ul>{activePlayers.map((player) => <li key={player.id}><strong>{player.name}</strong><span>Zone {player.deploymentZone} · Turn {player.turnPosition}</span><small>{armies.find((army) => army.id === player.armyId)?.faction}</small></li>)}</ul></section>
         <section className="panel setup-footer setup-footer--battle-mode">
           {primaryDeck === 'chapter-approved-duel' && <><InfoDisclosure label="Official pairing & setup instructions"><p className="context-note">Secondary deck: Chapter Approved 2026–27. Each force chooses Tactical or Fixed. In Doubles, both players share their active Secondary cards. Pick the recommended layout for your pairing. Roll for Attacker/Defender, then roll separately for first turn as described in the <a href="https://assets.warhammer-community.com/eng_12-06_warhammer40000_event_companion-s3bfb5f9s1-ivswuij3fo.pdf" target="_blank" rel="noreferrer">Warhammer Event Companion</a>. Assign A/B HOME to your actual objectives and turn positions to the first-turn roll. The app’s central and expansion names are generic; use the physical layout to identify them.</p></InfoDisclosure><label>Pairing layout<select value={officialLayout} onChange={(event) => setOfficialLayout(Number(event.target.value) as 1 | 2 | 3)}><option value={1}>Layout A</option><option value={2}>Layout B</option><option value={3}>Layout C</option></select></label></>}
           {primaryDeck === 'chapter-approved-duel' && <label>Attacker HOME assignment<select value={attackerHomeZone} onChange={(event) => setAttackerHomeZone(event.target.value as 'A' | 'B')}><option value="A">A-HOME · Attacker / B-HOME · Defender</option><option value="B">B-HOME · Attacker / A-HOME · Defender</option></select></label>}
@@ -396,18 +443,19 @@ export default function BattleSetup() {
             <option value="expanded-7">{secondaryDeck === 'chapter-approved' ? '7 objectives — 3 HOME + AB/AC/BC-NEUTRAL + CENTER' : '7 objectives — 3 HOME + N1/N2/N3 + CENTER'}</option>
             <option value="classic-6">6 objectives — 3 HOME + N1/N2/N3</option>
           </select></label>}
-          <label>Shared host seat<select value={hostPlayerId} onChange={(event) => setHostPlayerId(event.target.value)}>
+          {sharedConfigured && <label>Shared host seat<select value={hostPlayerId} onChange={(event) => setHostPlayerId(event.target.value)}>
             {activePlayers.map((player) => <option key={player.id} value={player.id}>{player.name}</option>)}
-          </select></label>
+          </select></label>}
           {secondaryDeck === 'cauldron' && primaryDeck !== 'chapter-approved-duel' && (duel
             ? <p className="context-note">Duel changes only the player topology: 2 turns per Battle Round, A/B HOME objectives, and a permanent Rival. Primary, Secondary, Operational Plans and scoring caps use the Cauldron {CAULDRON_RULESET_VERSION} balance rules.</p>
             : <p className="context-note">The 7-objective layout treats CENTER as a neutral objective. Gather Intel requires CENTER.</p>)}
           <div className="setup-submit-actions">
-            <button className="button" type="submit" value="local" disabled={loading || sharedWorking}>{loading && !sharedWorking ? 'Preparing…' : 'Start locally'}</button>
-            <button className="button button--gold" type="submit" value="shared" disabled={loading || sharedWorking || !sharedConfigured} title={sharedConfigured ? undefined : 'Configure Supabase first'}>
-              {sharedWorking ? 'Checking Supabase…' : `Create ${doubles ? '4-player' : duel ? '2-player' : '3-player'} lobby`}
+            <button className={`button${sharedConfigured ? '' : ' button--gold'}`} type="submit" value="local" disabled={loading || sharedWorking}>{loading && !sharedWorking ? 'Preparing…' : 'Start locally'}</button>
+            <button className={`button${sharedConfigured ? ' button--gold' : ''}`} type="submit" value="shared" disabled={loading || sharedWorking || !sharedConfigured} aria-describedby={!sharedConfigured ? 'shared-unavailable' : undefined}>
+              {sharedWorking ? 'Preparing shared lobby…' : `Create ${doubles ? '4-player' : duel ? '2-player' : '3-player'} lobby`}
             </button>
           </div>
+          {!sharedConfigured && <p id="shared-unavailable" className="context-note">Shared lobbies are unavailable on this installation. Start locally to play on one device.</p>}
         </section>
       </section>
       {(localError || error) && <div id="setup-error" className="alert alert--danger" role="alert">{localError ?? error}</div>}

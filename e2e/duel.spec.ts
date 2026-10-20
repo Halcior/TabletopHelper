@@ -1,4 +1,4 @@
-import { setupBattlefield } from './helpers'
+import { setupBattlefield, chooseCauldronPreset } from './helpers'
 import { expect, test } from '@playwright/test'
 import { dismissSecondaryReveal, importTestArmy, phone, resolvePriorityTargetIfNeeded } from './helpers'
 
@@ -6,6 +6,7 @@ test('Duel 1v1 starts as a compact two-player phone battle', async ({ browser })
   const { context, page } = await phone(browser)
   try {
     await importTestArmy(page)
+    await chooseCauldronPreset(page)
     await setupBattlefield(page)
     await page.getByLabel('Guidance level').selectOption('fast')
     await setupBattlefield(page)

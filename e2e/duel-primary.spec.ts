@@ -7,7 +7,6 @@ test('official duel selects asymmetric matrix cards and scores the first turn', 
   try {
     await importTestArmy(page)
     await setupRules(page)
-    await page.getByLabel('Primary mode').selectOption('chapter-approved-duel')
     await setupCommanders(page)
     await expect(page.getByRole('combobox', { name: 'Force Disposition' })).toHaveCount(2)
     await expect(page.getByText('Your Primary:')).toHaveCount(2)

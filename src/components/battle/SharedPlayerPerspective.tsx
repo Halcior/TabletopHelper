@@ -1,6 +1,5 @@
 import { totalScore } from '../../domain/battle/selectors'
 import type { BattleSession } from '../../domain/battle/types'
-import { getCurrentReactionWindow } from '../../domain/stratagems/battleIntegration'
 import { selectActiveMissionActions } from '../../domain/context/selectors'
 import { CAULDRON_RULESET_ID, getCauldronConfig, getCurrentRivalPlayerId } from '../../rulesets/cauldronFFA3'
 import { evaluateOperationalPlan } from '../../rulesets/cauldronFFA3/operationalPlans'
@@ -55,8 +54,6 @@ export function SharedPlayerPerspective({
     ? getCurrentRivalPlayerId(session, viewerPlayerId)
     : null
   const viewerRival = viewerRivalId ? session.state.players[viewerRivalId] : null
-  const reactionWindow = getCurrentReactionWindow(session)
-  const reactionPending = reactionWindow?.responses[viewerPlayerId]?.status === 'PENDING'
   const activeSecondaries = showCards ? getActiveSecondaryViews(session, doublesScorekeeperId(session.setup, viewerPlayerId)) : []
   const missionActions = selectActiveMissionActions(session, viewerPlayerId)
   const plan = showCards && !(session.setup.rulesetId === CAULDRON_RULESET_ID && (getCauldronConfig(session).primaryDeck ?? 'cauldron') !== 'cauldron')
@@ -74,18 +71,14 @@ export function SharedPlayerPerspective({
     : currentRival
       ? 'You are Rival'
       : `Watching ${doublesForceForPlayer(session.setup, active.id)?.name ?? active.name}`
-  const urgentTitle = reactionPending
-    ? 'Reaction required'
-    : ownTurn && requiredActionCount > 0
-      ? `${requiredActionCount} item${requiredActionCount === 1 ? '' : 's'} to resolve`
-      : null
-  const urgentCopy = reactionPending
-    ? 'Respond USE or PASS before the battle can continue.'
-    : urgentTitle
-      ? 'Resolve the highlighted item before advancing the phase.'
-      : null
+  const urgentTitle = ownTurn && requiredActionCount > 0
+    ? `${requiredActionCount} item${requiredActionCount === 1 ? '' : 's'} to resolve`
+    : null
+  const urgentCopy = urgentTitle
+    ? 'Resolve the highlighted item before advancing the phase.'
+    : null
 
-  return <section className={`panel shared-perspective${ownTurn ? ' shared-perspective--active' : currentRival ? ' shared-perspective--rival' : ''}${reactionPending ? ' shared-perspective--reaction' : ''}`}>
+  return <section className={`panel shared-perspective${ownTurn ? ' shared-perspective--active' : currentRival ? ' shared-perspective--rival' : ''}`}>
     <div className="shared-perspective__heading">
       <div><span className="eyebrow">You</span><h3>{viewer.name}</h3><small>{session.setup.doubles ? `${doublesForceForPlayer(session.setup, viewerPlayerId)?.name ?? 'Team'} · ${viewer.faction ?? 'Army'}` : viewer.faction ?? 'Army'}</small></div>
       <span className="shared-perspective__role">{role}</span>

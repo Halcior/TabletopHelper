@@ -7,10 +7,11 @@ const entry = readFileSync(new URL('./main.tsx', import.meta.url), 'utf8')
 const icon = readFileSync(new URL('../public/icons/icon.svg', import.meta.url), 'utf8')
 
 describe('tactical visual system contract', () => {
-  it('loads one layered visual entrypoint with command last', () => {
+  it('loads one layered visual entrypoint with product polish after command', () => {
     expect(entry).toContain("./visualSystem.css")
     expect(entry).not.toContain("./tacticalTheme.css")
-    expect(visualSystem).toContain('@layer foundation, feature, focus, responsive, polish, command;')
+    expect(visualSystem).toContain('@layer foundation, feature, focus, responsive, polish, command, product;')
+    expect(visualSystem.indexOf("./productPolish.css")).toBeGreaterThan(visualSystem.indexOf("./tacticalCommand.css"))
     expect(visualSystem.indexOf("./tacticalCommand.css")).toBeGreaterThan(visualSystem.indexOf("./tacticalTheme.css"))
     expect(visualSystem.indexOf("./tacticalTheme.css")).toBeGreaterThan(visualSystem.indexOf("./mobileBattle.css"))
   })

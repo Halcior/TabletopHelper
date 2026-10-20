@@ -95,8 +95,8 @@ test('mobile effective Wounds, attack summary, healing, correction, report and l
       const store = useBattleStore.getState()
       useBattleStore.setState({ session: requestReactionHold(store.session!, 'p-b', { trigger: 'CUSTOM_CONFIRMATION', context: { holdDraft: true }, definitionsByPlayer: { 'p-a': [], 'p-b': [], 'p-c': [] } }) })
     })
-    await page.getByRole('button', { name: 'Close legacy pause' }).click()
-    await expect(page.getByRole('button', { name: 'Close legacy pause' })).toHaveCount(0)
+    await page.getByRole('button', { name: 'Close legacy pause', exact: true }).click()
+    await expect(page.getByRole('button', { name: 'Close legacy pause', exact: true })).toHaveCount(0)
 
     // Regression: damaging the third unit must not move it to the first card.
     // Quick Access must not shrink or reshuffle while the player is tapping.

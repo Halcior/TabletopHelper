@@ -40,9 +40,9 @@ export function Scoreboard({
         const members = force?.memberPlayerIds.map((id) => session.state.players[id].name).join(' + ')
         const viewer = sharedMode && playerId === viewerSideId
         const canEditCp = !sharedMode || viewer
-        const role = viewer ? 'You' : active ? 'Active' : rival ? 'Rival' : 'Opponent'
+        const role = viewer ? active ? 'You · Active' : 'You' : active ? 'Active' : rival ? 'Rival' : 'Opponent'
         return (
-          <article className={`score-card score-card--player-${playerIndex}${active ? ' is-active' : ''}${rival ? ' is-rival' : ''}${viewer ? ' is-viewer' : ''}${leadingScore > 0 && totalScore(player) === leadingScore ? ' is-leading' : ''}`} key={playerId}>
+          <article className={`score-card score-card--player-${playerIndex}${active ? ' is-active' : ''}${rival ? ' is-rival' : ''}${viewer ? ' is-viewer' : ''}${leadingScore > 0 && totalScore(player) === leadingScore ? ' is-leading' : ''}`} key={playerId} aria-label={`${name}${active ? ' · active turn' : ''}`}>
             <div className="score-card__identity">
               <div className="score-card__name"><i aria-hidden="true" />{name}</div>
               {force ? <small>{members}</small> : player.faction && <small>{player.faction}</small>}

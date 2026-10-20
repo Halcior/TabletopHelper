@@ -1,5 +1,5 @@
 import { setupCommanders } from './helpers'
-import { selectPanel, setupBattlefield, setupRules } from './helpers'
+import { selectPanel, setupBattlefield, setupRules, chooseCauldronPreset } from './helpers'
 import { expect, test, type Page } from '@playwright/test'
 import { dismissSecondaryReveal, importTestArmy, phone } from './helpers'
 import { MockSupabase } from './mockSupabase'
@@ -49,9 +49,6 @@ for (const layout of [1, 2, 3])
     try {
       await importTestArmy(page)
       await setupRules(page)
-      await page
-        .getByLabel('Primary mode')
-        .selectOption('chapter-approved-duel')
       await setupCommanders(page)
       await expect(
         page.getByRole('combobox', { name: 'Force Disposition', exact: true }),
@@ -181,6 +178,7 @@ test('FFA touch editor persists seven IDs, supports reset and undo, and replays 
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await importTestArmy(page)
     await page.getByRole('button', { name: /FFA 3/ }).click()
+    await chooseCauldronPreset(page)
     await setupRules(page)
     await page
       .getByRole('combobox', { name: 'Secondary deck', exact: true })
@@ -387,6 +385,7 @@ test('three phones share host geometry and control, rejecting non-host edits and
   try {
     await importTestArmy(alpha.page)
     await alpha.page.getByRole('button', { name: /FFA 3/ }).click()
+    await chooseCauldronPreset(alpha.page)
     await setupBattlefield(alpha.page)
     await alpha.page.getByLabel('Guidance level').selectOption('fast')
     await setupRules(alpha.page)

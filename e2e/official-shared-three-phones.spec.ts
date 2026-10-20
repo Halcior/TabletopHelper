@@ -18,11 +18,9 @@ test('independent Primary and Chapter Approved Secondary synchronize on three ph
     await importTestArmy(alpha.page)
     await alpha.page.getByRole('button', { name: /FFA 3/ }).click()
     await setupRules(alpha.page)
-    await alpha.page.getByLabel('Primary mode').selectOption('chapter-approved-ffa')
     await setupBattlefield(alpha.page)
     await alpha.page.getByLabel('Guidance level').selectOption('fast')
     await setupRules(alpha.page)
-    await alpha.page.getByLabel('Secondary deck').selectOption('chapter-approved')
     await setupRules(alpha.page)
     await alpha.page.getByLabel('Secondary strategy').selectOption('fixed')
     await setupBattlefield(alpha.page)
@@ -36,7 +34,7 @@ test('independent Primary and Chapter Approved Secondary synchronize on three ph
     await Promise.all([alpha.page, bravo.page, charlie.page].map((page) => expect(page).toHaveURL(/\/battle\//)))
     await dismissSecondaryReveal(alpha.page)
     for (const page of [alpha.page, bravo.page, charlie.page]) {
-      await expect(page.locator('.ruleset-label')).toContainText(['Cauldron FFA 3', 'Chapter Approved · Fixed', /Primary FFA/])
+      await expect(page.locator('.ruleset-label')).toContainText(['Recommended House Format · FFA 3', 'Chapter Approved · Fixed', /Primary FFA/])
       await expect(page.locator('.official-secondary-panel').first()).toContainText('FFA balance patch')
     }
     await expect(alpha.page.locator('.official-primary-panel h2').first()).toHaveText('Battlefield Dominance')

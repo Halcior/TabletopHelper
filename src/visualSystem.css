@@ -1,10 +1,10 @@
 /*
  * One visual entrypoint with an explicit cascade contract.
  * Feature styles own component layout; responsive styles compact it; the
- * UI 2.0 owns shared tokens and the final component presentation. Keep feature
+ * Command owns layout/tokens; product owns the shell and final presentation. Keep feature
  * geometry and permission-dependent state classes in their existing layers.
  */
-@layer foundation, feature, focus, responsive, polish, command;
+@layer foundation, feature, focus, responsive, polish, command, product;
 
 @import './styles.css' layer(foundation);
 
@@ -25,3 +25,5 @@
 @import './battlefield.css' layer(polish);
 @import './tacticalTheme.css' layer(polish);
 @import './tacticalCommand.css' layer(command);
+@import './appBackground.css' layer(product);
+@import './productPolish.css' layer(product);
