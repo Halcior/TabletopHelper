@@ -1,3 +1,4 @@
+import { useRosterLibrary } from '../features/armyLibrary/repository'
 import { ArmyBanner } from '../features/factionVisuals/components'
 import { VisualPreferences } from '../features/factionVisuals/VisualPreferences'
 import { useEffect, useState } from 'react'
@@ -7,9 +8,7 @@ import { totalScore } from '../domain/battle/selectors'
 import type { BattleSession } from '../domain/battle/types'
 import {
   getLatestActiveBattle,
-  listArmies,
   listRecentBattles,
-  type StoredArmy,
   type StoredBattle,
 } from '../persistence/database'
 import { CAULDRON_RULESET_ID } from '../rulesets/cauldronFFA3'
@@ -31,7 +30,7 @@ function HomeActionContent({ icon, label, title, detail }: { icon: AppIconName; 
 }
 
 export default function Home() {
-  const [armies, setArmies] = useState<StoredArmy[]>([])
+  const { rows: armies } = useRosterLibrary()
   const [activeBattle, setActiveBattle] = useState<BattleSession | null>(null)
   const [recentBattles, setRecentBattles] = useState<StoredBattle[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -40,9 +39,8 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    void Promise.all([listArmies(), getLatestActiveBattle(), listRecentBattles(8)])
-      .then(([storedArmies, battle, recent]) => {
-        setArmies(storedArmies)
+    void Promise.all([getLatestActiveBattle(), listRecentBattles(8)])
+      .then(([battle, recent]) => {
         setActiveBattle(battle ?? null)
         setRecentBattles(recent.filter((entry) => entry.status !== 'active').slice(0, 5))
       })
@@ -97,9 +95,9 @@ export default function Home() {
             <HomeActionContent icon="objectives" label="Table setup" title="Terrain layouts" detail="45 official plans · 1v1 and 2v2 · print" />
           </Link>
 
-          {armies.length > 0 && <a className="home-action" href="#army-library">
-            <HomeActionContent icon="army" label="Roster" title="Army Library" detail={`${armies.length} saved locally`} />
-          </a>}
+          {armies.length > 0 && <Link className="home-action" to="/armies">
+            <HomeActionContent icon="army" label="Roster" title="Army Library" detail={`${armies.length} saved rosters`} />
+          </Link>}
         </div>}
 
         {hosted && <button className="home-test-link" type="button" onClick={() => void shareTestLink()}>{shareStatus === 'copied' ? 'App link copied' : 'Share app link'}</button>}
@@ -136,7 +134,7 @@ export default function Home() {
 
       <VisualPreferences />
       <section id="army-library" className="section-block home-armies-section">
-        <div className="section-heading"><div><span className="eyebrow">Army Library</span><h2>Saved rosters</h2></div><Link className="button" to="/army-import">Import army</Link></div>
+        <div className="section-heading"><div><span className="eyebrow">Army Library</span><h2>Saved rosters</h2><Link to="/armies">Manage My Armies →</Link></div><Link className="button" to="/army-import">Import army</Link></div>
         {loading ? <div className="loading-state" role="status">Loading saved rosters…</div> : armies.length === 0 ? (
           <div className="empty-state"><h3>Your rosters start here</h3><p>Import a New Recruit JSON file. Your armies stay available on this device for your next battle.</p></div>
         ) : (
@@ -145,6 +143,7 @@ export default function Home() {
               <article className="panel library-card" key={army.id}>
                 <ArmyBanner army={army} />
                 <Link className="button button--small" to={`/army/${encodeURIComponent(army.id)}/appearance`}>Appearance & photos</Link>
+                <Link className="button button--small" to={`/army/${encodeURIComponent(army.id)}`}>Open / Edit</Link>
                 <div><h3>{army.faction}</h3><p>{army.name}</p></div>
                 <div className="library-card__facts"><strong>{army.totalPoints}</strong><span>PTS</span><strong>{army.units.length}</strong><span>UNITS</span></div>
                 <Link className="button button--small" to={`/battle/setup?armyId=${encodeURIComponent(army.id)}`}>Use</Link>

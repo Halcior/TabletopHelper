@@ -1,0 +1,210 @@
+.roster-heading {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: end;
+  justify-content: space-between;
+}
+.roster-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+.roster-filters,
+.roster-fields {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+.roster-filters label,
+.roster-fields label,
+.account-panel form label,
+.roster-unit details label {
+  display: grid;
+  gap: 0.4rem;
+  min-width: 0;
+}
+.roster-filters input,
+.roster-filters select,
+.roster-fields input,
+.roster-fields select,
+.account-panel input,
+.roster-unit details input {
+  width: 100%;
+  min-width: 0;
+}
+.roster-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr));
+  gap: 1rem;
+}
+.roster-card-grid .library-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.8rem;
+  min-width: 0;
+}
+.roster-card-grid h2 {
+  font-size: 1.2rem;
+  overflow-wrap: anywhere;
+}
+.roster-card-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  align-items: center;
+}
+.roster-status {
+  padding: 0.15rem 0.6rem;
+  border: 1px solid currentColor;
+  border-radius: 1rem;
+  text-transform: capitalize;
+  font-size: 0.8rem;
+}
+.roster-status--synced {
+  color: #92c9af;
+}
+.roster-status--pending {
+  color: #dcc680;
+}
+.roster-status--error {
+  color: #f3a69d;
+}
+.roster-sync-bar,
+.local-import-notice {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.8rem 1rem;
+  border: 1px solid #bba46c66;
+  background: #151a21;
+  border-radius: 0.6rem;
+}
+.local-import-notice {
+  max-width: 1200px;
+  margin: 1rem auto;
+}
+.roster-editor-toolbar {
+  position: sticky;
+  top: 0.4rem;
+  z-index: 9;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.8rem;
+  background: #111820f5;
+  border: 1px solid #c3a66b80;
+  border-radius: 0.6rem;
+  margin: 1rem 0;
+  box-shadow: 0 6px 20px #0006;
+}
+.roster-warning {
+  padding: 0.8rem;
+  color: #e2c890;
+  background: #b5903b10;
+  border: 1px solid #b5903b55;
+  border-radius: 0.6rem;
+}
+.roster-warning ul {
+  padding-left: 1.2rem;
+  line-height: 1.6;
+}
+.roster-unit-list {
+  display: grid;
+  gap: 1rem;
+  margin: 1.2rem 0;
+}
+.roster-unit {
+  min-width: 0;
+}
+.roster-unit h2 {
+  font-size: 1.1rem;
+}
+.roster-unit-heading {
+  display: flex;
+  gap: 0.8rem;
+  align-items: center;
+}
+.roster-unit details {
+  padding: 0.7rem 0;
+}
+.roster-unit summary,
+.roster-card-grid summary,
+.account-panel summary {
+  cursor: pointer;
+  padding: 0.5rem 0;
+}
+.roster-unit details p {
+  overflow-wrap: anywhere;
+  line-height: 1.6;
+}
+.roster-fields input[type='checkbox'] {
+  width: 1.3rem;
+  height: 1.3rem;
+}
+.account-panel {
+  margin: 1rem 0;
+  display: grid;
+  gap: 1rem;
+  overflow-wrap: anywhere;
+}
+.account-panel form {
+  display: grid;
+  gap: 0.8rem;
+}
+.account-migration-list {
+  display: grid;
+  gap: 0.8rem;
+}
+.account-migration-list label {
+  display: flex;
+  gap: 0.6rem;
+  align-items: start;
+}
+.account-migration-list input {
+  width: auto;
+}
+@media (min-width: 700px) {
+  .roster-filters {
+    grid-template-columns: 2fr 1fr 1fr;
+  }
+  .roster-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 600px) {
+  .app-header nav {
+    gap: 0.2rem;
+  }
+  .app-header nav a {
+    padding: 0.5rem;
+  }
+  .app-header .brand {
+    font-size: 0.95rem;
+  }
+  .local-import-notice {
+    margin: 0.7rem;
+  }
+  .roster-editor-toolbar .button {
+    padding: 0.6rem 0.7rem;
+    font-size: 0.8rem;
+  }
+  .roster-unit {
+    padding: 1rem;
+  }
+}
+@media (max-width: 460px) {
+  .app-header .brand > span:last-child {
+    display: none;
+  }
+  .app-header nav a {
+    min-width: 44px;
+  }
+}
