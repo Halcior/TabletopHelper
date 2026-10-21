@@ -96,3 +96,58 @@
 .battlefield-footprint-note{margin:0;color:var(--muted);font-size:.79rem;line-height:1.5}
 @media(max-width:600px){.battlefield-footprint-editor__dimensions{grid-template-columns:repeat(2,minmax(0,1fr))}.objective-footprint{border-width:1.5px}}
 @media print{.objective-footprint{border:1px dashed #555;background:transparent;box-shadow:none}}
+
+/* Exact source contours in physical cm; features are classification cues. */
+.official-terrain-area{stroke:#a7b9ac;stroke-width:1.2;fill:#394b42;fill-opacity:.65;stroke-linejoin:round}
+.official-terrain-area--light{stroke:#bcb080;fill:#514b35;fill-opacity:.6}
+.terrain-area-label{font:600 2.4px var(--font-mono);fill:#eef1e7;paint-order:stroke;stroke:#101c1b;stroke-width:.8;stroke-linejoin:round}
+.terrain-feature-cue rect{fill:#284d45;stroke:#99b7a5;stroke-width:.2}
+.terrain-feature-cue--light rect{fill:#63572f;stroke:#c4b77d}
+.terrain-feature-cue text{font:600 2.4px var(--font-mono);fill:#fff}
+.terrain-plan-objective{fill:#1d6c65;stroke:#d9f1dc;stroke-width:.5}
+.terrain-objective-label{font:600 2px var(--font-mono);fill:#eff9ee;paint-order:stroke;stroke:#101c1b;stroke-width:.7}
+.terrain-layer-controls{margin:0;padding:8px 12px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 14px;border:1px solid var(--line);border-radius:var(--radius-md);min-width:0}
+.terrain-layer-controls legend{font-size:.8rem;color:var(--muted);padding:0 6px}
+.terrain-layer-controls label{display:flex;align-items:center;gap:8px;min-height:44px;font-size:.8rem;cursor:pointer;min-width:0}
+.terrain-layer-controls input{width:18px;height:18px;min-height:18px;margin:0;accent-color:var(--gold);flex-shrink:0}
+.terrain-legend{display:flex;flex-wrap:wrap;gap:8px 18px;color:var(--muted);font-size:.78rem;line-height:1.5}
+.terrain-legend span{display:flex;align-items:center;gap:7px}
+.terrain-key{width:14px;height:14px;border:1px solid #a7b9ac;background:#394b42;display:inline-block}
+.terrain-key--light{border-color:#bcb080;background:#514b35}
+.terrain-gallery{max-width:1080px;min-width:0}
+.terrain-gallery-heading{display:flex;justify-content:space-between;align-items:start;gap:12px;margin-bottom:24px}
+.terrain-gallery-heading p,.terrain-role-note,.terrain-provenance,.terrain-precision{color:var(--muted);font-size:.82rem;line-height:1.5}
+.terrain-gallery-controls{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;padding:18px;margin-bottom:24px}
+.terrain-gallery label{display:grid;gap:6px;font-size:.82rem;min-width:0}
+.terrain-gallery select{width:100%;min-width:0;min-height:44px}
+.terrain-gallery .terrain-layer-controls label{display:flex}
+.terrain-plan{display:grid;gap:14px;min-width:0}
+.terrain-plan h2{margin:0;font-size:1.2rem}
+.terrain-gallery-frame{padding:20px 28px 14px;max-width:620px}
+.terrain-scale{font: .72rem var(--font-mono);color:var(--muted);display:block;margin-top:14px;text-align:center}
+.terrain-source-links{display:flex;gap:10px 20px;flex-wrap:wrap;font-size:.82rem;line-height:1.5}
+.terrain-inspector{padding:16px;min-width:0}
+.terrain-inspector h3{margin:0 0 12px}
+.terrain-inspector p{color:var(--muted);font-size:.83rem;line-height:1.6}
+.terrain-measurement-table{min-width:0}
+.terrain-measurement-table summary{min-height:44px;cursor:pointer;padding:12px 0;font-size:.85rem}
+.terrain-table-scroll{max-width:100%;overflow:auto}
+.terrain-table-scroll table{width:100%;border-collapse:collapse;font: .76rem var(--font-mono)}
+.terrain-table-scroll td,.terrain-table-scroll th{padding:10px 8px;text-align:left;border-bottom:1px solid var(--line);overflow-wrap:anywhere}
+.terrain-source-hash{font: .67rem var(--font-mono);color:var(--muted);overflow-wrap:anywhere}
+@media(max-width:600px){.terrain-gallery-controls{grid-template-columns:repeat(2,minmax(0,1fr));padding:12px;gap:12px}.terrain-layer-controls{grid-template-columns:repeat(2,minmax(0,1fr))}.terrain-gallery-heading{display:block}.terrain-gallery-frame{padding:12px 12px 14px}.terrain-gallery-heading h1{font-size:1.8rem}.terrain-table-scroll td,.terrain-table-scroll th{padding:8px 4px;font-size:.66rem}}
+@media print{
+  @page{size:A4 portrait;margin:12mm}
+  body:has(.terrain-gallery){background:#fff!important;color:#111!important}
+  body:has(.terrain-gallery) .app-header,body:has(.terrain-gallery) .app-background,.terrain-gallery-heading,.terrain-gallery-controls,.terrain-plan .battlefield-tools,.terrain-layer-controls,.terrain-inspector{display:none!important}
+  .terrain-gallery,.terrain-plan{margin:0!important;padding:0!important;max-width:none!important;gap:6px}
+  .terrain-gallery-frame{width:116mm!important;padding:3mm!important;background:#fff!important;border:1px solid #888!important;break-inside:avoid}
+  .terrain-gallery-frame .battlefield-canvas{background:#fff!important;color:#aaa!important}
+  .terrain-area-label,.terrain-objective-label{fill:#111;stroke:#fff}
+  .terrain-gallery .battlefield-heading p,.terrain-scale,.terrain-legend,.terrain-provenance,.terrain-role-note,.terrain-precision{color:#222!important}
+  .terrain-source-links{display:none}
+  .terrain-precision{font-size:8pt}
+  .terrain-measurement-table{break-before:page}
+  .terrain-table-scroll{overflow:visible}
+  .terrain-source-hash{font-size:7pt;color:#222}
+}

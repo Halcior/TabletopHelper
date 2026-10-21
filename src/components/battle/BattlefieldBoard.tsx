@@ -1,3 +1,4 @@
+import { BattlefieldMapSvg, DEFAULT_TERRAIN_LAYERS, TerrainLayerControls, TerrainLegend } from './BattlefieldMapSvg'
 import { PlayerFactionMarks } from '../../features/factionVisuals/components'
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react'
 import { CommandPopover } from '../ui/CommandPopover'
@@ -43,7 +44,8 @@ export function BattlefieldBoard({
   const canEdit =
     session.state.status === 'active' && (!shared || membership?.isHost)
   const [rotated, setRotated] = useState(false)
-  const [showFootprints, setShowFootprints] = useState(() => !isOfficialBoard(session.setup))
+  const [showFootprints, setShowFootprints] = useState(true)
+  const [layers, setLayers] = useState(DEFAULT_TERRAIN_LAYERS)
   const [editingFootprintId, setEditingFootprintId] = useState(() => session.setup.objectives[0]?.id ?? '')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [draft, setDraft] = useState<BattlefieldGeometry | null>(null)
@@ -123,7 +125,7 @@ export function BattlefieldBoard({
   const legendIds = [...new Set([...labelLayout.overflowIds, ...clusteredIds])]
 
   function beginEdit() {
-    if (!canEdit || replay || presentation.official) return
+    if (!canEdit || replay || isOfficialBoard(session.setup)) return
     setSelectedId(null)
     setDraft({ ...structuredClone(liveGeometry), locked: false })
     setError('')
@@ -205,13 +207,13 @@ export function BattlefieldBoard({
           >
             Rotate 180°
           </button>
-          <button type="button"
+          {!isOfficialBoard(session.setup) && <button type="button"
             aria-pressed={showFootprints}
             onClick={() => setShowFootprints((current) => !current)}
             title="Visual terrain only — does not calculate official area or scoring"
           >
             {showFootprints ? 'Hide footprints' : 'Show footprints'}
-          </button>
+          </button>}
           <button
             aria-pressed={replay}
             disabled={Boolean(draft)}
@@ -223,7 +225,7 @@ export function BattlefieldBoard({
           >
             {replay ? 'Return to live' : 'Replay'}
           </button>
-          {!presentation.official && (
+          {!isOfficialBoard(session.setup) && (
             <button
               disabled={!canEdit || replay || Boolean(draft)}
               onClick={beginEdit}
@@ -270,12 +272,19 @@ export function BattlefieldBoard({
           </small>
         </div></InfoDisclosure>
       )}
-      {!presentation.official && (
+      {!isOfficialBoard(session.setup) && (
         <InfoDisclosure label="Schematic deployment"><p className="battlefield-schematic-note">
           Deployment shapes are schematic orientation aids. Use your agreed
           physical deployment and Territory boundaries.
         </p></InfoDisclosure>
       )}
+      {presentation.terrain && <>
+        <TerrainLayerControls layers={layers} onChange={setLayers} />
+        <TerrainLegend />
+        <p className="battlefield-footprint-note">Event Companion v{presentation.sourceVersion} · {session.setup.battlefieldSourceId} · page {presentation.sourcePage}. Diagram-derived geometry; nominal sizes exclude perimeter protrusions.</p>
+      </>}
+      {isOfficialBoard(session.setup) && !presentation.official && <p role="alert" className="battlefield-footprint-note">The source pinned to this session is unavailable. No replacement map is generated. Consult your saved table plan.</p>}
+      {presentation.official && !presentation.terrain && <p className="battlefield-footprint-note">Historical catalogue v1.0 retained. Terrain was not recorded for this battle. Open the layout gallery to inspect the current source without changing this session.</p>}
       <div className="battlefield-player-legend">
         {session.setup.players.filter((player) => !session.setup.doubles || session.state.turnOrder.includes(player.id)).map((player) => (
           <span
@@ -495,60 +504,10 @@ export function BattlefieldBoard({
             aspectRatio: `${renderWidth} / ${renderHeight}`,
           }}
         >
-          <svg viewBox="0 0 1 1" preserveAspectRatio="none" aria-hidden="true">
-            <defs>
-              <pattern
-                id={`battlefield-grid-${session.setup.gameId}`}
-                width={10 / renderWidth}
-                height={10 / renderHeight}
-                patternUnits="userSpaceOnUse"
-              >
-                <path
-                  d={`M ${10 / renderWidth} 0 L 0 0 L 0 ${10 / renderHeight}`}
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="0.0008"
-                />
-              </pattern>
-            </defs>
-            <rect
-              width="1"
-              height="1"
-              fill={`url(#battlefield-grid-${session.setup.gameId})`}
-            />
-            <g transform={rotated ? 'rotate(180 .5 .5)' : undefined}>
-              {presentation.deploymentAreas.map((area) => {
-                const player = session.setup.players.find(
-                  (player) => player.deploymentZone === area.zone,
-                )
-                return (
-                  <path
-                    key={area.zone}
-                    d={area.path}
-                    data-deployment-zone={area.zone}
-                    fill={`var(--player-${playerIndex(player?.id)})`}
-                    fillOpacity=".16"
-                    stroke={`var(--player-${playerIndex(player?.id)})`}
-                    strokeOpacity=".6"
-                    strokeWidth="1"
-                    vectorEffect="non-scaling-stroke"
-                  />
-                )
-              })}
-              {presentation.territoryPaths.map((path, index) => (
-                <path
-                  key={index}
-                  d={path}
-                  className="battlefield-territory"
-                  fill="none"
-                  strokeWidth="1"
-                  strokeDasharray="4 4"
-                  vectorEffect="non-scaling-stroke"
-                />
-              ))}
-            </g>
-          </svg>
-          {showFootprints && Object.entries(geometry.positions).flatMap(([id, savedPoint]) => {
+          <BattlefieldMapSvg presentation={presentation} widthCm={renderWidth} heightCm={renderHeight}
+            rotated={rotated} layers={{ ...layers, footprints: layers.footprints && showFootprints }}
+            zoneColors={Object.fromEntries(session.setup.players.map(player => [player.deploymentZone ?? '', `var(--player-${playerIndex(player.id)})`]))} />
+          {!isOfficialBoard(session.setup) && showFootprints && layers.footprints && Object.entries(geometry.positions).flatMap(([id, savedPoint]) => {
             if (!savedPoint) return []
             const point = displayBoardPoint(savedPoint, rotated)
             const footprint = objectiveFootprint(geometry, id)
@@ -560,7 +519,7 @@ export function BattlefieldBoard({
                 height: `${safeHeight / renderHeight * 100}%`, transform: `translate(-50%, -50%) rotate(${Number.isFinite(footprint.rotation) ? footprint.rotation : 0}deg)` }}
               aria-hidden="true" />
           })}
-          {Object.entries(geometry.positions).flatMap(([id, savedPoint]) => {
+          {layers.objectives && Object.entries(geometry.positions).flatMap(([id, savedPoint]) => {
             if (!savedPoint) return []
             const point = displayBoardPoint(savedPoint, rotated)
             const controller = controllers[id]
@@ -694,7 +653,7 @@ export function BattlefieldBoard({
           </div>
         </section>
       )}
-      {showFootprints && <p className="battlefield-footprint-note">Dashed terrain footprints are schematic visual guides. Objective marker centres and saved control remain independent of terrain areas. Confirm all physical distances and rules at the table.</p>}
+      {!isOfficialBoard(session.setup) && showFootprints && <p className="battlefield-footprint-note">Dashed terrain footprints are schematic visual guides. Objective marker centres and saved control remain independent of terrain areas. Confirm all physical distances and rules at the table.</p>}
       <InfoDisclosure label="The physical table decides"><p className="battlefield-table-note">
         The physical table decides LOS, distances, Territory and eligibility.
         Marker positions do not determine OC or score VP.

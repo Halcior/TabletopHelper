@@ -93,6 +93,10 @@ export default function Home() {
             <HomeActionContent icon="shared" label="Multiplayer" title="Host or join" detail="Use a shared room code" />
           </Link>
 
+          <Link className="home-action" to="/terrain-layouts">
+            <HomeActionContent icon="objectives" label="Table setup" title="Terrain layouts" detail="45 official plans · 1v1 and 2v2 · print" />
+          </Link>
+
           {armies.length > 0 && <a className="home-action" href="#army-library">
             <HomeActionContent icon="army" label="Roster" title="Army Library" detail={`${armies.length} saved locally`} />
           </a>}

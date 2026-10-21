@@ -4,6 +4,7 @@ import { Link, NavLink, Route, Routes, useLocation } from 'react-router-dom'
 import { AppIcon } from './components/AppIcon'
 import { AppBackground } from './components/AppBackground'
 
+const TerrainGallery = lazy(() => import('./pages/TerrainGallery'))
 const ArmyAppearance = lazy(() => import('./features/factionVisuals/ArmyAppearance'))
 const FactionEmblemGallery = lazy(() => import('./features/factionVisuals/FactionEmblemGallery'))
 const ArmyImport = lazy(() => import('./pages/ArmyImport'))
@@ -32,6 +33,7 @@ export default function App() {
       <Suspense fallback={<div className="page-shell"><div className="loading-state" role="status">Loading tabletop…</div></div>}>
         <Routes>
           <Route path="/army/:armyId/appearance" element={<ArmyAppearance />} />
+          <Route path="/terrain-layouts" element={<TerrainGallery />} />
           <Route path="/faction-icons" element={<FactionEmblemGallery />} />
           <Route path="/" element={<Home />} />
           <Route path="/shared" element={<SharedSessions />} />
