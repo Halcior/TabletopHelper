@@ -200,7 +200,7 @@ describe('custom geometry, replay and permissions', () => {
     const geometry = legacy.state.battlefield!
     expect(Object.keys(geometry.positions)).toHaveLength(6)
     expect(Object.hasOwn(geometry.positions, 'CENTER')).toBe(false)
-    expect(geometry.positions.N2!.x).toBe(1 - geometry.positions.N3!.x)
+    expect(geometry.positions.N2!.x).toBeCloseTo(1 - geometry.positions.N3!.x, 12)
     const modern = {
       ...legacy.setup,
       objectives: [
