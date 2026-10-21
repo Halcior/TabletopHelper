@@ -25,7 +25,7 @@ export type ObjectiveFootprint = {
 
 /** An unsaved default visualization, independently selectable for each objective. */
 export const DEFAULT_OBJECTIVE_FOOTPRINT: ObjectiveFootprint = {
-  kind: 'chamfered', widthCm: 20, heightCm: 12, rotation: 0,
+  kind: 'chamfered', widthCm: 30, heightCm: 20, rotation: 0,
 }
 
 export type BoardPresentation = {

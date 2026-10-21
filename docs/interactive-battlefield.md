@@ -73,3 +73,9 @@ Mobile captures use a 390 × 844 touch viewport with demonstration data. Attacke
 | Unit Performance and Combat ROI | [Performance](screenshots/chronicle-performance-mobile.png) |
 
 Demonstration reports: [Markdown](examples/battle-report.md) and [JSON](examples/battle-report.json). These fixtures illustrate accounting and narrative output; they are not records of an actual played battle.
+
+## Battlefield 2.0 — visual terrain footprints (PR #31)
+
+Custom FFA/Cauldron boards now show a dashed, semi-transparent terrain silhouette centred at each saved objective marker. The default 30 × 20 cm chamfered ruin is an **illustrative placeholder, not an official GW terrain measurement or geometry extracted from the Event Companion**. The player may hide/show this overlay on each device. In **Edit Layout**, choose an objective and alter its footprint kind (clipped-corner ruin or rectangular area), width (6–60 cm), height (6–60 cm) and rotation (0–359°), or apply one of three suggested physical sizes. The host's **Save Layout** persists optional `footprints` on the existing `BATTLEFIELD_LAYOUT_CHANGED` geometry event. Old saves without footprints display defaults but are not silently rewritten; official geometry remains fixed and does not accept saved custom footprints. Historical Replay shows the footprint configuration at each step. This is a tabletop orientation layer only; it **never** calculates OC, control, mission legality, terrain interactions, distance or VP.
+
+New FFA schematics move all three HOME centres to the same physical radius from table centre on 180 × 120 cm (using actual centimetres, not normalized visual distance). Pairwise neutral areas remain between their relevant HOME zones and the central objective stays at (0.5, 0.5). Existing battles with stored geometry preserve their saved positions; no automatic migration is performed. The new default applies to newly created custom sessions and explicit Reset Layout only.

@@ -80,3 +80,19 @@
   .objective-node__owner { font-size: .72rem; }
 }
 @media (prefers-reduced-motion: reduce) { .objective-node { transition: none !important; } .objective-node--live .objective-node__symbol { animation: none !important; } }
+
+/* Battlefield 2.0: measured-but-schematic terrain silhouettes never take marker taps. */
+.objective-footprint{--footprint-color:var(--muted);position:absolute;z-index:1;pointer-events:none;border:2px dashed var(--footprint-color);background:repeating-linear-gradient(126deg,rgba(18,27,25,.30) 0 4px,rgba(111,115,93,.16) 4px 7px),radial-gradient(ellipse at 30% 40%,rgba(82,78,56,.22),rgba(8,14,15,.05));opacity:.8;box-shadow:inset 0 0 12px rgba(0,0,0,.36);}
+.objective-footprint--chamfered{clip-path:polygon(12% 0,88% 0,100% 18%,100% 83%,86% 100%,13% 100%,0 81%,0 16%);}
+.objective-footprint--player-0{--footprint-color:var(--player-0)}
+.objective-footprint--player-1{--footprint-color:var(--player-1)}
+.objective-footprint--player-2{--footprint-color:var(--player-2)}
+.battlefield-footprint-editor{padding:14px;margin-top:14px;border:1px solid var(--line);border-radius:var(--radius-md);display:grid;gap:10px;min-width:0}
+.battlefield-footprint-editor h5{margin:0;color:var(--gold-bright);font-size:.98rem}
+.battlefield-footprint-editor p{margin:0 0 4px}
+.battlefield-footprint-editor label{display:grid;gap:6px;font-size:.82rem;min-width:0}
+.battlefield-footprint-editor select,.battlefield-footprint-editor input{min-width:0;width:100%;min-height:44px}
+.battlefield-footprint-editor__dimensions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.battlefield-footprint-note{margin:0;color:var(--muted);font-size:.79rem;line-height:1.5}
+@media(max-width:600px){.battlefield-footprint-editor__dimensions{grid-template-columns:repeat(2,minmax(0,1fr))}.objective-footprint{border-width:1.5px}}
+@media print{.objective-footprint{border:1px dashed #555;background:transparent;box-shadow:none}}
