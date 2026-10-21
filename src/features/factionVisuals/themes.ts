@@ -35,13 +35,13 @@ export const factionThemes: FactionVisualTheme[] = [neutralTheme, ...catalogue.m
   id, name, accent:palettes[id][0], secondary:palettes[id][1], surface:palettes[id][2],
   pattern:`repeating-linear-gradient(${index % 2 ? 135 : 45}deg, transparent 0 22px, #ffffff06 23px 24px)`,
   art:artAlias[id] ?? id,
-  artType: svgArtworkIds.has(id) ? 'svg' : 'webp',
+  artType: svgArtworkIds.has(id) ? 'svg' as const : 'webp' as const,
   aliases:[name,id, ...(id === 'adeptus-astartes' ? ['Space Marines'] : []), ...(id === 'agents-of-the-imperium' ? ['Imperial Agents'] : [])],
 })), {
   id:'custodes-shadowkeepers', name:'Custodes · Shadowkeepers',
   accent:'#d3b678', secondary:'#8d4b49', surface:'#15151a',
   pattern:'repeating-linear-gradient(90deg, transparent 0 28px, #98775110 29px 30px)',
-  art:'custodes-shadowkeepers', artType:'svg',
+  art:'custodes-shadowkeepers', artType:'svg' as const,
   // Explicit appearance variant: imported Custodes remain generic until the player selects it.
   aliases:['Shadowkeepers','Custodes Shadowkeepers','Adeptus Custodes Shadowkeepers'],
 }]
