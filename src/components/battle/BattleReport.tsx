@@ -32,7 +32,7 @@ export function BattleReport({ session }: { session: BattleSession }) {
   }
   return <section className="battle-report" aria-label="Battle Report">
     <header className="panel report-heading">
-      <div><span className="eyebrow">{report.status === 'active' ? 'Live preview' : report.status === 'completed' ? 'After-action archive' : 'Retained battle archive'}</span><h2>Battle Report</h2>
+      <div><span className="eyebrow">{report.status === 'active' ? 'Live preview' : report.status === 'completed' ? 'After-action archive' : 'Retained battle archive'}</span><span className="report-after-action">After-Action Report</span><h2>Battle Report</h2>
         <p>{report.mode}</p><RulesSourceBadge source={rulesForSession(session).source} /><small>Round {report.roundsPlayed} / {report.maxRounds} · {report.status === 'active' ? 'Scores are provisional' : report.status === 'completed' ? 'Final scores' : 'Abandoned · no winner declared'}</small></div>
       <div className="report-export no-print" role="group" aria-label="Export Battle Report">
         <button onClick={() => downloadBattleReport(report, 'markdown')}>Export Markdown</button>
