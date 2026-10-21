@@ -103,17 +103,28 @@ for (const layout of [1, 2, 3])
       const savedX = Number(
         await marker(page, 'B-HOME').getAttribute('data-board-x'),
       )
+      const savedY = Number(await marker(page, 'B-HOME').getAttribute('data-board-y'))
+      const canvas = (await page.locator('.battlefield-canvas').boundingBox())!
+      expect(canvas.width / canvas.height).toBeCloseTo(60 / 44, 2)
+      const displayPoint = () => marker(page, 'B-HOME').evaluate(node => ({
+        x: parseFloat((node as HTMLElement).style.left),
+        y: parseFloat((node as HTMLElement).style.top),
+      }))
+      expect((await displayPoint()).x).toBeCloseTo((1 - savedY) * 100)
+      expect((await displayPoint()).y).toBeCloseTo(savedX * 100)
       if (layout === 1) expect(savedX).toBeCloseTo(0.374741, 6)
       await page.getByRole('button', { name: 'Rotate 180°' }).click()
       expect(
         await marker(page, 'B-HOME').evaluate((node) =>
           parseFloat((node as HTMLElement).style.left),
         ),
-      ).toBeCloseTo((1 - savedX) * 100)
+      ).toBeCloseTo(savedY * 100)
+      expect((await displayPoint()).y).toBeCloseTo((1 - savedX) * 100)
       await expect(marker(page, 'B-HOME')).toHaveAttribute(
         'data-board-x',
         String(savedX),
       )
+      await expect(marker(page, 'B-HOME')).toHaveAttribute('data-board-y', String(savedY))
       const beforeColor = await marker(page, 'CENTER-1').evaluate(
         (node) => getComputedStyle(node).borderColor,
       )

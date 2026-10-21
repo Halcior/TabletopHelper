@@ -3,7 +3,7 @@ import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { BattlefieldMapSvg, DEFAULT_TERRAIN_LAYERS } from '../src/components/battle/BattlefieldMapSvg'
-import { OFFICIAL_LAYOUTS } from '../src/domain/battlefield/layouts'
+import { battlefieldView, OFFICIAL_LAYOUTS } from '../src/domain/battlefield/layouts'
 import type { BoardPresentation } from '../src/domain/battlefield/types'
 
 const folder = process.argv[2] ?? 'test-results/terrain-vectors'
@@ -12,6 +12,7 @@ const css = readFileSync('src/battlefield.css', 'utf8')
   .split('/* Exact source contours')[1].split('.terrain-layer-controls')[0]
   .replace(/^[\s\S]*?\*\//, '').replaceAll('var(--font-mono)', 'monospace') + '.battlefield-territory{stroke:#91a29c}'
 for (const layout of Object.values(OFFICIAL_LAYOUTS)) {
+  const view = battlefieldView(layout.widthCm, layout.heightCm)
   const presentation: BoardPresentation = {
     title: layout.layoutId!, official: true, terrain: layout, unplacedIds: [],
     deploymentAreas: [{ zone: 'A', path: layout.deploymentPaths.attacker }, { zone: 'B', path: layout.deploymentPaths.defender }],
@@ -22,8 +23,8 @@ for (const layout of Object.values(OFFICIAL_LAYOUTS)) {
     presentation, widthCm: layout.widthCm, heightCm: layout.heightCm,
     rotated: false, layers: DEFAULT_TERRAIN_LAYERS, objectives,
   }))
-  svg = svg.replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" width="440" height="600" style="background:#0a1113;color:#526267" ')
-    .replace('<defs>', `<style>${css}</style><rect width="111.76" height="152.4" fill="#0a1113"/><defs>`)
+  svg = svg.replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" width="600" height="440" style="background:#0a1113;color:#526267" ')
+    .replace('<defs>', `<style>${css}</style><rect width="${view.widthCm}" height="${view.heightCm}" fill="#0a1113"/><defs>`)
   writeFileSync(`${folder}/${layout.page}.svg`, svg)
 }
 console.info(`Rendered ${Object.keys(OFFICIAL_LAYOUTS).length} app SVGs to ${folder}`)

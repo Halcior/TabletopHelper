@@ -1,4 +1,5 @@
 import { useId } from 'react'
+import { battlefieldView } from '../../domain/battlefield/layouts'
 import type { BoardPresentation, TerrainLayers } from '../../domain/battlefield/types'
 
 export const DEFAULT_TERRAIN_LAYERS: TerrainLayers = {
@@ -26,12 +27,14 @@ export function BattlefieldMapSvg({ presentation, widthCm, heightCm, rotated, la
   objectives?: Array<{ id: string; x: number; y: number }>
 }) {
   const gridId = useId().replaceAll(':', '')
-  return <svg className="battlefield-map-svg" viewBox={`0 0 ${widthCm} ${heightCm}`} aria-label="Technical battlefield plan" role="img">
+  const view = battlefieldView(widthCm, heightCm, rotated)
+  const upright = view.rotationDeg ? ` rotate(${-view.rotationDeg})` : ''
+  return <svg className="battlefield-map-svg" viewBox={`0 0 ${view.widthCm} ${view.heightCm}`} aria-label="Technical battlefield plan" role="img">
     <defs><pattern id={gridId} width={12.7} height={12.7} patternUnits="userSpaceOnUse">
       <path d="M 12.7 0 L 0 0 L 0 12.7" fill="none" stroke="currentColor" strokeWidth=".12" />
     </pattern></defs>
-    <rect width={widthCm} height={heightCm} fill={`url(#${gridId})`} />
-    <g transform={rotated ? `rotate(180 ${widthCm / 2} ${heightCm / 2})` : undefined}>
+    <g transform={view.transform}>
+      <rect width={widthCm} height={heightCm} fill={`url(#${gridId})`} />
       <g transform={`scale(${widthCm} ${heightCm})`}>
         {layers.deployment && presentation.deploymentAreas.map(area => <path key={area.zone} d={area.path} data-deployment-zone={area.zone}
           fill={zoneColors?.[area.zone] ?? (area.zone === 'A' ? '#bb6057' : '#4584ab')} fillOpacity=".16"
@@ -50,15 +53,15 @@ export function BattlefieldMapSvg({ presentation, widthCm, heightCm, rotated, la
       </g>)}
       {layers.features && presentation.terrain?.terrainFeatures?.map(feature => <g key={feature.id}
         className={`terrain-feature-cue terrain-feature-cue--${feature.class}`} data-terrain-feature={feature.id}
-        transform={`translate(${feature.position.x} ${feature.position.y})${rotated ? ' rotate(180)' : ''}`}>
+        transform={`translate(${feature.position.x} ${feature.position.y})${upright}`}>
         <rect x={-2.5} y={-1.9} width={5} height={3.8} rx=".6" />
         <text textAnchor="middle" dominantBaseline="central">{feature.class === 'dense' ? 'D' : 'L'}</text>
         <title>{`${feature.class} terrain feature · area ${feature.terrainAreaId}. Classification cue; see source for physical model arrangement.`}</title>
       </g>)}
       {layers.labels && presentation.terrain?.terrainAreas?.map(area => <text key={area.id} className="terrain-area-label"
-        textAnchor="middle" transform={`translate(${area.position.x} ${area.position.y})${rotated ? ' rotate(180)' : ''}`} y={-2.6}>{area.id}</text>)}
+        textAnchor="middle" transform={`translate(${area.position.x} ${area.position.y})${upright}`} y={-2.6}>{area.id}</text>)}
       {layers.objectives && objectives?.map(point => <g key={point.id} data-plan-objective={point.id}
-        transform={`translate(${point.x * widthCm} ${point.y * heightCm})${rotated ? ' rotate(180)' : ''}`}>
+        transform={`translate(${point.x * widthCm} ${point.y * heightCm})${upright}`}>
         <circle r="3.5" className="terrain-plan-objective" /><text className="terrain-objective-label" textAnchor="middle" y="6.5">{point.id}</text>
       </g>)}
     </g>

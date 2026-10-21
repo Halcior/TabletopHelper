@@ -12,6 +12,9 @@ test('all 45 terrain plans render independently, with all areas and source links
     const plan=page.getByRole('region',{name:'Official terrain plan'})
     await expect(plan).toHaveAttribute('data-layout-id',`${a}|${b}|${variant}`)
     await expect(page.locator('[data-terrain-id]')).toHaveCount(16)
+    const canvas = await page.locator('.battlefield-canvas').boundingBox()
+    expect(canvas!.width / canvas!.height).toBeCloseTo(60 / 44, 2)
+    await expect(page.locator('.battlefield-map-svg')).toHaveAttribute('viewBox', '0 0 152.4 111.76')
     for(const [kind,count] of [['A',4],['B',2],['C',4],['D',4],['E',2]] as const)
       await expect(page.locator(`[data-footprint-type="${kind}"]`)).toHaveCount(count)
     await expect(page.getByRole('link',{name:/Open source diagram/})).toHaveAttribute('href',new RegExp(`#page=${9+number}$`))
@@ -32,7 +35,12 @@ for(const viewport of [{width:390,height:844},{width:820,height:1180},{width:144
     const transform=await first.getAttribute('transform')
     await page.getByRole('button',{name:'Rotate 180°'}).click()
     await expect(first).toHaveAttribute('transform',transform!)
-    await expect(page.locator('.battlefield-map-svg > g')).toHaveAttribute('transform','rotate(180 55.88 76.2)')
+    await expect(page.locator('.battlefield-map-svg > g')).toHaveAttribute('transform','translate(0 111.76) rotate(270)')
+    // Text stays upright after composing the default 90° view with the local flip.
+    expect(await page.locator('.terrain-area-label').first().evaluate(element => {
+      const matrix = (element as SVGGraphicsElement).getCTM()!
+      return Math.abs(matrix.b) < 0.0001 && Math.abs(matrix.c) < 0.0001 && matrix.a > 0 && matrix.d > 0
+    })).toBe(true)
     await page.getByLabel('Footprints',{exact:true}).uncheck()
     await expect(page.locator('[data-terrain-id]')).toHaveCount(0)
     await page.getByLabel('Footprints',{exact:true}).check()
@@ -63,6 +71,8 @@ test('print view retains source, physical plan and full measurement table',async
   await expect(page.locator('.terrain-gallery-controls')).toBeHidden()
   await expect(page.locator('.terrain-layer-controls')).toBeHidden()
   await expect(page.locator('[data-terrain-id]')).toHaveCount(16)
+  const canvas = await page.locator('.battlefield-canvas').boundingBox()
+  expect(canvas!.width / canvas!.height).toBeCloseTo(60 / 44, 2)
   await expect(page.locator('.terrain-provenance')).toBeVisible()
   await expect(page.locator('.terrain-measurement-table tbody tr')).toHaveCount(16)
   await expect(page.locator('.terrain-source-hash')).toContainText('187253a9')

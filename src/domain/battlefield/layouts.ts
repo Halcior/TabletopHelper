@@ -237,6 +237,27 @@ export function displayBoardPoint(
   return rotated ? { x: 1 - point.x, y: 1 - point.y } : point
 }
 
+/** Keep source coordinates intact while showing the long table edge horizontally. */
+export function battlefieldView(widthCm: number, heightCm: number, rotated = false) {
+  const quarterTurn = heightCm > widthCm
+  const rotationDeg = (quarterTurn ? 90 : 0) + (rotated ? 180 : 0)
+  return {
+    widthCm: quarterTurn ? heightCm : widthCm,
+    heightCm: quarterTurn ? widthCm : heightCm,
+    rotationDeg,
+    transform: quarterTurn
+      ? rotated ? `translate(0 ${widthCm}) rotate(270)` : `translate(${heightCm} 0) rotate(90)`
+      : rotated ? `rotate(180 ${widthCm / 2} ${heightCm / 2})` : undefined,
+    toDisplay(point: BoardPoint): BoardPoint {
+      return displayBoardPoint(quarterTurn ? { x: 1 - point.y, y: point.x } : point, rotated)
+    },
+    toSource(point: BoardPoint): BoardPoint {
+      const unflipped = displayBoardPoint(point, rotated)
+      return quarterTurn ? { x: unflipped.y, y: 1 - unflipped.x } : unflipped
+    },
+  }
+}
+
 export function validateBattlefieldGeometry(
   setup: BattleSetup,
   value: unknown,

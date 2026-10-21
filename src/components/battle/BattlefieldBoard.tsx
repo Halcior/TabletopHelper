@@ -12,8 +12,8 @@ import { doublesScorekeeperId, doublesForceForPlayer } from '../../domain/battle
 import type { BattleEventInput, BattleSession } from '../../domain/battle/types'
 import {
   battlefieldPresentation,
+  battlefieldView,
   defaultBattlefieldGeometry,
-  displayBoardPoint,
   objectiveFootprint,
   isOfficialBoard,
   validateBattlefieldGeometry,
@@ -85,6 +85,7 @@ export function BattlefieldBoard({
     60,
     Math.min(400, Number.isFinite(geometry.heightCm) ? geometry.heightCm : 120),
   )
+  const view = battlefieldView(renderWidth, renderHeight, rotated)
   const presentation = battlefieldPresentation(session.setup, geometry)
   const activeId = replay
     ? (frame?.activePlayerId ?? session.state.activePlayerId)
@@ -119,7 +120,7 @@ export function BattlefieldBoard({
         entry.category !== 'flow',
     )
     .slice(-10)
-  const labelPoints = Object.entries(geometry.positions).flatMap(([id, point]) => point ? [{ id, ...displayBoardPoint(point, rotated), owner: controllers[id] ? controllerName(id) : undefined }] : [])
+  const labelPoints = Object.entries(geometry.positions).flatMap(([id, point]) => point ? [{ id, ...view.toDisplay(point), owner: controllers[id] ? controllerName(id) : undefined }] : [])
   const labelLayout = placeObjectiveLabels(labelPoints, canvasSize.width, canvasSize.height)
   const clusteredIds = labelPoints.filter((point) => labelPoints.some((other) => point.id !== other.id && Math.hypot((point.x - other.x) * canvasSize.width, (point.y - other.y) * canvasSize.height) < 44)).map((point) => point.id)
   const legendIds = [...new Set([...labelLayout.overflowIds, ...clusteredIds])]
@@ -159,12 +160,11 @@ export function BattlefieldBoard({
       return
     const box = canvas.current.getBoundingClientRect()
     const clamp = (value: number) => Math.max(0, Math.min(1, value))
-    const point = displayBoardPoint(
+    const point = view.toSource(
       {
         x: clamp((event.clientX - box.left) / box.width),
         y: clamp((event.clientY - box.top) / box.height),
       },
-      rotated,
     )
     setDraft((current) =>
       current
@@ -195,9 +195,9 @@ export function BattlefieldBoard({
           </span>
           <h3>{presentation.title}</h3>
           <p>
-            {Number(geometry.widthCm.toFixed(2))} ×{' '}
-            {Number(geometry.heightCm.toFixed(2))} cm
-            {presentation.official ? ' · 44″ × 60″' : ''}
+            {Number(view.widthCm.toFixed(2))} ×{' '}
+            {Number(view.heightCm.toFixed(2))} cm
+            {presentation.official ? ' · 60″ × 44″' : ''}
           </p>
         </div>
         <div className="battlefield-tools">
@@ -501,7 +501,7 @@ export function BattlefieldBoard({
           data-width-cm={geometry.widthCm}
           data-height-cm={geometry.heightCm}
           style={{
-            aspectRatio: `${renderWidth} / ${renderHeight}`,
+            aspectRatio: `${view.widthCm} / ${view.heightCm}`,
           }}
         >
           <BattlefieldMapSvg presentation={presentation} widthCm={renderWidth} heightCm={renderHeight}
@@ -509,19 +509,19 @@ export function BattlefieldBoard({
             zoneColors={Object.fromEntries(session.setup.players.map(player => [player.deploymentZone ?? '', `var(--player-${playerIndex(player.id)})`]))} />
           {!isOfficialBoard(session.setup) && showFootprints && layers.footprints && Object.entries(geometry.positions).flatMap(([id, savedPoint]) => {
             if (!savedPoint) return []
-            const point = displayBoardPoint(savedPoint, rotated)
+            const point = view.toDisplay(savedPoint)
             const footprint = objectiveFootprint(geometry, id)
             const safeWidth = Math.max(6, Math.min(60, Number.isFinite(footprint.widthCm) ? footprint.widthCm : 30))
             const safeHeight = Math.max(6, Math.min(60, Number.isFinite(footprint.heightCm) ? footprint.heightCm : 20))
             return <div key={id} className={`objective-footprint objective-footprint--${footprint.kind} objective-footprint--player-${playerIndex(controllers[id])}`}
               data-footprint-id={id} data-footprint-kind={footprint.kind} data-footprint-width-cm={footprint.widthCm} data-footprint-height-cm={footprint.heightCm}
-              style={{ left: `${point.x * 100}%`, top: `${point.y * 100}%`, width: `${safeWidth / renderWidth * 100}%`,
-                height: `${safeHeight / renderHeight * 100}%`, transform: `translate(-50%, -50%) rotate(${Number.isFinite(footprint.rotation) ? footprint.rotation : 0}deg)` }}
+              style={{ left: `${point.x * 100}%`, top: `${point.y * 100}%`, width: `${safeWidth / view.widthCm * 100}%`,
+                height: `${safeHeight / view.heightCm * 100}%`, transform: `translate(-50%, -50%) rotate(${view.rotationDeg + (Number.isFinite(footprint.rotation) ? footprint.rotation : 0)}deg)` }}
               aria-hidden="true" />
           })}
           {layers.objectives && Object.entries(geometry.positions).flatMap(([id, savedPoint]) => {
             if (!savedPoint) return []
-            const point = displayBoardPoint(savedPoint, rotated)
+            const point = view.toDisplay(savedPoint)
             const controller = controllers[id]
             const ownsHome =
               session.setup.players.find(
@@ -588,23 +588,17 @@ export function BattlefieldBoard({
                       : event.key === 'ArrowDown'
                         ? 0.01
                         : 0
-                  const direction = rotated ? -1 : 1
+                  const nextPoint = view.toSource({
+                    x: Math.max(0, Math.min(1, point.x + deltaX)),
+                    y: Math.max(0, Math.min(1, point.y + deltaY)),
+                  })
                   setDraft((current) =>
                     current
                       ? {
                           ...current,
                           positions: {
                             ...current.positions,
-                            [id]: {
-                              x: Math.max(
-                                0,
-                                Math.min(1, savedPoint.x + deltaX * direction),
-                              ),
-                              y: Math.max(
-                                0,
-                                Math.min(1, savedPoint.y + deltaY * direction),
-                              ),
-                            },
+                            [id]: nextPoint,
                           },
                         }
                       : current,

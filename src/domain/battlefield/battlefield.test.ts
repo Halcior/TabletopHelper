@@ -12,6 +12,7 @@ import {
 import { buildBattlefieldReplay } from './replay'
 import {
   battlefieldPresentation,
+  battlefieldView,
   defaultBattlefieldGeometry,
   displayBoardPoint,
   officialBoardDefinition,
@@ -160,6 +161,39 @@ describe('official source geometry', () => {
       displayBoardPoint(displayBoardPoint({ x: 0.2, y: 0.3 }, true), true).x,
     ).toBeCloseTo(0.2)
     expect(first.state.objectives).toEqual(swapped.state.objectives)
+  })
+
+  it('shows portrait tables landscape without changing saved geometry or physical distances', () => {
+    const geometry = duel().state.battlefield!
+    const before = structuredClone(geometry)
+    for (const rotated of [false, true]) {
+      const view = battlefieldView(geometry.widthCm, geometry.heightCm, rotated)
+      expect(view.widthCm).toBe(152.4)
+      expect(view.heightCm).toBe(111.76)
+      expect(view.toDisplay({ x: 0, y: 0 })).toEqual(rotated ? { x: 0, y: 1 } : { x: 1, y: 0 })
+      for (const point of Object.values(geometry.positions)) {
+        if (!point) continue
+        const display = view.toDisplay(point)
+        const restored = view.toSource(display)
+        expect(restored.x).toBeCloseTo(point.x, 12)
+        expect(restored.y).toBeCloseTo(point.y, 12)
+        const origin = view.toDisplay({ x: 0, y: 0 })
+        expect(Math.hypot((display.x - origin.x) * view.widthCm, (display.y - origin.y) * view.heightCm))
+          .toBeCloseTo(Math.hypot(point.x * geometry.widthCm, point.y * geometry.heightCm), 10)
+      }
+    }
+    expect(geometry).toEqual(before)
+  })
+
+  it('keeps existing landscape FFA orientation and maps edits back from either view', () => {
+    for (const rotated of [false, true]) {
+      const view = battlefieldView(180, 120, rotated)
+      expect([view.widthCm, view.heightCm]).toEqual([180, 120])
+      expect(view.toDisplay({ x: 0.2, y: 0.3 })).toEqual(rotated ? { x: 0.8, y: 0.7 } : { x: 0.2, y: 0.3 })
+      const restored = view.toSource(view.toDisplay({ x: 0.2, y: 0.3 }))
+      expect(restored.x).toBeCloseTo(0.2)
+      expect(restored.y).toBeCloseTo(0.3)
+    }
   })
 
   it('rejects official objective moves and dimension changes but allows exact HOME reassignment', () => {

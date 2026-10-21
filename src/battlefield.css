@@ -144,7 +144,7 @@
   html:has(.terrain-gallery),body:has(.terrain-gallery),.app-root:has(.terrain-gallery){background:#fff!important;color:#111!important}
   body:has(.terrain-gallery) .app-header,body:has(.terrain-gallery) .app-background,.terrain-gallery-heading,.terrain-gallery-controls,.terrain-plan .battlefield-tools,.terrain-layer-controls,.terrain-inspector{display:none!important}
   .terrain-gallery,.terrain-plan{margin:0!important;padding:0!important;max-width:none!important;gap:6px}
-  .terrain-gallery-frame{width:116mm!important;padding:3mm!important;background:#fff!important;border:1px solid #888!important;break-inside:avoid}
+  .terrain-gallery-frame{width:160mm!important;padding:3mm!important;background:#fff!important;border:1px solid #888!important;break-inside:avoid}
   .terrain-gallery-frame .battlefield-canvas{background:#fff!important;color:#aaa!important}
   .terrain-area-label,.terrain-objective-label{fill:#111;stroke:#fff}
   .terrain-gallery .battlefield-heading p,.terrain-scale,.terrain-legend,.terrain-provenance,.terrain-role-note,.terrain-precision{color:#222!important}

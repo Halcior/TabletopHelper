@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { BattlefieldMapSvg, DEFAULT_TERRAIN_LAYERS, TerrainLayerControls, TerrainLegend } from '../components/battle/BattlefieldMapSvg'
-import { DISPOSITION_ORDER, FOOTPRINT_LIBRARY, OFFICIAL_BOARD_SOURCE, OFFICIAL_LAYOUTS, OFFICIAL_SOURCES } from '../domain/battlefield/layouts'
+import { battlefieldView, DISPOSITION_ORDER, FOOTPRINT_LIBRARY, OFFICIAL_BOARD_SOURCE, OFFICIAL_LAYOUTS, OFFICIAL_SOURCES } from '../domain/battlefield/layouts'
 import type { BoardPresentation } from '../domain/battlefield/types'
 
 const dispositionName = (value: string) => value.split('-').map(word => word[0].toUpperCase() + word.slice(1)).join(' ')
@@ -19,6 +19,7 @@ export default function TerrainGallery() {
   const pair = [a,b].sort((x,y) => DISPOSITION_ORDER.indexOf(x)-DISPOSITION_ORDER.indexOf(y))
   const layout = OFFICIAL_LAYOUTS[[...pair,variant].join('|')]
   if (!layout?.terrainAreas) return <div className="page-shell"><h1>Layout unavailable</h1><p>The requested source geometry could not be loaded.</p><Link to="/terrain-layouts">Reset gallery</Link></div>
+  const view = battlefieldView(layout.widthCm, layout.heightCm, rotated)
   const presentation: BoardPresentation = {
     title: `${doubles ? 'Official Doubles 2v2' : 'Official Duel 1v1'} · Layout ${variant}`,
     official: true, terrain: layout,
@@ -32,7 +33,7 @@ export default function TerrainGallery() {
   const nominal = FOOTPRINT_LIBRARY[area.footprintType]
   return <main className="page-shell terrain-gallery">
     <header className="terrain-gallery-heading"><div><span className="eyebrow">Battlefield atlas · 45 layouts</span><h1>Official terrain layouts</h1>
-      <p>44″ × 60″ · Event Companion v{OFFICIAL_BOARD_SOURCE.version} · updated {OFFICIAL_BOARD_SOURCE.updatedAt}</p></div><Link to="/">Command Hub</Link></header>
+      <p>60″ × 44″ · Event Companion v{OFFICIAL_BOARD_SOURCE.version} · updated {OFFICIAL_BOARD_SOURCE.updatedAt}</p></div><Link to="/">Command Hub</Link></header>
     <section className="panel terrain-gallery-controls" aria-label="Choose official layout">
       <label>Format<select aria-label="Format" value={doubles ? '2v2' : '1v1'} onChange={e => change('mode',e.target.value)}><option value="1v1">Official Duel 1v1</option><option value="2v2">Official Doubles 2v2</option></select></label>
       <label>{doubles ? 'Team A Force Disposition' : 'Force Disposition A'}<select aria-label="Force Disposition A" value={a} onChange={e => change('a',e.target.value)}>{DISPOSITION_ORDER.map(d => <option key={d} value={d}>{dispositionName(d)}</option>)}</select></label>
@@ -45,9 +46,9 @@ export default function TerrainGallery() {
       </header>
       <p className="terrain-role-note">{doubles ? 'Team A (two players)' : 'A'}: Attacker · {doubles ? 'Team B (two players)' : 'B'}: Defender. Rotate changes the view only.</p>
       <TerrainLayerControls layers={layers} onChange={setLayers} />
-      <div className="battlefield-frame terrain-gallery-frame"><div className="battlefield-canvas" style={{ aspectRatio: `${layout.widthCm} / ${layout.heightCm}` }}>
+      <div className="battlefield-frame terrain-gallery-frame"><div className="battlefield-canvas" style={{ aspectRatio: `${view.widthCm} / ${view.heightCm}` }}>
         <BattlefieldMapSvg presentation={presentation} widthCm={layout.widthCm} heightCm={layout.heightCm} rotated={rotated} layers={layers} objectives={points} />
-      </div><span className="terrain-scale">44″ / 111.76 cm wide · 60″ / 152.4 cm long · grid 5″</span></div>
+      </div><span className="terrain-scale">60″ / 152.4 cm wide · 44″ / 111.76 cm high · grid 5″</span></div>
       <TerrainLegend />
       <p className="terrain-provenance">Source page {layout.page} · v{OFFICIAL_BOARD_SOURCE.version} · verified {OFFICIAL_BOARD_SOURCE.checkedAt}. Vector extraction; physical table check pending.</p>
       <p className="terrain-precision">Dimensions A–E are nominal. The Armageddon outlines include protrusions. Placement is read from the published diagram; frame scale discrepancy {layout.frameAspectErrorPercent?.toFixed(2)}%. Use the source’s dimension callouts for final table measurement.</p>
