@@ -554,9 +554,10 @@ test('Battlefield 2.0 edits terrain footprints without changing objective contro
     await page.evaluate(async () => {
       const { testCauldronGame } = await import('/src/rulesets/cauldronFFA3/cauldronTestUtils.ts')
       const { saveBattle } = await import('/src/persistence/database.ts')
+      const { dispatchBattleEvent } = await import('/src/domain/battle/engine.ts')
       const session = testCauldronGame()
       session.setup.gameId = 'battlefield-footprints'
-      await saveBattle(session)
+      await saveBattle(dispatchBattleEvent(session, { type: 'PHASE_CHANGED', payload: { phase: 'SHOOTING' } }))
     })
     await page.goto('/battle/battlefield-footprints')
     await dismissSecondaryReveal(page)
