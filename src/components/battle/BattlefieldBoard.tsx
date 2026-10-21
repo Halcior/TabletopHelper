@@ -13,10 +13,12 @@ import {
   battlefieldPresentation,
   defaultBattlefieldGeometry,
   displayBoardPoint,
+  objectiveFootprint,
+  isOfficialBoard,
   validateBattlefieldGeometry,
 } from '../../domain/battlefield/layouts'
 import { buildBattlefieldReplay } from '../../domain/battlefield/replay'
-import type { BattlefieldGeometry } from '../../domain/battlefield/types'
+import type { BattlefieldGeometry, ObjectiveFootprint } from '../../domain/battlefield/types'
 import { useSharedSessionStore } from '../../multiplayer/sharedSessionStore'
 
 export function BattlefieldBoard({
@@ -41,6 +43,8 @@ export function BattlefieldBoard({
   const canEdit =
     session.state.status === 'active' && (!shared || membership?.isHost)
   const [rotated, setRotated] = useState(false)
+  const [showFootprints, setShowFootprints] = useState(() => !isOfficialBoard(session.setup))
+  const [editingFootprintId, setEditingFootprintId] = useState(() => session.setup.objectives[0]?.id ?? '')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [draft, setDraft] = useState<BattlefieldGeometry | null>(null)
   const [error, setError] = useState('')
@@ -124,6 +128,15 @@ export function BattlefieldBoard({
     setDraft({ ...structuredClone(liveGeometry), locked: false })
     setError('')
   }
+  function updateFootprint(changes: Partial<ObjectiveFootprint>) {
+    if (!draft || !editingFootprintId || draft.locked) return
+    setDraft((current) => current ? {
+      ...current, footprints: {
+        ...current.footprints,
+        [editingFootprintId]: { ...objectiveFootprint(current, editingFootprintId), ...changes },
+      },
+    } : current)
+  }
   function saveLayout() {
     if (!draft || !canEdit || replay) return
     try {
@@ -191,6 +204,13 @@ export function BattlefieldBoard({
             onClick={() => setRotated((current) => !current)}
           >
             Rotate 180°
+          </button>
+          <button type="button"
+            aria-pressed={showFootprints}
+            onClick={() => setShowFootprints((current) => !current)}
+            title="Visual terrain only — does not calculate official area or scoring"
+          >
+            {showFootprints ? 'Hide footprints' : 'Show footprints'}
           </button>
           <button
             aria-pressed={replay}
@@ -338,8 +358,9 @@ export function BattlefieldBoard({
         >
           <h4>Layout Editor</h4>
           <p>
-            Drag objectives, or use arrow keys on a focused marker. Changes
-            reach other phones when saved.
+            Drag objectives, or use arrow keys on a focused marker. Choose an objective
+            to edit its approximate terrain footprint. Host-saved geometry reaches other phones;
+            the footprint visibility toggle is local to this device.
           </p>
           <div className="battlefield-editor__dimensions">
             <label>
@@ -398,6 +419,33 @@ export function BattlefieldBoard({
             >
               180 × 120 cm
             </button>
+          </div>
+          <div className="battlefield-footprint-editor" aria-label="Objective terrain footprint editor">
+            <h5>Terrain footprint (visual only)</h5>
+            <p>Approximate physical terrain area surrounding an objective. These are not official GW measurements and do not calculate control, OC, LOS or VP.</p>
+            <label><span>Objective to configure</span>
+              <select aria-label="Footprint objective" value={editingFootprintId} disabled={draft.locked} onChange={(event) => setEditingFootprintId(event.target.value)}>
+                {session.setup.objectives.map((objective) => <option key={objective.id} value={objective.id}>{objective.name}</option>)}
+              </select>
+            </label>
+            <label><span>Footprint shape</span>
+              <select aria-label="Footprint shape" value={objectiveFootprint(draft, editingFootprintId).kind} disabled={draft.locked} onChange={(event) => updateFootprint({ kind: event.target.value as ObjectiveFootprint['kind'] })}>
+                <option value="chamfered">Ruins / clipped corners</option>
+                <option value="rectangle">Rectangular terrain</option>
+              </select>
+            </label>
+            <div className="battlefield-footprint-editor__dimensions">
+              <label><span>Footprint width (cm)</span><input aria-label="Footprint width (cm)" type="number" min={6} max={60} step={1} disabled={draft.locked}
+                value={objectiveFootprint(draft, editingFootprintId).widthCm} onChange={(event) => updateFootprint({ widthCm: Number(event.target.value) })}/></label>
+              <label><span>Footprint height (cm)</span><input aria-label="Footprint height (cm)" type="number" min={6} max={60} step={1} disabled={draft.locked}
+                value={objectiveFootprint(draft, editingFootprintId).heightCm} onChange={(event) => updateFootprint({ heightCm: Number(event.target.value) })}/></label>
+              <label><span>Rotation (degrees)</span><input aria-label="Footprint rotation" type="number" min={0} max={359} step={5} disabled={draft.locked}
+                value={objectiveFootprint(draft, editingFootprintId).rotation} onChange={(event) => updateFootprint({ rotation: Number(event.target.value) })}/></label>
+            </div>
+            <div className="battlefield-editor__presets" role="group" aria-label="Footprint size presets">
+              {([[20, 12], [30, 20], [40, 24]] as const).map(([widthCm, heightCm]) =>
+                <button type="button" key={widthCm} disabled={draft.locked} onClick={() => updateFootprint({ widthCm, heightCm })}>{widthCm} × {heightCm} cm</button>)}
+            </div>
           </div>
           <label className="battlefield-editor__lock">
             <input
@@ -500,6 +548,18 @@ export function BattlefieldBoard({
               ))}
             </g>
           </svg>
+          {showFootprints && Object.entries(geometry.positions).flatMap(([id, savedPoint]) => {
+            if (!savedPoint) return []
+            const point = displayBoardPoint(savedPoint, rotated)
+            const footprint = objectiveFootprint(geometry, id)
+            const safeWidth = Math.max(6, Math.min(60, Number.isFinite(footprint.widthCm) ? footprint.widthCm : 30))
+            const safeHeight = Math.max(6, Math.min(60, Number.isFinite(footprint.heightCm) ? footprint.heightCm : 20))
+            return <div key={id} className={`objective-footprint objective-footprint--${footprint.kind} objective-footprint--player-${playerIndex(controllers[id])}`}
+              data-footprint-id={id} data-footprint-kind={footprint.kind} data-footprint-width-cm={footprint.widthCm} data-footprint-height-cm={footprint.heightCm}
+              style={{ left: `${point.x * 100}%`, top: `${point.y * 100}%`, width: `${safeWidth / renderWidth * 100}%`,
+                height: `${safeHeight / renderHeight * 100}%`, transform: `translate(-50%, -50%) rotate(${Number.isFinite(footprint.rotation) ? footprint.rotation : 0}deg)` }}
+              aria-hidden="true" />
+          })}
           {Object.entries(geometry.positions).flatMap(([id, savedPoint]) => {
             if (!savedPoint) return []
             const point = displayBoardPoint(savedPoint, rotated)
@@ -522,10 +582,12 @@ export function BattlefieldBoard({
                 aria-pressed={selectedId === id}
                 onClick={() => {
                   if (!draft) setSelectedId(id)
+                  else if (!draft.locked) setEditingFootprintId(id)
                 }}
                 onPointerDown={(event) => {
                   if (draft && !draft.locked) {
                     dragging.current = id
+                    setEditingFootprintId(id)
                     event.currentTarget.setPointerCapture(event.pointerId)
                     event.preventDefault()
                   }
@@ -632,6 +694,7 @@ export function BattlefieldBoard({
           </div>
         </section>
       )}
+      {showFootprints && <p className="battlefield-footprint-note">Dashed terrain footprints are schematic visual guides. Objective marker centres and saved control remain independent of terrain areas. Confirm all physical distances and rules at the table.</p>}
       <InfoDisclosure label="The physical table decides"><p className="battlefield-table-note">
         The physical table decides LOS, distances, Territory and eligibility.
         Marker positions do not determine OC or score VP.
