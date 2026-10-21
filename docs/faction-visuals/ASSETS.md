@@ -89,3 +89,26 @@ All WebP variants strip source metadata. Related subfactions reuse a parent envi
 | `adeptus-custodes-portrait.webp` | 144×144 | 3,934 |
 
 Total: 1575456 bytes.
+
+## Original vector environmental scenes — 21 October 2026
+
+Additional original SVG panoramas were authored directly as paths, gradients and geometric structures to make the previously aliased subfactions distinguishable. These are **vector illustrations**, not AI-generated photoreal matte paintings. Their original source is preserved as UTF-8 SVG in `public/faction-art/`, with no third-party image embeds or fonts. They are deliberately original generic sci-fi environments with no GW insignia or copyrighted model depictions. Colour and architecture are different for each scene; unlike the 20 WebP paintings, these files need no raster resizing. All are presentation-only and remain behind text overlays.
+
+| Theme | Environment | Original asset |
+|---|---|---|
+| `custodes-shadowkeepers` | The Dark Cells — black underground containment vault | `custodes-shadowkeepers.svg` |
+| `agents-of-the-imperium` | Sealed Archive — classified intelligence shelves and armored door | `agents-of-the-imperium.svg` |
+| `emperors-children` | Palace of Excess — broken theatre, mirrors and decadent ornament | `emperors-children.svg` |
+| `black-templars` | Reliquary Warship — ribbed chapel corridor and rows of lights | `black-templars.svg` |
+| `blood-angels` | Crimson Cathedral — red glass and alabaster gothic interior | `blood-angels.svg` |
+| `crimson-fists` | Broken Bastion — battered armored battlements | `crimson-fists.svg` |
+| `dark-angels` | Hidden Monastery — sealed cloister and draped green stone | `dark-angels.svg` |
+| `deathwatch` | Xenos Containment — observation chambers and quarantine glass | `deathwatch.svg` |
+| `grey-knights` | Sanctum of Wards — geometric ritual vault and silver ring | `grey-knights.svg` |
+| `imperial-fists` | Siege Citadel — hardened defensive casemates | `imperial-fists.svg` |
+| `iron-hands` | Cybernetic Sanctum — mechanical manipulator laboratories | `iron-hands.svg` |
+| `raven-guard` | Midnight Hangar — dark aviation hangar and rain | `raven-guard.svg` |
+| `salamanders` | Obsidian Forge — volcanic basalt and foundry gates | `salamanders.svg` |
+| `space-wolves` | Fortress of Ice — frozen mountains and gate | `space-wolves.svg` |
+| `ultramarines` | Ceremonial Stronghold — ordered blue bastions and grand central door | `ultramarines.svg` |
+| `white-scars` | Windborne Monastery — high plateau and banners | `white-scars.svg` |

@@ -5,7 +5,7 @@ This feature builds on merged PR #28. PR #29 must remain unmerged until user pla
 ## Implemented
 
 - All 35 factions/subfactions in the current bundled catalogue, plus neutral. Exact normalized metadata and importer aliases; no unit-name guessing. Independent manual per-army overrides and a default theme.
-- 20 original panoramic environments, 60 responsive WebP variants. Related subfactions reuse parent environments with their own palettes. Abstract SVG symbols are project originals. [Asset provenance and sizes](ASSETS.md).
+- 20 original painted environments with 60 optimized WebP variants, plus **16 distinct original illustrated SVG environments** for previously reused faction/chapter art and optional Custodes Shadowkeepers. All 35 catalogue factions now have a distinct scene; regular Adeptus Astartes use the general Space Marines original. SVG variants reuse one resolution-independent file for mobile/banner/portrait. Abstract role/faction marks are project originals. [Asset provenance and sizes](ASSETS.md).
 - Army banners, 56/72px unit portraits, compact scoreboard and objective-legend marks, real Chronicle event attribution, participant banners and standout portraits in the report. Doubles represents both commanders. Existing CP controls and player colours remain unchanged.
 - Local army-banner and unit-photo upload, removal and reset. Images are keyed by army plus importer selection ID (otherwise source ID / unit ID), never unit name. Reimport retains photos when identities remain stable; two same-name selections stay independent.
 - Persistent Minimal / Themed / Custom appearance, Off / Compact / Enhanced portraits, banners toggle, auto/manual theme. Custom includes personal photos; Themed uses environmental art. Hiding decoration does not delete photos.
@@ -89,3 +89,13 @@ Each surface is captured at all four requested widths in [screenshots](screensho
 ## Preview access
 
 Vercel's GitHub check can confirm deployment status. The current Vercel connection reports HTTP 403 for team `halciors-projects`: missing team access grant. No authenticated Vercel CLI is available in this workspace. A share-link creation and independent access verification remain blocked until that connection is granted the team's access. Project protection has not been changed.
+
+## Unique-scene artwork pass (21 October 2026)
+
+The 16 supplemental vector panoramas intentionally have **different architectural subjects**, not palette-swapped WebP backgrounds. Notable scenes: Shadowkeepers underground containment vault, Agents sealed archive, Emperor's Children decadent theatre, Space Wolves ice bastion, Grey Knights ward sanctum, Raven Guard stealth hangar, Salamanders obsidian forge. Each SVG is a complete environmental scene, with left-side negative space for text, and a distinct silhouette on the right. These are *illustrated vector studies*, not photorealistic replacement paintings; their difference in rendering technique is transparent and can be further refined after review.
+
+**Shadowkeepers is a manual visual override.** The imported `Adeptus Custodes` army automatically stays Custodes; choose `Custodes · Shadowkeepers` from Appearance & photos → Army theme to opt in. The override affects only presentation. No battle schema, rules, point accounting or multiplayer permissions change.
+
+An interactive [visual contact sheet](../../public/faction-art/gallery.html) groups all faction environments and optionally displays them in monochrome so differences in architecture can be evaluated without colours. In a deployed Preview the URL is `/faction-art/gallery.html` (the Preview may require Vercel authentication). Each tile shows whether its image is painted WebP or illustrated SVG; it does not pretend both are equivalent finishes.
+
+New automated tests require every catalogue faction to reference a unique actual file; the SVG rendering path is shared by banners and portrait thumbnails. Existing photo overrides still take precedence in Custom mode.

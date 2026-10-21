@@ -2,3 +2,7 @@
 @media(max-width:600px){.army-banner__copy{padding:18px}.army-banner{min-height:146px}.visual-preferences__grid{grid-template-columns:1fr 1fr}.score-card__name{flex-wrap:wrap}.score-card__name .faction-mark{width:18px;flex-basis:18px}.score-card__name .faction-mark svg{width:17px;height:17px}}
 @media(prefers-reduced-motion:reduce){.army-banner,.unit-portrait,.faction-mark{animation:none;transition:none}}
 @media print{.army-banner,.unit-portrait,.faction-marks,.faction-mark,.visual-preferences,.army-appearance-link{display:none!important}.report-after-action{color:#222}.unit-card[style]{border-color:#777;background:white}}
+
+/* The distinctive chapter/Shadowkeepers panoramas are vector illustrations;
+ * crop towards their architectural focal point in square unit thumbnails. */
+.unit-portrait img[src$=".svg"]{object-position:86% 50%}

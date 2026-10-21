@@ -3,7 +3,7 @@ import type { Army,UnitDefinition } from '../../domain/army/types'
 import type { BattleSession } from '../../domain/battle/types'
 import type { ChronicleEntry } from '../../domain/battle/chronicle'
 import { doublesForceForPlayer } from '../../domain/battle/doubles'
-import { armyForPlayer,themeStyle,unitRole } from './themes'
+import { armyForPlayer,themeStyle,unitRole,factionArtUrl,factionArtSrcSet } from './themes'
 import { useFactionTheme,useVisualPreferences } from './preferences'
 import { mediaKey,usePhoto } from './media'
 
@@ -20,14 +20,14 @@ export function UnitPortrait({army,unit}:{army:Army;unit:UnitDefinition}){
  const enabled=p.appearance!=='minimal'&&p.portraits!=='off'
  const custom=usePhoto(enabled&&p.appearance==='custom'?mediaKey(army,unit):undefined)
  if(!enabled)return null
- return <span className={`unit-portrait unit-portrait--${p.portraits}`} style={themeStyle(t)}><FallbackImage key={mediaKey(army,unit)+custom+t.id} custom={custom} thematic={t.art?`/faction-art/${t.art}-portrait.webp`:undefined} alt={unit.name} role={unitRole(unit)}/></span>
+ return <span className={`unit-portrait unit-portrait--${p.portraits}`} style={themeStyle(t)}><FallbackImage key={mediaKey(army,unit)+custom+t.id} custom={custom} thematic={factionArtUrl(t,'portrait')} alt={unit.name} role={unitRole(unit)}/></span>
 }
 export function ArmyBanner({army,label}:{army:Army;label?:string}){
  const p=useVisualPreferences(s=>s.preferences),t=useFactionTheme(army)
  const enabled=p.appearance!=='minimal'&&p.banners
  const custom=usePhoto(enabled&&p.appearance==='custom'?mediaKey(army):undefined)
  if(!enabled)return null
- return <div className="army-banner" style={themeStyle(t)}><div className="army-banner__art" aria-hidden="true"><FallbackImage key={mediaKey(army)+custom+t.id} custom={custom} thematic={t.art?`/faction-art/${t.art}.webp`:undefined} srcSet={t.art?`/faction-art/${t.art}-small.webp 640w, /faction-art/${t.art}.webp 1280w`:undefined} alt={t.name}/></div><div className="army-banner__copy"><span className="eyebrow">{label??'Army identity'}</span><strong>{army.faction}</strong><span>{army.name}</span><small>{army.totalPoints} pts · {army.units.length} units{t.id!=='neutral'&&t.name!==army.faction?` · ${t.name} theme`:''}</small></div></div>
+ return <div className="army-banner" style={themeStyle(t)}><div className="army-banner__art" aria-hidden="true"><FallbackImage key={mediaKey(army)+custom+t.id} custom={custom} thematic={factionArtUrl(t)} srcSet={factionArtSrcSet(t)} alt={t.name}/></div><div className="army-banner__copy"><span className="eyebrow">{label??'Army identity'}</span><strong>{army.faction}</strong><span>{army.name}</span><small>{army.totalPoints} pts · {army.units.length} units{t.id!=='neutral'&&t.name!==army.faction?` · ${t.name} theme`:''}</small></div></div>
 }
 export function PlayerFactionMarks({session,playerId}:{session:BattleSession;playerId:string}){const ids=doublesForceForPlayer(session.setup,playerId)?.memberPlayerIds??[playerId];return <span className="faction-marks">{ids.map(id=><FactionMark key={id} army={armyForPlayer(session,id)}/>)}</span>}
 export function PlayerArmyBanner({session,playerId}:{session:BattleSession;playerId:string}){const ids=doublesForceForPlayer(session.setup,playerId)?.memberPlayerIds??[playerId];return <>{ids.map(id=>{const army=armyForPlayer(session,id);return army?<ArmyBanner key={id} army={army} label={session.state.players[id]?.name}/>:null})}</>}
