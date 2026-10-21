@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import type { Army } from '../domain/army/types'
 import type { DoublesSetup, GuidanceLevel } from '../domain/battle/types'
-import { listArmies } from '../persistence/database'
+import { useRosterLibrary } from '../features/armyLibrary/repository'
 import {
   CAULDRON_RULESET_VERSION,
   OPERATIONAL_PLAN_DEFINITIONS,
@@ -65,7 +65,8 @@ export default function BattleSetup() {
   const preferredArmyId = params.get('armyId')
   const [mode, setMode] = useState<CauldronMode>(() => setupMode(params.get('mode')))
   const [objectiveLayout, setObjectiveLayout] = useState<CauldronObjectiveLayout>('expanded-7')
-  const [armies, setArmies] = useState<Army[]>([])
+  const { rows: rosterRows, loading: loadingArmies, error: libraryError } = useRosterLibrary()
+  const armies = useMemo(() => rosterRows.map(row => row.army), [rosterRows])
   const [players, setPlayers] = useState<PlayerDraft[]>(() => playersForMode(DEFAULT_PLAYERS, setupMode(params.get('mode'))))
   const [guidance, setGuidance] = useState<GuidanceLevel>('guided')
   const [secondaryDeck, setSecondaryDeck] = useState<SecondaryDeck>(() => recommendedRules(mode).secondaryDeck)
@@ -81,7 +82,6 @@ export default function BattleSetup() {
     Object.fromEntries(DEFAULT_PLAYERS.map((player) => [player.id, ['OFFICIAL_A_GRIEVOUS_BLOW', 'OFFICIAL_ENGAGE_ON_ALL_FRONTS']])) as Record<string, [OfficialSecondaryId, OfficialSecondaryId]>,
   )
   const [hostPlayerId, setHostPlayerId] = useState(DEFAULT_PLAYERS[0].id)
-  const [loadingArmies, setLoadingArmies] = useState(true)
   const [sharedWorking, setSharedWorking] = useState(false)
   const [localError, setLocalError] = useState<string | null>(null)
   const [invalidFieldId, setInvalidFieldId] = useState<string | null>(null)
@@ -115,19 +115,11 @@ export default function BattleSetup() {
   }
 
   useEffect(() => {
-    void listArmies().then((stored) => {
-      const available = stored.map((entry) => entry.army)
-      setArmies(available)
-      const defaultArmy = available.find((army) => army.id === preferredArmyId) ?? available[0]
-      if (defaultArmy) {
-        setPlayers((current) => current.map((player) => ({ ...player, armyId: defaultArmy.id })))
-      }
-      setLoadingArmies(false)
-    }).catch((reason: unknown) => {
-      setLocalError(reason instanceof Error ? reason.message : String(reason))
-      setLoadingArmies(false)
-    })
-  }, [preferredArmyId])
+    if (loadingArmies) return
+    const fallback = armies.find(army => army.id === preferredArmyId) ?? armies[0]
+    if (fallback) setPlayers(current => current.map(player => ({ ...player, armyId: armies.some(army => army.id === player.armyId) ? player.armyId : fallback.id })))
+    if (libraryError) setLocalError(libraryError)
+  }, [rosterRows, preferredArmyId, loadingArmies, libraryError])
 
   useEffect(() => {
     if (!activePlayers.some((player) => player.id === hostPlayerId)) setHostPlayerId(activePlayers[0]?.id ?? '')
@@ -387,8 +379,9 @@ export default function BattleSetup() {
             <div className="player-setup-card__title"><span>Player {index + 1}</span><strong>Zone {player.deploymentZone} · Turn {player.turnPosition}</strong></div>
             <label>Player name<input id={`commander-${index}-name`} aria-describedby={invalidFieldId === `commander-${index}-name` ? 'setup-error' : undefined} aria-invalid={invalidFieldId === `commander-${index}-name`} value={player.name} required onChange={(event) => updatePlayer(index, 'name', event.target.value)} /></label>
             <label>Saved army<select id={`commander-${index}-army`} aria-describedby={invalidFieldId === `commander-${index}-army` ? 'setup-error' : undefined} aria-invalid={invalidFieldId === `commander-${index}-army`} value={player.armyId} onChange={(event) => updatePlayer(index, 'armyId', event.target.value)}>
-              {armies.map((army) => <option key={army.id} value={army.id}>{army.faction} · {army.totalPoints} pts · {army.name}</option>)}
+              {armies.map((army) => <option key={army.id} value={army.id}>{army.faction} · {army.totalPoints} pts · {army.name} · {rosterRows.find(r => r.id === army.id)?.status ?? 'local'}{army.library?.variantOf ? ' · Variant' : ''}</option>)}
             </select></label>
+            {player.armyId && <Link className="button button--small" target="_blank" rel="noopener noreferrer" to={`/army/${encodeURIComponent(player.armyId)}/edit`}>Edit roster ↗</Link>}
             {!doubles && <div className="setup-pair">
               <label>Deployment zone<select id={`commander-${index}-zone`} aria-describedby={invalidFieldId === `commander-${index}-zone` ? 'setup-error' : undefined} aria-invalid={invalidFieldId === `commander-${index}-zone`} value={player.deploymentZone} onChange={(event) => updatePlayer(index, 'deploymentZone', event.target.value as DeploymentZone)}>
                 {(duel ? ['A', 'B'] : ['A', 'B', 'C']).map((zone) => <option key={zone}>{zone}</option>)}

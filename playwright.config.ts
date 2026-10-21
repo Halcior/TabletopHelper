@@ -6,14 +6,28 @@ export default defineConfig({
   workers: 1,
   timeout: 45_000,
   expect: { timeout: 12_000 },
-  reporter: [['list'], ['html', { open: 'never', outputFolder: 'playwright-report' }]],
+  reporter: [
+    ['list'],
+    ['html', { open: 'never', outputFolder: 'playwright-report' }],
+  ],
   use: {
     baseURL: 'http://127.0.0.1:4173',
+    launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
+      ? {
+          executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
+          args: process.env.PLAYWRIGHT_CHROMIUM_ARGS
+            ? JSON.parse(process.env.PLAYWRIGHT_CHROMIUM_ARGS)
+            : undefined,
+        }
+      : undefined,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
   webServer: {
-    command: 'npm run dev -- --host 127.0.0.1 --port 4173',
+    command:
+      process.env.E2E_PRODUCTION === '1'
+        ? 'npm run build && npm run preview -- --host 127.0.0.1 --port 4173'
+        : 'npm run dev -- --host 127.0.0.1 --port 4173',
     url: 'http://127.0.0.1:4173',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

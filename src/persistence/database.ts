@@ -1,49 +1,9 @@
-import type { LocalVisualMedia } from '../features/factionVisuals/media'
-import Dexie, { type EntityTable } from 'dexie'
 import type { Army } from '../domain/army/types'
 import type { BattleSession } from '../domain/battle/types'
-
-export type StoredArmy = {
-  id: string
-  army: Army
-  savedAt: string
-}
-
-export type StoredBattle = {
-  id: string
-  session: BattleSession
-  status: BattleSession['state']['status']
-  updatedAt: string
-}
-
-class TabletopDatabase extends Dexie {
-  visualMedia!: EntityTable<LocalVisualMedia, 'key'>
-  armies!: EntityTable<StoredArmy, 'id'>
-  battles!: EntityTable<StoredBattle, 'id'>
-
-  constructor() {
-    super('tabletop-companion')
-    this.version(1).stores({
-      armies: '&id, savedAt, army.faction',
-      battles: '&id, status, updatedAt',
-    })
-    this.version(2).stores({ armies: '&id, savedAt, army.faction', battles: '&id, status, updatedAt', visualMedia: '&key, armyId, updatedAt' })
-  }
-}
-
-export const database = new TabletopDatabase()
-
-export async function saveArmy(army: Army): Promise<void> {
-  await database.armies.put({ id: army.id, army, savedAt: new Date().toISOString() })
-}
-
-export async function getArmy(id: string): Promise<Army | undefined> {
-  return (await database.armies.get(id))?.army
-}
-
-export async function listArmies(): Promise<StoredArmy[]> {
-  return database.armies.orderBy('savedAt').reverse().toArray()
-}
+import { database, type StoredBattle } from './storage'
+export { database } from './storage'
+export type { StoredArmy, StoredBattle } from './storage'
+export { saveArmy, getArmy, listArmies } from '../features/armyLibrary/repository'
 
 export async function saveBattle(session: BattleSession): Promise<void> {
   await database.battles.put({

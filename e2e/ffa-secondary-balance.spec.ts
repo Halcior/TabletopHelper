@@ -43,15 +43,19 @@ test('mobile FFA locks Beacon, retains its Rival after reload, and checks both e
     await expect(beacon.getByLabel('Chosen own unit')).toHaveCount(0)
     await page.evaluate(async () => {
       const storePath = '/src/stores/battleStore.ts'
-      const persistencePath = '/src/persistence/database.ts'
       const { useBattleStore } = await import(storePath)
-      const { saveBattle } = await import(persistencePath)
       const store = useBattleStore.getState()
       store.dispatch({ type: 'ROUND_STARTED', payload: { round: 2 } })
       useBattleStore.getState().dispatch({ type: 'TURN_STARTED', payload: { playerId: 'p-a' } })
       useBattleStore.getState().dispatch({ type: 'PHASE_CHANGED', payload: { phase: 'END_TURN' } })
-      await saveBattle(useBattleStore.getState().session)
     })
+    // Let the store's queued snapshots finish before reloading. A direct save here
+    // can be overwritten by an earlier queued Command-phase snapshot.
+    await expect.poll(() => page.evaluate(async () => {
+      const persistencePath = '/src/persistence/database.ts'
+      const { getBattle } = await import(persistencePath)
+      return (await getBattle('ffa-secondary-ui'))?.state.phase
+    })).toBe('END_TURN')
     await page.reload()
     await expect(page.locator('.official-primary-panel')).toContainText('Current Rival: Player C · C-HOME')
     await expect(page.locator('.official-primary-panel')).toContainText('Battle Round 2')
@@ -68,6 +72,6 @@ test('mobile FFA locks Beacon, retains its Rival after reload, and checks both e
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
     if (process.env.CAPTURE_UI === '1') await page.screenshot({ path: 'test-results/visual-ffa-secondary-balance.png', fullPage: true })
   } finally {
-    await context.close()
+    await context.close().catch(() => {})
   }
 })

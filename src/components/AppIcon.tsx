@@ -1,4 +1,5 @@
 export type AppIconName =
+  | 'account'
   | 'army'
   | 'cards'
   | 'chevron'
@@ -56,6 +57,8 @@ export function AppIcon({ name, className = '' }: AppIconProps) {
       </svg>
     case 'home':
       return <svg {...commonProps}><path d="m3 10 9-7 9 7" /><path d="M5.5 9v11h13V9M9.5 20v-6h5v6" /></svg>
+    case 'account':
+      return <svg {...commonProps}><circle cx="12" cy="7" r="3.5" /><path d="M4 21v-2a8 8 0 0 1 16 0v2Z" /></svg>
     case 'shared':
       return <svg {...commonProps}><circle cx="7" cy="8" r="3" /><circle cx="17" cy="7" r="2.5" /><path d="M2.5 20v-2.2A4.8 4.8 0 0 1 7.3 13h.4a4.8 4.8 0 0 1 4.8 4.8V20M14 13.2a4.3 4.3 0 0 1 7.5 2.9V19" /></svg>
     case 'host':

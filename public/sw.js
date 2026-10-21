@@ -1,5 +1,5 @@
-const CACHE_NAME = 'tabletop-companion-playtest-v1'
-const APP_SHELL = ['/', '/manifest.json', '/icons/icon-192.png', '/icons/icon-512.png']
+const CACHE_NAME = 'tabletop-companion-__BUILD_ID__'
+const APP_SHELL = ['/', '/manifest.json', '/icons/icon-192.png', '/icons/icon-512.png', .../* BUILD_ASSETS */ []]
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)))
@@ -21,14 +21,20 @@ self.addEventListener('fetch', (event) => {
 
   if (request.mode === 'navigate') {
     event.respondWith(fetch(request).then((response) => {
-      if (response.ok) caches.open(CACHE_NAME).then((cache) => cache.put('/', response.clone()))
+      if (response.ok) {
+        const copy = response.clone()
+        caches.open(CACHE_NAME).then((cache) => cache.put('/', copy))
+      }
       return response
     }).catch(() => caches.match('/')))
     return
   }
 
   event.respondWith(caches.match(request).then((cached) => cached ?? fetch(request).then((response) => {
-    if (response.ok) caches.open(CACHE_NAME).then((cache) => cache.put(request, response.clone()))
+    if (response.ok) {
+      const copy = response.clone()
+      caches.open(CACHE_NAME).then((cache) => cache.put(request, copy))
+    }
     return response
   })))
 })

@@ -29,3 +29,5 @@
 @import './productPolish.css' layer(product);
 
 @import './features/factionVisuals/factionVisuals.css' layer(product);
+
+@import './features/armyLibrary/armyLibrary.css' layer(product);

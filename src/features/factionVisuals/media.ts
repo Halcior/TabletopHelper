@@ -1,9 +1,9 @@
 import { useEffect,useState } from 'react'
 import { liveQuery } from 'dexie'
 import type { Army,UnitDefinition } from '../../domain/army/types'
-import { database } from '../../persistence/database'
+import { database } from '../../persistence/storage'
 export type LocalVisualMedia={key:string;armyId:string;blob:Blob;updatedAt:string}
-export function mediaKey(army:Army,unit?:UnitDefinition):string {return JSON.stringify([army.id,unit?'unit':'banner',unit?(unit.sourceMetadata?.nrSelectionId??unit.sourceId??unit.id):''])}
+export function mediaKey(army:Army,unit?:UnitDefinition):string {return JSON.stringify([army.localMediaId??army.id,unit?'unit':'banner',unit?(unit.sourceMetadata?.nrSelectionId??unit.sourceId??unit.id):''])}
 export function validatePhoto(file:File){if(!['image/jpeg','image/png','image/webp'].includes(file.type))throw new Error('Choose a JPEG, PNG or WebP photo.');if(file.size>12*1024*1024)throw new Error('Choose a photo smaller than 12 MB.')}
 export async function savePhoto(army:Army,file:File,unit?:UnitDefinition){
  validatePhoto(file)

@@ -11,6 +11,14 @@ export type Army = {
   pointsLimit?: number
   detachments: Detachment[]
   units: UnitDefinition[]
+  /** Device-only photo namespace; excluded from cloud and JSON exports. */
+  localMediaId?: string
+  library?: {
+    source: 'new-recruit' | 'local-edit' | 'homebrew'
+    createdAt: string
+    updatedAt: string
+    variantOf?: string
+  }
 }
 
 export type WeaponProfile = {
@@ -73,6 +81,7 @@ export type UnitDefinition = {
   leaderOfUnitId: string | null
   ledByUnitIds: string[]
   sourceMetadata?: SourceMetadata
+  editor?: { customPoints?: boolean; changedModels?: boolean }
 }
 
 export type UnitStats = {
