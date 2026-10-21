@@ -18,3 +18,15 @@ test('faction artwork contact sheet lists every environment and supports graysca
   await expect(page.locator('#grid figure')).toContainText('Faction hidden')
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
 })
+
+test('all 37 custom emblems render in dedicated gallery and can be filtered',async({page})=>{
+ await page.setViewportSize({width:390,height:844})
+ await page.goto('/faction-icons')
+ await expect(page.getByRole('heading',{name:'Faction emblems'})).toBeVisible()
+ await expect(page.locator('.faction-emblem-gallery__card')).toHaveCount(37)
+ await expect(page.locator('.faction-emblem-gallery__symbol svg')).toHaveCount(37)
+ await page.getByRole('searchbox',{name:'Search emblems'}).fill('shadowkeepers')
+ await expect(page.locator('.faction-emblem-gallery__card')).toHaveCount(1)
+ await expect(page.locator('.faction-emblem-gallery__card')).toContainText('Shadowkeepers')
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth)).toBe(false)
+})

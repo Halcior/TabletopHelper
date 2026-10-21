@@ -4,3 +4,14 @@
 @media print{.army-banner,.unit-portrait,.faction-marks,.faction-mark,.visual-preferences,.army-appearance-link{display:none!important}.report-after-action{color:#222}.unit-card[style]{border-color:#777;background:white}}
 
 /* Unit card artwork is a vector emblem or a locally uploaded model photograph. */
+
+/* Internal faction-icon review screen: no extra image network requests. */
+.faction-emblem-gallery>p{max-width:74ch;line-height:1.5;color:#becbd8}
+.faction-emblem-gallery__search{display:flex;flex-direction:column;gap:8px;max-width:360px;margin:18px 0;color:#d8dfec}
+.faction-emblem-gallery__search input{min-height:44px;border:1px solid #5c6575;border-radius:8px;padding:10px 12px;background:#131923;color:#f2f4f8}
+.faction-emblem-gallery__grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,170px),1fr));gap:12px;margin:20px 0 48px}
+.faction-emblem-gallery__card{display:flex;align-items:center;flex-direction:column;gap:10px;text-align:center;min-width:0;padding:18px 10px;border:1px solid var(--faction-secondary);border-radius:12px;background:radial-gradient(ellipse at 50% 10%,color-mix(in srgb,var(--faction-surface),#3b3732 18%),#11151a 70%)}
+.faction-emblem-gallery__symbol{display:grid;place-items:center;width:74px;height:74px;border:1px solid var(--faction-secondary);border-radius:12px;background:#0d1019;color:var(--faction-accent)}
+.faction-emblem-gallery__symbol .faction-sigil{width:60px;height:60px}
+.faction-emblem-gallery__card strong{font-size:.9rem;color:#f5f1e9;overflow-wrap:anywhere}
+.faction-emblem-gallery__card small{font-size:.7rem;color:#a8b6c8;overflow-wrap:anywhere}
