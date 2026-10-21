@@ -30,7 +30,7 @@ test('all 37 custom emblems render in dedicated gallery and can be filtered',asy
  await expect(page.locator('.faction-emblem-gallery__symbol [data-emblem-source="sprite"]')).toHaveCount(20)
  const atlas=await page.request.get('/faction-art/faction-emblems-20.jpg')
  expect(atlas.ok()).toBe(true)
- expect(atlas.headers()['content-type']).toMatch(/image\\/jpeg/)
+ expect(atlas.headers()['content-type']).toContain('image/jpeg')
  await page.getByRole('searchbox',{name:'Search emblems'}).fill('shadowkeepers')
  await expect(page.locator('.faction-emblem-gallery__card')).toHaveCount(1)
  await expect(page.locator('.faction-emblem-gallery__card')).toContainText('Shadowkeepers')
