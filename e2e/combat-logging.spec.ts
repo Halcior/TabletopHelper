@@ -161,3 +161,40 @@ test('quick Wound controls stay independent of an open mixed-profile allocation'
     await expect(page.locator('.chronicle-entry').filter({ hasText: '6 Wounds lost' })).toHaveCount(1)
   } finally { await context.close() }
 })
+
+
+test('partial casualties remain visible and net attribution is grouped by unit in report', async ({ browser }) => {
+  const { context, page } = await phone(browser)
+  try {
+    await page.goto('/')
+    await page.evaluate(async () => {
+      const { testCauldronGame } = await import('/src/rulesets/cauldronFFA3/cauldronTestUtils.ts')
+      const { dispatchBattleEvents } = await import('/src/domain/battle/engine.ts')
+      const { saveBattle } = await import('/src/persistence/database.ts')
+      const game = testCauldronGame()
+      game.setup.gameId = 'partial-attribution'
+      await saveBattle(dispatchBattleEvents(game, [
+        { type: 'UNIT_MODEL_DESTROYED', payload: { playerId: 'p-b', unitId: 'infantry', amount: 2, destroyedByPlayerId: 'p-a', attackerUnitId: 'tank' } },
+        { type: 'UNIT_MODEL_DESTROYED', payload: { playerId: 'p-b', unitId: 'infantry', amount: 1, destroyedByPlayerId: 'p-c', attackerUnitId: 'tank' } },
+        { type: 'UNIT_MODEL_RESTORED', payload: { playerId: 'p-b', unitId: 'infantry', amount: 1 } },
+      ]))
+    })
+    await page.goto('/battle/partial-attribution')
+    await dismissSecondaryReveal(page)
+    await selectPanel(page, 'log')
+    await expect(page.locator('.chronicle-entry--kills').filter({ hasText: '2 models' })).toHaveCount(1)
+    await page.locator('.chronicle-filters').getByRole('button', { name: 'Combat', exact: true }).click()
+    const events = page.locator('.chronicle-entry--kills')
+    await expect(events).toHaveCount(2)
+    await expect(events.first()).toContainText('Source: Single-model tank')
+    await selectPanel(page, 'report')
+    const ledger = page.getByRole('region', { name: 'Combat engagements' })
+    await expect(ledger).toBeVisible()
+    await expect(ledger.locator('tbody tr')).toHaveCount(1)
+    await expect(ledger.locator('tbody tr').first()).toContainText('Single-model tank')
+    await expect(ledger.locator('tbody tr').first()).toContainText('Four-model unit')
+    await expect(ledger.locator('tbody tr').first()).toContainText('85')
+    await expect(ledger.locator('tbody tr').first()).toContainText('2')
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false)
+  } finally { await context.close() }
+})

@@ -56,6 +56,18 @@ export function BattleReport({ session }: { session: BattleSession }) {
       </tbody></table></div>
       <p className="report-data-note">{report.performance.partial ? 'Partial unit attribution' : 'Recorded casualty values assigned'} · {points(report.performance.unattributedPoints)} pts without a player source. Unknown unit sources stay in the army total.</p>
     </section>
+    <section className="panel report-engagements" aria-label="Combat engagements">
+      <div className="section-heading"><div><span className="eyebrow">Derived from recorded casualties</span><h3>Combat engagements</h3></div><small>{report.performance.engagements.length} attacker → target pairs</small></div>
+      <p className="report-data-note">Who hit whom — even if the defending unit survived. Models and points are NET after restoration or corrections. Effective Wounds are only those explicitly logged (Partial); unknown sources are never guessed.</p>
+      {report.performance.engagements.length > 0 ? <div className="report-table-wrap"><table>
+        <thead><tr><th>Attacker</th><th>Target</th><th>Models (net)</th><th>Enemy pts (net)</th><th>Logged W</th><th>Unit kills</th></tr></thead>
+        <tbody>{report.performance.engagements.map((engagement, index) => <tr key={`${engagement.attackerPlayerId ?? 'unknown'}:${engagement.attacker?.unitId ?? 'unknown'}:${engagement.target.playerId}:${engagement.target.unitId}:${index}`}>
+          <td><strong>{engagement.attacker?.name ?? (engagement.attackerPlayerId ? 'Unspecified unit' : 'Unknown source')}</strong>{engagement.attackerPlayerId && <small>{playerName(engagement.attackerPlayerId)}</small>}</td>
+          <td><strong>{engagement.target.name}</strong><small>{playerName(engagement.target.playerId)}</small></td>
+          <td>{engagement.modelsDestroyed}</td><td>{points(engagement.enemyPointsDestroyed)}</td><td>{engagement.loggedWounds === 0 ? '—' : `${engagement.loggedWounds} W`}</td><td>{engagement.kills}</td>
+        </tr>)}</tbody>
+      </table></div> : <p className="context-note">No combat losses with attribution have been recorded yet.</p>}
+    </section>
     <section className="report-performance" aria-label="Unit performance">
       <div className="section-heading"><div><span className="eyebrow">Combat · Survival · Missions</span><h3>Unit performance</h3></div></div>
       <div className="report-filters no-print">
@@ -79,6 +91,6 @@ export function BattleReport({ session }: { session: BattleSession }) {
       {report.narrative.map((paragraph, index) => <p key={index}>{paragraph}</p>)}
     </section>
     <section className="panel report-timeline"><span className="eyebrow">Round by round</span><h3>Battle timeline</h3>{report.rounds.map((round) => <details key={round.round} open><summary>Round {round.round} · {round.highlights.length} highlights</summary><ul>{round.highlights.map((entry) => <li key={entry.id}>{entry.phase.replace('_', ' ')} · {entry.description}{entry.note && <small>{entry.note}</small>}</li>)}</ul></details>)}</section>
-    <section className="panel report-method"><h3>How to read these statistics</h3><p>Combat ROI = net enemy points destroyed / own starting points × 100%. Model value is an estimate: unit points / starting models. Restoration and model corrections remove the most recent outstanding credits across rounds. The last hit earns the kill, which is removed if the target returns.</p><p>Logged damage uses effective Wounds from Combat Logging and legacy explicit single-model decreases. Model-only losses and whole-unit KO infer no damage. Healing and restoration preserve gross damage; corrections retract mistaken loss. — means no recorded data, and Partial means only recorded damage. Action VP needs one unambiguous unit; joint awards remain unassigned. Objective control does not identify a capturing unit. Score corrections make previous action VP attribution uncertain.</p><p>This report describes recorded events. Unrecorded actions and missing sources cannot be reconstructed.</p></section>
+    <section className="panel report-method"><h3>How to read these statistics</h3><p>Combat ROI = net enemy points destroyed / own starting points × 100%. Model value is an estimate: unit points / starting models. Restoration and model corrections remove the most recent outstanding credits across rounds. The last hit earns the kill, which is removed if the target returns.</p><p>Logged damage uses effective Wounds from Combat Logging and legacy explicit single-model decreases. Model-only losses and whole-unit KO infer no damage. Healing and restoration preserve gross damage; corrections retract mistaken loss. — means no recorded data, and Partial means only recorded damage. Action VP needs one unambiguous unit; joint awards remain unassigned. Objective control does not identify a capturing unit. Score corrections make previous action VP attribution uncertain.</p><p>Combat engagements show net model losses per attacker and target, including units that survived. Logged Wounds are partial historical records, not estimates of damage inferred from casualties. This report describes recorded events. Unrecorded actions and missing sources cannot be reconstructed.</p></section>
   </section>
 }

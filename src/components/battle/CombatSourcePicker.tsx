@@ -12,9 +12,9 @@ export function CombatSourcePicker({ session, targetPlayerId, value, onChange, d
   const army = player?.armyId ? session.setup.armies[player.armyId] : undefined
   const units = (army?.units ?? []).filter((unit) => !session.state.players[attackerId]?.units[unit.id]?.destroyed)
   return <section className="combat-source panel" aria-label="Combat attribution">
-    <div><span className="eyebrow">Record the source once</span><h3>Combat attribution</h3><p>Used by quick damage and all unit cards below. Change it for split fire.</p></div>
+    <div><span className="eyebrow">Credit partial and final casualties</span><h3>Combat attribution</h3><p>Choose who inflicted the next losses. Quick Wounds, model casualties and full eliminations keep this source in Chronicle and the report. Change the attacker for split fire; earlier records will not change.</p></div>
     <div className="combat-source__selectors">
-      <label><span>Destroyed by</span><select disabled={disabled} value={attackerId} onChange={(event) => onChange({ destroyedByPlayerId: event.target.value || null, note: value.note })}>
+      <label><span>Damaged / models lost to</span><select disabled={disabled} value={attackerId} onChange={(event) => onChange({ destroyedByPlayerId: event.target.value || null, note: value.note })}>
         {session.setup.players.filter((entry) => entry.id !== targetPlayerId).map((entry) => <option key={entry.id} value={entry.id}>{entry.name}{entry.id === session.state.activePlayerId ? ' · current' : ''}</option>)}
         <option value="">Unknown / environment</option>
       </select></label>

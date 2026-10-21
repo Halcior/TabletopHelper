@@ -37,7 +37,7 @@ describe('combat attribution and canonical unit performance', () => {
     expect(hit).toMatchObject({ category: 'kills', highlight: true, unitChange: { modelsBefore: 4, modelsAfter: 2, destroyedAfter: false } })
     const narrative = buildBattleReport(session).narrative.join(' ')
     expect(narrative).toContain('2 modele')
-    expect(narrative).toContain('Tank')
+    expect(narrative).toContain('Single-model tank')
   })
 
   it('aggregates partial losses per attacking unit and target with net restoration, without inventing wounds', () => {
