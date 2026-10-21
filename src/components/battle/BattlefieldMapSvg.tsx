@@ -43,9 +43,9 @@ export function BattlefieldMapSvg({ presentation, widthCm, heightCm, rotated, la
         data-terrain-id={area.id} data-footprint-type={area.footprintType}
         data-rotation={area.rotationDeg} data-position-x={area.position.x} data-position-y={area.position.y}
         transform={`translate(${area.position.x} ${area.position.y}) rotate(${area.rotationDeg})`}>
-        <polygon className={`official-terrain-area official-terrain-area--${area.terrainFeatureClass}`}
+        <polygon className={`official-terrain-area official-terrain-area--${area.terrainFeatureClass ?? 'unclassified'}`}
           points={area.polygonPoints.map(p => `${p.x},${p.y}`).join(' ')} vectorEffect="non-scaling-stroke">
-          <title>{area.id} · {area.widthCm.toFixed(1)} × {area.heightCm.toFixed(1)} cm outline · {area.rotationDeg}°</title>
+          <title>{`${area.id} · ${area.widthCm.toFixed(1)} × ${area.heightCm.toFixed(1)} cm outline · ${area.rotationDeg}°`}</title>
         </polygon>
       </g>)}
       {layers.features && presentation.terrain?.terrainFeatures?.map(feature => <g key={feature.id}
@@ -53,7 +53,7 @@ export function BattlefieldMapSvg({ presentation, widthCm, heightCm, rotated, la
         transform={`translate(${feature.position.x} ${feature.position.y})${rotated ? ' rotate(180)' : ''}`}>
         <rect x={-2.5} y={-1.9} width={5} height={3.8} rx=".6" />
         <text textAnchor="middle" dominantBaseline="central">{feature.class === 'dense' ? 'D' : 'L'}</text>
-        <title>{feature.class} terrain feature · area {feature.terrainAreaId}. Classification cue; see source for physical model arrangement.</title>
+        <title>{`${feature.class} terrain feature · area ${feature.terrainAreaId}. Classification cue; see source for physical model arrangement.`}</title>
       </g>)}
       {layers.labels && presentation.terrain?.terrainAreas?.map(area => <text key={area.id} className="terrain-area-label"
         textAnchor="middle" transform={`translate(${area.position.x} ${area.position.y})${rotated ? ' rotate(180)' : ''}`} y={-2.6}>{area.id}</text>)}
@@ -68,8 +68,8 @@ export function BattlefieldMapSvg({ presentation, widthCm, heightCm, rotated, la
 export function TerrainLegend() {
   return <div className="terrain-legend" aria-label="Terrain legend">
     <span><i className="terrain-key terrain-key--dense" />Dense feature (D)</span>
-    <span><i className="terrain-key terrain-key--light" />Light feature (L)</span>
+    <span><i className="terrain-key terrain-key--unclassified" />Unclassified features</span>
     <span>Grid: 5″ / 12.7 cm</span>
-    <span>Area IDs A1–E2 are plan references. D/L badges indicate classification; use the source for physical model placement.</span>
+    <span>Area IDs A1–E2 are plan references. Badges show verified feature classes only; unlabelled features need source verification.</span>
   </div>
 }

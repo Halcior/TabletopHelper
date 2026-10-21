@@ -34,10 +34,10 @@ export default function TerrainGallery() {
     <header className="terrain-gallery-heading"><div><span className="eyebrow">Battlefield atlas · 45 layouts</span><h1>Official terrain layouts</h1>
       <p>44″ × 60″ · Event Companion v{OFFICIAL_BOARD_SOURCE.version} · updated {OFFICIAL_BOARD_SOURCE.updatedAt}</p></div><Link to="/">Command Hub</Link></header>
     <section className="panel terrain-gallery-controls" aria-label="Choose official layout">
-      <label>Format<select value={doubles ? '2v2' : '1v1'} onChange={e => change('mode',e.target.value)}><option value="1v1">Official Duel 1v1</option><option value="2v2">Official Doubles 2v2</option></select></label>
-      <label>{doubles ? 'Team A Force Disposition' : 'Force Disposition A'}<select value={a} onChange={e => change('a',e.target.value)}>{DISPOSITION_ORDER.map(d => <option key={d} value={d}>{dispositionName(d)}</option>)}</select></label>
-      <label>{doubles ? 'Team B Force Disposition' : 'Force Disposition B'}<select value={b} onChange={e => change('b',e.target.value)}>{DISPOSITION_ORDER.map(d => <option key={d} value={d}>{dispositionName(d)}</option>)}</select></label>
-      <label>Layout variant<select value={variant} onChange={e => change('variant',e.target.value)}>{['A','B','C'].map(v => <option key={v} value={v}>Layout {v}</option>)}</select></label>
+      <label>Format<select aria-label="Format" value={doubles ? '2v2' : '1v1'} onChange={e => change('mode',e.target.value)}><option value="1v1">Official Duel 1v1</option><option value="2v2">Official Doubles 2v2</option></select></label>
+      <label>{doubles ? 'Team A Force Disposition' : 'Force Disposition A'}<select aria-label="Force Disposition A" value={a} onChange={e => change('a',e.target.value)}>{DISPOSITION_ORDER.map(d => <option key={d} value={d}>{dispositionName(d)}</option>)}</select></label>
+      <label>{doubles ? 'Team B Force Disposition' : 'Force Disposition B'}<select aria-label="Force Disposition B" value={b} onChange={e => change('b',e.target.value)}>{DISPOSITION_ORDER.map(d => <option key={d} value={d}>{dispositionName(d)}</option>)}</select></label>
+      <label>Layout variant<select aria-label="Layout variant" value={variant} onChange={e => change('variant',e.target.value)}>{['A','B','C'].map(v => <option key={v} value={v}>Layout {v}</option>)}</select></label>
     </section>
     <section className="terrain-plan" aria-label="Official terrain plan" data-layout-id={layout.layoutId}>
       <header className="battlefield-heading"><div><h2>{presentation.title}</h2><p>{dispositionName(a)} × {dispositionName(b)} · source page {layout.page}</p></div>
@@ -56,8 +56,8 @@ export default function TerrainGallery() {
         <a href={OFFICIAL_SOURCES.footprints.url} target="_blank" rel="noreferrer">Armageddon footprint templates</a></div>
       <section className="panel terrain-inspector" aria-label="Footprint measurements">
         <h3>Footprint measurements</h3>
-        <label>Inspect area<select value={area.id} onChange={e => setSelectedArea(e.target.value)}>{layout.terrainAreas.map(value => <option key={value.id}>{value.id}</option>)}</select></label>
-        <p>{area.id} · {area.terrainFeatureClass} · nominal {(nominal.nominalWidthCm/2.54).toFixed(1)}″ × {(nominal.nominalHeightCm/2.54).toFixed(1)}″. Outline bounds {area.widthCm.toFixed(2)} × {area.heightCm.toFixed(2)} cm.</p>
+        <label>Inspect area<select aria-label="Inspect area" value={area.id} onChange={e => setSelectedArea(e.target.value)}>{layout.terrainAreas.map(value => <option key={value.id}>{value.id}</option>)}</select></label>
+        <p>{area.id} · {area.terrainFeatureClass ? 'contains verified ' + area.terrainFeatureClass + ' feature' : 'feature class unverified'} · nominal {(nominal.nominalWidthCm/2.54).toFixed(1)}″ × {(nominal.nominalHeightCm/2.54).toFixed(1)}″. Outline bounds {area.widthCm.toFixed(2)} × {area.heightCm.toFixed(2)} cm.</p>
         <p>Centre {area.position.x.toFixed(2)} cm from left, {area.position.y.toFixed(2)} cm from top · clockwise rotation {area.rotationDeg}°. Coordinates refer to the unrotated source.</p>
       </section>
       <details className="terrain-measurement-table" open><summary>All 16 areas · coordinates and dimensions</summary>

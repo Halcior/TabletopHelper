@@ -113,13 +113,13 @@ for key, layout in data['layouts'].items():
         layout['terrainAreas'].append({'id':areaId,'footprintType':kind,'position':{'x':round(centre.x,4),'y':round(centre.y,4)},
             'widthCm':round(max(xs)-min(xs),4),'heightCm':round(max(ys)-min(ys),4),
             'rotationDeg':round(math.degrees(angle)%360,3),'polygonPoints':vertices})
-    # Dense badges are factual green component labels. Light features are the
-    # remaining yellow terrain in the p8 key; no physical model contour is invented.
+    # Only explicitly green component badges certify Dense features. Unlabelled
+    # images may contain dense AND light features: never infer Light from absence.
     dense=[d['rect'].tl+(d['rect'].br-d['rect'].tl)/2 for d in paths if d['type']=='fs' and colour(d['fill'],(0,.4517891109,.3776302636)) and 15<d['rect'].width<18]
     for area in layout['terrainAreas']:
         marks=[p for p in dense if inside(p,raw[area['id']])]
-        area['terrainFeatureClass']='dense' if marks else 'light'
-        for n,p in enumerate(marks or [None]):
+        if marks: area['terrainFeatureClass']='dense'
+        for n,p in enumerate(marks):
             layout['terrainFeatures'].append({'id':area['id']+'-feature-'+str(n+1),'terrainAreaId':area['id'],
                 'class':area['terrainFeatureClass'],'position':({'x':round(physical(p).x,4),'y':round(physical(p).y,4)} if p else area['position'])})
     # Preserve existing objective IDs. An E-E pair can form ONE objective area.
@@ -140,7 +140,7 @@ for key, layout in data['layouts'].items():
     layout['verification']={'status':'vector-extracted','checkedAt':'2026-10-21','physicalTableChecked':False}
     old=legacy['layouts'][key]
     changed=[f for f in ['objectives','deploymentPaths','territoryPaths'] if old[f]!=layout[f]]
-    audit.append({'layoutId':key,'page':layout['page'],'areas':len(areas),'changedLegacyFields':changed,'frameAspectErrorPercent':layout['frameAspectErrorPercent']})
+    audit.append({'layoutId':key,'page':layout['page'],'areas':len(areas),'changedLegacyFields':changed,'legacyObjectiveCounts':{k:len(v) for k,v in old['objectives'].items()},'currentObjectiveCounts':{k:len(v) for k,v in layout['objectives'].items()},'frameAspectErrorPercent':layout['frameAspectErrorPercent']})
 (ROOT/'src/domain/battlefield/officialLayouts.json').write_text(json.dumps(data,ensure_ascii=False,separators=(',',':'))+'\n')
 (ROOT/'docs/terrain-source-audit.json').write_text(json.dumps({'sources':sources,'layouts':audit,'maxFrameAspectErrorPercent':max(a['frameAspectErrorPercent'] for a in audit)},indent=2)+'\n')
 print('45 maps; 720 independent source outlines; changed legacy fields:',collections.Counter(f for row in audit for f in row['changedLegacyFields']))

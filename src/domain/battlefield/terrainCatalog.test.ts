@@ -51,6 +51,8 @@ describe('Event Companion 1.3 terrain catalogue', () => {
         expect(targets.every(id=>ids.has(id))).toBe(true)
       }
       expect(map.terrainFeatures!.every(f=>ids.has(f.terrainAreaId))).toBe(true)
+      // Unlabelled image features are never guessed to be Light.
+      expect(map.terrainFeatures!.every(f=>f.class==='dense')).toBe(true)
     }
   })
 

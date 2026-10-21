@@ -31,14 +31,18 @@ Doubles v1.1, p2 explicitly refers to A/B/C in the main Event Companion, uses th
 - Physical coordinates use cm, origin top-left in portrait orientation, x right and y down. Local polygon points rotate clockwise around `position`; rotation never stretches either axis. One isotropic conversion per diagram is based on the 44-inch frame width, centred vertically on the 60-inch board. A 180° view rotation changes no saved data.
 - The printed board frame is not exactly 44:60: maximum frame discrepancy is **0.6611%** (about 1 cm over the long edge). Positions follow the published vectors, not a claim of surveying accuracy. The user must compare real cutouts with printed dimension callouts for physical validation. Do not market this as independently measured, exact-to-the-millimetre geometry.
 - Deployment/objective/Territory transcription retains the established glyph/path extraction in `extract-official-battlefields.py`, applied under an explicit v1.3 and SHA guard. Eleven straight Territory dividers follow the source half-field definition, as in the previous implementation.
-- Objective markers remain separate from terrain areas and features. A printed glyph may straddle joined E areas. `objectiveAssignments` references all areas intersecting that glyph; it never creates an extra mission objective. Existing mission IDs and objective counts remain unchanged.
-- Dense classification comes from source green component badges; the remaining light features use the yellow feature convention in the p8 key. D/L cues are classifications, NOT invented physical feature silhouettes. The source remains authoritative for the physical ruin build and model placement.
+- Objective markers remain separate from terrain areas and features. A printed glyph may straddle joined E areas. `objectiveAssignments` references all areas intersecting that glyph; it never creates an extra mission objective. Historical objective IDs and counts remain unchanged. New battles use the latest diagram glyph counts (for example p12 now has six, rather than five); the scoring algorithms are unchanged.
+- Dense classification is recorded only for explicitly green component badges. Unlabelled images may include Dense AND Light features, so their class is deliberately omitted rather than inferred. D cues are verified classification labels, NOT invented physical feature silhouettes. The source remains authoritative for the physical ruin build and model placement.
 
 ## Persistence and compatibility
 
 New official setups pin `battlefieldSourceId=event-1.3-2026-10-14`. Existing setups without it select the June v1.0 catalogue, including historical objective/deployment coordinates. Old games have an explicit “terrain was not recorded” note; they do not acquire fabricated historical terrain. Reconnect serialization and event-level Replay preserve the pin. An unavailable pin shows an error and unplaced markers, with no replacement deployment or custom layout.
 
 The current Supabase room/event JSON transport already carries setup fields. Its existing RLS restricts layout events to the host; this change adds no migration, table or permission. The four-phone mock-backend test covers a consistent 16-area, two-zone map and reconnect, alongside existing CP/VP/Secondary checks. It does not claim a new live-database test.
+
+## Visual review
+
+The shared React SVG renderer was compared with source pages 9, 10, 29, 33, 41 and 53: all 16 areas per page, long/short types, rotated/near-mirrored E wedges, objective assignment, deployment and Territory orientation match the diagrams within the stated frame precision. This caught and removed an invalid inference that unlabelled features were Light. The [45-map contact sheet](terrain/contact-sheet-45.png) is rendered from the same component as the app, with no separate map engine. Browser screenshots independently check actual UI rendering in CI. No layout is certified as physically measured.
 
 ## Validation contract
 

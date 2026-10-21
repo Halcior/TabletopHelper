@@ -86,6 +86,18 @@
       "page": 9,
       "areas": 16,
       "changedLegacyFields": [],
+      "legacyObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
+      "currentObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
       "frameAspectErrorPercent": 0.3108
     },
     {
@@ -95,6 +107,18 @@
       "changedLegacyFields": [
         "objectives"
       ],
+      "legacyObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
+      "currentObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
       "frameAspectErrorPercent": 0.3108
     },
     {
@@ -102,6 +126,18 @@
       "page": 11,
       "areas": 16,
       "changedLegacyFields": [],
+      "legacyObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
+      "currentObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
       "frameAspectErrorPercent": 0.3108
     },
     {
@@ -111,6 +147,18 @@
       "changedLegacyFields": [
         "objectives"
       ],
+      "legacyObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
+      "currentObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 2,
+        "expansion": 2
+      },
       "frameAspectErrorPercent": 0.3108
     },
     {
@@ -120,6 +168,18 @@
       "changedLegacyFields": [
         "objectives"
       ],
+      "legacyObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
+      "currentObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 2,
+        "expansion": 2
+      },
       "frameAspectErrorPercent": 0.3108
     },
     {
@@ -129,6 +189,18 @@
       "changedLegacyFields": [
         "objectives"
       ],
+      "legacyObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
+      "currentObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 2,
+        "expansion": 2
+      },
       "frameAspectErrorPercent": 0.3108
     },
     {
@@ -136,6 +208,18 @@
       "page": 15,
       "areas": 16,
       "changedLegacyFields": [],
+      "legacyObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
+      "currentObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
       "frameAspectErrorPercent": 0.3108
     },
     {
@@ -143,6 +227,18 @@
       "page": 16,
       "areas": 16,
       "changedLegacyFields": [],
+      "legacyObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
+      "currentObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
       "frameAspectErrorPercent": 0.3108
     },
     {
@@ -150,6 +246,18 @@
       "page": 17,
       "areas": 16,
       "changedLegacyFields": [],
+      "legacyObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
+      "currentObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
       "frameAspectErrorPercent": 0.3108
     },
     {
@@ -157,6 +265,18 @@
       "page": 18,
       "areas": 16,
       "changedLegacyFields": [],
+      "legacyObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
+      "currentObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
       "frameAspectErrorPercent": 0.3108
     },
     {
@@ -164,6 +284,18 @@
       "page": 19,
       "areas": 16,
       "changedLegacyFields": [],
+      "legacyObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
+      "currentObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
       "frameAspectErrorPercent": 0.3108
     },
     {
@@ -173,6 +305,18 @@
       "changedLegacyFields": [
         "objectives"
       ],
+      "legacyObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
+      "currentObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
       "frameAspectErrorPercent": 0.3108
     },
     {
@@ -180,6 +324,18 @@
       "page": 21,
       "areas": 16,
       "changedLegacyFields": [],
+      "legacyObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 2,
+        "expansion": 2
+      },
+      "currentObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 2,
+        "expansion": 2
+      },
       "frameAspectErrorPercent": 0.3108
     },
     {
@@ -187,6 +343,18 @@
       "page": 22,
       "areas": 16,
       "changedLegacyFields": [],
+      "legacyObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 2,
+        "expansion": 2
+      },
+      "currentObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 2,
+        "expansion": 2
+      },
       "frameAspectErrorPercent": 0.3108
     },
     {
@@ -194,6 +362,18 @@
       "page": 23,
       "areas": 16,
       "changedLegacyFields": [],
+      "legacyObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 2,
+        "expansion": 2
+      },
+      "currentObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 2,
+        "expansion": 2
+      },
       "frameAspectErrorPercent": 0.3108
     },
     {
@@ -201,6 +381,18 @@
       "page": 24,
       "areas": 16,
       "changedLegacyFields": [],
+      "legacyObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 2,
+        "expansion": 0
+      },
+      "currentObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 2,
+        "expansion": 0
+      },
       "frameAspectErrorPercent": 0.3108
     },
     {
@@ -210,6 +402,18 @@
       "changedLegacyFields": [
         "objectives"
       ],
+      "legacyObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 2,
+        "expansion": 2
+      },
+      "currentObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 2,
+        "expansion": 2
+      },
       "frameAspectErrorPercent": 0.3108
     },
     {
@@ -219,6 +423,18 @@
       "changedLegacyFields": [
         "objectives"
       ],
+      "legacyObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 2,
+        "expansion": 0
+      },
+      "currentObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 2,
+        "expansion": 0
+      },
       "frameAspectErrorPercent": 0.3108
     },
     {
@@ -228,6 +444,18 @@
       "changedLegacyFields": [
         "objectives"
       ],
+      "legacyObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
+      "currentObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 2,
+        "expansion": 2
+      },
       "frameAspectErrorPercent": 0.3108
     },
     {
@@ -237,6 +465,18 @@
       "changedLegacyFields": [
         "objectives"
       ],
+      "legacyObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
+      "currentObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 2,
+        "expansion": 2
+      },
       "frameAspectErrorPercent": 0.3108
     },
     {
@@ -246,6 +486,18 @@
       "changedLegacyFields": [
         "objectives"
       ],
+      "legacyObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
+      "currentObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 2,
+        "expansion": 2
+      },
       "frameAspectErrorPercent": 0.3108
     },
     {
@@ -255,6 +507,18 @@
       "changedLegacyFields": [
         "objectives"
       ],
+      "legacyObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 2,
+        "expansion": 2
+      },
+      "currentObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 2,
+        "expansion": 2
+      },
       "frameAspectErrorPercent": 0.3108
     },
     {
@@ -262,6 +526,18 @@
       "page": 31,
       "areas": 16,
       "changedLegacyFields": [],
+      "legacyObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 2,
+        "expansion": 2
+      },
+      "currentObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 2,
+        "expansion": 2
+      },
       "frameAspectErrorPercent": 0.3108
     },
     {
@@ -271,6 +547,18 @@
       "changedLegacyFields": [
         "objectives"
       ],
+      "legacyObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 2,
+        "expansion": 2
+      },
+      "currentObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 2,
+        "expansion": 2
+      },
       "frameAspectErrorPercent": 0.3108
     },
     {
@@ -278,6 +566,18 @@
       "page": 33,
       "areas": 16,
       "changedLegacyFields": [],
+      "legacyObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 2,
+        "expansion": 2
+      },
+      "currentObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 2,
+        "expansion": 2
+      },
       "frameAspectErrorPercent": 0.3108
     },
     {
@@ -287,6 +587,18 @@
       "changedLegacyFields": [
         "objectives"
       ],
+      "legacyObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 2,
+        "expansion": 2
+      },
+      "currentObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 2,
+        "expansion": 2
+      },
       "frameAspectErrorPercent": 0.3108
     },
     {
@@ -294,6 +606,18 @@
       "page": 35,
       "areas": 16,
       "changedLegacyFields": [],
+      "legacyObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 2,
+        "expansion": 2
+      },
+      "currentObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 2,
+        "expansion": 2
+      },
       "frameAspectErrorPercent": 0.3108
     },
     {
@@ -301,6 +625,18 @@
       "page": 36,
       "areas": 16,
       "changedLegacyFields": [],
+      "legacyObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
+      "currentObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
       "frameAspectErrorPercent": 0.3108
     },
     {
@@ -308,6 +644,18 @@
       "page": 37,
       "areas": 16,
       "changedLegacyFields": [],
+      "legacyObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
+      "currentObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
       "frameAspectErrorPercent": 0.3108
     },
     {
@@ -315,6 +663,18 @@
       "page": 38,
       "areas": 16,
       "changedLegacyFields": [],
+      "legacyObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
+      "currentObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
       "frameAspectErrorPercent": 0.3108
     },
     {
@@ -324,6 +684,18 @@
       "changedLegacyFields": [
         "objectives"
       ],
+      "legacyObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 2,
+        "expansion": 2
+      },
+      "currentObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 2,
+        "expansion": 2
+      },
       "frameAspectErrorPercent": 0.3108
     },
     {
@@ -333,6 +705,18 @@
       "changedLegacyFields": [
         "objectives"
       ],
+      "legacyObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 2,
+        "expansion": 2
+      },
+      "currentObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 2,
+        "expansion": 2
+      },
       "frameAspectErrorPercent": 0.3108
     },
     {
@@ -342,6 +726,18 @@
       "changedLegacyFields": [
         "objectives"
       ],
+      "legacyObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 2,
+        "expansion": 2
+      },
+      "currentObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 2,
+        "expansion": 2
+      },
       "frameAspectErrorPercent": 0.3108
     },
     {
@@ -351,6 +747,18 @@
       "changedLegacyFields": [
         "objectives"
       ],
+      "legacyObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
+      "currentObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
       "frameAspectErrorPercent": 0.3108
     },
     {
@@ -360,6 +768,18 @@
       "changedLegacyFields": [
         "objectives"
       ],
+      "legacyObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
+      "currentObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
       "frameAspectErrorPercent": 0.3108
     },
     {
@@ -369,6 +789,18 @@
       "changedLegacyFields": [
         "objectives"
       ],
+      "legacyObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
+      "currentObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
       "frameAspectErrorPercent": 0.3108
     },
     {
@@ -378,6 +810,18 @@
       "changedLegacyFields": [
         "objectives"
       ],
+      "legacyObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
+      "currentObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 2,
+        "expansion": 2
+      },
       "frameAspectErrorPercent": 0.3108
     },
     {
@@ -387,6 +831,18 @@
       "changedLegacyFields": [
         "objectives"
       ],
+      "legacyObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
+      "currentObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 2,
+        "expansion": 2
+      },
       "frameAspectErrorPercent": 0.3108
     },
     {
@@ -396,6 +852,18 @@
       "changedLegacyFields": [
         "objectives"
       ],
+      "legacyObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
+      "currentObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 2,
+        "expansion": 2
+      },
       "frameAspectErrorPercent": 0.6611
     },
     {
@@ -403,6 +871,18 @@
       "page": 48,
       "areas": 16,
       "changedLegacyFields": [],
+      "legacyObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
+      "currentObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
       "frameAspectErrorPercent": 0.3108
     },
     {
@@ -412,6 +892,18 @@
       "changedLegacyFields": [
         "objectives"
       ],
+      "legacyObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
+      "currentObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
       "frameAspectErrorPercent": 0.3108
     },
     {
@@ -419,6 +911,18 @@
       "page": 50,
       "areas": 16,
       "changedLegacyFields": [],
+      "legacyObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
+      "currentObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
       "frameAspectErrorPercent": 0.3108
     },
     {
@@ -426,6 +930,18 @@
       "page": 51,
       "areas": 16,
       "changedLegacyFields": [],
+      "legacyObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
+      "currentObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
       "frameAspectErrorPercent": 0.3108
     },
     {
@@ -435,6 +951,18 @@
       "changedLegacyFields": [
         "objectives"
       ],
+      "legacyObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
+      "currentObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
       "frameAspectErrorPercent": 0.3108
     },
     {
@@ -445,6 +973,18 @@
         "objectives",
         "deploymentPaths"
       ],
+      "legacyObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
+      "currentObjectiveCounts": {
+        "homeAttacker": 1,
+        "homeDefender": 1,
+        "central": 1,
+        "expansion": 2
+      },
       "frameAspectErrorPercent": 0.3108
     }
   ],

@@ -77,7 +77,7 @@ export type TerrainArea = {
   heightCm: number
   rotationDeg: number
   polygonPoints: BoardPoint[]
-  terrainFeatureClass: 'dense' | 'light'
+  terrainFeatureClass?: 'dense' | 'light'
 }
 export type TerrainFeature = {
   id: string

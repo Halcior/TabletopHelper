@@ -99,6 +99,7 @@
 
 /* Exact source contours in physical cm; features are classification cues. */
 .official-terrain-area{stroke:#a7b9ac;stroke-width:1.2;fill:#394b42;fill-opacity:.65;stroke-linejoin:round}
+.official-terrain-area--unclassified{stroke:#8a9aa1;fill:#34434c;fill-opacity:.55}
 .official-terrain-area--light{stroke:#bcb080;fill:#514b35;fill-opacity:.6}
 .terrain-area-label{font:600 2.4px var(--font-mono);fill:#eef1e7;paint-order:stroke;stroke:#101c1b;stroke-width:.8;stroke-linejoin:round}
 .terrain-feature-cue rect{fill:#284d45;stroke:#99b7a5;stroke-width:.2}
@@ -113,6 +114,7 @@
 .terrain-legend{display:flex;flex-wrap:wrap;gap:8px 18px;color:var(--muted);font-size:.78rem;line-height:1.5}
 .terrain-legend span{display:flex;align-items:center;gap:7px}
 .terrain-key{width:14px;height:14px;border:1px solid #a7b9ac;background:#394b42;display:inline-block}
+.terrain-key--unclassified{border-color:#8a9aa1;background:#34434c}
 .terrain-key--light{border-color:#bcb080;background:#514b35}
 .terrain-gallery{max-width:1080px;min-width:0}
 .terrain-gallery-heading{display:flex;justify-content:space-between;align-items:start;gap:12px;margin-bottom:24px}
@@ -138,7 +140,7 @@
 @media(max-width:600px){.terrain-gallery-controls{grid-template-columns:repeat(2,minmax(0,1fr));padding:12px;gap:12px}.terrain-layer-controls{grid-template-columns:repeat(2,minmax(0,1fr))}.terrain-gallery-heading{display:block}.terrain-gallery-frame{padding:12px 12px 14px}.terrain-gallery-heading h1{font-size:1.8rem}.terrain-table-scroll td,.terrain-table-scroll th{padding:8px 4px;font-size:.66rem}}
 @media print{
   @page{size:A4 portrait;margin:12mm}
-  body:has(.terrain-gallery){background:#fff!important;color:#111!important}
+  html:has(.terrain-gallery),body:has(.terrain-gallery),.app-root:has(.terrain-gallery){background:#fff!important;color:#111!important}
   body:has(.terrain-gallery) .app-header,body:has(.terrain-gallery) .app-background,.terrain-gallery-heading,.terrain-gallery-controls,.terrain-plan .battlefield-tools,.terrain-layer-controls,.terrain-inspector{display:none!important}
   .terrain-gallery,.terrain-plan{margin:0!important;padding:0!important;max-width:none!important;gap:6px}
   .terrain-gallery-frame{width:116mm!important;padding:3mm!important;background:#fff!important;border:1px solid #888!important;break-inside:avoid}
