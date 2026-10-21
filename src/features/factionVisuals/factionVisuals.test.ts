@@ -6,7 +6,7 @@ import type { Army,UnitDefinition } from '../../domain/army/types'
 import { detectTheme,factionThemes,unitRole,factionArtUrl,factionArtSrcSet,themeById } from './themes'
 import { defaults,resolveTheme,validatePreferences } from './preferences'
 import { mediaKey,validatePhoto } from './media'
-import { factionSigilPaths } from './FactionSigil'
+import { factionSigilPaths,illustratedEmblemIds,factionEmblemCells,ILLUSTRATED_EMBLEM_ASSET } from './FactionSigil'
 const army={id:'army-a',faction:'Necrons',units:[]} as unknown as Army
 const unit={id:'u1',name:'Same unit',keywords:[],categories:[]} as unknown as UnitDefinition
 
@@ -63,5 +63,20 @@ describe('original faction icon coverage',()=>{
  it('does not reuse a faction emblem silhouette across themes',()=>{
    const glyphs=factionThemes.map(t=>factionSigilPaths[t.id].join('|'))
    expect(new Set(glyphs).size).toBe(glyphs.length)
+ })
+})
+
+describe('approved illustrated emblem atlas',()=>{
+ it('ships the 20 unique images in one local atlas',()=>{
+   expect(illustratedEmblemIds).toHaveLength(20)
+   expect(new Set(illustratedEmblemIds).size).toBe(20)
+   for(const [index,id] of illustratedEmblemIds.entries()) {
+     expect(factionEmblemCells[id]).toBe(index)
+     expect(factionThemes.some(theme=>theme.id===id)).toBe(true)
+   }
+   expect(existsSync(join(process.cwd(),'public',ILLUSTRATED_EMBLEM_ASSET.slice(1)))).toBe(true)
+ })
+ it('keeps vector fallback paths for every other faction',()=>{
+   for(const theme of factionThemes)expect(factionSigilPaths[theme.id]?.length).toBe(2)
  })
 })

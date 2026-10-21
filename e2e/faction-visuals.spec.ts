@@ -102,5 +102,6 @@ test('themed unit cards use faction emblem icons rather than cropped environment
  await expect(card.locator('.unit-portrait img')).toHaveCount(0)
  await expect(page.locator('.unit-portrait img')).toHaveCount(0)
  await expect(card.locator('[data-faction-symbol="adeptus-custodes"]')).toBeVisible()
+ await expect(card.locator('[data-emblem-source="sprite"]')).toBeVisible()
  await expect(page.locator('.army-banner__art img')).toBeVisible()
 })

@@ -1,4 +1,4 @@
-import type { SVGProps } from 'react'
+import type { CSSProperties } from 'react'
 
 /**
  * Original interface glyphs; not official Games Workshop symbols.
@@ -45,13 +45,53 @@ export const factionSigilPaths: Record<string, readonly [string, string]> = {
   'custodes-shadowkeepers': ['M6 28V11l10-8 10 8v17Z', 'M10 15h12v10H10ZM16 10v18M12 19h8M16 19v5'],
 }
 
-export function FactionSigil({themeId,...props}:{themeId:string}&SVGProps<SVGSVGElement>){
+/**
+ * Atlas of the 20 faction emblems accepted for visual review. The other
+ * catalogue factions retain accessible, deterministic vector fallbacks.
+ * Single 400x320 JPEG, twenty 80px cells; no per-card image requests.
+ * This is unofficial fan art, not an official Games Workshop logo pack.
+ */
+export const illustratedEmblemIds = [
+  "adeptus-custodes",
+  "adeptus-astartes",
+  "chaos-space-marines",
+  "astra-militarum",
+  "necrons",
+  "orks",
+  "tau-empire",
+  "tyranids",
+  "aeldari",
+  "drukhari",
+  "genestealer-cults",
+  "leagues-of-votann",
+  "adepta-sororitas",
+  "black-templars",
+  "death-guard",
+  "thousand-sons",
+  "world-eaters",
+  "grey-knights",
+  "adeptus-mechanicus",
+  "custodes-shadowkeepers"
+] as const
+export const ILLUSTRATED_EMBLEM_ASSET = '/faction-art/faction-emblems-20.jpg'
+export const factionEmblemCells: Readonly<Record<string, number>> = Object.fromEntries(
+ illustratedEmblemIds.map((id,index)=>[id,index])
+)
+export function FactionSigil({themeId,className}:{themeId:string;className?:string}){
  const paths=factionSigilPaths[themeId]??factionSigilPaths.neutral
- return <svg {...props} className={['faction-sigil',props.className].filter(Boolean).join(' ')}
-  data-faction-symbol={themeId in factionSigilPaths?themeId:'neutral'}
-  viewBox="0 0 32 32" fill="none" stroke="currentColor"
-  strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
-  <path className="faction-sigil__outline" d={paths[0]}/>
-  <path className="faction-sigil__detail" d={paths[1]}/>
+ const index=factionEmblemCells[themeId]
+ const decorated=index!==undefined
+ const fallback=<svg className="faction-sigil__vector" viewBox="0 0 32 32" fill="none"
+   stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+   <path className="faction-sigil__outline" d={paths[0]}/>
+   <path className="faction-sigil__detail" d={paths[1]}/>
  </svg>
+ if(!decorated)return <span className={['faction-sigil','faction-sigil--vector',className].filter(Boolean).join(' ')}
+   data-faction-symbol={themeId in factionSigilPaths?themeId:'neutral'} aria-hidden="true">{fallback}</span>
+ const column=index%5,row=Math.floor(index/5)
+ const position:CSSProperties={backgroundPosition:`${column*25}% ${row*(100/3)}%`}
+ return <span className={['faction-sigil','faction-sigil--illustrated',className].filter(Boolean).join(' ')}
+   data-faction-symbol={themeId} data-emblem-source="sprite" aria-hidden="true">
+   {fallback}<span className="faction-sigil__art" style={position}/>
+ </span>
 }

@@ -15,7 +15,7 @@ This feature builds on merged PR #28. PR #29 must remain unmerged until user pla
 
 | Path under `src/` | Responsibility |
 |---|---|
-| `features/factionVisuals/FactionSigil.tsx` | 37 original distinct emblem glyphs, never official GW logos |
+| `features/factionVisuals/FactionSigil.tsx` | 20 illustrated emblems from approved concept, 17 vector fallbacks; deterministic sprite placement |
 | `features/factionVisuals/themes.ts` | Single theme registry, exact aliases, real metadata role lookup, CSS variables; matches the bundled catalogue; verified by tests |
 | `features/factionVisuals/preferences.ts` | Versioned, validated localStorage preferences; Zustand state; cross-tab storage updates |
 | `features/factionVisuals/media.ts` | Local Blob identity, format/size validation, WebP compression, Dexie live query and object URL cleanup |
@@ -104,3 +104,9 @@ New automated tests require every catalogue faction to reference a unique actual
 ## Faction emblems on unit cards
 
 Unit cards now show one original emblem per faction, not a thumbnail of the environment artwork. In Custom mode, a private saved unit photo takes precedence; when missing or broken it falls back to the original emblem. Compact and Enhanced change only size, Off and Minimal hide the decoration. Background artwork remains on army banners. This does not affect saved armies, game logic or multiplayer. The emblem artwork is purpose-drawn, not copied from Games Workshop trademarks.
+
+## Illustrated emblems — reference sheet implementation (21 October 2026)
+
+The user approved an AI-generated 5×4 contact sheet. Twenty individual emblem faces were cropped and aligned into one local 400×320 JPEG atlas (80px square per emblem; about 30 KiB). Only artwork is sampled: original contact-sheet labels and frames are not in the asset. `FactionSigil` positions cells using deterministic 5-column coordinates; theme identifiers remain unchanged and other 17 entries retain existing SVG fallback. The same component is used by unit cards, scoreboard/objective marks and the `/faction-icons` gallery. Existing custom photos take precedence, and Minimal/off does not request the atlas. No rules, CP, wounds, database or multiplayer changes.
+
+The artwork is fan-made and AI-assisted, **not official faction insignia**, and resemblance to trademarks should be reviewed before public commercial distribution. The other 17 SVG placeholders have not yet been replaced with equally detailed illustrated icons.
