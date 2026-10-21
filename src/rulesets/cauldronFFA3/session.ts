@@ -5,7 +5,7 @@ import {
 } from '../../domain/battle/engine'
 import type { BattleSession } from '../../domain/battle/types'
 import { validateDoublesSetup } from '../../domain/battle/doubles'
-import { officialObjectivesForPair } from '../../domain/battlefield/layouts'
+import { OFFICIAL_BOARD_SOURCE, officialObjectivesForPair } from '../../domain/battlefield/layouts'
 import {
   CAULDRON_BATTLE_ROUNDS,
   CAULDRON_DUEL_PLAYER_COUNT,
@@ -169,6 +169,7 @@ export function createCauldronGame(input: CauldronGameInput): BattleSession {
     rulesetConfig: config,
     doubles: input.doubles,
     battlefieldAttackerHomeZone: input.battlefieldAttackerHomeZone,
+    battlefieldSourceId: input.primaryDeck === 'chapter-approved-duel' ? OFFICIAL_BOARD_SOURCE.id : undefined,
   })
   session = dispatchBattleEvents(session, [
     cauldronEvent('ROUND_SNAPSHOT_CAPTURED', captureRoundSnapshot(session, 1)),

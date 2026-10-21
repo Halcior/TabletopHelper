@@ -63,6 +63,8 @@ export type BattleSetup = {
   rulesetConfig?: unknown
   doubles?: DoublesSetup
   battlefieldAttackerHomeZone?: 'A' | 'B'
+  /** Absent in historical sessions: retain the June 2026 catalogue. */
+  battlefieldSourceId?: string
   createdAt: string
 }
 

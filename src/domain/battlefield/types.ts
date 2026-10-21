@@ -34,6 +34,7 @@ export type BoardPresentation = {
   sourcePage?: number
   sourceUrl?: string
   sourceVersion?: string
+  terrain?: OfficialBoardDefinition
   deploymentAreas: Array<{ zone: string; path: string }>
   territoryPaths: string[]
   unplacedIds: string[]
@@ -47,10 +48,48 @@ export type OfficialBoardDefinition = {
   heightCm: number
   deploymentPaths: { attacker: string; defender: string }
   territoryPaths: string[]
+  layoutId?: string
+  edition?: number
+  rulesVersion?: string
+  sourceHash?: string
+  terrainAreas?: TerrainArea[]
+  terrainFeatures?: TerrainFeature[]
+  objectiveAssignments?: Record<string, string[]>
+  frameAspectErrorPercent?: number
+  verification?: { status: string; checkedAt: string; physicalTableChecked: boolean }
   objectives: {
     homeAttacker: BoardPoint[]
     homeDefender: BoardPoint[]
     central: BoardPoint[]
     expansion: BoardPoint[]
   }
+}
+
+/** Centimetres in portrait source orientation; origin at the top-left corner.
+ * Outline bounds can exceed nominal p7 sizes because Armageddon has protrusions.
+ * Every polygon is local cm rotated around position, never normalized per axis.
+ */
+export type TerrainArea = {
+  id: string
+  footprintType: 'A' | 'B' | 'C' | 'D' | 'E'
+  position: BoardPoint
+  widthCm: number
+  heightCm: number
+  rotationDeg: number
+  polygonPoints: BoardPoint[]
+  terrainFeatureClass: 'dense' | 'light'
+}
+export type TerrainFeature = {
+  id: string
+  terrainAreaId: string
+  class: 'dense' | 'light'
+  position: BoardPoint
+}
+export type TerrainLayers = {
+  footprints: boolean
+  features: boolean
+  objectives: boolean
+  deployment: boolean
+  territory: boolean
+  labels: boolean
 }

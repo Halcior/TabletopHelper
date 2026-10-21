@@ -103,7 +103,7 @@ describe('official source geometry', () => {
           expect(presentation).toMatchObject({
             official: true,
             sourcePage: definition.page,
-            sourceVersion: '1.0',
+            sourceVersion: '1.3',
           })
           expect(presentation.deploymentAreas).toHaveLength(2)
           expect(presentation.territoryPaths.length).toBeGreaterThan(0)

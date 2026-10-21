@@ -1,4 +1,5 @@
 import officialData from './officialLayouts.json'
+import legacyData from './officialLayouts.legacy.json'
 import { DEFAULT_OBJECTIVE_FOOTPRINT } from './types'
 import type { BattleSetup, ObjectiveDefinition } from '../battle/types'
 import type {
@@ -11,7 +12,10 @@ import type {
 
 export const OFFICIAL_BOARD_SOURCE = officialData.source
 const OFFICIAL = officialData.layouts as Record<string, OfficialBoardDefinition>
-const DISPOSITION_ORDER = [
+export const OFFICIAL_LAYOUTS = OFFICIAL
+export const FOOTPRINT_LIBRARY = officialData.footprintLibrary
+export const OFFICIAL_SOURCES = officialData.sources
+export const DISPOSITION_ORDER = [
   'take-and-hold',
   'purge-the-foe',
   'disruption',
@@ -73,15 +77,20 @@ export function officialBoardDefinition(
 ): OfficialBoardDefinition | undefined {
   if (!isOfficialBoard(setup)) return
   const config = configOf(setup)
-  const pair = setup.players.filter((player) => setup.turnOrder.includes(player.id)).map(
-    (player) => config.playerConfigs?.[player.id]?.forceDisposition ?? '',
-  )
+  const pair = setup.doubles
+    ? setup.doubles.forces.map((force) => force.forceDisposition)
+    : setup.players.filter((player) => setup.turnOrder.includes(player.id)).map(
+      (player) => config.playerConfigs?.[player.id]?.forceDisposition ?? '',
+    )
   if (pair.some((value) => !DISPOSITION_ORDER.includes(value))) return
   pair.sort(
     (a, b) => DISPOSITION_ORDER.indexOf(a) - DISPOSITION_ORDER.indexOf(b),
   )
   const variant = 'ABC'[(config.officialLayout ?? 1) - 1]
-  return OFFICIAL[[...pair, variant].join('|')]
+  const catalog = setup.battlefieldSourceId === OFFICIAL_BOARD_SOURCE.id
+    ? OFFICIAL : setup.battlefieldSourceId === undefined
+      ? legacyData.layouts as Record<string, OfficialBoardDefinition> : {}
+  return catalog[[...pair, variant].join('|')]
 }
 
 export function defaultBattlefieldGeometry(
@@ -117,6 +126,7 @@ export function defaultBattlefieldGeometry(
       attackerHomeZone,
     }
   }
+  if (isOfficialBoard(setup)) return { version: 1, widthCm: 111.76, heightCm: 152.4, positions, locked: true, attackerHomeZone }
   const ffa = setup.players.length === 3
   const defaults: Record<string, BoardPoint> = ffa
     ? {
@@ -166,13 +176,15 @@ export function battlefieldPresentation(
   geometry: BattlefieldGeometry,
 ): BoardPresentation {
   const official = officialBoardDefinition(setup)
+  const source = setup.battlefieldSourceId === OFFICIAL_BOARD_SOURCE.id ? OFFICIAL_BOARD_SOURCE : legacyData.source
   if (official)
     return {
       title: `${setup.doubles ? 'Official Doubles' : 'Official Duel'} · Layout ${official.variant}`,
       official: true,
       sourcePage: official.page,
-      sourceUrl: OFFICIAL_BOARD_SOURCE.url,
-      sourceVersion: OFFICIAL_BOARD_SOURCE.version,
+      sourceUrl: source.url,
+      sourceVersion: source.version,
+      terrain: official.terrainAreas ? official : undefined,
       deploymentAreas: [
         {
           zone: geometry.attackerHomeZone,
@@ -191,7 +203,7 @@ export function battlefieldPresentation(
   const ffa = setup.players.length === 3
   return {
     title: isOfficialBoard(setup)
-      ? 'Official geometry unavailable · schematic'
+      ? 'Official source unavailable · no fabricated geometry'
       : ffa
         ? 'FFA 3 · custom schematic'
         : 'Cauldron Duel · schematic',
@@ -315,6 +327,8 @@ export function validateBattlefieldGeometry(
       throw new Error(
         'Official geometry is fixed; only Attacker/Defender HOME mapping can change.',
       )
+  } else if (isOfficialBoard(setup)) {
+    throw new Error('This official source is unavailable; geometry edits are disabled.')
   } else if (Object.values(geometry.positions).some((point) => point === null))
     throw new Error('A custom schematic must place every saved objective.')
 }
