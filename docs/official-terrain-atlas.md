@@ -19,7 +19,7 @@ The official download page loads its actual list from `POST https://www.warhamme
   - Relevant pages: 1 (B/E), 2 (A/C), 3 (D).
   - SHA-256: `abda484efe1e3031a92079053594a8b933a6ac429b899151f39ce8d51cbb9189`.
 
-The October Event Companion is v1.3, despite the layouts section saying “None” under layouts updated. Compared with the June v1.0 geometry pinned in the app, 25 diagrams have objective-coordinate changes and page 40 has a deployment-path change. Some shifts exceed 15 cm. The generated [machine-readable audit](terrain-source-audit.json) identifies every affected page and field. The old file remains byte-for-byte available as `officialLayouts.legacy.json`.
+The October Event Companion is v1.3, despite the layouts section saying “None” under layouts updated. Compared with the June v1.0 geometry pinned in the app, 25 diagrams have objective changes (including nine diagrams gaining a second central glyph) and page 53 has a deployment-path change. Some shifts exceed 15 cm. The generated [machine-readable audit](terrain-source-audit.json) identifies every affected page and field. The old file remains byte-for-byte available as `officialLayouts.legacy.json`.
 
 Doubles v1.1, p2 explicitly refers to A/B/C in the main Event Companion, uses the same 44″ × 60″ field and allocates Attacker/Defender to teams. The atlas shares one catalogue; it does not generate four zones or change team CP, VP or missions.
 
