@@ -86,7 +86,7 @@ function validateSetup(input: CreateBattleInput): BattleSetup {
     throw new Error('Objective IDs must be unique.')
   }
 
-  const armies = Object.fromEntries((input.armies ?? []).map((army) => [army.id, army]))
+  const armies = Object.fromEntries((input.armies ?? []).map((army) => [army.id, structuredClone(army)]))
   for (const player of input.players) {
     if (player.armyId && !armies[player.armyId]) {
       throw new Error(`Player ${player.name} references unknown army ${player.armyId}.`)
