@@ -44,7 +44,7 @@ export const factionThemes: FactionVisualTheme[] = [neutralTheme, ...catalogue.m
   art:'custodes-shadowkeepers', artType:'svg',
   // Explicit appearance variant: imported Custodes remain generic until the player selects it.
   aliases:['Shadowkeepers','Custodes Shadowkeepers','Adeptus Custodes Shadowkeepers'],
-}]]
+}]
 export function normalizeFaction(value:string):string { return value.normalize('NFKD').toLowerCase().replace(/[’‘']/g,'').replace(/^(imperium|chaos|aeldari)\s+-\s+/, '').replace(/[^a-z0-9]+/g,' ').trim() }
 export function detectTheme(faction?:string):FactionVisualTheme { const key=normalizeFaction(faction ?? ''); return factionThemes.find(t=>t.aliases.some(a=>normalizeFaction(a)===key)) ?? neutralTheme }
 export function themeById(id:string):FactionVisualTheme { return factionThemes.find(t=>t.id===id) ?? neutralTheme }
