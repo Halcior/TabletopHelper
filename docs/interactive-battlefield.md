@@ -1,5 +1,16 @@
 # Interactive battlefield and replay
 
+## Current official terrain atlas (October 2026)
+
+New official Duel and Doubles games use Event Companion **v1.3 (14 October 2026)**, with all 45 A/B/C diagrams and their 720 independent terrain outlines. Open **Command Hub → Terrain layouts**, or `/terrain-layouts`, to inspect the 16-area plan without starting a game, toggle layers, rotate, inspect measurements and print a table plan.
+
+See [source audit, exact provenance and 45-layout coverage](official-terrain-atlas.md). Nominal footprint dimensions and source outline bounds are distinct. Source vectors have a maximum 0.6611% frame-scale discrepancy; physical/table measurement verification is explicitly pending. No decorative source artwork is included.
+
+`battlefieldSourceId` is pinned only when creating a new official game. Existing games without that field retain the June v1.0 objective/deployment catalogue and replay, with an explicit note that historical terrain was not recorded. No silent layout upgrade or Supabase migration occurs.
+
+The following sections document the previous v1.0 implementation and the custom FFA editor, retained for compatibility.
+
+
 Objectives opens in Board mode. List retains quick control and OC mode. Tapping a marker opens a small control sheet, which dispatches the existing `OBJECTIVE_CONTROL_CHANGED` event. Ownership, scoring, Chronicle and both objective views read the same projected objective state.
 
 ## Official geometry provenance

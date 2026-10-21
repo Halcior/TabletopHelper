@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { createCauldronGame } from '../../rulesets/cauldronFFA3/session'
 import { testArmy } from '../../rulesets/cauldronFFA3/cauldronTestUtils'
 import { defaultBattlefieldGeometry, battlefieldPresentation, officialBoardDefinition, OFFICIAL_LAYOUTS, OFFICIAL_BOARD_SOURCE, FOOTPRINT_LIBRARY, DISPOSITION_ORDER } from './layouts'
-import { terrainWorldPoints } from '../../components/battle/BattlefieldMapSvg'
+import { terrainWorldPoints } from './layouts'
 import { buildBattlefieldReplay } from './replay'
 import { deserializeBattleSession, dispatchBattleEvent, serializeBattleSession } from '../battle/engine'
 import type { ForceDisposition } from '../../rulesets/cauldronFFA3/duelPrimary'
@@ -72,6 +72,28 @@ describe('Event Companion 1.3 terrain catalogue', () => {
     expect(map.objectiveAssignments!['attacker-home']).toEqual(['D1'])
   })
 
+  it('matches independently transcribed edge callouts on six representative source pages',()=>{
+    // Source dimension callouts, not values copied from generated JSON. Printed
+    // outlines have protrusions and the PDF frame itself has scale discrepancy.
+    const references = [
+      {page:9,area:'D1',edge:'top',inches:6},
+      {page:10,area:'D2',edge:'top',inches:24},
+      {page:29,area:'D3',edge:'right',inches:5},
+      {page:33,area:'D1',edge:'top',inches:4},
+      {page:41,area:'D3',edge:'bottom',inches:10},
+      {page:53,area:'D4',edge:'right',inches:4},
+    ] as const
+    for(const reference of references) {
+      const map=Object.values(OFFICIAL_LAYOUTS).find(map=>map.page===reference.page)!
+      const area=map.terrainAreas!.find(area=>area.id===reference.area)!
+      const points=terrainWorldPoints(area)
+      const actual=reference.edge==='top' ? Math.min(...points.map(p=>p.y))/2.54
+        : reference.edge==='right' ? (map.widthCm-Math.max(...points.map(p=>p.x)))/2.54
+          : (map.heightCm-Math.max(...points.map(p=>p.y)))/2.54
+      expect(Math.abs(actual-reference.inches),`p${reference.page} ${reference.area} ${reference.edge}`).toBeLessThan(.16)
+    }
+  })
+
   it('pins new sessions and round-trips terrain source through reconnect serialization',()=>{
     const session=duel('take-and-hold','purge-the-foe',2)
     expect(session.setup.battlefieldSourceId).toBe(OFFICIAL_BOARD_SOURCE.id)
@@ -84,6 +106,15 @@ describe('Event Companion 1.3 terrain catalogue', () => {
     expect(frames.at(-1)!.geometry.attackerHomeZone).toBe('B')
     expect(frames[0].geometry.attackerHomeZone).toBe('A')
     expect(mapped.state.players).toEqual(session.state.players)
+  })
+
+  it('refuses to replace an unknown pinned source with a fabricated map',()=>{
+    const session=duel('take-and-hold','take-and-hold',1)
+    session.setup.battlefieldSourceId='future-unavailable-source'
+    expect(officialBoardDefinition(session.setup)).toBeUndefined()
+    const geometry=defaultBattlefieldGeometry(session.setup)
+    expect(Object.values(geometry.positions).every(p=>p===null)).toBe(true)
+    expect(battlefieldPresentation(session.setup,geometry).deploymentAreas).toEqual([])
   })
 
   it('retains old June geometry, including old coordinates, throughout replay',()=>{

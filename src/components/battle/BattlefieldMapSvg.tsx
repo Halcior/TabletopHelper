@@ -1,18 +1,8 @@
 import { useId } from 'react'
-import type { BoardPresentation, TerrainArea, TerrainLayers } from '../../domain/battlefield/types'
+import type { BoardPresentation, TerrainLayers } from '../../domain/battlefield/types'
 
 export const DEFAULT_TERRAIN_LAYERS: TerrainLayers = {
   footprints: true, features: true, objectives: true, deployment: true, territory: true, labels: true,
-}
-
-/** Physical cm, shared by the battle, gallery and print view. Never stretch axes. */
-export function terrainWorldPoints(area: TerrainArea) {
-  const radians = area.rotationDeg * Math.PI / 180
-  const c = Math.cos(radians), s = Math.sin(radians)
-  return area.polygonPoints.map(p => ({
-    x: area.position.x + p.x * c - p.y * s,
-    y: area.position.y + p.x * s + p.y * c,
-  }))
 }
 
 export function TerrainLayerControls({ layers, onChange }: {

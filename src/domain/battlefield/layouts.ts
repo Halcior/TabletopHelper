@@ -7,6 +7,7 @@ import type {
   BoardPoint,
   BoardPresentation,
   OfficialBoardDefinition,
+  TerrainArea,
   ObjectiveFootprint,
 } from './types'
 
@@ -209,7 +210,7 @@ export function battlefieldPresentation(
         : 'Cauldron Duel · schematic',
     official: false,
     // These are editable presentation templates, never official deployment or Territory rules.
-    deploymentAreas: ffa
+    deploymentAreas: isOfficialBoard(setup) ? [] : ffa
       ? [
           { zone: 'A', path: 'M 0 0 L .34 0 L .34 .25 L 0 .25 Z' },
           { zone: 'B', path: 'M .66 0 L 1 0 L 1 .25 L .66 .25 Z' },
@@ -331,4 +332,14 @@ export function validateBattlefieldGeometry(
     throw new Error('This official source is unavailable; geometry edits are disabled.')
   } else if (Object.values(geometry.positions).some((point) => point === null))
     throw new Error('A custom schematic must place every saved objective.')
+}
+
+/** Physical cm, shared by the battle, gallery and print view. Never stretch axes. */
+export function terrainWorldPoints(area: TerrainArea) {
+  const radians = area.rotationDeg * Math.PI / 180
+  const c = Math.cos(radians), s = Math.sin(radians)
+  return area.polygonPoints.map(p => ({
+    x: area.position.x + p.x * c - p.y * s,
+    y: area.position.y + p.x * s + p.y * c,
+  }))
 }
