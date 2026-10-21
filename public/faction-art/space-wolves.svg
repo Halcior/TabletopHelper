@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 427" width="1280" height="427" role="img" aria-label="Fortress of Ice, original science-fiction environment">
+<title>Fortress of Ice</title>
+<defs>
+  <linearGradient id="sky" x1="0" y1="0" x2=".92" y2="1"><stop stop-color="#070b13"/><stop offset=".55" stop-color="#101926"/><stop offset="1" stop-color="#10161b"/></linearGradient>
+  <radialGradient id="light" cx="81%" cy="41%" r="49%"><stop stop-color="#d4a768" stop-opacity=".34"/><stop offset=".5" stop-color="#9bc3d9" stop-opacity=".1"/><stop offset="1" stop-color="#101926" stop-opacity="0"/></radialGradient>
+  <linearGradient id="shade" x1="0" x2="1"><stop stop-color="#070d14" stop-opacity=".98"/><stop offset=".41" stop-color="#081019" stop-opacity=".72"/><stop offset=".77" stop-color="#071019" stop-opacity=".07"/><stop offset="1" stop-color="#081019" stop-opacity=".05"/></linearGradient>
+  <linearGradient id="floor" x1="0" x2="0" y1="0" y2="1"><stop stop-color="#060b11" stop-opacity=".3"/><stop offset="1" stop-color="#03070c" stop-opacity=".92"/></linearGradient>
+  <filter id="soft"><feGaussianBlur stdDeviation="19"/></filter>
+</defs>
+<rect x="0" y="0" width="1280" height="427" fill="url(#sky)" /><rect x="0" y="0" width="1280" height="427" fill="url(#light)" />
+<circle cx="986" cy="152" r="100" fill="#d4a768" opacity=".14" filter="url(#soft)"/>
+<path d="M465 426l145-72 111 40 153-102 149 46 124-71 133 45v115Z" fill="#101926" opacity=".62"/>
+<path d="M485 310L672 116 731 176 828 30 956 207 1024 92 1280 290V427H485Z" fill="#273b4e" /><path d="M602 230l70-114 59 60 97-146 128 177 68-115 102 138-90-56-88 51-121-122-86 154Z" fill="#c6dce6" opacity=".64"/><rect x="873" y="161" width="284" height="265" fill="#334758" /><path d="M859 184l139-136 172 136Z" fill="#45586c" /><rect x="970" y="237" width="93" height="188" fill="#111b24" stroke="#87acc2" stroke-width="5"/><path d="M888 200l10-31 10 31Z" fill="#bdd5db" /><path d="M941 200l10-31 10 31Z" fill="#bdd5db" /><path d="M994 200l10-31 10 31Z" fill="#bdd5db" /><path d="M1047 200l10-31 10 31Z" fill="#bdd5db" /><path d="M1100 200l10-31 10 31Z" fill="#bdd5db" /><rect x="1065" y="292" width="21" height="21" fill="#f0a45c" />
+<path d="M0 427V351q180-69 360-21t340 68l160 29Z" fill="#070b11" opacity=".5"/>
+<rect x="0" y="318" width="1280" height="109" fill="url(#floor)" />
+<path d="M650 423L746 327" fill="none" stroke="#9bc3d9" stroke-width="1" opacity=".075"/><path d="M698 423L794 327" fill="none" stroke="#9bc3d9" stroke-width="1" opacity=".075"/><path d="M746 423L842 327" fill="none" stroke="#9bc3d9" stroke-width="1" opacity=".075"/><path d="M794 423L890 327" fill="none" stroke="#9bc3d9" stroke-width="1" opacity=".075"/><path d="M842 423L938 327" fill="none" stroke="#9bc3d9" stroke-width="1" opacity=".075"/><path d="M890 423L986 327" fill="none" stroke="#9bc3d9" stroke-width="1" opacity=".075"/><path d="M938 423L1034 327" fill="none" stroke="#9bc3d9" stroke-width="1" opacity=".075"/><path d="M986 423L1082 327" fill="none" stroke="#9bc3d9" stroke-width="1" opacity=".075"/><path d="M1034 423L1130 327" fill="none" stroke="#9bc3d9" stroke-width="1" opacity=".075"/><path d="M1082 423L1178 327" fill="none" stroke="#9bc3d9" stroke-width="1" opacity=".075"/><path d="M1130 423L1226 327" fill="none" stroke="#9bc3d9" stroke-width="1" opacity=".075"/><path d="M1178 423L1274 327" fill="none" stroke="#9bc3d9" stroke-width="1" opacity=".075"/><path d="M1226 423L1322 327" fill="none" stroke="#9bc3d9" stroke-width="1" opacity=".075"/>
+<rect x="0" y="0" width="1280" height="427" fill="url(#shade)" />
+</svg>

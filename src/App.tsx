@@ -1,8 +1,11 @@
+import { useVisualPreferences } from './features/factionVisuals/preferences'
 import { lazy, Suspense } from 'react'
 import { Link, NavLink, Route, Routes, useLocation } from 'react-router-dom'
 import { AppIcon } from './components/AppIcon'
 import { AppBackground } from './components/AppBackground'
 
+const ArmyAppearance = lazy(() => import('./features/factionVisuals/ArmyAppearance'))
+const FactionEmblemGallery = lazy(() => import('./features/factionVisuals/FactionEmblemGallery'))
 const ArmyImport = lazy(() => import('./pages/ArmyImport'))
 const BattleDashboard = lazy(() => import('./pages/BattleDashboard'))
 const BattleSetup = lazy(() => import('./pages/BattleSetup'))
@@ -10,10 +13,11 @@ const Home = lazy(() => import('./pages/Home'))
 const SharedSessions = lazy(() => import('./pages/SharedSessions'))
 
 export default function App() {
+  const appearance = useVisualPreferences(s => s.preferences.appearance)
   const location = useLocation()
   const inBattle = location.pathname.startsWith('/battle/') && !location.pathname.startsWith('/battle/setup')
   return (
-    <div className="app-root">
+    <div className="app-root" data-appearance={appearance}>
       <AppBackground />
       {!inBattle && (
         <header className="app-header">
@@ -27,6 +31,8 @@ export default function App() {
       )}
       <Suspense fallback={<div className="page-shell"><div className="loading-state" role="status">Loading tabletop…</div></div>}>
         <Routes>
+          <Route path="/army/:armyId/appearance" element={<ArmyAppearance />} />
+          <Route path="/faction-icons" element={<FactionEmblemGallery />} />
           <Route path="/" element={<Home />} />
           <Route path="/shared" element={<SharedSessions />} />
           <Route path="/army-import" element={<ArmyImport />} />

@@ -1,3 +1,8 @@
+import { Link } from 'react-router-dom'
+import { ArmyBanner, UnitPortrait } from '../../features/factionVisuals/components'
+import { VisualPreferences } from '../../features/factionVisuals/VisualPreferences'
+import { useFactionTheme } from '../../features/factionVisuals/preferences'
+import { themeStyle, unitRole } from '../../features/factionVisuals/themes'
 import { CombatControls } from './CombatControls'
 import { AppIcon } from '../AppIcon'
 import { useEffect, useMemo, useState } from 'react'
@@ -145,6 +150,7 @@ function UnitCard({
   dispatch: (event: BattleEventInput) => void
   canEdit: boolean
 }) {
+  const theme = useFactionTheme(army)
   const readOnlyTitle = canEdit ? undefined : `${ownerName} manages this army state on their device.`
   const recordBattleShock = (passed: boolean) => {
     if (!canEdit) return
@@ -152,9 +158,9 @@ function UnitCard({
   }
 
   return (
-    <article id={`unit-card-${ownerId}-${unit.id}`} className={`unit-card${state.destroyed ? ' is-destroyed' : ''}${canEdit ? '' : ' unit-card--readonly'}`}>
+    <article style={themeStyle(theme)} id={`unit-card-${ownerId}-${unit.id}`} className={`unit-card${state.destroyed ? ' is-destroyed' : ''}${canEdit ? '' : ' unit-card--readonly'}`}>
       <div className="unit-card__header">
-        <div className="unit-card__identity"><span className="unit-card__insignia" aria-hidden="true"><AppIcon name="army" /></span><div><h3>{unit.name}</h3><p>{unit.points} pts{unit.isWarlord ? ' · Warlord' : ''}</p></div></div>
+        <div className="unit-card__identity"><UnitPortrait army={army} unit={unit} /><div><h3>{unit.name}</h3><p>{unitRole(unit)} · {unit.points} pts{unit.isWarlord ? ' · Warlord' : ''}</p></div></div>
         <span className={`unit-state${state.destroyed ? ' unit-state--destroyed' : ''}`}>{state.destroyed ? 'Destroyed' : 'Alive'}</span>
         {state.battleShocked && <span className="status-badge status-badge--danger">Battle-shocked</span>}
       </div>
@@ -297,6 +303,9 @@ export function ArmyTracker({
         : player.id === rivalPlayerId ? 'Rival' : 'Opponent'} · {army.faction}</small></button>)}
     </nav>
     <section key={selected.player.id} className="army-tracker-section">
+      <ArmyBanner army={selected.army} label={selected.player.name} />
+      <VisualPreferences army={selected.army} />
+      <Link className="army-appearance-link no-print" to={`/army/${encodeURIComponent(selected.army.id)}/appearance?battleId=${encodeURIComponent(session.setup.gameId)}`}>Appearance & photos</Link>
       <div className="army-heading">
         <div><span className="eyebrow">{selected.player.name} · Zone {selected.player.deploymentZone ?? '—'}</span><h2>{selected.army.faction}</h2></div>
         <strong>{selected.army.totalPoints} pts</strong>

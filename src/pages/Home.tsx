@@ -1,3 +1,5 @@
+import { ArmyBanner } from '../features/factionVisuals/components'
+import { VisualPreferences } from '../features/factionVisuals/VisualPreferences'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AppIcon, type AppIconName } from '../components/AppIcon'
@@ -128,6 +130,7 @@ export default function Home() {
         </div>
       </section>}
 
+      <VisualPreferences />
       <section id="army-library" className="section-block home-armies-section">
         <div className="section-heading"><div><span className="eyebrow">Army Library</span><h2>Saved rosters</h2></div><Link className="button" to="/army-import">Import army</Link></div>
         {loading ? <div className="loading-state" role="status">Loading saved rosters…</div> : armies.length === 0 ? (
@@ -136,6 +139,8 @@ export default function Home() {
           <div className="army-library">
             {armies.map(({ army }) => (
               <article className="panel library-card" key={army.id}>
+                <ArmyBanner army={army} />
+                <Link className="button button--small" to={`/army/${encodeURIComponent(army.id)}/appearance`}>Appearance & photos</Link>
                 <div><h3>{army.faction}</h3><p>{army.name}</p></div>
                 <div className="library-card__facts"><strong>{army.totalPoints}</strong><span>PTS</span><strong>{army.units.length}</strong><span>UNITS</span></div>
                 <Link className="button button--small" to={`/battle/setup?armyId=${encodeURIComponent(army.id)}`}>Use</Link>

@@ -1,3 +1,4 @@
+import type { LocalVisualMedia } from '../features/factionVisuals/media'
 import Dexie, { type EntityTable } from 'dexie'
 import type { Army } from '../domain/army/types'
 import type { BattleSession } from '../domain/battle/types'
@@ -16,6 +17,7 @@ export type StoredBattle = {
 }
 
 class TabletopDatabase extends Dexie {
+  visualMedia!: EntityTable<LocalVisualMedia, 'key'>
   armies!: EntityTable<StoredArmy, 'id'>
   battles!: EntityTable<StoredBattle, 'id'>
 
@@ -25,6 +27,7 @@ class TabletopDatabase extends Dexie {
       armies: '&id, savedAt, army.faction',
       battles: '&id, status, updatedAt',
     })
+    this.version(2).stores({ armies: '&id, savedAt, army.faction', battles: '&id, status, updatedAt', visualMedia: '&key, armyId, updatedAt' })
   }
 }
 
