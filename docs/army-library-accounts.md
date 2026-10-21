@@ -20,7 +20,7 @@ The imported loadout remains available for inspection. Alternative equipment pro
 - Guest originals remain in their existing table after migration. While signed into that account the mapped originals are hidden behind the account version; sign out to access the untouched local originals. Explicitly migrating the guest original into a different account is a user-selected action.
 - The current account's cached lists remain usable offline, including after a reload with an expired session. Cached identity only chooses local data; it never authorizes a network request. Supabase Auth and RLS still authorize all cloud operations.
 - New battle sessions deep-clone selected armies. Existing and legacy battle loading remains compatible. CP, VP, combat and room transport do not query cloud rosters.
-- The Auth SDK uses a separate client and storage key. `supabaseRestTransport.ts`, multiplayer capability headers, room IDs, seat ownership and event protocol are unchanged.
+- The Auth SDK uses a separate client and storage key. Every private REST/RPC request binds the captured account access token explicitly, so a later SDK session switch cannot send a pending roster into the new account. A regression test exercises the real SDK fetch wrapper with account A at the ownership check and account B at its later token lookup. `supabaseRestTransport.ts`, multiplayer capability headers, room IDs, seat ownership and event protocol are unchanged.
 - Photos are copied locally and atomically into the new list/unit namespace. Account photo namespaces also include the owner, even if two accounts have the same roster UUID. Photo blobs and local photo namespaces are excluded from cloud writes and JSON exports. No Storage bucket is created.
 - Production service-worker installation precaches generated JS/CSS assets, including lazy editor/library/setup routes. Offline navigation works even when a route was not opened before the connection was lost.
 
@@ -59,7 +59,7 @@ Official references checked for this implementation: [passwordless login](https:
 ## Verification evidence
 
 - TypeScript and production Vite build passed.
-- Vitest: 602 tests across 71 files passed, including 18 new repository/sync tests.
+- Vitest: 605 tests across 72 files passed, including 21 new repository/sync/transport tests.
 - New phone browser scenarios cover guest editing and independent copies, JSON round trips, explicit migration, two isolated browser contexts, bidirectional sync, offline edits, session restoration, refresh tokens, sign-out/account switching and invalid login recovery.
 - Production-only browser checks use the actual built service worker. Run `npm run test:e2e:offline` to test previously unopened offline routes and an expired account session with cached private rosters.
 - `supabase/tests/user_armies_rls.sql` passed against the **real connected database**, using the real database roles. Supabase security advisors returned no findings after both migrations.

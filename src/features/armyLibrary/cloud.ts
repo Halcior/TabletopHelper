@@ -30,7 +30,7 @@ async function clientFor(owner: string) {
   if (error) throw error
   if (data.session?.user.id !== owner)
     throw new Error('Sign in to this account to sync its rosters.')
-  return accountClient
+  return { client: accountClient, accessToken: data.session.access_token }
 }
 function parseRow(raw: CloudArmy, owner: string): CloudArmy {
   if (
@@ -44,7 +44,7 @@ function parseRow(raw: CloudArmy, owner: string): CloudArmy {
 }
 export const cloudTransport: CloudTransport = {
   async list(owner) {
-    const client = await clientFor(owner)
+    const { client, accessToken } = await clientFor(owner)
     const rows: CloudArmy[] = []
     for (let offset = 0; ; offset += 500) {
       const { data, error } = await client
@@ -55,6 +55,7 @@ export const cloudTransport: CloudTransport = {
         .eq('user_id', owner)
         .order('id')
         .range(offset, offset + 499)
+        .setHeader('Authorization', `Bearer ${accessToken}`)
       if (error) throw error
       rows.push(...(data as CloudArmy[]).map((r) => parseRow(r, owner)))
       if (data.length < 500) return rows
@@ -62,16 +63,22 @@ export const cloudTransport: CloudTransport = {
     }
   },
   async write(owner, row) {
-    const client = await clientFor(owner)
+    if (row.ownerId !== owner)
+      throw new Error('Roster account does not match the sync account.')
+    const { client, accessToken } = await clientFor(owner)
     const { localMediaId: _localMediaId, ...armyData } = row.army
-    const { data, error } = await client.rpc('save_user_army', {
-      p_id: row.id,
-      p_expected_revision: row.revision,
-      p_mutation_id: row.changeId,
-      p_army_data: armyData,
-      p_deleted: !!row.deleted,
-      p_source_local_id: row.sourceLocalId ?? null,
-    })
+    // Bind this request to the captured session. The SDK otherwise obtains its
+    // current token later, which may belong to a newly signed-in account.
+    const { data, error } = await client
+      .rpc('save_user_army', {
+        p_id: row.id,
+        p_expected_revision: row.revision,
+        p_mutation_id: row.changeId,
+        p_army_data: armyData,
+        p_deleted: !!row.deleted,
+        p_source_local_id: row.sourceLocalId ?? null,
+      })
+      .setHeader('Authorization', `Bearer ${accessToken}`)
     if (error) throw error
     return { applied: Boolean(data.applied), row: parseRow(data.row, owner) }
   },

@@ -68,6 +68,6 @@ test('mobile FFA locks Beacon, retains its Rival after reload, and checks both e
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
     if (process.env.CAPTURE_UI === '1') await page.screenshot({ path: 'test-results/visual-ffa-secondary-balance.png', fullPage: true })
   } finally {
-    await context.close()
+    await context.close().catch(() => {})
   }
 })
