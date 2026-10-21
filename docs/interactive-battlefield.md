@@ -1,5 +1,16 @@
 # Interactive battlefield and replay
 
+## Current official terrain atlas (October 2026)
+
+New official Duel and Doubles games use Event Companion **v1.3 (14 October 2026)**, with all 45 A/B/C diagrams and their 720 independent terrain outlines. Open **Command Hub → Terrain layouts**, or `/terrain-layouts`, to inspect the 16-area plan without starting a game, toggle layers, rotate, inspect measurements and print a table plan.
+
+See [source audit, exact provenance and 45-layout coverage](official-terrain-atlas.md). Nominal footprint dimensions and source outline bounds are distinct. Source vectors have a maximum 0.6611% frame-scale discrepancy; physical/table measurement verification is explicitly pending. No decorative source artwork is included.
+
+`battlefieldSourceId` is pinned only when creating a new official game. Existing games without that field retain the June v1.0 objective/deployment catalogue and replay, with an explicit note that historical terrain was not recorded. No silent layout upgrade or Supabase migration occurs.
+
+The following sections document the previous v1.0 implementation and the custom FFA editor, retained for compatibility.
+
+
 Objectives opens in Board mode. List retains quick control and OC mode. Tapping a marker opens a small control sheet, which dispatches the existing `OBJECTIVE_CONTROL_CHANGED` event. Ownership, scoring, Chronicle and both objective views read the same projected objective state.
 
 ## Official geometry provenance
@@ -11,7 +22,7 @@ Source: [Warhammer Event Companion](https://assets.warhammer-community.com/eng_1
 - Each field is 44″ × 60″, represented as 111.76 × 152.4 cm in the published portrait orientation.
 - Objective glyph centres, deployment paths (including stepped and curved shapes), and emitted dashed Territory paths are normalized from the published PDF vectors.
 - Eleven straight Territory dividers follow the published half-field definition and diagram orientation: pages 10, 14, 17, 19, 22, 23, 30, 31, 33, 35 and 40. Their orientation was visually checked against every affected diagram.
-- Attacker/Defender HOME assignment is stored separately from turn order. Setup and Board allow assigning Attacker to A or B. The default A assignment must match the players' actual roll. Rotate 180° changes only the local view.
+- Attacker/Defender HOME assignment is stored separately from turn order. Setup and Board allow assigning Attacker to A or B. The default A assignment must match the players' actual roll. Portrait source maps display landscape (60″ × 44″) with upright labels; Rotate 180° flips that local view. Saved geometry and source coordinates stay unchanged.
 - Central and Expansion glyph categories stay mapped to `CENTER-*` and `EXPANSION-*`. Numbering within each category follows top-to-bottom, then left-to-right source order; this does not alter their existing game semantics.
 
 The PDF diagrams have 4–6 physical objectives, while existing official sessions always contain six IDs. All saved IDs and scoring semantics are retained. IDs without a source counterpart have `null` coordinates and appear in a separate panel below the field. They are never assigned fabricated official positions. Aligning the existing scoring model with mission-specific objective counts would be a separate rules change.
@@ -73,3 +84,9 @@ Mobile captures use a 390 × 844 touch viewport with demonstration data. Attacke
 | Unit Performance and Combat ROI | [Performance](screenshots/chronicle-performance-mobile.png) |
 
 Demonstration reports: [Markdown](examples/battle-report.md) and [JSON](examples/battle-report.json). These fixtures illustrate accounting and narrative output; they are not records of an actual played battle.
+
+## Battlefield 2.0 — visual terrain footprints (PR #31)
+
+Custom FFA/Cauldron boards now show a dashed, semi-transparent terrain silhouette centred at each saved objective marker. The default 30 × 20 cm chamfered ruin is an **illustrative placeholder, not an official GW terrain measurement or geometry extracted from the Event Companion**. The player may hide/show this overlay on each device. In **Edit Layout**, choose an objective and alter its footprint kind (clipped-corner ruin or rectangular area), width (6–60 cm), height (6–60 cm) and rotation (0–359°), or apply one of three suggested physical sizes. The host's **Save Layout** persists optional `footprints` on the existing `BATTLEFIELD_LAYOUT_CHANGED` geometry event. Old saves without footprints display defaults but are not silently rewritten; official geometry remains fixed and does not accept saved custom footprints. Historical Replay shows the footprint configuration at each step. This is a tabletop orientation layer only; it **never** calculates OC, control, mission legality, terrain interactions, distance or VP.
+
+New FFA schematics move all three HOME centres to the same physical radius from table centre on 180 × 120 cm (using actual centimetres, not normalized visual distance). Pairwise neutral areas remain between their relevant HOME zones and the central objective stays at (0.5, 0.5). Existing battles with stored geometry preserve their saved positions; no automatic migration is performed. The new default applies to newly created custom sessions and explicit Reset Layout only.

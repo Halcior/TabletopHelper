@@ -37,6 +37,7 @@ export type CreateBattleInput = {
   rulesetConfig?: unknown
   doubles?: BattleSetup['doubles']
   battlefieldAttackerHomeZone?: 'A' | 'B'
+  battlefieldSourceId?: string
   createdAt?: string
 }
 
@@ -104,6 +105,7 @@ function validateSetup(input: CreateBattleInput): BattleSetup {
     rulesetConfig: input.rulesetConfig,
     doubles: input.doubles,
     battlefieldAttackerHomeZone: input.battlefieldAttackerHomeZone,
+    battlefieldSourceId: input.battlefieldSourceId,
     createdAt: input.createdAt ?? new Date().toISOString(),
   }
 }

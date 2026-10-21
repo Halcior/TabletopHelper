@@ -1,3 +1,4 @@
+import { BattlefieldMapSvg, DEFAULT_TERRAIN_LAYERS, TerrainLayerControls, TerrainLegend } from './BattlefieldMapSvg'
 import { PlayerFactionMarks } from '../../features/factionVisuals/components'
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react'
 import { CommandPopover } from '../ui/CommandPopover'
@@ -11,12 +12,14 @@ import { doublesScorekeeperId, doublesForceForPlayer } from '../../domain/battle
 import type { BattleEventInput, BattleSession } from '../../domain/battle/types'
 import {
   battlefieldPresentation,
+  battlefieldView,
   defaultBattlefieldGeometry,
-  displayBoardPoint,
+  objectiveFootprint,
+  isOfficialBoard,
   validateBattlefieldGeometry,
 } from '../../domain/battlefield/layouts'
 import { buildBattlefieldReplay } from '../../domain/battlefield/replay'
-import type { BattlefieldGeometry } from '../../domain/battlefield/types'
+import type { BattlefieldGeometry, ObjectiveFootprint } from '../../domain/battlefield/types'
 import { useSharedSessionStore } from '../../multiplayer/sharedSessionStore'
 
 export function BattlefieldBoard({
@@ -41,6 +44,9 @@ export function BattlefieldBoard({
   const canEdit =
     session.state.status === 'active' && (!shared || membership?.isHost)
   const [rotated, setRotated] = useState(false)
+  const [showFootprints, setShowFootprints] = useState(true)
+  const [layers, setLayers] = useState(DEFAULT_TERRAIN_LAYERS)
+  const [editingFootprintId, setEditingFootprintId] = useState(() => session.setup.objectives[0]?.id ?? '')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [draft, setDraft] = useState<BattlefieldGeometry | null>(null)
   const [error, setError] = useState('')
@@ -79,6 +85,7 @@ export function BattlefieldBoard({
     60,
     Math.min(400, Number.isFinite(geometry.heightCm) ? geometry.heightCm : 120),
   )
+  const view = battlefieldView(renderWidth, renderHeight, rotated)
   const presentation = battlefieldPresentation(session.setup, geometry)
   const activeId = replay
     ? (frame?.activePlayerId ?? session.state.activePlayerId)
@@ -113,16 +120,25 @@ export function BattlefieldBoard({
         entry.category !== 'flow',
     )
     .slice(-10)
-  const labelPoints = Object.entries(geometry.positions).flatMap(([id, point]) => point ? [{ id, ...displayBoardPoint(point, rotated), owner: controllers[id] ? controllerName(id) : undefined }] : [])
+  const labelPoints = Object.entries(geometry.positions).flatMap(([id, point]) => point ? [{ id, ...view.toDisplay(point), owner: controllers[id] ? controllerName(id) : undefined }] : [])
   const labelLayout = placeObjectiveLabels(labelPoints, canvasSize.width, canvasSize.height)
   const clusteredIds = labelPoints.filter((point) => labelPoints.some((other) => point.id !== other.id && Math.hypot((point.x - other.x) * canvasSize.width, (point.y - other.y) * canvasSize.height) < 44)).map((point) => point.id)
   const legendIds = [...new Set([...labelLayout.overflowIds, ...clusteredIds])]
 
   function beginEdit() {
-    if (!canEdit || replay || presentation.official) return
+    if (!canEdit || replay || isOfficialBoard(session.setup)) return
     setSelectedId(null)
     setDraft({ ...structuredClone(liveGeometry), locked: false })
     setError('')
+  }
+  function updateFootprint(changes: Partial<ObjectiveFootprint>) {
+    if (!draft || !editingFootprintId || draft.locked) return
+    setDraft((current) => current ? {
+      ...current, footprints: {
+        ...current.footprints,
+        [editingFootprintId]: { ...objectiveFootprint(current, editingFootprintId), ...changes },
+      },
+    } : current)
   }
   function saveLayout() {
     if (!draft || !canEdit || replay) return
@@ -144,12 +160,11 @@ export function BattlefieldBoard({
       return
     const box = canvas.current.getBoundingClientRect()
     const clamp = (value: number) => Math.max(0, Math.min(1, value))
-    const point = displayBoardPoint(
+    const point = view.toSource(
       {
         x: clamp((event.clientX - box.left) / box.width),
         y: clamp((event.clientY - box.top) / box.height),
       },
-      rotated,
     )
     setDraft((current) =>
       current
@@ -180,9 +195,9 @@ export function BattlefieldBoard({
           </span>
           <h3>{presentation.title}</h3>
           <p>
-            {Number(geometry.widthCm.toFixed(2))} ×{' '}
-            {Number(geometry.heightCm.toFixed(2))} cm
-            {presentation.official ? ' · 44″ × 60″' : ''}
+            {Number(view.widthCm.toFixed(2))} ×{' '}
+            {Number(view.heightCm.toFixed(2))} cm
+            {presentation.official ? ' · 60″ × 44″' : ''}
           </p>
         </div>
         <div className="battlefield-tools">
@@ -192,6 +207,13 @@ export function BattlefieldBoard({
           >
             Rotate 180°
           </button>
+          {!isOfficialBoard(session.setup) && <button type="button"
+            aria-pressed={showFootprints}
+            onClick={() => setShowFootprints((current) => !current)}
+            title="Visual terrain only — does not calculate official area or scoring"
+          >
+            {showFootprints ? 'Hide footprints' : 'Show footprints'}
+          </button>}
           <button
             aria-pressed={replay}
             disabled={Boolean(draft)}
@@ -203,7 +225,7 @@ export function BattlefieldBoard({
           >
             {replay ? 'Return to live' : 'Replay'}
           </button>
-          {!presentation.official && (
+          {!isOfficialBoard(session.setup) && (
             <button
               disabled={!canEdit || replay || Boolean(draft)}
               onClick={beginEdit}
@@ -250,12 +272,19 @@ export function BattlefieldBoard({
           </small>
         </div></InfoDisclosure>
       )}
-      {!presentation.official && (
+      {!isOfficialBoard(session.setup) && (
         <InfoDisclosure label="Schematic deployment"><p className="battlefield-schematic-note">
           Deployment shapes are schematic orientation aids. Use your agreed
           physical deployment and Territory boundaries.
         </p></InfoDisclosure>
       )}
+      {presentation.terrain && <>
+        <TerrainLayerControls layers={layers} onChange={setLayers} />
+        <TerrainLegend />
+        <p className="battlefield-footprint-note">Event Companion v{presentation.sourceVersion} · {session.setup.battlefieldSourceId} · page {presentation.sourcePage}. Diagram-derived geometry; nominal sizes exclude perimeter protrusions.</p>
+      </>}
+      {isOfficialBoard(session.setup) && !presentation.official && <p role="alert" className="battlefield-footprint-note">The source pinned to this session is unavailable. No replacement map is generated. Consult your saved table plan.</p>}
+      {presentation.official && !presentation.terrain && <p className="battlefield-footprint-note">Historical catalogue v1.0 retained. Terrain was not recorded for this battle. Open the layout gallery to inspect the current source without changing this session.</p>}
       <div className="battlefield-player-legend">
         {session.setup.players.filter((player) => !session.setup.doubles || session.state.turnOrder.includes(player.id)).map((player) => (
           <span
@@ -338,8 +367,9 @@ export function BattlefieldBoard({
         >
           <h4>Layout Editor</h4>
           <p>
-            Drag objectives, or use arrow keys on a focused marker. Changes
-            reach other phones when saved.
+            Drag objectives, or use arrow keys on a focused marker. Choose an objective
+            to edit its approximate terrain footprint. Host-saved geometry reaches other phones;
+            the footprint visibility toggle is local to this device.
           </p>
           <div className="battlefield-editor__dimensions">
             <label>
@@ -399,6 +429,33 @@ export function BattlefieldBoard({
               180 × 120 cm
             </button>
           </div>
+          <div className="battlefield-footprint-editor" aria-label="Objective terrain footprint editor">
+            <h5>Terrain footprint (visual only)</h5>
+            <p>Approximate physical terrain area surrounding an objective. These are not official GW measurements and do not calculate control, OC, LOS or VP.</p>
+            <label><span>Objective to configure</span>
+              <select aria-label="Footprint objective" value={editingFootprintId} disabled={draft.locked} onChange={(event) => setEditingFootprintId(event.target.value)}>
+                {session.setup.objectives.map((objective) => <option key={objective.id} value={objective.id}>{objective.name}</option>)}
+              </select>
+            </label>
+            <label><span>Footprint shape</span>
+              <select aria-label="Footprint shape" value={objectiveFootprint(draft, editingFootprintId).kind} disabled={draft.locked} onChange={(event) => updateFootprint({ kind: event.target.value as ObjectiveFootprint['kind'] })}>
+                <option value="chamfered">Ruins / clipped corners</option>
+                <option value="rectangle">Rectangular terrain</option>
+              </select>
+            </label>
+            <div className="battlefield-footprint-editor__dimensions">
+              <label><span>Footprint width (cm)</span><input aria-label="Footprint width (cm)" type="number" min={6} max={60} step={1} disabled={draft.locked}
+                value={objectiveFootprint(draft, editingFootprintId).widthCm} onChange={(event) => updateFootprint({ widthCm: Number(event.target.value) })}/></label>
+              <label><span>Footprint height (cm)</span><input aria-label="Footprint height (cm)" type="number" min={6} max={60} step={1} disabled={draft.locked}
+                value={objectiveFootprint(draft, editingFootprintId).heightCm} onChange={(event) => updateFootprint({ heightCm: Number(event.target.value) })}/></label>
+              <label><span>Rotation (degrees)</span><input aria-label="Footprint rotation" type="number" min={0} max={359} step={5} disabled={draft.locked}
+                value={objectiveFootprint(draft, editingFootprintId).rotation} onChange={(event) => updateFootprint({ rotation: Number(event.target.value) })}/></label>
+            </div>
+            <div className="battlefield-editor__presets" role="group" aria-label="Footprint size presets">
+              {([[20, 12], [30, 20], [40, 24]] as const).map(([widthCm, heightCm]) =>
+                <button type="button" key={widthCm} disabled={draft.locked} onClick={() => updateFootprint({ widthCm, heightCm })}>{widthCm} × {heightCm} cm</button>)}
+            </div>
+          </div>
           <label className="battlefield-editor__lock">
             <input
               type="checkbox"
@@ -444,65 +501,27 @@ export function BattlefieldBoard({
           data-width-cm={geometry.widthCm}
           data-height-cm={geometry.heightCm}
           style={{
-            aspectRatio: `${renderWidth} / ${renderHeight}`,
+            aspectRatio: `${view.widthCm} / ${view.heightCm}`,
           }}
         >
-          <svg viewBox="0 0 1 1" preserveAspectRatio="none" aria-hidden="true">
-            <defs>
-              <pattern
-                id={`battlefield-grid-${session.setup.gameId}`}
-                width={10 / renderWidth}
-                height={10 / renderHeight}
-                patternUnits="userSpaceOnUse"
-              >
-                <path
-                  d={`M ${10 / renderWidth} 0 L 0 0 L 0 ${10 / renderHeight}`}
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="0.0008"
-                />
-              </pattern>
-            </defs>
-            <rect
-              width="1"
-              height="1"
-              fill={`url(#battlefield-grid-${session.setup.gameId})`}
-            />
-            <g transform={rotated ? 'rotate(180 .5 .5)' : undefined}>
-              {presentation.deploymentAreas.map((area) => {
-                const player = session.setup.players.find(
-                  (player) => player.deploymentZone === area.zone,
-                )
-                return (
-                  <path
-                    key={area.zone}
-                    d={area.path}
-                    data-deployment-zone={area.zone}
-                    fill={`var(--player-${playerIndex(player?.id)})`}
-                    fillOpacity=".16"
-                    stroke={`var(--player-${playerIndex(player?.id)})`}
-                    strokeOpacity=".6"
-                    strokeWidth="1"
-                    vectorEffect="non-scaling-stroke"
-                  />
-                )
-              })}
-              {presentation.territoryPaths.map((path, index) => (
-                <path
-                  key={index}
-                  d={path}
-                  className="battlefield-territory"
-                  fill="none"
-                  strokeWidth="1"
-                  strokeDasharray="4 4"
-                  vectorEffect="non-scaling-stroke"
-                />
-              ))}
-            </g>
-          </svg>
-          {Object.entries(geometry.positions).flatMap(([id, savedPoint]) => {
+          <BattlefieldMapSvg presentation={presentation} widthCm={renderWidth} heightCm={renderHeight}
+            rotated={rotated} layers={{ ...layers, footprints: layers.footprints && showFootprints }}
+            zoneColors={Object.fromEntries(session.setup.players.map(player => [player.deploymentZone ?? '', `var(--player-${playerIndex(player.id)})`]))} />
+          {!isOfficialBoard(session.setup) && showFootprints && layers.footprints && Object.entries(geometry.positions).flatMap(([id, savedPoint]) => {
             if (!savedPoint) return []
-            const point = displayBoardPoint(savedPoint, rotated)
+            const point = view.toDisplay(savedPoint)
+            const footprint = objectiveFootprint(geometry, id)
+            const safeWidth = Math.max(6, Math.min(60, Number.isFinite(footprint.widthCm) ? footprint.widthCm : 30))
+            const safeHeight = Math.max(6, Math.min(60, Number.isFinite(footprint.heightCm) ? footprint.heightCm : 20))
+            return <div key={id} className={`objective-footprint objective-footprint--${footprint.kind} objective-footprint--player-${playerIndex(controllers[id])}`}
+              data-footprint-id={id} data-footprint-kind={footprint.kind} data-footprint-width-cm={footprint.widthCm} data-footprint-height-cm={footprint.heightCm}
+              style={{ left: `${point.x * 100}%`, top: `${point.y * 100}%`, width: `${safeWidth / view.widthCm * 100}%`,
+                height: `${safeHeight / view.heightCm * 100}%`, transform: `translate(-50%, -50%) rotate(${view.rotationDeg + (Number.isFinite(footprint.rotation) ? footprint.rotation : 0)}deg)` }}
+              aria-hidden="true" />
+          })}
+          {layers.objectives && Object.entries(geometry.positions).flatMap(([id, savedPoint]) => {
+            if (!savedPoint) return []
+            const point = view.toDisplay(savedPoint)
             const controller = controllers[id]
             const ownsHome =
               session.setup.players.find(
@@ -522,10 +541,12 @@ export function BattlefieldBoard({
                 aria-pressed={selectedId === id}
                 onClick={() => {
                   if (!draft) setSelectedId(id)
+                  else if (!draft.locked) setEditingFootprintId(id)
                 }}
                 onPointerDown={(event) => {
                   if (draft && !draft.locked) {
                     dragging.current = id
+                    setEditingFootprintId(id)
                     event.currentTarget.setPointerCapture(event.pointerId)
                     event.preventDefault()
                   }
@@ -567,23 +588,17 @@ export function BattlefieldBoard({
                       : event.key === 'ArrowDown'
                         ? 0.01
                         : 0
-                  const direction = rotated ? -1 : 1
+                  const nextPoint = view.toSource({
+                    x: Math.max(0, Math.min(1, point.x + deltaX)),
+                    y: Math.max(0, Math.min(1, point.y + deltaY)),
+                  })
                   setDraft((current) =>
                     current
                       ? {
                           ...current,
                           positions: {
                             ...current.positions,
-                            [id]: {
-                              x: Math.max(
-                                0,
-                                Math.min(1, savedPoint.x + deltaX * direction),
-                              ),
-                              y: Math.max(
-                                0,
-                                Math.min(1, savedPoint.y + deltaY * direction),
-                              ),
-                            },
+                            [id]: nextPoint,
                           },
                         }
                       : current,
@@ -632,6 +647,7 @@ export function BattlefieldBoard({
           </div>
         </section>
       )}
+      {!isOfficialBoard(session.setup) && showFootprints && <p className="battlefield-footprint-note">Dashed terrain footprints are schematic visual guides. Objective marker centres and saved control remain independent of terrain areas. Confirm all physical distances and rules at the table.</p>}
       <InfoDisclosure label="The physical table decides"><p className="battlefield-table-note">
         The physical table decides LOS, distances, Territory and eligibility.
         Marker positions do not determine OC or score VP.

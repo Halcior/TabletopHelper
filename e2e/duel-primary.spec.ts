@@ -23,7 +23,8 @@ test('official duel selects asymmetric matrix cards and scores the first turn', 
     await expect(page.locator('.duel-primary-panel').first()).toContainText('Immovable Object')
     await selectPanel(page, 'objectives')
     await page.getByRole('button', { name: 'List', exact: true }).click()
-    await expect(page.locator('.objective-card')).toHaveCount(5)
+    // Event Companion v1.3 p12 has two central and two expansion glyphs.
+    await expect(page.locator('.objective-card')).toHaveCount(6)
     await selectPanel(page, 'overview')
     for (let phase = 0; phase < 6; phase += 1) await page.locator('.next-phase').click()
     await expect(page.getByRole('heading', { name: 'End Turn · Chapter Approved' })).toBeVisible()

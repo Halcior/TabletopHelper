@@ -1,15 +1,22 @@
 import officialData from './officialLayouts.json'
+import legacyData from './officialLayouts.legacy.json'
+import { DEFAULT_OBJECTIVE_FOOTPRINT } from './types'
 import type { BattleSetup, ObjectiveDefinition } from '../battle/types'
 import type {
   BattlefieldGeometry,
   BoardPoint,
   BoardPresentation,
   OfficialBoardDefinition,
+  TerrainArea,
+  ObjectiveFootprint,
 } from './types'
 
 export const OFFICIAL_BOARD_SOURCE = officialData.source
 const OFFICIAL = officialData.layouts as Record<string, OfficialBoardDefinition>
-const DISPOSITION_ORDER = [
+export const OFFICIAL_LAYOUTS = OFFICIAL
+export const FOOTPRINT_LIBRARY = officialData.footprintLibrary
+export const OFFICIAL_SOURCES = officialData.sources
+export const DISPOSITION_ORDER = [
   'take-and-hold',
   'purge-the-foe',
   'disruption',
@@ -71,15 +78,20 @@ export function officialBoardDefinition(
 ): OfficialBoardDefinition | undefined {
   if (!isOfficialBoard(setup)) return
   const config = configOf(setup)
-  const pair = setup.players.filter((player) => setup.turnOrder.includes(player.id)).map(
-    (player) => config.playerConfigs?.[player.id]?.forceDisposition ?? '',
-  )
+  const pair = setup.doubles
+    ? setup.doubles.forces.map((force) => force.forceDisposition)
+    : setup.players.filter((player) => setup.turnOrder.includes(player.id)).map(
+      (player) => config.playerConfigs?.[player.id]?.forceDisposition ?? '',
+    )
   if (pair.some((value) => !DISPOSITION_ORDER.includes(value))) return
   pair.sort(
     (a, b) => DISPOSITION_ORDER.indexOf(a) - DISPOSITION_ORDER.indexOf(b),
   )
   const variant = 'ABC'[(config.officialLayout ?? 1) - 1]
-  return OFFICIAL[[...pair, variant].join('|')]
+  const catalog = setup.battlefieldSourceId === OFFICIAL_BOARD_SOURCE.id
+    ? OFFICIAL : setup.battlefieldSourceId === undefined
+      ? legacyData.layouts as Record<string, OfficialBoardDefinition> : {}
+  return catalog[[...pair, variant].join('|')]
 }
 
 export function defaultBattlefieldGeometry(
@@ -115,19 +127,23 @@ export function defaultBattlefieldGeometry(
       attackerHomeZone,
     }
   }
+  if (isOfficialBoard(setup)) return { version: 1, widthCm: 111.76, heightCm: 152.4, positions, locked: true, attackerHomeZone }
   const ffa = setup.players.length === 3
   const defaults: Record<string, BoardPoint> = ffa
     ? {
-        'A-HOME': { x: 0.16, y: 0.15 },
-        'B-HOME': { x: 0.84, y: 0.15 },
-        'C-HOME': { x: 0.5, y: 0.86 },
+        // HOME centres are equidistant in real centimetres from the centre
+        // on a 180×120 table (radius sqrt(36² + 36²) = ~50.9 cm).
+        // The lower HOME remains inside the bottom schematic deployment.
+        'A-HOME': { x: 0.30, y: 0.20 },
+        'B-HOME': { x: 0.70, y: 0.20 },
+        'C-HOME': { x: 0.5, y: 0.5 + Math.hypot(0.2 * 180, 0.3 * 120) / 120 },
         'AB-NEUTRAL': { x: 0.5, y: 0.18 },
-        'AC-NEUTRAL': { x: 0.24, y: 0.61 },
-        'BC-NEUTRAL': { x: 0.76, y: 0.61 },
+        'AC-NEUTRAL': { x: 0.33, y: 0.61 },
+        'BC-NEUTRAL': { x: 0.67, y: 0.61 },
         CENTER: { x: 0.5, y: 0.5 },
         N1: { x: 0.5, y: 0.18 },
-        N2: { x: 0.24, y: 0.61 },
-        N3: { x: 0.76, y: 0.61 },
+        N2: { x: 0.33, y: 0.61 },
+        N3: { x: 0.67, y: 0.61 },
       }
     : {
         'A-HOME': { x: 0.15, y: 0.5 },
@@ -161,13 +177,15 @@ export function battlefieldPresentation(
   geometry: BattlefieldGeometry,
 ): BoardPresentation {
   const official = officialBoardDefinition(setup)
+  const source = setup.battlefieldSourceId === OFFICIAL_BOARD_SOURCE.id ? OFFICIAL_BOARD_SOURCE : legacyData.source
   if (official)
     return {
       title: `${setup.doubles ? 'Official Doubles' : 'Official Duel'} · Layout ${official.variant}`,
       official: true,
       sourcePage: official.page,
-      sourceUrl: OFFICIAL_BOARD_SOURCE.url,
-      sourceVersion: OFFICIAL_BOARD_SOURCE.version,
+      sourceUrl: source.url,
+      sourceVersion: source.version,
+      terrain: official.terrainAreas ? official : undefined,
       deploymentAreas: [
         {
           zone: geometry.attackerHomeZone,
@@ -186,13 +204,13 @@ export function battlefieldPresentation(
   const ffa = setup.players.length === 3
   return {
     title: isOfficialBoard(setup)
-      ? 'Official geometry unavailable · schematic'
+      ? 'Official source unavailable · no fabricated geometry'
       : ffa
         ? 'FFA 3 · custom schematic'
         : 'Cauldron Duel · schematic',
     official: false,
     // These are editable presentation templates, never official deployment or Territory rules.
-    deploymentAreas: ffa
+    deploymentAreas: isOfficialBoard(setup) ? [] : ffa
       ? [
           { zone: 'A', path: 'M 0 0 L .34 0 L .34 .25 L 0 .25 Z' },
           { zone: 'B', path: 'M .66 0 L 1 0 L 1 .25 L .66 .25 Z' },
@@ -207,11 +225,37 @@ export function battlefieldPresentation(
   }
 }
 
+/** Footprint visuals have no influence over ownership, LOS, scoring, or ranges. */
+export function objectiveFootprint(geometry: BattlefieldGeometry, id: string): ObjectiveFootprint {
+  return geometry.footprints?.[id] ?? DEFAULT_OBJECTIVE_FOOTPRINT
+}
+
 export function displayBoardPoint(
   point: BoardPoint,
   rotated: boolean,
 ): BoardPoint {
   return rotated ? { x: 1 - point.x, y: 1 - point.y } : point
+}
+
+/** Keep source coordinates intact while showing the long table edge horizontally. */
+export function battlefieldView(widthCm: number, heightCm: number, rotated = false) {
+  const quarterTurn = heightCm > widthCm
+  const rotationDeg = (quarterTurn ? 90 : 0) + (rotated ? 180 : 0)
+  return {
+    widthCm: quarterTurn ? heightCm : widthCm,
+    heightCm: quarterTurn ? widthCm : heightCm,
+    rotationDeg,
+    transform: quarterTurn
+      ? rotated ? `translate(0 ${widthCm}) rotate(270)` : `translate(${heightCm} 0) rotate(90)`
+      : rotated ? `rotate(180 ${widthCm / 2} ${heightCm / 2})` : undefined,
+    toDisplay(point: BoardPoint): BoardPoint {
+      return displayBoardPoint(quarterTurn ? { x: 1 - point.y, y: point.x } : point, rotated)
+    },
+    toSource(point: BoardPoint): BoardPoint {
+      const unflipped = displayBoardPoint(point, rotated)
+      return quarterTurn ? { x: unflipped.y, y: 1 - unflipped.x } : unflipped
+    },
+  }
 }
 
 export function validateBattlefieldGeometry(
@@ -268,8 +312,24 @@ export function validateBattlefieldGeometry(
         'Objective coordinates must be normalized between 0 and 1.',
       )
   }
+  const footprints = geometry.footprints
+  if (footprints !== undefined) {
+    if (!footprints || typeof footprints !== 'object' || Array.isArray(footprints) ||
+      Object.keys(footprints).some((id) => !ids.includes(id))) {
+      throw new Error('Footprints must only reference saved objective IDs.')
+    }
+    for (const footprint of Object.values(footprints)) {
+      if (!footprint || !['rectangle', 'chamfered'].includes(footprint.kind) ||
+        ![footprint.widthCm, footprint.heightCm].every((size) =>
+          typeof size === 'number' && Number.isFinite(size) && size >= 6 && size <= 60) ||
+        !Number.isFinite(footprint.rotation) || footprint.rotation < 0 || footprint.rotation >= 360) {
+        throw new Error('Footprint dimensions must be 6–60 cm and rotation 0–359°.')
+      }
+    }
+  }
   const official = officialBoardDefinition(setup)
   if (official) {
+    if (footprints !== undefined) throw new Error('Official geometry does not store custom terrain footprints.')
     const expected = defaultBattlefieldGeometry(
       setup,
       geometry.attackerHomeZone,
@@ -289,6 +349,18 @@ export function validateBattlefieldGeometry(
       throw new Error(
         'Official geometry is fixed; only Attacker/Defender HOME mapping can change.',
       )
+  } else if (isOfficialBoard(setup)) {
+    throw new Error('This official source is unavailable; geometry edits are disabled.')
   } else if (Object.values(geometry.positions).some((point) => point === null))
     throw new Error('A custom schematic must place every saved objective.')
+}
+
+/** Physical cm, shared by the battle, gallery and print view. Never stretch axes. */
+export function terrainWorldPoints(area: TerrainArea) {
+  const radians = area.rotationDeg * Math.PI / 180
+  const c = Math.cos(radians), s = Math.sin(radians)
+  return area.polygonPoints.map(p => ({
+    x: area.position.x + p.x * c - p.y * s,
+    y: area.position.y + p.x * s + p.y * c,
+  }))
 }

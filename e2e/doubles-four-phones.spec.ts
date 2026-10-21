@@ -60,6 +60,23 @@ test('four phones play one GW Doubles turn with exactly two shared CP and VP poo
       if (await keep.isVisible().catch(() => false)) await keep.click()
     }))
 
+    // All four clients render the same pinned map with two force-wide zones.
+    await Promise.all(phones.map(async entry => {
+      await selectPanel(entry.page, 'objectives')
+      await expect(entry.page.locator('[data-terrain-id]')).toHaveCount(16)
+      await expect(entry.page.locator('[data-deployment-zone]')).toHaveCount(2)
+    }))
+    const original = await alpha.page.locator('[data-terrain-id]').evaluateAll(nodes => nodes.map(n => n.getAttribute('transform')))
+    await beta.page.getByRole('button', { name: 'Rotate 180°' }).click()
+    await expect(alpha.page.getByRole('button', { name: 'Rotate 180°' })).toHaveAttribute('aria-pressed','false')
+    await delta.page.reload()
+    await delta.page.getByRole('link', { name: 'Open battle', exact: true }).click()
+    await dismissSecondaryReveal(delta.page)
+    await selectPanel(delta.page, 'objectives')
+    await expect(delta.page.locator('[data-terrain-id]')).toHaveCount(16)
+    expect(await delta.page.locator('[data-terrain-id]').evaluateAll(nodes => nodes.map(n => n.getAttribute('transform')))).toEqual(original)
+    await Promise.all(phones.map(entry => selectPanel(entry.page, 'overview')))
+
     // Either allied phone may manipulate the one CP pool; the opponents may not.
     await expect(beta.page.getByRole('button', { name: 'Gain 1 CP for Team Alpha' })).toBeEnabled()
     await beta.page.getByRole('button', { name: 'Gain 1 CP for Team Alpha' }).click()

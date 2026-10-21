@@ -1,0 +1,2168 @@
+{
+  "source": {
+    "url": "https://assets.warhammer-community.com/eng_12-06_warhammer40000_event_companion-s3bfb5f9s1-ivswuij3fo.pdf",
+    "version": "1.0",
+    "checkedAt": "2026-10-13",
+    "sha256": "0e26f6586929e7ec4c50c6a17d240ed794bb7b6c654d1d9664fb908abc606a19",
+    "method": "Objective glyph centres and deployment paths normalized from the published vector diagrams. Dashed Territory paths are transcribed where emitted as vectors; eleven straight centre dividers follow the published half-battlefield definition and diagram orientation. Not a physical measurement engine."
+  },
+  "layouts": {
+    "take-and-hold|take-and-hold|A": {
+      "page": 9,
+      "dispositions": [
+        "take-and-hold",
+        "take-and-hold"
+      ],
+      "variant": "A",
+      "widthCm": 111.76,
+      "heightCm": 152.4,
+      "deploymentPaths": {
+        "attacker": "M -0.0 0.000811 L -0.0 0.333051 L 0.4996 0.333051 L 0.4996 0.199721 L 1.0 0.199721 L 1.0 0.000811 L 0.4996 0.000811 L 0.47497 0.000811 L -0.0 0.000811 Z",
+        "defender": "M 0.999997 1.000442 L 0.999997 0.668202 L 0.500397 0.668202 L 0.500397 0.801532 L -3e-06 0.801532 L -3e-06 1.000442 L 0.500397 1.000442 L 0.525027 1.000442 L 0.999997 1.000442 Z"
+      },
+      "territoryPaths": [
+        "M 0.010417 0.564903 L 0.994791 0.434741"
+      ],
+      "objectives": {
+        "homeAttacker": [
+          {
+            "x": 0.374741,
+            "y": 0.1697
+          }
+        ],
+        "homeDefender": [
+          {
+            "x": 0.585527,
+            "y": 0.788059
+          }
+        ],
+        "central": [
+          {
+            "x": 0.500396,
+            "y": 0.499928
+          }
+        ],
+        "expansion": [
+          {
+            "x": 0.834467,
+            "y": 0.302089
+          },
+          {
+            "x": 0.168086,
+            "y": 0.68061
+          }
+        ]
+      }
+    },
+    "take-and-hold|take-and-hold|B": {
+      "page": 10,
+      "dispositions": [
+        "take-and-hold",
+        "take-and-hold"
+      ],
+      "variant": "B",
+      "widthCm": 111.76,
+      "heightCm": 152.4,
+      "deploymentPaths": {
+        "attacker": "M -2e-06 -1e-06 L 0.272395 -1e-06 L 0.272395 1.00044 L -2e-06 1.00044 Z Z",
+        "defender": "M 0.727395 1e-06 L 0.999998 1e-06 L 0.999998 1.000443 L 0.727395 1.000443 Z Z"
+      },
+      "territoryPaths": [
+        "M 0.5 0 L 0.5 1"
+      ],
+      "objectives": {
+        "homeAttacker": [
+          {
+            "x": 0.153652,
+            "y": 0.480154
+          }
+        ],
+        "homeDefender": [
+          {
+            "x": 0.846379,
+            "y": 0.52235
+          }
+        ],
+        "central": [
+          {
+            "x": 0.503609,
+            "y": 0.499616
+          }
+        ],
+        "expansion": [
+          {
+            "x": 0.566252,
+            "y": 0.156503
+          },
+          {
+            "x": 0.436458,
+            "y": 0.829017
+          }
+        ]
+      }
+    },
+    "take-and-hold|take-and-hold|C": {
+      "page": 11,
+      "dispositions": [
+        "take-and-hold",
+        "take-and-hold"
+      ],
+      "variant": "C",
+      "widthCm": 111.76,
+      "heightCm": 152.4,
+      "deploymentPaths": {
+        "attacker": "M 0.500396 0.34987 L 0.500396 1e-06 L -1e-06 1e-06 L -1e-06 0.500589 L 0.295615 0.500589 C 0.295615 0.500465 0.2956 0.500344 0.2956 0.500221 C 0.2956 0.41718 0.387114 0.349863 0.499999 0.349863 C 0.500132 0.349863 0.500264 0.34987 0.500396 0.34987 Z",
+        "defender": "M 0.999997 1.000442 L 0.999997 0.500221 L 0.704393 0.500221 C 0.704393 0.583262 0.612883 0.650579 0.499997 0.650579 L 0.499997 1.000442 L 0.999997 1.000442 Z"
+      },
+      "territoryPaths": [
+        "M 0.00625 0.993897 L 0.996875 0.002834"
+      ],
+      "objectives": {
+        "homeAttacker": [
+          {
+            "x": 0.229148,
+            "y": 0.159957
+          }
+        ],
+        "homeDefender": [
+          {
+            "x": 0.766734,
+            "y": 0.851801
+          }
+        ],
+        "central": [
+          {
+            "x": 0.499775,
+            "y": 0.499928
+          }
+        ],
+        "expansion": [
+          {
+            "x": 0.794398,
+            "y": 0.17959
+          },
+          {
+            "x": 0.231885,
+            "y": 0.821474
+          }
+        ]
+      }
+    },
+    "take-and-hold|purge-the-foe|A": {
+      "page": 12,
+      "dispositions": [
+        "take-and-hold",
+        "purge-the-foe"
+      ],
+      "variant": "A",
+      "widthCm": 111.76,
+      "heightCm": 152.4,
+      "deploymentPaths": {
+        "attacker": "M 0.317601 0.500588 L 0.317601 0.0 L -1e-06 0.0 L -1e-06 0.242462 L -1e-06 0.500588 L -1e-06 1.000441 L 0.181397 1.000441 L 0.181397 0.500588 L 0.317601 0.500588 Z",
+        "defender": "M 0.999997 1.000442 L 0.999997 0.554363 L 0.999997 0.500589 L 0.999997 -0.000292 L 0.818396 -0.000292 L 0.818396 0.500589 L 0.682395 0.500589 L 0.682395 1.000442 L 0.999997 1.000442 Z"
+      },
+      "territoryPaths": [
+        "M 0.433541 0.992684 L 0.566299 0.003585"
+      ],
+      "objectives": {
+        "homeAttacker": [
+          {
+            "x": 0.190093,
+            "y": 0.18133
+          }
+        ],
+        "homeDefender": [
+          {
+            "x": 0.813088,
+            "y": 0.822054
+          }
+        ],
+        "central": [
+          {
+            "x": 0.499999,
+            "y": 0.500588
+          }
+        ],
+        "expansion": [
+          {
+            "x": 0.690097,
+            "y": 0.180338
+          },
+          {
+            "x": 0.30355,
+            "y": 0.825973
+          }
+        ]
+      }
+    },
+    "take-and-hold|purge-the-foe|B": {
+      "page": 13,
+      "dispositions": [
+        "take-and-hold",
+        "purge-the-foe"
+      ],
+      "variant": "B",
+      "widthCm": 111.76,
+      "heightCm": 152.4,
+      "deploymentPaths": {
+        "attacker": "M 0.500396 0.34987 L 0.500396 1e-06 L -1e-06 1e-06 L -1e-06 0.500589 L 0.295615 0.500589 C 0.295615 0.500465 0.2956 0.500344 0.2956 0.500221 C 0.2956 0.41718 0.387114 0.349863 0.499999 0.349863 C 0.500132 0.349863 0.500264 0.34987 0.500396 0.34987 Z",
+        "defender": "M 0.999997 1.000442 L 0.999997 0.500221 L 0.704393 0.500221 C 0.704393 0.583262 0.612883 0.650579 0.499997 0.650579 L 0.499997 1.000442 L 0.999997 1.000442 Z"
+      },
+      "territoryPaths": [
+        "M 0.00625 0.993897 L 0.996875 0.002834"
+      ],
+      "objectives": {
+        "homeAttacker": [
+          {
+            "x": 0.189022,
+            "y": 0.160374
+          }
+        ],
+        "homeDefender": [
+          {
+            "x": 0.815148,
+            "y": 0.839199
+          }
+        ],
+        "central": [
+          {
+            "x": 0.500396,
+            "y": 0.501216
+          }
+        ],
+        "expansion": [
+          {
+            "x": 0.785959,
+            "y": 0.165167
+          },
+          {
+            "x": 0.217697,
+            "y": 0.831846
+          }
+        ]
+      }
+    },
+    "take-and-hold|purge-the-foe|C": {
+      "page": 14,
+      "dispositions": [
+        "take-and-hold",
+        "purge-the-foe"
+      ],
+      "variant": "C",
+      "widthCm": 111.76,
+      "heightCm": 152.4,
+      "deploymentPaths": {
+        "attacker": "M -2e-06 -1e-06 L 0.999998 -1e-06 L 0.999998 0.299353 L -2e-06 0.299353 Z Z",
+        "defender": "M -2e-06 0.701089 L 0.999998 0.701089 L 0.999998 1.000443 L -2e-06 1.000443 Z Z"
+      },
+      "territoryPaths": [
+        "M 0 0.5 L 1 0.5"
+      ],
+      "objectives": {
+        "homeAttacker": [
+          {
+            "x": 0.244119,
+            "y": 0.168457
+          }
+        ],
+        "homeDefender": [
+          {
+            "x": 0.746791,
+            "y": 0.825671
+          }
+        ],
+        "central": [
+          {
+            "x": 0.500396,
+            "y": 0.501395
+          }
+        ],
+        "expansion": [
+          {
+            "x": 0.830871,
+            "y": 0.368308
+          },
+          {
+            "x": 0.166117,
+            "y": 0.630666
+          }
+        ]
+      }
+    },
+    "take-and-hold|disruption|A": {
+      "page": 15,
+      "dispositions": [
+        "take-and-hold",
+        "disruption"
+      ],
+      "variant": "A",
+      "widthCm": 111.76,
+      "heightCm": 152.4,
+      "deploymentPaths": {
+        "attacker": "M 0.317601 0.500588 L 0.317601 0.0 L -1e-06 0.0 L -1e-06 0.242462 L -1e-06 0.500588 L -1e-06 1.000441 L 0.181397 1.000441 L 0.181397 0.500588 L 0.317601 0.500588 Z",
+        "defender": "M 0.999997 1.000442 L 0.999997 0.554363 L 0.999997 0.500589 L 0.999997 -0.000292 L 0.818396 -0.000292 L 0.818396 0.500589 L 0.682395 0.500589 L 0.682395 1.000442 L 0.999997 1.000442 Z"
+      },
+      "territoryPaths": [
+        "M 0.433541 0.992684 L 0.566299 0.003585"
+      ],
+      "objectives": {
+        "homeAttacker": [
+          {
+            "x": 0.1588,
+            "y": 0.161308
+          }
+        ],
+        "homeDefender": [
+          {
+            "x": 0.840622,
+            "y": 0.840171
+          }
+        ],
+        "central": [
+          {
+            "x": 0.486112,
+            "y": 0.470264
+          }
+        ],
+        "expansion": [
+          {
+            "x": 0.691446,
+            "y": 0.185878
+          },
+          {
+            "x": 0.308022,
+            "y": 0.817134
+          }
+        ]
+      }
+    },
+    "take-and-hold|disruption|B": {
+      "page": 16,
+      "dispositions": [
+        "take-and-hold",
+        "disruption"
+      ],
+      "variant": "B",
+      "widthCm": 111.76,
+      "heightCm": 152.4,
+      "deploymentPaths": {
+        "attacker": "M -2e-06 0.500589 L 0.999998 -0.000292 L 0.999998 0.0 L -2e-06 0.0 L -2e-06 0.500589 Z",
+        "defender": "M -0.002501 0.998603 L 0.997499 0.998603 L 0.997499 0.49809 L -0.002501 0.998311 L -0.002501 0.998603 Z"
+      },
+      "territoryPaths": [
+        "M 0.008772 0.745799 L 0.995614 0.252341"
+      ],
+      "objectives": {
+        "homeAttacker": [
+          {
+            "x": 0.194336,
+            "y": 0.145007
+          }
+        ],
+        "homeDefender": [
+          {
+            "x": 0.802845,
+            "y": 0.852076
+          }
+        ],
+        "central": [
+          {
+            "x": 0.540396,
+            "y": 0.48183
+          }
+        ],
+        "expansion": [
+          {
+            "x": 0.75821,
+            "y": 0.22854
+          },
+          {
+            "x": 0.243408,
+            "y": 0.774836
+          }
+        ]
+      }
+    },
+    "take-and-hold|disruption|C": {
+      "page": 17,
+      "dispositions": [
+        "take-and-hold",
+        "disruption"
+      ],
+      "variant": "C",
+      "widthCm": 111.76,
+      "heightCm": 152.4,
+      "deploymentPaths": {
+        "attacker": "M -2e-06 -1e-06 L 0.999998 -1e-06 L 0.999998 0.299353 L -2e-06 0.299353 Z Z",
+        "defender": "M -2e-06 0.701089 L 0.999998 0.701089 L 0.999998 1.000443 L -2e-06 1.000443 Z Z"
+      },
+      "territoryPaths": [
+        "M 0 0.5 L 1 0.5"
+      ],
+      "objectives": {
+        "homeAttacker": [
+          {
+            "x": 0.496589,
+            "y": 0.212151
+          }
+        ],
+        "homeDefender": [
+          {
+            "x": 0.507596,
+            "y": 0.789262
+          }
+        ],
+        "central": [
+          {
+            "x": 0.451613,
+            "y": 0.502116
+          }
+        ],
+        "expansion": [
+          {
+            "x": 0.807391,
+            "y": 0.37423
+          },
+          {
+            "x": 0.169727,
+            "y": 0.629713
+          }
+        ]
+      }
+    },
+    "take-and-hold|reconnaissance|A": {
+      "page": 18,
+      "dispositions": [
+        "take-and-hold",
+        "reconnaissance"
+      ],
+      "variant": "A",
+      "widthCm": 111.76,
+      "heightCm": 152.4,
+      "deploymentPaths": {
+        "attacker": "M -0.0 0.000811 L -0.0 0.333051 L 0.4996 0.333051 L 0.4996 0.199721 L 1.0 0.199721 L 1.0 0.000811 L 0.4996 0.000811 L 0.47497 0.000811 L -0.0 0.000811 Z",
+        "defender": "M 0.999997 1.000442 L 0.999997 0.668202 L 0.500397 0.668202 L 0.500397 0.801532 L -3e-06 0.801532 L -3e-06 1.000442 L 0.500397 1.000442 L 0.525027 1.000442 L 0.999997 1.000442 Z"
+      },
+      "territoryPaths": [
+        "M 0.010417 0.564903 L 0.994791 0.434741"
+      ],
+      "objectives": {
+        "homeAttacker": [
+          {
+            "x": 0.280301,
+            "y": 0.148687
+          }
+        ],
+        "homeDefender": [
+          {
+            "x": 0.714856,
+            "y": 0.857848
+          }
+        ],
+        "central": [
+          {
+            "x": 0.498764,
+            "y": 0.496554
+          }
+        ],
+        "expansion": [
+          {
+            "x": 0.789414,
+            "y": 0.263738
+          },
+          {
+            "x": 0.210233,
+            "y": 0.736876
+          }
+        ]
+      }
+    },
+    "take-and-hold|reconnaissance|B": {
+      "page": 19,
+      "dispositions": [
+        "take-and-hold",
+        "reconnaissance"
+      ],
+      "variant": "B",
+      "widthCm": 111.76,
+      "heightCm": 152.4,
+      "deploymentPaths": {
+        "attacker": "M -2e-06 -1e-06 L 0.272395 -1e-06 L 0.272395 1.00044 L -2e-06 1.00044 Z Z",
+        "defender": "M 0.727395 1e-06 L 0.999998 1e-06 L 0.999998 1.000443 L 0.727395 1.000443 Z Z"
+      },
+      "territoryPaths": [
+        "M 0.5 0 L 0.5 1"
+      ],
+      "objectives": {
+        "homeAttacker": [
+          {
+            "x": 0.184644,
+            "y": 0.205908
+          }
+        ],
+        "homeDefender": [
+          {
+            "x": 0.826325,
+            "y": 0.793614
+          }
+        ],
+        "central": [
+          {
+            "x": 0.480757,
+            "y": 0.477028
+          }
+        ],
+        "expansion": [
+          {
+            "x": 0.627766,
+            "y": 0.183646
+          },
+          {
+            "x": 0.376561,
+            "y": 0.822384
+          }
+        ]
+      }
+    },
+    "take-and-hold|reconnaissance|C": {
+      "page": 20,
+      "dispositions": [
+        "take-and-hold",
+        "reconnaissance"
+      ],
+      "variant": "C",
+      "widthCm": 111.76,
+      "heightCm": 152.4,
+      "deploymentPaths": {
+        "attacker": "M 0.500396 0.34987 L 0.500396 1e-06 L -1e-06 1e-06 L -1e-06 0.500589 L 0.295615 0.500589 C 0.295615 0.500465 0.2956 0.500344 0.2956 0.500221 C 0.2956 0.41718 0.387114 0.349863 0.499999 0.349863 C 0.500132 0.349863 0.500264 0.34987 0.500396 0.34987 Z",
+        "defender": "M 0.999997 1.000442 L 0.999997 0.500221 L 0.704393 0.500221 C 0.704393 0.583262 0.612883 0.650579 0.499997 0.650579 L 0.499997 1.000442 L 0.999997 1.000442 Z"
+      },
+      "territoryPaths": [
+        "M 0.00625 0.993897 L 0.996875 0.002834"
+      ],
+      "objectives": {
+        "homeAttacker": [
+          {
+            "x": 0.191134,
+            "y": 0.180227
+          }
+        ],
+        "homeDefender": [
+          {
+            "x": 0.80407,
+            "y": 0.822036
+          }
+        ],
+        "central": [
+          {
+            "x": 0.500396,
+            "y": 0.499928
+          }
+        ],
+        "expansion": [
+          {
+            "x": 0.758117,
+            "y": 0.178388
+          },
+          {
+            "x": 0.226479,
+            "y": 0.80424
+          }
+        ]
+      }
+    },
+    "take-and-hold|priority-assets|A": {
+      "page": 21,
+      "dispositions": [
+        "take-and-hold",
+        "priority-assets"
+      ],
+      "variant": "A",
+      "widthCm": 111.76,
+      "heightCm": 152.4,
+      "deploymentPaths": {
+        "attacker": "M -2e-06 0.500589 L 0.999998 -0.000292 L 0.999998 0.0 L -2e-06 0.0 L -2e-06 0.500589 Z",
+        "defender": "M -2e-06 1.000442 L 0.999998 1.000442 L 0.999998 0.499929 L -2e-06 1.00015 L -2e-06 1.000442 Z"
+      },
+      "territoryPaths": [
+        "M 0.008772 0.745799 L 0.995614 0.252341"
+      ],
+      "objectives": {
+        "homeAttacker": [
+          {
+            "x": 0.249552,
+            "y": 0.140131
+          }
+        ],
+        "homeDefender": [
+          {
+            "x": 0.747442,
+            "y": 0.864206
+          }
+        ],
+        "central": [
+          {
+            "x": 0.460953,
+            "y": 0.4063
+          },
+          {
+            "x": 0.555908,
+            "y": 0.582441
+          }
+        ],
+        "expansion": [
+          {
+            "x": 0.794945,
+            "y": 0.23947
+          },
+          {
+            "x": 0.19205,
+            "y": 0.766267
+          }
+        ]
+      }
+    },
+    "take-and-hold|priority-assets|B": {
+      "page": 22,
+      "dispositions": [
+        "take-and-hold",
+        "priority-assets"
+      ],
+      "variant": "B",
+      "widthCm": 111.76,
+      "heightCm": 152.4,
+      "deploymentPaths": {
+        "attacker": "M -2e-06 -1e-06 L 0.999998 -1e-06 L 0.999998 0.299353 L -2e-06 0.299353 Z Z",
+        "defender": "M -2e-06 0.701089 L 0.999998 0.701089 L 0.999998 1.000443 L -2e-06 1.000443 Z Z"
+      },
+      "territoryPaths": [
+        "M 0 0.5 L 1 0.5"
+      ],
+      "objectives": {
+        "homeAttacker": [
+          {
+            "x": 0.270345,
+            "y": 0.177799
+          }
+        ],
+        "homeDefender": [
+          {
+            "x": 0.711225,
+            "y": 0.824399
+          }
+        ],
+        "central": [
+          {
+            "x": 0.454149,
+            "y": 0.420659
+          },
+          {
+            "x": 0.549521,
+            "y": 0.577806
+          }
+        ],
+        "expansion": [
+          {
+            "x": 0.852509,
+            "y": 0.425468
+          },
+          {
+            "x": 0.150043,
+            "y": 0.578545
+          }
+        ]
+      }
+    },
+    "take-and-hold|priority-assets|C": {
+      "page": 23,
+      "dispositions": [
+        "take-and-hold",
+        "priority-assets"
+      ],
+      "variant": "C",
+      "widthCm": 111.76,
+      "heightCm": 152.4,
+      "deploymentPaths": {
+        "attacker": "M -2e-06 -1e-06 L 0.272395 -1e-06 L 0.272395 1.00044 L -2e-06 1.00044 Z Z",
+        "defender": "M 0.727395 1e-06 L 0.999998 1e-06 L 0.999998 1.000443 L 0.727395 1.000443 Z Z"
+      },
+      "territoryPaths": [
+        "M 0.5 0 L 0.5 1"
+      ],
+      "objectives": {
+        "homeAttacker": [
+          {
+            "x": 0.13791,
+            "y": 0.367523
+          }
+        ],
+        "homeDefender": [
+          {
+            "x": 0.856598,
+            "y": 0.630793
+          }
+        ],
+        "central": [
+          {
+            "x": 0.489112,
+            "y": 0.421706
+          },
+          {
+            "x": 0.510888,
+            "y": 0.579
+          }
+        ],
+        "expansion": [
+          {
+            "x": 0.58973,
+            "y": 0.18451
+          },
+          {
+            "x": 0.414338,
+            "y": 0.813854
+          }
+        ]
+      }
+    },
+    "purge-the-foe|purge-the-foe|A": {
+      "page": 24,
+      "dispositions": [
+        "purge-the-foe",
+        "purge-the-foe"
+      ],
+      "variant": "A",
+      "widthCm": 111.76,
+      "heightCm": 152.4,
+      "deploymentPaths": {
+        "attacker": "M 0.500396 0.34987 L 0.500396 1e-06 L -1e-06 1e-06 L -1e-06 0.500589 L 0.295615 0.500589 C 0.295615 0.500465 0.2956 0.500344 0.2956 0.500221 C 0.2956 0.41718 0.387114 0.349863 0.499999 0.349863 C 0.500132 0.349863 0.500264 0.34987 0.500396 0.34987 Z",
+        "defender": "M 0.999997 1.000442 L 0.999997 0.500221 L 0.704393 0.500221 C 0.704393 0.583262 0.612883 0.650579 0.499997 0.650579 L 0.499997 1.000442 L 0.999997 1.000442 Z"
+      },
+      "territoryPaths": [
+        "M 0.00625 0.993897 L 0.996875 0.002834"
+      ],
+      "objectives": {
+        "homeAttacker": [
+          {
+            "x": 0.194896,
+            "y": 0.161939
+          }
+        ],
+        "homeDefender": [
+          {
+            "x": 0.819977,
+            "y": 0.849633
+          }
+        ],
+        "central": [
+          {
+            "x": 0.602394,
+            "y": 0.375859
+          },
+          {
+            "x": 0.405055,
+            "y": 0.628176
+          }
+        ],
+        "expansion": []
+      }
+    },
+    "purge-the-foe|purge-the-foe|B": {
+      "page": 25,
+      "dispositions": [
+        "purge-the-foe",
+        "purge-the-foe"
+      ],
+      "variant": "B",
+      "widthCm": 111.76,
+      "heightCm": 152.4,
+      "deploymentPaths": {
+        "attacker": "M -0.0 0.000811 L -0.0 0.333051 L 0.4996 0.333051 L 0.4996 0.199721 L 1.0 0.199721 L 1.0 0.000811 L 0.4996 0.000811 L 0.47497 0.000811 L -0.0 0.000811 Z",
+        "defender": "M 0.999997 1.000442 L 0.999997 0.668202 L 0.500397 0.668202 L 0.500397 0.801532 L -3e-06 0.801532 L -3e-06 1.000442 L 0.500397 1.000442 L 0.525027 1.000442 L 0.999997 1.000442 Z"
+      },
+      "territoryPaths": [
+        "M 0.010417 0.564903 L 0.994791 0.434741"
+      ],
+      "objectives": {
+        "homeAttacker": [
+          {
+            "x": 0.225008,
+            "y": 0.204928
+          }
+        ],
+        "homeDefender": [
+          {
+            "x": 0.764409,
+            "y": 0.799055
+          }
+        ],
+        "central": [
+          {
+            "x": 0.74812,
+            "y": 0.491025
+          },
+          {
+            "x": 0.258879,
+            "y": 0.506623
+          }
+        ],
+        "expansion": [
+          {
+            "x": 0.846173,
+            "y": 0.284152
+          },
+          {
+            "x": 0.155794,
+            "y": 0.714685
+          }
+        ]
+      }
+    },
+    "purge-the-foe|purge-the-foe|C": {
+      "page": 26,
+      "dispositions": [
+        "purge-the-foe",
+        "purge-the-foe"
+      ],
+      "variant": "C",
+      "widthCm": 111.76,
+      "heightCm": 152.4,
+      "deploymentPaths": {
+        "attacker": "M 0.317601 0.500588 L 0.317601 0.0 L -1e-06 0.0 L -1e-06 0.242462 L -1e-06 0.500588 L -1e-06 1.000441 L 0.181397 1.000441 L 0.181397 0.500588 L 0.317601 0.500588 Z",
+        "defender": "M 0.999997 1.000442 L 0.999997 0.554363 L 0.999997 0.500589 L 0.999997 -0.000292 L 0.818396 -0.000292 L 0.818396 0.500589 L 0.682395 0.500589 L 0.682395 1.000442 L 0.999997 1.000442 Z"
+      },
+      "territoryPaths": [
+        "M 0.433541 0.992684 L 0.566299 0.003585"
+      ],
+      "objectives": {
+        "homeAttacker": [
+          {
+            "x": 0.206361,
+            "y": 0.14742
+          }
+        ],
+        "homeDefender": [
+          {
+            "x": 0.791219,
+            "y": 0.84964
+          }
+        ],
+        "central": [
+          {
+            "x": 0.507394,
+            "y": 0.401384
+          },
+          {
+            "x": 0.482499,
+            "y": 0.60558
+          }
+        ],
+        "expansion": []
+      }
+    },
+    "purge-the-foe|disruption|A": {
+      "page": 27,
+      "dispositions": [
+        "purge-the-foe",
+        "disruption"
+      ],
+      "variant": "A",
+      "widthCm": 111.76,
+      "heightCm": 152.4,
+      "deploymentPaths": {
+        "attacker": "M 0.500396 0.34987 L 0.500396 1e-06 L -1e-06 1e-06 L -1e-06 0.500589 L 0.295615 0.500589 C 0.295615 0.500465 0.2956 0.500344 0.2956 0.500221 C 0.2956 0.41718 0.387114 0.349863 0.499999 0.349863 C 0.500132 0.349863 0.500264 0.34987 0.500396 0.34987 Z",
+        "defender": "M 0.999997 1.000442 L 0.999997 0.500221 L 0.704393 0.500221 C 0.704393 0.583262 0.612883 0.650579 0.499997 0.650579 L 0.499997 1.000442 L 0.999997 1.000442 Z"
+      },
+      "territoryPaths": [
+        "M 0.00625 0.993897 L 0.996875 0.002834"
+      ],
+      "objectives": {
+        "homeAttacker": [
+          {
+            "x": 0.213633,
+            "y": 0.17471
+          }
+        ],
+        "homeDefender": [
+          {
+            "x": 0.78157,
+            "y": 0.822036
+          }
+        ],
+        "central": [
+          {
+            "x": 0.500396,
+            "y": 0.499928
+          }
+        ],
+        "expansion": [
+          {
+            "x": 0.784779,
+            "y": 0.226115
+          },
+          {
+            "x": 0.226137,
+            "y": 0.779897
+          }
+        ]
+      }
+    },
+    "purge-the-foe|disruption|B": {
+      "page": 28,
+      "dispositions": [
+        "purge-the-foe",
+        "disruption"
+      ],
+      "variant": "B",
+      "widthCm": 111.76,
+      "heightCm": 152.4,
+      "deploymentPaths": {
+        "attacker": "M -0.0 0.000811 L -0.0 0.333051 L 0.4996 0.333051 L 0.4996 0.199721 L 1.0 0.199721 L 1.0 0.000811 L 0.4996 0.000811 L 0.47497 0.000811 L -0.0 0.000811 Z",
+        "defender": "M 0.999997 1.000442 L 0.999997 0.668202 L 0.500397 0.668202 L 0.500397 0.801532 L -3e-06 0.801532 L -3e-06 1.000442 L 0.500397 1.000442 L 0.525027 1.000442 L 0.999997 1.000442 Z"
+      },
+      "territoryPaths": [
+        "M 0.010417 0.564903 L 0.994791 0.434741"
+      ],
+      "objectives": {
+        "homeAttacker": [
+          {
+            "x": 0.396289,
+            "y": 0.201873
+          }
+        ],
+        "homeDefender": [
+          {
+            "x": 0.606397,
+            "y": 0.794975
+          }
+        ],
+        "central": [
+          {
+            "x": 0.544422,
+            "y": 0.47848
+          }
+        ],
+        "expansion": [
+          {
+            "x": 0.795158,
+            "y": 0.284642
+          },
+          {
+            "x": 0.206772,
+            "y": 0.71606
+          }
+        ]
+      }
+    },
+    "purge-the-foe|disruption|C": {
+      "page": 29,
+      "dispositions": [
+        "purge-the-foe",
+        "disruption"
+      ],
+      "variant": "C",
+      "widthCm": 111.76,
+      "heightCm": 152.4,
+      "deploymentPaths": {
+        "attacker": "M 0.317601 0.500588 L 0.317601 0.0 L -1e-06 0.0 L -1e-06 0.242462 L -1e-06 0.500588 L -1e-06 1.000441 L 0.181397 1.000441 L 0.181397 0.500588 L 0.317601 0.500588 Z",
+        "defender": "M 0.999997 1.000442 L 0.999997 0.554363 L 0.999997 0.500589 L 0.999997 -0.000292 L 0.818396 -0.000292 L 0.818396 0.500589 L 0.682395 0.500589 L 0.682395 1.000442 L 0.999997 1.000442 Z"
+      },
+      "territoryPaths": [
+        "M 0.433541 0.992684 L 0.566299 0.003585"
+      ],
+      "objectives": {
+        "homeAttacker": [
+          {
+            "x": 0.194424,
+            "y": 0.165514
+          }
+        ],
+        "homeDefender": [
+          {
+            "x": 0.803088,
+            "y": 0.834821
+          }
+        ],
+        "central": [
+          {
+            "x": 0.480324,
+            "y": 0.469086
+          }
+        ],
+        "expansion": [
+          {
+            "x": 0.572535,
+            "y": 0.166139
+          },
+          {
+            "x": 0.431231,
+            "y": 0.830962
+          }
+        ]
+      }
+    },
+    "purge-the-foe|reconnaissance|A": {
+      "page": 30,
+      "dispositions": [
+        "purge-the-foe",
+        "reconnaissance"
+      ],
+      "variant": "A",
+      "widthCm": 111.76,
+      "heightCm": 152.4,
+      "deploymentPaths": {
+        "attacker": "M -2e-06 -1e-06 L 0.999998 -1e-06 L 0.999998 0.299353 L -2e-06 0.299353 Z Z",
+        "defender": "M -2e-06 0.701089 L 0.999998 0.701089 L 0.999998 1.000443 L -2e-06 1.000443 Z Z"
+      },
+      "territoryPaths": [
+        "M 0 0.5 L 1 0.5"
+      ],
+      "objectives": {
+        "homeAttacker": [
+          {
+            "x": 0.430345,
+            "y": 0.194351
+          }
+        ],
+        "homeDefender": [
+          {
+            "x": 0.565908,
+            "y": 0.808655
+          }
+        ],
+        "central": [
+          {
+            "x": 0.545447,
+            "y": 0.380734
+          },
+          {
+            "x": 0.460498,
+            "y": 0.605468
+          }
+        ],
+        "expansion": [
+          {
+            "x": 0.845756,
+            "y": 0.420995
+          },
+          {
+            "x": 0.161086,
+            "y": 0.585754
+          }
+        ]
+      }
+    },
+    "purge-the-foe|reconnaissance|B": {
+      "page": 31,
+      "dispositions": [
+        "purge-the-foe",
+        "reconnaissance"
+      ],
+      "variant": "B",
+      "widthCm": 111.76,
+      "heightCm": 152.4,
+      "deploymentPaths": {
+        "attacker": "M -2e-06 -1e-06 L 0.272395 -1e-06 L 0.272395 1.00044 L -2e-06 1.00044 Z Z",
+        "defender": "M 0.727395 1e-06 L 0.999998 1e-06 L 0.999998 1.000443 L 0.727395 1.000443 Z Z"
+      },
+      "territoryPaths": [
+        "M 0.5 0 L 0.5 1"
+      ],
+      "objectives": {
+        "homeAttacker": [
+          {
+            "x": 0.14291,
+            "y": 0.350972
+          }
+        ],
+        "homeDefender": [
+          {
+            "x": 0.856598,
+            "y": 0.647345
+          }
+        ],
+        "central": [
+          {
+            "x": 0.507275,
+            "y": 0.385534
+          },
+          {
+            "x": 0.492071,
+            "y": 0.617894
+          }
+        ],
+        "expansion": [
+          {
+            "x": 0.58723,
+            "y": 0.18451
+          },
+          {
+            "x": 0.414338,
+            "y": 0.813854
+          }
+        ]
+      }
+    },
+    "purge-the-foe|reconnaissance|C": {
+      "page": 32,
+      "dispositions": [
+        "purge-the-foe",
+        "reconnaissance"
+      ],
+      "variant": "C",
+      "widthCm": 111.76,
+      "heightCm": 152.4,
+      "deploymentPaths": {
+        "attacker": "M -2e-06 0.500589 L 0.999998 -0.000292 L 0.999998 0.0 L -2e-06 0.0 L -2e-06 0.500589 Z",
+        "defender": "M -2e-06 1.000442 L 0.999998 1.000442 L 0.999998 0.499929 L -2e-06 1.00015 L -2e-06 1.000442 Z"
+      },
+      "territoryPaths": [
+        "M 0.008772 0.745799 L 0.995614 0.252341"
+      ],
+      "objectives": {
+        "homeAttacker": [
+          {
+            "x": 0.279552,
+            "y": 0.138292
+          }
+        ],
+        "homeDefender": [
+          {
+            "x": 0.719942,
+            "y": 0.866045
+          }
+        ],
+        "central": [
+          {
+            "x": 0.5173,
+            "y": 0.429116
+          },
+          {
+            "x": 0.471207,
+            "y": 0.580829
+          }
+        ],
+        "expansion": [
+          {
+            "x": 0.799945,
+            "y": 0.237631
+          },
+          {
+            "x": 0.18955,
+            "y": 0.764428
+          }
+        ]
+      }
+    },
+    "purge-the-foe|priority-assets|A": {
+      "page": 33,
+      "dispositions": [
+        "purge-the-foe",
+        "priority-assets"
+      ],
+      "variant": "A",
+      "widthCm": 111.76,
+      "heightCm": 152.4,
+      "deploymentPaths": {
+        "attacker": "M -2e-06 -1e-06 L 0.272395 -1e-06 L 0.272395 1.00044 L -2e-06 1.00044 Z Z",
+        "defender": "M 0.727395 1e-06 L 0.999998 1e-06 L 0.999998 1.000443 L 0.727395 1.000443 Z Z"
+      },
+      "territoryPaths": [
+        "M 0.5 0 L 0.5 1"
+      ],
+      "objectives": {
+        "homeAttacker": [
+          {
+            "x": 0.179879,
+            "y": 0.241461
+          }
+        ],
+        "homeDefender": [
+          {
+            "x": 0.837088,
+            "y": 0.750217
+          }
+        ],
+        "central": [
+          {
+            "x": 0.6038,
+            "y": 0.461837
+          },
+          {
+            "x": 0.400311,
+            "y": 0.545829
+          }
+        ],
+        "expansion": [
+          {
+            "x": 0.616716,
+            "y": 0.168585
+          },
+          {
+            "x": 0.377675,
+            "y": 0.829774
+          }
+        ]
+      }
+    },
+    "purge-the-foe|priority-assets|B": {
+      "page": 34,
+      "dispositions": [
+        "purge-the-foe",
+        "priority-assets"
+      ],
+      "variant": "B",
+      "widthCm": 111.76,
+      "heightCm": 152.4,
+      "deploymentPaths": {
+        "attacker": "M 0.500396 0.34987 L 0.500396 1e-06 L -1e-06 1e-06 L -1e-06 0.500589 L 0.295615 0.500589 C 0.295615 0.500465 0.2956 0.500344 0.2956 0.500221 C 0.2956 0.41718 0.387114 0.349863 0.499999 0.349863 C 0.500132 0.349863 0.500264 0.34987 0.500396 0.34987 Z",
+        "defender": "M 0.999997 1.000442 L 0.999997 0.500221 L 0.704393 0.500221 C 0.704393 0.583262 0.612883 0.650579 0.499997 0.650579 L 0.499997 1.000442 L 0.999997 1.000442 Z"
+      },
+      "territoryPaths": [
+        "M 0.00625 0.993897 L 0.996875 0.002834"
+      ],
+      "objectives": {
+        "homeAttacker": [
+          {
+            "x": 0.19853,
+            "y": 0.128733
+          }
+        ],
+        "homeDefender": [
+          {
+            "x": 0.819734,
+            "y": 0.869869
+          }
+        ],
+        "central": [
+          {
+            "x": 0.558792,
+            "y": 0.43994
+          },
+          {
+            "x": 0.435396,
+            "y": 0.562456
+          }
+        ],
+        "expansion": [
+          {
+            "x": 0.8063,
+            "y": 0.290343
+          },
+          {
+            "x": 0.184389,
+            "y": 0.708541
+          }
+        ]
+      }
+    },
+    "purge-the-foe|priority-assets|C": {
+      "page": 35,
+      "dispositions": [
+        "purge-the-foe",
+        "priority-assets"
+      ],
+      "variant": "C",
+      "widthCm": 111.76,
+      "heightCm": 152.4,
+      "deploymentPaths": {
+        "attacker": "M -2e-06 -1e-06 L 0.999998 -1e-06 L 0.999998 0.299353 L -2e-06 0.299353 Z Z",
+        "defender": "M -2e-06 0.701089 L 0.999998 0.701089 L 0.999998 1.000443 L -2e-06 1.000443 Z Z"
+      },
+      "territoryPaths": [
+        "M 0 0.5 L 1 0.5"
+      ],
+      "objectives": {
+        "homeAttacker": [
+          {
+            "x": 0.51745,
+            "y": 0.19301
+          }
+        ],
+        "homeDefender": [
+          {
+            "x": 0.466587,
+            "y": 0.801713
+          }
+        ],
+        "central": [
+          {
+            "x": 0.587507,
+            "y": 0.489764
+          },
+          {
+            "x": 0.413799,
+            "y": 0.50324
+          }
+        ],
+        "expansion": [
+          {
+            "x": 0.784809,
+            "y": 0.35754
+          },
+          {
+            "x": 0.215596,
+            "y": 0.642219
+          }
+        ]
+      }
+    },
+    "disruption|disruption|A": {
+      "page": 36,
+      "dispositions": [
+        "disruption",
+        "disruption"
+      ],
+      "variant": "A",
+      "widthCm": 111.76,
+      "heightCm": 152.4,
+      "deploymentPaths": {
+        "attacker": "M -2e-06 0.500589 L 0.999998 -0.000292 L 0.999998 0.0 L -2e-06 0.0 L -2e-06 0.500589 Z",
+        "defender": "M -2e-06 1.000442 L 0.999998 1.000442 L 0.999998 0.499929 L -2e-06 1.00015 L -2e-06 1.000442 Z"
+      },
+      "territoryPaths": [
+        "M 0.008772 0.745799 L 0.995614 0.252341"
+      ],
+      "objectives": {
+        "homeAttacker": [
+          {
+            "x": 0.288765,
+            "y": 0.147779
+          }
+        ],
+        "homeDefender": [
+          {
+            "x": 0.739331,
+            "y": 0.845975
+          }
+        ],
+        "central": [
+          {
+            "x": 0.479636,
+            "y": 0.4523
+          }
+        ],
+        "expansion": [
+          {
+            "x": 0.772618,
+            "y": 0.207244
+          },
+          {
+            "x": 0.230273,
+            "y": 0.798017
+          }
+        ]
+      }
+    },
+    "disruption|disruption|B": {
+      "page": 37,
+      "dispositions": [
+        "disruption",
+        "disruption"
+      ],
+      "variant": "B",
+      "widthCm": 111.76,
+      "heightCm": 152.4,
+      "deploymentPaths": {
+        "attacker": "M -0.0 0.000811 L -0.0 0.333051 L 0.4996 0.333051 L 0.4996 0.199721 L 1.0 0.199721 L 1.0 0.000811 L 0.4996 0.000811 L 0.47497 0.000811 L -0.0 0.000811 Z",
+        "defender": "M 0.999997 1.000442 L 0.999997 0.668202 L 0.500397 0.668202 L 0.500397 0.801532 L -3e-06 0.801532 L -3e-06 1.000442 L 0.500397 1.000442 L 0.525027 1.000442 L 0.999997 1.000442 Z"
+      },
+      "territoryPaths": [
+        "M 0.010417 0.564903 L 0.994791 0.434741"
+      ],
+      "objectives": {
+        "homeAttacker": [
+          {
+            "x": 0.273202,
+            "y": 0.143143
+          }
+        ],
+        "homeDefender": [
+          {
+            "x": 0.741064,
+            "y": 0.855623
+          }
+        ],
+        "central": [
+          {
+            "x": 0.555397,
+            "y": 0.475233
+          }
+        ],
+        "expansion": [
+          {
+            "x": 0.802088,
+            "y": 0.292662
+          },
+          {
+            "x": 0.200898,
+            "y": 0.708949
+          }
+        ]
+      }
+    },
+    "disruption|disruption|C": {
+      "page": 38,
+      "dispositions": [
+        "disruption",
+        "disruption"
+      ],
+      "variant": "C",
+      "widthCm": 111.76,
+      "heightCm": 152.4,
+      "deploymentPaths": {
+        "attacker": "M 0.317601 0.500588 L 0.317601 0.0 L -1e-06 0.0 L -1e-06 0.242462 L -1e-06 0.500588 L -1e-06 1.000441 L 0.181397 1.000441 L 0.181397 0.500588 L 0.317601 0.500588 Z",
+        "defender": "M 0.999997 1.000442 L 0.999997 0.554363 L 0.999997 0.500589 L 0.999997 -0.000292 L 0.818396 -0.000292 L 0.818396 0.500589 L 0.682395 0.500589 L 0.682395 1.000442 L 0.999997 1.000442 Z"
+      },
+      "territoryPaths": [
+        "M 0.433541 0.992684 L 0.566299 0.003585"
+      ],
+      "objectives": {
+        "homeAttacker": [
+          {
+            "x": 0.1933,
+            "y": 0.139768
+          }
+        ],
+        "homeDefender": [
+          {
+            "x": 0.818055,
+            "y": 0.858646
+          }
+        ],
+        "central": [
+          {
+            "x": 0.470365,
+            "y": 0.468257
+          }
+        ],
+        "expansion": [
+          {
+            "x": 0.625408,
+            "y": 0.133471
+          },
+          {
+            "x": 0.378082,
+            "y": 0.850582
+          }
+        ]
+      }
+    },
+    "disruption|reconnaissance|A": {
+      "page": 39,
+      "dispositions": [
+        "disruption",
+        "reconnaissance"
+      ],
+      "variant": "A",
+      "widthCm": 111.76,
+      "heightCm": 152.4,
+      "deploymentPaths": {
+        "attacker": "M -0.0 0.000811 L -0.0 0.333051 L 0.4996 0.333051 L 0.4996 0.199721 L 1.0 0.199721 L 1.0 0.000811 L 0.4996 0.000811 L 0.47497 0.000811 L -0.0 0.000811 Z",
+        "defender": "M 0.999997 1.000442 L 0.999997 0.668202 L 0.500397 0.668202 L 0.500397 0.801532 L -3e-06 0.801532 L -3e-06 1.000442 L 0.500397 1.000442 L 0.525027 1.000442 L 0.999997 1.000442 Z"
+      },
+      "territoryPaths": [
+        "M 0.010417 0.564903 L 0.994791 0.434741"
+      ],
+      "objectives": {
+        "homeAttacker": [
+          {
+            "x": 0.386002,
+            "y": 0.168771
+          }
+        ],
+        "homeDefender": [
+          {
+            "x": 0.598064,
+            "y": 0.839551
+          }
+        ],
+        "central": [
+          {
+            "x": 0.474979,
+            "y": 0.431828
+          },
+          {
+            "x": 0.522657,
+            "y": 0.571915
+          }
+        ],
+        "expansion": [
+          {
+            "x": 0.855723,
+            "y": 0.310062
+          },
+          {
+            "x": 0.141184,
+            "y": 0.685255
+          }
+        ]
+      }
+    },
+    "disruption|reconnaissance|B": {
+      "page": 40,
+      "dispositions": [
+        "disruption",
+        "reconnaissance"
+      ],
+      "variant": "B",
+      "widthCm": 111.76,
+      "heightCm": 152.4,
+      "deploymentPaths": {
+        "attacker": "M -2e-06 -1e-06 L 0.272395 -1e-06 L 0.272395 1.00044 L -2e-06 1.00044 Z Z",
+        "defender": "M 0.727395 1e-06 L 0.999998 1e-06 L 0.999998 1.000443 L 0.727395 1.000443 Z Z"
+      },
+      "territoryPaths": [
+        "M 0.5 0 L 0.5 1"
+      ],
+      "objectives": {
+        "homeAttacker": [
+          {
+            "x": 0.171645,
+            "y": 0.263965
+          }
+        ],
+        "homeDefender": [
+          {
+            "x": 0.830257,
+            "y": 0.733358
+          }
+        ],
+        "central": [
+          {
+            "x": 0.664654,
+            "y": 0.476025
+          },
+          {
+            "x": 0.325147,
+            "y": 0.517808
+          }
+        ],
+        "expansion": [
+          {
+            "x": 0.545068,
+            "y": 0.14316
+          },
+          {
+            "x": 0.455628,
+            "y": 0.857061
+          }
+        ]
+      }
+    },
+    "disruption|reconnaissance|C": {
+      "page": 41,
+      "dispositions": [
+        "disruption",
+        "reconnaissance"
+      ],
+      "variant": "C",
+      "widthCm": 111.76,
+      "heightCm": 152.4,
+      "deploymentPaths": {
+        "attacker": "M 0.500396 0.34987 L 0.500396 1e-06 L -1e-06 1e-06 L -1e-06 0.500589 L 0.295615 0.500589 C 0.295615 0.500465 0.2956 0.500344 0.2956 0.500221 C 0.2956 0.41718 0.387114 0.349863 0.499999 0.349863 C 0.500132 0.349863 0.500264 0.34987 0.500396 0.34987 Z",
+        "defender": "M 0.999997 1.000442 L 0.999997 0.500221 L 0.704393 0.500221 C 0.704393 0.583262 0.612883 0.650579 0.499997 0.650579 L 0.499997 1.000442 L 0.999997 1.000442 Z"
+      },
+      "territoryPaths": [
+        "M 0.00625 0.993897 L 0.996875 0.002834"
+      ],
+      "objectives": {
+        "homeAttacker": [
+          {
+            "x": 0.146603,
+            "y": 0.243545
+          }
+        ],
+        "homeDefender": [
+          {
+            "x": 0.849932,
+            "y": 0.751904
+          }
+        ],
+        "central": [
+          {
+            "x": 0.420178,
+            "y": 0.434768
+          },
+          {
+            "x": 0.579901,
+            "y": 0.56694
+          }
+        ],
+        "expansion": [
+          {
+            "x": 0.809524,
+            "y": 0.150666
+          },
+          {
+            "x": 0.198853,
+            "y": 0.849159
+          }
+        ]
+      }
+    },
+    "disruption|priority-assets|A": {
+      "page": 42,
+      "dispositions": [
+        "disruption",
+        "priority-assets"
+      ],
+      "variant": "A",
+      "widthCm": 111.76,
+      "heightCm": 152.4,
+      "deploymentPaths": {
+        "attacker": "M 0.317601 0.500588 L 0.317601 0.0 L -1e-06 0.0 L -1e-06 0.242462 L -1e-06 0.500588 L -1e-06 1.000441 L 0.181397 1.000441 L 0.181397 0.500588 L 0.317601 0.500588 Z",
+        "defender": "M 0.999997 1.000442 L 0.999997 0.554363 L 0.999997 0.500589 L 0.999997 -0.000292 L 0.818396 -0.000292 L 0.818396 0.500589 L 0.682395 0.500589 L 0.682395 1.000442 L 0.999997 1.000442 Z"
+      },
+      "territoryPaths": [
+        "M 0.433541 0.992684 L 0.566299 0.003585"
+      ],
+      "objectives": {
+        "homeAttacker": [
+          {
+            "x": 0.172766,
+            "y": 0.113258
+          }
+        ],
+        "homeDefender": [
+          {
+            "x": 0.827801,
+            "y": 0.888658
+          }
+        ],
+        "central": [
+          {
+            "x": 0.431625,
+            "y": 0.499928
+          }
+        ],
+        "expansion": [
+          {
+            "x": 0.693744,
+            "y": 0.19105
+          },
+          {
+            "x": 0.302484,
+            "y": 0.809376
+          }
+        ]
+      }
+    },
+    "disruption|priority-assets|B": {
+      "page": 43,
+      "dispositions": [
+        "disruption",
+        "priority-assets"
+      ],
+      "variant": "B",
+      "widthCm": 111.76,
+      "heightCm": 152.4,
+      "deploymentPaths": {
+        "attacker": "M -0.0 0.000811 L -0.0 0.333051 L 0.4996 0.333051 L 0.4996 0.199721 L 1.0 0.199721 L 1.0 0.000811 L 0.4996 0.000811 L 0.47497 0.000811 L -0.0 0.000811 Z",
+        "defender": "M 0.999997 1.000442 L 0.999997 0.668202 L 0.500397 0.668202 L 0.500397 0.801532 L -3e-06 0.801532 L -3e-06 1.000442 L 0.500397 1.000442 L 0.525027 1.000442 L 0.999997 1.000442 Z"
+      },
+      "territoryPaths": [
+        "M 0.010118 0.567155 L 0.994493 0.436993"
+      ],
+      "objectives": {
+        "homeAttacker": [
+          {
+            "x": 0.354884,
+            "y": 0.198753
+          }
+        ],
+        "homeDefender": [
+          {
+            "x": 0.63256,
+            "y": 0.789348
+          }
+        ],
+        "central": [
+          {
+            "x": 0.501409,
+            "y": 0.454193
+          }
+        ],
+        "expansion": [
+          {
+            "x": 0.832791,
+            "y": 0.319828
+          },
+          {
+            "x": 0.173265,
+            "y": 0.682476
+          }
+        ]
+      }
+    },
+    "disruption|priority-assets|C": {
+      "page": 44,
+      "dispositions": [
+        "disruption",
+        "priority-assets"
+      ],
+      "variant": "C",
+      "widthCm": 111.76,
+      "heightCm": 152.4,
+      "deploymentPaths": {
+        "attacker": "M 0.500396 0.34987 L 0.500396 1e-06 L -1e-06 1e-06 L -1e-06 0.500589 L 0.295615 0.500589 C 0.295615 0.500465 0.2956 0.500344 0.2956 0.500221 C 0.2956 0.41718 0.387114 0.349863 0.499999 0.349863 C 0.500132 0.349863 0.500264 0.34987 0.500396 0.34987 Z",
+        "defender": "M 0.999997 1.000442 L 0.999997 0.500221 L 0.704393 0.500221 C 0.704393 0.583262 0.612883 0.650579 0.499997 0.650579 L 0.499997 1.000442 L 0.999997 1.000442 Z"
+      },
+      "territoryPaths": [
+        "M 0.00625 0.993897 L 0.996875 0.002834"
+      ],
+      "objectives": {
+        "homeAttacker": [
+          {
+            "x": 0.166205,
+            "y": 0.168437
+          }
+        ],
+        "homeDefender": [
+          {
+            "x": 0.8464,
+            "y": 0.827863
+          }
+        ],
+        "central": [
+          {
+            "x": 0.497896,
+            "y": 0.443974
+          }
+        ],
+        "expansion": [
+          {
+            "x": 0.788188,
+            "y": 0.174084
+          },
+          {
+            "x": 0.187093,
+            "y": 0.828448
+          }
+        ]
+      }
+    },
+    "reconnaissance|reconnaissance|A": {
+      "page": 45,
+      "dispositions": [
+        "reconnaissance",
+        "reconnaissance"
+      ],
+      "variant": "A",
+      "widthCm": 111.76,
+      "heightCm": 152.4,
+      "deploymentPaths": {
+        "attacker": "M 0.317601 0.500588 L 0.317601 0.0 L -1e-06 0.0 L -1e-06 0.242462 L -1e-06 0.500588 L -1e-06 1.000441 L 0.181397 1.000441 L 0.181397 0.500588 L 0.317601 0.500588 Z",
+        "defender": "M 0.999997 1.000442 L 0.999997 0.554363 L 0.999997 0.500589 L 0.999997 -0.000292 L 0.818396 -0.000292 L 0.818396 0.500589 L 0.682395 0.500589 L 0.682395 1.000442 L 0.999997 1.000442 Z"
+      },
+      "territoryPaths": [
+        "M 0.433541 0.992684 L 0.566299 0.003585"
+      ],
+      "objectives": {
+        "homeAttacker": [
+          {
+            "x": 0.1933,
+            "y": 0.139768
+          }
+        ],
+        "homeDefender": [
+          {
+            "x": 0.818055,
+            "y": 0.858646
+          }
+        ],
+        "central": [
+          {
+            "x": 0.470365,
+            "y": 0.468257
+          }
+        ],
+        "expansion": [
+          {
+            "x": 0.625408,
+            "y": 0.133471
+          },
+          {
+            "x": 0.378082,
+            "y": 0.850582
+          }
+        ]
+      }
+    },
+    "reconnaissance|reconnaissance|B": {
+      "page": 46,
+      "dispositions": [
+        "reconnaissance",
+        "reconnaissance"
+      ],
+      "variant": "B",
+      "widthCm": 111.76,
+      "heightCm": 152.4,
+      "deploymentPaths": {
+        "attacker": "M -2e-06 0.500589 L 0.999998 -0.000292 L 0.999998 0.0 L -2e-06 0.0 L -2e-06 0.500589 Z",
+        "defender": "M -2e-06 1.000442 L 0.999998 1.000442 L 0.999998 0.499929 L -2e-06 1.00015 L -2e-06 1.000442 Z"
+      },
+      "territoryPaths": [
+        "M 0.008772 0.745799 L 0.995614 0.252341"
+      ],
+      "objectives": {
+        "homeAttacker": [
+          {
+            "x": 0.288765,
+            "y": 0.147779
+          }
+        ],
+        "homeDefender": [
+          {
+            "x": 0.739331,
+            "y": 0.845975
+          }
+        ],
+        "central": [
+          {
+            "x": 0.479636,
+            "y": 0.4523
+          }
+        ],
+        "expansion": [
+          {
+            "x": 0.772618,
+            "y": 0.207244
+          },
+          {
+            "x": 0.230273,
+            "y": 0.798017
+          }
+        ]
+      }
+    },
+    "reconnaissance|reconnaissance|C": {
+      "page": 47,
+      "dispositions": [
+        "reconnaissance",
+        "reconnaissance"
+      ],
+      "variant": "C",
+      "widthCm": 111.76,
+      "heightCm": 152.4,
+      "deploymentPaths": {
+        "attacker": "M 0.003126 -0.00103 L 0.003126 0.331927 L 0.502046 0.331927 L 0.502046 0.198309 L 1.001764 0.198309 L 1.001764 -0.00103 L 0.502046 -0.00103 L 0.477449 -0.00103 L 0.003126 -0.00103 Z",
+        "defender": "M 1.001761 1.000758 L 1.001761 0.667801 L 0.502842 0.667801 L 0.502842 0.801419 L 0.003124 0.801419 L 0.003124 1.000758 L 0.502842 1.000758 L 0.527438 1.000758 L 1.001761 1.000758 Z"
+      },
+      "territoryPaths": [
+        "M 0.013529 0.564279 L 0.996563 0.433837"
+      ],
+      "objectives": {
+        "homeAttacker": [
+          {
+            "x": 0.275957,
+            "y": 0.141609
+          }
+        ],
+        "homeDefender": [
+          {
+            "x": 0.743181,
+            "y": 0.855627
+          }
+        ],
+        "central": [
+          {
+            "x": 0.557767,
+            "y": 0.474416
+          }
+        ],
+        "expansion": [
+          {
+            "x": 0.804122,
+            "y": 0.291451
+          },
+          {
+            "x": 0.20375,
+            "y": 0.708636
+          }
+        ]
+      }
+    },
+    "reconnaissance|priority-assets|A": {
+      "page": 48,
+      "dispositions": [
+        "reconnaissance",
+        "priority-assets"
+      ],
+      "variant": "A",
+      "widthCm": 111.76,
+      "heightCm": 152.4,
+      "deploymentPaths": {
+        "attacker": "M -2e-06 0.500589 L 0.999998 -0.000292 L 0.999998 0.0 L -2e-06 0.0 L -2e-06 0.500589 Z",
+        "defender": "M -2e-06 1.000442 L 0.999998 1.000442 L 0.999998 0.499929 L -2e-06 1.00015 L -2e-06 1.000442 Z"
+      },
+      "territoryPaths": [
+        "M 0.008772 0.745799 L 0.995614 0.252341"
+      ],
+      "objectives": {
+        "homeAttacker": [
+          {
+            "x": 0.236054,
+            "y": 0.162122
+          }
+        ],
+        "homeDefender": [
+          {
+            "x": 0.777896,
+            "y": 0.841992
+          }
+        ],
+        "central": [
+          {
+            "x": 0.478319,
+            "y": 0.482579
+          }
+        ],
+        "expansion": [
+          {
+            "x": 0.765479,
+            "y": 0.20102
+          },
+          {
+            "x": 0.236892,
+            "y": 0.799806
+          }
+        ]
+      }
+    },
+    "reconnaissance|priority-assets|B": {
+      "page": 49,
+      "dispositions": [
+        "reconnaissance",
+        "priority-assets"
+      ],
+      "variant": "B",
+      "widthCm": 111.76,
+      "heightCm": 152.4,
+      "deploymentPaths": {
+        "attacker": "M -0.0 0.000811 L -0.0 0.333051 L 0.4996 0.333051 L 0.4996 0.199721 L 1.0 0.199721 L 1.0 0.000811 L 0.4996 0.000811 L 0.47497 0.000811 L -0.0 0.000811 Z",
+        "defender": "M 0.999997 1.000442 L 0.999997 0.668202 L 0.500397 0.668202 L 0.500397 0.801532 L -3e-06 0.801532 L -3e-06 1.000442 L 0.500397 1.000442 L 0.525027 1.000442 L 0.999997 1.000442 Z"
+      },
+      "territoryPaths": [
+        "M 0.010417 0.564903 L 0.994791 0.434741"
+      ],
+      "objectives": {
+        "homeAttacker": [
+          {
+            "x": 0.236321,
+            "y": 0.166618
+          }
+        ],
+        "homeDefender": [
+          {
+            "x": 0.767049,
+            "y": 0.826979
+          }
+        ],
+        "central": [
+          {
+            "x": 0.454627,
+            "y": 0.490479
+          }
+        ],
+        "expansion": [
+          {
+            "x": 0.717855,
+            "y": 0.257124
+          },
+          {
+            "x": 0.243161,
+            "y": 0.727464
+          }
+        ]
+      }
+    },
+    "reconnaissance|priority-assets|C": {
+      "page": 50,
+      "dispositions": [
+        "reconnaissance",
+        "priority-assets"
+      ],
+      "variant": "C",
+      "widthCm": 111.76,
+      "heightCm": 152.4,
+      "deploymentPaths": {
+        "attacker": "M 0.317601 0.500588 L 0.317601 0.0 L -1e-06 0.0 L -1e-06 0.242462 L -1e-06 0.500588 L -1e-06 1.000441 L 0.181397 1.000441 L 0.181397 0.500588 L 0.317601 0.500588 Z",
+        "defender": "M 0.999997 1.000442 L 0.999997 0.554363 L 0.999997 0.500589 L 0.999997 -0.000292 L 0.818396 -0.000292 L 0.818396 0.500589 L 0.682395 0.500589 L 0.682395 1.000442 L 0.999997 1.000442 Z"
+      },
+      "territoryPaths": [
+        "M 0.433541 0.992684 L 0.566299 0.003585"
+      ],
+      "objectives": {
+        "homeAttacker": [
+          {
+            "x": 0.18355,
+            "y": 0.181824
+          }
+        ],
+        "homeDefender": [
+          {
+            "x": 0.80596,
+            "y": 0.833322
+          }
+        ],
+        "central": [
+          {
+            "x": 0.486112,
+            "y": 0.470264
+          }
+        ],
+        "expansion": [
+          {
+            "x": 0.712064,
+            "y": 0.165885
+          },
+          {
+            "x": 0.285522,
+            "y": 0.833685
+          }
+        ]
+      }
+    },
+    "priority-assets|priority-assets|A": {
+      "page": 51,
+      "dispositions": [
+        "priority-assets",
+        "priority-assets"
+      ],
+      "variant": "A",
+      "widthCm": 111.76,
+      "heightCm": 152.4,
+      "deploymentPaths": {
+        "attacker": "M 0.317601 0.500588 L 0.317601 0.0 L -1e-06 0.0 L -1e-06 0.242462 L -1e-06 0.500588 L -1e-06 1.000441 L 0.181397 1.000441 L 0.181397 0.500588 L 0.317601 0.500588 Z",
+        "defender": "M 0.999997 1.000442 L 0.999997 0.554363 L 0.999997 0.500589 L 0.999997 -0.000292 L 0.818396 -0.000292 L 0.818396 0.500589 L 0.682395 0.500589 L 0.682395 1.000442 L 0.999997 1.000442 Z"
+      },
+      "territoryPaths": [
+        "M 0.433541 0.992684 L 0.566299 0.003585"
+      ],
+      "objectives": {
+        "homeAttacker": [
+          {
+            "x": 0.165093,
+            "y": 0.146389
+          }
+        ],
+        "homeDefender": [
+          {
+            "x": 0.835588,
+            "y": 0.853318
+          }
+        ],
+        "central": [
+          {
+            "x": 0.577548,
+            "y": 0.496839
+          }
+        ],
+        "expansion": [
+          {
+            "x": 0.676288,
+            "y": 0.171339
+          },
+          {
+            "x": 0.320654,
+            "y": 0.829116
+          }
+        ]
+      }
+    },
+    "priority-assets|priority-assets|B": {
+      "page": 52,
+      "dispositions": [
+        "priority-assets",
+        "priority-assets"
+      ],
+      "variant": "B",
+      "widthCm": 111.76,
+      "heightCm": 152.4,
+      "deploymentPaths": {
+        "attacker": "M -2e-06 0.500589 L 0.999998 -0.000292 L 0.999998 0.0 L -2e-06 0.0 L -2e-06 0.500589 Z",
+        "defender": "M -2e-06 1.000442 L 0.999998 1.000442 L 0.999998 0.499929 L -2e-06 1.00015 L -2e-06 1.000442 Z"
+      },
+      "territoryPaths": [
+        "M 0.008772 0.745799 L 0.995614 0.252341"
+      ],
+      "objectives": {
+        "homeAttacker": [
+          {
+            "x": 0.238554,
+            "y": 0.160598
+          }
+        ],
+        "homeDefender": [
+          {
+            "x": 0.769327,
+            "y": 0.839507
+          }
+        ],
+        "central": [
+          {
+            "x": 0.500602,
+            "y": 0.536131
+          }
+        ],
+        "expansion": [
+          {
+            "x": 0.757928,
+            "y": 0.240047
+          },
+          {
+            "x": 0.219366,
+            "y": 0.76056
+          }
+        ]
+      }
+    },
+    "priority-assets|priority-assets|C": {
+      "page": 53,
+      "dispositions": [
+        "priority-assets",
+        "priority-assets"
+      ],
+      "variant": "C",
+      "widthCm": 111.76,
+      "heightCm": 152.4,
+      "deploymentPaths": {
+        "attacker": "M -0.0 0.000811 L -0.0 0.333051 L 0.4996 0.333051 L 0.4996 0.199721 L 1.0 0.199721 L 1.0 0.000811 L 0.4996 0.000811 L 0.47497 0.000811 L -0.0 0.000811 Z",
+        "defender": "M 0.999997 1.00412 L 0.999997 0.67188 L 0.500397 0.67188 L 0.500397 0.80521 L -3e-06 0.80521 L -3e-06 1.00412 L 0.500397 1.00412 L 0.525027 1.00412 L 0.999997 1.00412 Z"
+      },
+      "territoryPaths": [
+        "M 0.010417 0.564903 L 0.994791 0.434741"
+      ],
+      "objectives": {
+        "homeAttacker": [
+          {
+            "x": 0.202769,
+            "y": 0.187422
+          }
+        ],
+        "homeDefender": [
+          {
+            "x": 0.780778,
+            "y": 0.825825
+          }
+        ],
+        "central": [
+          {
+            "x": 0.503033,
+            "y": 0.441447
+          }
+        ],
+        "expansion": [
+          {
+            "x": 0.826296,
+            "y": 0.338432
+          },
+          {
+            "x": 0.17048,
+            "y": 0.68005
+          }
+        ]
+      }
+    }
+  }
+}

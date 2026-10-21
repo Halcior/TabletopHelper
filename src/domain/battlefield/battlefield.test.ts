@@ -12,6 +12,7 @@ import {
 import { buildBattlefieldReplay } from './replay'
 import {
   battlefieldPresentation,
+  battlefieldView,
   defaultBattlefieldGeometry,
   displayBoardPoint,
   officialBoardDefinition,
@@ -103,7 +104,7 @@ describe('official source geometry', () => {
           expect(presentation).toMatchObject({
             official: true,
             sourcePage: definition.page,
-            sourceVersion: '1.0',
+            sourceVersion: '1.3',
           })
           expect(presentation.deploymentAreas).toHaveLength(2)
           expect(presentation.territoryPaths.length).toBeGreaterThan(0)
@@ -162,6 +163,39 @@ describe('official source geometry', () => {
     expect(first.state.objectives).toEqual(swapped.state.objectives)
   })
 
+  it('shows portrait tables landscape without changing saved geometry or physical distances', () => {
+    const geometry = duel().state.battlefield!
+    const before = structuredClone(geometry)
+    for (const rotated of [false, true]) {
+      const view = battlefieldView(geometry.widthCm, geometry.heightCm, rotated)
+      expect(view.widthCm).toBe(152.4)
+      expect(view.heightCm).toBe(111.76)
+      expect(view.toDisplay({ x: 0, y: 0 })).toEqual(rotated ? { x: 0, y: 1 } : { x: 1, y: 0 })
+      for (const point of Object.values(geometry.positions)) {
+        if (!point) continue
+        const display = view.toDisplay(point)
+        const restored = view.toSource(display)
+        expect(restored.x).toBeCloseTo(point.x, 12)
+        expect(restored.y).toBeCloseTo(point.y, 12)
+        const origin = view.toDisplay({ x: 0, y: 0 })
+        expect(Math.hypot((display.x - origin.x) * view.widthCm, (display.y - origin.y) * view.heightCm))
+          .toBeCloseTo(Math.hypot(point.x * geometry.widthCm, point.y * geometry.heightCm), 10)
+      }
+    }
+    expect(geometry).toEqual(before)
+  })
+
+  it('keeps existing landscape FFA orientation and maps edits back from either view', () => {
+    for (const rotated of [false, true]) {
+      const view = battlefieldView(180, 120, rotated)
+      expect([view.widthCm, view.heightCm]).toEqual([180, 120])
+      expect(view.toDisplay({ x: 0.2, y: 0.3 })).toEqual(rotated ? { x: 0.8, y: 0.7 } : { x: 0.2, y: 0.3 })
+      const restored = view.toSource(view.toDisplay({ x: 0.2, y: 0.3 }))
+      expect(restored.x).toBeCloseTo(0.2)
+      expect(restored.y).toBeCloseTo(0.3)
+    }
+  })
+
   it('rejects official objective moves and dimension changes but allows exact HOME reassignment', () => {
     const session = duel()
     const changed = structuredClone(session.state.battlefield!)
@@ -200,7 +234,7 @@ describe('custom geometry, replay and permissions', () => {
     const geometry = legacy.state.battlefield!
     expect(Object.keys(geometry.positions)).toHaveLength(6)
     expect(Object.hasOwn(geometry.positions, 'CENTER')).toBe(false)
-    expect(geometry.positions.N2!.x).toBe(1 - geometry.positions.N3!.x)
+    expect(geometry.positions.N2!.x).toBeCloseTo(1 - geometry.positions.N3!.x, 12)
     const modern = {
       ...legacy.setup,
       objectives: [
@@ -409,5 +443,61 @@ describe('custom geometry, replay and permissions', () => {
       session.state.events.length + 1,
     )
     expect(buildBattleReport(session)).toEqual(before)
+  })
+})
+
+
+describe('Battlefield 2.0 objective footprint visuals and balanced FFA', () => {
+  it('places all three FFA HOME points at the same physical radius on 180×120 cm', () => {
+    const session = testCauldronGame()
+    const g = defaultBattlefieldGeometry(session.setup)
+    const radius = (id: string) => {
+      const p = g.positions[id]!
+      return Math.hypot((p.x - 0.5) * g.widthCm, (p.y - 0.5) * g.heightCm)
+    }
+    expect(radius('A-HOME')).toBeCloseTo(radius('B-HOME'), 9)
+    expect(radius('A-HOME')).toBeCloseTo(radius('C-HOME'), 9)
+    expect(g.positions.N2!.x).toBeLessThan(0.5)
+    expect(g.positions.N3!.x).toBeGreaterThan(0.5)
+    expect(g.positions.N1!.y).toBeLessThan(0.5)
+  })
+
+  it('round trips custom terrain footprints, replay, undo and scoring unchanged', () => {
+    const initial = testCauldronGame()
+    const geometry = structuredClone(initial.state.battlefield!)
+    geometry.footprints = {
+      N1: { kind: 'rectangle', widthCm: 24, heightCm: 16, rotation: 45 },
+      N2: { kind: 'chamfered', widthCm: 20, heightCm: 12, rotation: 0 },
+    }
+    const changed = dispatchBattleEvent(initial, {
+      type: 'BATTLEFIELD_LAYOUT_CHANGED', payload: { geometry },
+    })
+    expect(changed.state.objectives).toEqual(initial.state.objectives)
+    expect(changed.state.players).toEqual(initial.state.players)
+    expect(deserializeBattleSession(serializeBattleSession(changed)).state.battlefield).toEqual(geometry)
+    expect(buildBattlefieldReplay(changed).at(-1)?.geometry.footprints).toEqual(geometry.footprints)
+    expect(buildBattlefieldReplay(changed).at(-2)?.geometry.footprints).toBeUndefined()
+    expect(undoLastAction(changed).state.battlefield).toEqual(initial.state.battlefield)
+    expect(redoLastAction(undoLastAction(changed)).state.battlefield).toEqual(geometry)
+    expect(authorizeSharedMutation(initial, changed, membership(initial, 'p-b', false)).allowed).toBe(false)
+    expect(authorizeSharedMutation(initial, changed, membership(initial, 'p-b', true)).allowed).toBe(true)
+  })
+
+  it('rejects malformed or official overrides while tolerating older geometry without footprints', () => {
+    const session = testCauldronGame()
+    const valid = structuredClone(session.state.battlefield!)
+    expect(() => validateBattlefieldGeometry(session.setup, valid)).not.toThrow()
+    for (const footprints of [
+      { N99: { kind: 'rectangle', widthCm: 20, heightCm: 10, rotation: 0 } },
+      { N1: { kind: 'rectangle', widthCm: -1, heightCm: 10, rotation: 0 } },
+      { N1: { kind: 'ellipse', widthCm: 20, heightCm: 10, rotation: 0 } },
+      { N1: { kind: 'chamfered', widthCm: 20, heightCm: 10, rotation: 360 } },
+      { N1: { kind: 'chamfered', widthCm: Number.NaN, heightCm: 10, rotation: 0 } },
+    ]) expect(() => validateBattlefieldGeometry(session.setup, { ...valid, footprints })).toThrow()
+    const official = duel()
+    expect(() => validateBattlefieldGeometry(official.setup, {
+      ...official.state.battlefield!,
+      footprints: { 'A-HOME': { kind: 'rectangle', widthCm: 20, heightCm: 12, rotation: 0 } },
+    })).toThrow(/Official geometry/)
   })
 })

@@ -88,23 +88,43 @@ for (const layout of [1, 2, 3])
         '152.4',
       )
       await expect(page.locator('.objective-node')).toHaveCount(5)
+      await expect(page.locator('[data-terrain-id]')).toHaveCount(16)
+      await expect(page.locator('.objective-footprint')).toHaveCount(0)
+      await page.getByLabel('Footprints', { exact: true }).uncheck()
+      await expect(page.locator('[data-terrain-id]')).toHaveCount(0)
+      await expect(page.locator('.objective-node')).toHaveCount(5)
+      await page.getByLabel('Footprints', { exact: true }).check()
+      await page.getByRole('checkbox', { name: 'Objectives', exact: true }).uncheck()
+      await expect(page.locator('.objective-node')).toHaveCount(0)
+      await page.getByRole('checkbox', { name: 'Objectives', exact: true }).check()
       await expect(page.locator('.battlefield-unplaced button')).toHaveCount(0)
       await expect(page.locator('[data-deployment-zone]')).toHaveCount(2)
       await expect(page.locator('.battlefield-territory')).not.toHaveCount(0)
       const savedX = Number(
         await marker(page, 'B-HOME').getAttribute('data-board-x'),
       )
+      const savedY = Number(await marker(page, 'B-HOME').getAttribute('data-board-y'))
+      const canvas = (await page.locator('.battlefield-canvas').boundingBox())!
+      expect(canvas.width / canvas.height).toBeCloseTo(60 / 44, 2)
+      const displayPoint = () => marker(page, 'B-HOME').evaluate(node => ({
+        x: parseFloat((node as HTMLElement).style.left),
+        y: parseFloat((node as HTMLElement).style.top),
+      }))
+      expect((await displayPoint()).x).toBeCloseTo((1 - savedY) * 100)
+      expect((await displayPoint()).y).toBeCloseTo(savedX * 100)
       if (layout === 1) expect(savedX).toBeCloseTo(0.374741, 6)
       await page.getByRole('button', { name: 'Rotate 180°' }).click()
       expect(
         await marker(page, 'B-HOME').evaluate((node) =>
           parseFloat((node as HTMLElement).style.left),
         ),
-      ).toBeCloseTo((1 - savedX) * 100)
+      ).toBeCloseTo(savedY * 100)
+      expect((await displayPoint()).y).toBeCloseTo((1 - savedX) * 100)
       await expect(marker(page, 'B-HOME')).toHaveAttribute(
         'data-board-x',
         String(savedX),
       )
+      await expect(marker(page, 'B-HOME')).toHaveAttribute('data-board-y', String(savedY))
       const beforeColor = await marker(page, 'CENTER-1').evaluate(
         (node) => getComputedStyle(node).borderColor,
       )
@@ -545,4 +565,56 @@ test('three phones share host geometry and control, rejecting non-host edits and
   } finally {
     await Promise.all(phones.map(({ context }) => context.close()))
   }
+})
+
+test('Battlefield 2.0 edits terrain footprints without changing objective control or replay history', async ({ browser }) => {
+  const { context, page } = await phone(browser)
+  try {
+    await page.goto('/')
+    await page.evaluate(async () => {
+      const { testCauldronGame } = await import('/src/rulesets/cauldronFFA3/cauldronTestUtils.ts')
+      const { saveBattle } = await import('/src/persistence/database.ts')
+      const { dispatchBattleEvent } = await import('/src/domain/battle/engine.ts')
+      const session = testCauldronGame()
+      session.setup.gameId = 'battlefield-footprints'
+      await saveBattle(dispatchBattleEvent(session, { type: 'PHASE_CHANGED', payload: { phase: 'SHOOTING' } }))
+    })
+    await page.goto('/battle/battlefield-footprints')
+    await dismissSecondaryReveal(page)
+    await openBoard(page)
+    await expect(page.locator('.objective-footprint')).toHaveCount(6)
+    await expect(marker(page, 'N1')).toBeVisible()
+    const beforeState = await page.evaluate(async () => {
+      const { useBattleStore } = await import('/src/stores/battleStore.ts')
+      return structuredClone(useBattleStore.getState().session!.state.objectives)
+    })
+    await page.getByRole('button', { name: 'Edit Layout', exact: true }).click()
+    await page.getByLabel('Footprint objective').selectOption('N1')
+    await page.getByLabel('Footprint shape').selectOption('rectangle')
+    await page.getByLabel('Footprint width (cm)').fill('24')
+    await page.getByLabel('Footprint height (cm)').fill('16')
+    await page.getByLabel('Footprint rotation').fill('45')
+    await expect(page.locator('.objective-footprint[data-footprint-id="N1"]')).toHaveAttribute('data-footprint-width-cm', '24')
+    await page.getByRole('button', { name: 'Save Layout', exact: true }).click()
+    await page.reload()
+    await openBoard(page)
+    await expect(page.locator('.objective-footprint[data-footprint-id="N1"]')).toHaveAttribute('data-footprint-kind', 'rectangle')
+    await expect(page.locator('.objective-footprint[data-footprint-id="N1"]')).toHaveAttribute('data-footprint-height-cm', '16')
+    const afterState = await page.evaluate(async () => {
+      const { useBattleStore } = await import('/src/stores/battleStore.ts')
+      return structuredClone(useBattleStore.getState().session!.state.objectives)
+    })
+    expect(afterState).toEqual(beforeState)
+    await page.getByRole('button', { name: 'Hide footprints', exact: true }).click()
+    await expect(page.locator('.objective-footprint')).toHaveCount(0)
+    await expect(marker(page, 'N1')).toBeVisible()
+    await page.getByRole('button', { name: 'Show footprints', exact: true }).click()
+    await page.getByRole('button', { name: 'Replay', exact: true }).click()
+    const slider = page.getByLabel('Replay event', { exact: true })
+    await slider.fill('0')
+    await expect(page.locator('.objective-footprint[data-footprint-id="N1"]')).toHaveAttribute('data-footprint-kind', 'chamfered')
+    await slider.fill(await slider.getAttribute('max') ?? '0')
+    await expect(page.locator('.objective-footprint[data-footprint-id="N1"]')).toHaveAttribute('data-footprint-kind', 'rectangle')
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false)
+  } finally { await context.close() }
 })
