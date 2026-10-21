@@ -140,6 +140,7 @@
 @media(max-width:600px){.terrain-gallery-controls{grid-template-columns:repeat(2,minmax(0,1fr));padding:12px;gap:12px}.terrain-layer-controls{grid-template-columns:repeat(2,minmax(0,1fr))}.terrain-gallery-heading{display:block}.terrain-gallery-frame{padding:12px 12px 14px}.terrain-gallery-heading h1{font-size:1.8rem}.terrain-table-scroll td,.terrain-table-scroll th{padding:8px 4px;font-size:.66rem}}
 @media print{
   @page{size:A4 portrait;margin:12mm}
+  :root:has(.terrain-gallery){color-scheme:light!important}
   html:has(.terrain-gallery),body:has(.terrain-gallery),.app-root:has(.terrain-gallery){background:#fff!important;color:#111!important}
   body:has(.terrain-gallery) .app-header,body:has(.terrain-gallery) .app-background,.terrain-gallery-heading,.terrain-gallery-controls,.terrain-plan .battlefield-tools,.terrain-layer-controls,.terrain-inspector{display:none!important}
   .terrain-gallery,.terrain-plan{margin:0!important;padding:0!important;max-width:none!important;gap:6px}
