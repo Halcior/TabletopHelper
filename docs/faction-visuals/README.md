@@ -6,7 +6,7 @@ This feature builds on merged PR #28. PR #29 must remain unmerged until user pla
 
 - All 35 factions/subfactions in the current bundled catalogue, plus neutral. Exact normalized metadata and importer aliases; no unit-name guessing. Independent manual per-army overrides and a default theme.
 - 20 original painted environments with 60 optimized WebP variants, plus **16 distinct original illustrated SVG environments** for previously reused faction/chapter art and optional Custodes Shadowkeepers. All 35 catalogue factions now have a distinct scene; regular Adeptus Astartes use the general Space Marines original. SVG variants reuse one resolution-independent file for mobile/banner/portrait. Abstract role/faction marks are project originals. [Asset provenance and sizes](ASSETS.md).
-- Army banners, 56/72px unit portraits, compact scoreboard and objective-legend marks, real Chronicle event attribution, participant banners and standout portraits in the report. Doubles represents both commanders. Existing CP controls and player colours remain unchanged.
+- Army banners, **original 56/72px faction emblems by default on unit cards**, compact scoreboard and objective-legend marks, real Chronicle event attribution, participant banners and standout portraits in the report. Doubles represents both commanders. Existing CP controls and player colours remain unchanged.
 - Local army-banner and unit-photo upload, removal and reset. Images are keyed by army plus importer selection ID (otherwise source ID / unit ID), never unit name. Reimport retains photos when identities remain stable; two same-name selections stay independent.
 - Persistent Minimal / Themed / Custom appearance, Off / Compact / Enhanced portraits, banners toggle, auto/manual theme. Custom includes personal photos; Themed uses environmental art. Hiding decoration does not delete photos.
 - Print hides artwork and preserves statistics. Reduced motion, lazy images, fixed portrait dimensions and a broken-image fallback.
@@ -15,6 +15,7 @@ This feature builds on merged PR #28. PR #29 must remain unmerged until user pla
 
 | Path under `src/` | Responsibility |
 |---|---|
+| `features/factionVisuals/FactionSigil.tsx` | 37 original distinct emblem glyphs, never official GW logos |
 | `features/factionVisuals/themes.ts` | Single theme registry, exact aliases, real metadata role lookup, CSS variables; matches the bundled catalogue; verified by tests |
 | `features/factionVisuals/preferences.ts` | Versioned, validated localStorage preferences; Zustand state; cross-tab storage updates |
 | `features/factionVisuals/media.ts` | Local Blob identity, format/size validation, WebP compression, Dexie live query and object URL cleanup |
@@ -99,3 +100,7 @@ The 16 supplemental vector panoramas intentionally have **different architectura
 A [GitHub-viewable 36-image contact sheet](CONTACT_SHEET.md) is available without Vercel access. An interactive [visual contact sheet](../../public/faction-art/gallery.html) groups all faction environments and optionally displays them in monochrome so differences in architecture can be evaluated without colours. In a deployed Preview the URL is `/faction-art/gallery.html` (the Preview may require Vercel authentication). Each tile shows whether its image is painted WebP or illustrated SVG; it does not pretend both are equivalent finishes.
 
 New automated tests require every catalogue faction to reference a unique actual file; the SVG rendering path is shared by banners and portrait thumbnails. Existing photo overrides still take precedence in Custom mode.
+
+## Faction emblems on unit cards
+
+Unit cards now show one original emblem per faction, not a thumbnail of the environment artwork. In Custom mode, a private saved unit photo takes precedence; when missing or broken it falls back to the original emblem. Compact and Enhanced change only size, Off and Minimal hide the decoration. Background artwork remains on army banners. This does not affect saved armies, game logic or multiplayer. The emblem artwork is purpose-drawn, not copied from Games Workshop trademarks.

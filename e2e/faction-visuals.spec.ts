@@ -61,7 +61,7 @@ test('photos survive reload and reimport, duplicate names are independent, JSON 
  await page.reload();await expect(page.locator('.photo-editor__preview')).toHaveCount(2)
  const sizes=await page.evaluate(async()=>{const {database}=await import('/src/persistence/database.ts');return (await database.visualMedia.toArray()).map(x=>({type:x.blob.type,size:x.blob.size}))});expect(sizes.every(x=>x.type==='image/webp'&&x.size<2*1024*1024)).toBe(true)
  await importTestArmy(page);await editor(page,f.armyId);await expect(page.locator('.photo-editor__preview')).toHaveCount(2)
- await prefs(page);await page.getByLabel('Unit Portraits',{exact:true}).selectOption('off');await expect(page.locator('.unit-portrait')).toHaveCount(0);await expect(page.locator('.photo-editor__preview')).toHaveCount(2)
+ await prefs(page);await page.getByLabel('Unit Icons',{exact:true}).selectOption('off');await expect(page.locator('.unit-portrait')).toHaveCount(0);await expect(page.locator('.photo-editor__preview')).toHaveCount(2)
  const serialized=await page.evaluate(async()=>{const {database}=await import('/src/persistence/database.ts');return JSON.stringify([await database.armies.toArray(),await database.battles.toArray()])});expect(serialized).not.toMatch(/blob:|data:image|visualMedia|faction-art/)
  await first.getByRole('button',{name:'Remove photo'}).click();await expect(page.locator('.photo-editor__preview')).toHaveCount(1)
 })
@@ -72,7 +72,7 @@ test('invalid and corrupt photos show errors; failed art has a role fallback',as
  const f=await seed(page);await editor(page,f.armyId);const input=page.locator('.photo-editor').nth(1).locator('input');await input.setInputFiles({name:'bad.svg',mimeType:'image/svg+xml',buffer:Buffer.from('<svg/>')});await expect(page.getByRole('alert')).toContainText('JPEG');await input.setInputFiles({name:'bad.png',mimeType:'image/png',buffer:Buffer.from('not an image')});await expect(page.getByRole('alert')).toContainText('decoded');await page.route('**/faction-art/**',r=>r.abort());await page.reload();await expect(page.locator('.unit-portrait').first().locator('svg')).toBeVisible()
 })
 test('local photo works offline and a fresh Minimal load requests no faction art',async({page,context})=>{
- const f=await seed(page);await editor(page,f.armyId);await page.locator('.photo-editor').nth(1).locator('input').setInputFiles(photo);await expect(page.locator('.photo-editor__preview')).toBeVisible();await context.setOffline(true);await prefs(page);await page.getByLabel('Unit Portraits',{exact:true}).selectOption('enhanced');await expect.poll(()=>page.locator('.unit-portrait img').first().evaluate((im:HTMLImageElement)=>im.naturalWidth)).toBeGreaterThan(0);await page.getByLabel('Appearance',{exact:true}).selectOption('minimal');await context.setOffline(false);const requests:string[]=[];page.on('request',r=>{if(r.url().includes('/faction-art/'))requests.push(r.url())});await page.reload();await expect(page.locator('.photo-editor').first()).toBeVisible();expect(requests).toEqual([])
+ const f=await seed(page);await editor(page,f.armyId);await page.locator('.photo-editor').nth(1).locator('input').setInputFiles(photo);await expect(page.locator('.photo-editor__preview')).toBeVisible();await context.setOffline(true);await prefs(page);await page.getByLabel('Unit Icons',{exact:true}).selectOption('enhanced');await expect.poll(()=>page.locator('.unit-portrait img').first().evaluate((im:HTMLImageElement)=>im.naturalWidth)).toBeGreaterThan(0);await page.getByLabel('Appearance',{exact:true}).selectOption('minimal');await context.setOffline(false);const requests:string[]=[];page.on('request',r=>{if(r.url().includes('/faction-art/'))requests.push(r.url())});await page.reload();await expect(page.locator('.photo-editor').first()).toBeVisible();expect(requests).toEqual([])
 })
 test('v1 saved armies and battles migrate unchanged; same factions keep player colours',async({page})=>{
  const f=await seed(page,true)
@@ -90,4 +90,16 @@ test('v1 saved armies and battles migrate unchanged; same factions keep player c
  await page.goto(`/battle/${f.battleId}`);await expect(page.locator('.score-card')).toHaveCount(2)
  const colours=()=>page.locator('.score-card').evaluateAll(cards=>cards.map(c=>getComputedStyle(c).borderTopColor))
  const original=await colours();expect(original[0]).not.toBe(original[1]);await selectPanel(page,'army');await prefs(page);await page.getByLabel('Army theme',{exact:true}).selectOption('orks');expect(await colours()).toEqual(original)
+})
+
+test('themed unit cards use faction emblem icons rather than cropped environmental artwork',async({page})=>{
+ const fixture=await seed(page)
+ await page.goto('/battle/'+fixture.battleId)
+ await selectPanel(page,'army')
+ const card=page.locator('.unit-grid .unit-card').first()
+ await expect(card.locator('.unit-portrait .faction-sigil')).toBeVisible()
+ await expect(card.locator('.unit-portrait img')).toHaveCount(0)
+ await expect(page.locator('.unit-portrait img')).toHaveCount(0)
+ await expect(card.locator('[data-faction-symbol="adeptus-custodes"]')).toBeVisible()
+ await expect(page.locator('.army-banner__art img')).toBeVisible()
 })

@@ -6,6 +6,7 @@ import type { Army,UnitDefinition } from '../../domain/army/types'
 import { detectTheme,factionThemes,unitRole,factionArtUrl,factionArtSrcSet,themeById } from './themes'
 import { defaults,resolveTheme,validatePreferences } from './preferences'
 import { mediaKey,validatePhoto } from './media'
+import { factionSigilPaths } from './FactionSigil'
 const army={id:'army-a',faction:'Necrons',units:[]} as unknown as Army
 const unit={id:'u1',name:'Same unit',keywords:[],categories:[]} as unknown as UnitDefinition
 
@@ -49,4 +50,18 @@ describe('private local media identity',()=>{
  it('separates duplicate names and armies',()=>{expect(mediaKey(army,unit)).not.toBe(mediaKey(army,{...unit,id:'u2'}));expect(mediaKey(army,unit)).not.toBe(mediaKey({...army,id:'b'},unit));expect(mediaKey(army)).not.toBe(mediaKey(army,unit))})
  it('retains importer selection identity after reimport',()=>{expect(mediaKey(army,{...unit,id:'old',sourceMetadata:{importer:'nr',nrSelectionId:'selection'}})).toBe(mediaKey(army,{...unit,id:'new',sourceMetadata:{importer:'nr',nrSelectionId:'selection'}}))})
  it('rejects unsupported formats and oversized input',()=>{expect(()=>validatePhoto({type:'image/svg+xml',size:20} as File)).toThrow(/JPEG/);expect(()=>validatePhoto({type:'image/jpeg',size:13*1024*1024} as File)).toThrow(/12 MB/);expect(()=>validatePhoto({type:'image/webp',size:100} as File)).not.toThrow()})
+})
+
+describe('original faction icon coverage',()=>{
+ it('has one nonempty icon for every catalogue faction and Shadowkeepers',()=>{
+   for(const theme of factionThemes){
+     const [outline,detail]=factionSigilPaths[theme.id]??[]
+     expect(outline?.length,theme.id).toBeGreaterThan(12)
+     expect(detail?.length,theme.id).toBeGreaterThan(8)
+   }
+ })
+ it('does not reuse a faction emblem silhouette across themes',()=>{
+   const glyphs=factionThemes.map(t=>factionSigilPaths[t.id].join('|'))
+   expect(new Set(glyphs).size).toBe(glyphs.length)
+ })
 })
