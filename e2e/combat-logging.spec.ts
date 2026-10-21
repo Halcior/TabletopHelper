@@ -174,13 +174,14 @@ test('partial casualties remain visible and net attribution is grouped by unit i
       const game = testCauldronGame()
       game.setup.gameId = 'partial-attribution'
       await saveBattle(dispatchBattleEvents(game, [
+        { type: 'PHASE_CHANGED', payload: { phase: 'SHOOTING' } },
         { type: 'UNIT_MODEL_DESTROYED', payload: { playerId: 'p-b', unitId: 'infantry', amount: 2, destroyedByPlayerId: 'p-a', attackerUnitId: 'tank' } },
         { type: 'UNIT_MODEL_DESTROYED', payload: { playerId: 'p-b', unitId: 'infantry', amount: 1, destroyedByPlayerId: 'p-c', attackerUnitId: 'tank' } },
         { type: 'UNIT_MODEL_RESTORED', payload: { playerId: 'p-b', unitId: 'infantry', amount: 1 } },
       ]))
     })
     await page.goto('/battle/partial-attribution')
-    await dismissSecondaryReveal(page)
+    await expect(page.getByRole('navigation', { name: 'Battle panels' })).toBeVisible()
     await selectPanel(page, 'log')
     await expect(page.locator('.chronicle-entry--kills').filter({ hasText: '2 models' })).toHaveCount(1)
     await page.locator('.chronicle-filters').getByRole('button', { name: 'Combat', exact: true }).click()
