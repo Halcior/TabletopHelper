@@ -1,10 +1,12 @@
 import officialData from './officialLayouts.json'
+import { DEFAULT_OBJECTIVE_FOOTPRINT } from './types'
 import type { BattleSetup, ObjectiveDefinition } from '../battle/types'
 import type {
   BattlefieldGeometry,
   BoardPoint,
   BoardPresentation,
   OfficialBoardDefinition,
+  ObjectiveFootprint,
 } from './types'
 
 export const OFFICIAL_BOARD_SOURCE = officialData.source
@@ -118,16 +120,19 @@ export function defaultBattlefieldGeometry(
   const ffa = setup.players.length === 3
   const defaults: Record<string, BoardPoint> = ffa
     ? {
-        'A-HOME': { x: 0.16, y: 0.15 },
-        'B-HOME': { x: 0.84, y: 0.15 },
-        'C-HOME': { x: 0.5, y: 0.86 },
+        // HOME centres are equidistant in real centimetres from the centre
+        // on a 180×120 table (radius sqrt(36² + 36²) = ~50.9 cm).
+        // The lower HOME remains inside the bottom schematic deployment.
+        'A-HOME': { x: 0.30, y: 0.20 },
+        'B-HOME': { x: 0.70, y: 0.20 },
+        'C-HOME': { x: 0.5, y: 0.5 + Math.hypot(0.2 * 180, 0.3 * 120) / 120 },
         'AB-NEUTRAL': { x: 0.5, y: 0.18 },
-        'AC-NEUTRAL': { x: 0.24, y: 0.61 },
-        'BC-NEUTRAL': { x: 0.76, y: 0.61 },
+        'AC-NEUTRAL': { x: 0.33, y: 0.61 },
+        'BC-NEUTRAL': { x: 0.67, y: 0.61 },
         CENTER: { x: 0.5, y: 0.5 },
         N1: { x: 0.5, y: 0.18 },
-        N2: { x: 0.24, y: 0.61 },
-        N3: { x: 0.76, y: 0.61 },
+        N2: { x: 0.33, y: 0.61 },
+        N3: { x: 0.67, y: 0.61 },
       }
     : {
         'A-HOME': { x: 0.15, y: 0.5 },
@@ -207,6 +212,11 @@ export function battlefieldPresentation(
   }
 }
 
+/** Footprint visuals have no influence over ownership, LOS, scoring, or ranges. */
+export function objectiveFootprint(geometry: BattlefieldGeometry, id: string): ObjectiveFootprint {
+  return geometry.footprints?.[id] ?? DEFAULT_OBJECTIVE_FOOTPRINT
+}
+
 export function displayBoardPoint(
   point: BoardPoint,
   rotated: boolean,
@@ -268,8 +278,24 @@ export function validateBattlefieldGeometry(
         'Objective coordinates must be normalized between 0 and 1.',
       )
   }
+  const footprints = geometry.footprints
+  if (footprints !== undefined) {
+    if (!footprints || typeof footprints !== 'object' || Array.isArray(footprints) ||
+      Object.keys(footprints).some((id) => !ids.includes(id))) {
+      throw new Error('Footprints must only reference saved objective IDs.')
+    }
+    for (const footprint of Object.values(footprints)) {
+      if (!footprint || !['rectangle', 'chamfered'].includes(footprint.kind) ||
+        ![footprint.widthCm, footprint.heightCm].every((size) =>
+          typeof size === 'number' && Number.isFinite(size) && size >= 6 && size <= 60) ||
+        !Number.isFinite(footprint.rotation) || footprint.rotation < 0 || footprint.rotation >= 360) {
+        throw new Error('Footprint dimensions must be 6–60 cm and rotation 0–359°.')
+      }
+    }
+  }
   const official = officialBoardDefinition(setup)
   if (official) {
+    if (footprints !== undefined) throw new Error('Official geometry does not store custom terrain footprints.')
     const expected = defaultBattlefieldGeometry(
       setup,
       geometry.attackerHomeZone,

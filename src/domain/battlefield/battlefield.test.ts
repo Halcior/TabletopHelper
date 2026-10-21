@@ -411,3 +411,59 @@ describe('custom geometry, replay and permissions', () => {
     expect(buildBattleReport(session)).toEqual(before)
   })
 })
+
+
+describe('Battlefield 2.0 objective footprint visuals and balanced FFA', () => {
+  it('places all three FFA HOME points at the same physical radius on 180×120 cm', () => {
+    const session = testCauldronGame()
+    const g = defaultBattlefieldGeometry(session.setup)
+    const radius = (id: string) => {
+      const p = g.positions[id]!
+      return Math.hypot((p.x - 0.5) * g.widthCm, (p.y - 0.5) * g.heightCm)
+    }
+    expect(radius('A-HOME')).toBeCloseTo(radius('B-HOME'), 9)
+    expect(radius('A-HOME')).toBeCloseTo(radius('C-HOME'), 9)
+    expect(g.positions.N2!.x).toBeLessThan(0.5)
+    expect(g.positions.N3!.x).toBeGreaterThan(0.5)
+    expect(g.positions.N1!.y).toBeLessThan(0.5)
+  })
+
+  it('round trips custom terrain footprints, replay, undo and scoring unchanged', () => {
+    const initial = testCauldronGame()
+    const geometry = structuredClone(initial.state.battlefield!)
+    geometry.footprints = {
+      N1: { kind: 'rectangle', widthCm: 24, heightCm: 16, rotation: 45 },
+      N2: { kind: 'chamfered', widthCm: 20, heightCm: 12, rotation: 0 },
+    }
+    const changed = dispatchBattleEvent(initial, {
+      type: 'BATTLEFIELD_LAYOUT_CHANGED', payload: { geometry },
+    })
+    expect(changed.state.objectives).toEqual(initial.state.objectives)
+    expect(changed.state.players).toEqual(initial.state.players)
+    expect(deserializeBattleSession(serializeBattleSession(changed)).state.battlefield).toEqual(geometry)
+    expect(buildBattlefieldReplay(changed).at(-1)?.geometry.footprints).toEqual(geometry.footprints)
+    expect(buildBattlefieldReplay(changed).at(-2)?.geometry.footprints).toBeUndefined()
+    expect(undoLastAction(changed).state.battlefield).toEqual(initial.state.battlefield)
+    expect(redoLastAction(undoLastAction(changed)).state.battlefield).toEqual(geometry)
+    expect(authorizeSharedMutation(initial, changed, membership(initial, 'p-b', false)).allowed).toBe(false)
+    expect(authorizeSharedMutation(initial, changed, membership(initial, 'p-b', true)).allowed).toBe(true)
+  })
+
+  it('rejects malformed or official overrides while tolerating older geometry without footprints', () => {
+    const session = testCauldronGame()
+    const valid = structuredClone(session.state.battlefield!)
+    expect(() => validateBattlefieldGeometry(session.setup, valid)).not.toThrow()
+    for (const footprints of [
+      { N99: { kind: 'rectangle', widthCm: 20, heightCm: 10, rotation: 0 } },
+      { N1: { kind: 'rectangle', widthCm: -1, heightCm: 10, rotation: 0 } },
+      { N1: { kind: 'ellipse', widthCm: 20, heightCm: 10, rotation: 0 } },
+      { N1: { kind: 'chamfered', widthCm: 20, heightCm: 10, rotation: 360 } },
+      { N1: { kind: 'chamfered', widthCm: Number.NaN, heightCm: 10, rotation: 0 } },
+    ]) expect(() => validateBattlefieldGeometry(session.setup, { ...valid, footprints })).toThrow()
+    const official = duel()
+    expect(() => validateBattlefieldGeometry(official.setup, {
+      ...official.state.battlefield!,
+      footprints: { 'A-HOME': { kind: 'rectangle', widthCm: 20, heightCm: 12, rotation: 0 } },
+    })).toThrow(/Official geometry/)
+  })
+})
