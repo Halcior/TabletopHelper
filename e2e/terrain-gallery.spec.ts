@@ -57,6 +57,7 @@ for(const viewport of [{width:390,height:844},{width:820,height:1180},{width:144
 
 test('print view retains source, physical plan and full measurement table',async({page})=>{
   await page.goto('/terrain-layouts?a=purge-the-foe&b=reconnaissance&variant=C')
+  await expect(page.getByRole('region', { name: 'Official terrain plan' })).toBeVisible()
   await page.emulateMedia({media:'print'})
   expect(await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme)).toBe('light')
   await expect(page.locator('.terrain-gallery-controls')).toBeHidden()
