@@ -143,3 +143,18 @@
 .battle-menu__popover button { min-height: 44px; }
 @media (max-width: 600px) { .battle-report .report-player { padding: 14px 10px; } }
 @media print { .battle-report { display: block; } }
+
+/* Combat Logging 2.0 — read-only attribution display; no effect on active controls. */
+.chronicle-entry__impact{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0 12px;min-width:0}
+.chronicle-entry__impact span{font-size:.73rem;line-height:1.35;border:1px solid var(--line);border-radius:4px;padding:4px 7px;background:var(--surface-inset);color:var(--muted);overflow-wrap:anywhere}
+.chronicle-entry__impact span:first-child{border-color:var(--danger);color:var(--danger-bright)}
+.report-engagements>.section-heading{align-items:center}
+.report-engagements>.section-heading>small{font-size:.78rem;color:var(--muted)}
+.report-engagements .report-table-wrap{max-width:100%;overflow-x:auto}
+.report-engagements table{width:100%;min-width:600px}
+.report-engagements th,.report-engagements td{vertical-align:top}
+.report-engagements td strong,.report-engagements td small{display:block;overflow-wrap:anywhere}
+.report-engagements td small{color:var(--muted);font-size:.72rem;margin-top:4px}
+.report-engagements td:nth-child(n+3){font-family:var(--font-mono);white-space:nowrap}
+@media(max-width:600px){.report-engagements>.section-heading{align-items:flex-start;flex-direction:column;gap:8px}}
+@media print{.report-engagements table{min-width:0;font-size:8pt}.report-engagements tr{break-inside:avoid}.chronicle-entry__impact{display:none}}

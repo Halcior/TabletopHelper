@@ -31,6 +31,47 @@ function officialGame(fixed = false): BattleSession {
 }
 
 describe('combat attribution and canonical unit performance', () => {
+  it('shows partial casualties in Chronicle highlights without destroying the target unit', () => {
+    const session = dispatchBattleEvent(testCauldronGame(), loss('p-b', 'infantry', 2))
+    const hit = buildBattleChronicle(session).find((entry) => entry.event.type === 'UNIT_MODEL_DESTROYED')!
+    expect(hit).toMatchObject({ category: 'kills', highlight: true, unitChange: { modelsBefore: 4, modelsAfter: 2, destroyedAfter: false } })
+    const narrative = buildBattleReport(session).narrative.join(' ')
+    expect(narrative).toContain('2 modele')
+    expect(narrative).toContain('Single-model tank')
+  })
+
+  it('aggregates partial losses per attacking unit and target with net restoration, without inventing wounds', () => {
+    const initial = testCauldronGame()
+    let session = dispatchBattleEvents(initial, [
+      loss('p-b', 'infantry', 2, 'p-a', 'tank'),
+      loss('p-b', 'infantry', 1, 'p-c', 'infantry'),
+      { type: 'UNIT_MODEL_RESTORED', payload: { playerId: 'p-b', unitId: 'infantry', amount: 1 } },
+    ])
+    let entries = buildUnitPerformance(session).engagements.filter((row) => row.target.playerId === 'p-b' && row.target.unitId === 'infantry')
+    expect(entries).toHaveLength(1)
+    expect(entries[0]).toMatchObject({ attackerPlayerId: 'p-a', attacker: { unitId: 'tank' }, modelsDestroyed: 2, enemyPointsDestroyed: 85, loggedWounds: 0, kills: 0 })
+    expect(buildBattleReport(session).performance.engagements).toEqual(buildUnitPerformance(session).engagements)
+    session = dispatchBattleEvent(session, { type: 'STATE_CORRECTED', payload: { correction: { kind: 'UNIT_MODELS', playerId: 'p-b', unitId: 'infantry', value: 4 }, reason: 'No losses after replay' } })
+    expect(buildUnitPerformance(session).engagements).toHaveLength(0)
+  })
+
+  it('keeps damage-only and player-only attribution explicit in the exported exchange ledger', () => {
+    const session = dispatchBattleEvents(testCauldronGame(), [
+      { type: 'UNIT_COMBAT_RESOLVED', payload: { playerId: 'p-b', unitId: 'tank', kind: 'damage', allocations: [{ profileId: 'unit', wounds: 5 }], destroyedByPlayerId: 'p-a', attackerUnitId: 'tank' } },
+      loss('p-b', 'infantry', 1, 'p-c', null),
+      { type: 'UNIT_MODEL_DESTROYED', payload: { playerId: 'p-b', unitId: 'infantry', amount: 1 } },
+    ])
+    const entries = buildUnitPerformance(session).engagements
+    expect(entries.find((row) => row.target.unitId === 'tank')).toMatchObject({ loggedWounds: 5, modelsDestroyed: 0, attacker: { unitId: 'tank' } })
+    expect(entries.find((row) => row.attackerPlayerId === 'p-c')).toMatchObject({ modelsDestroyed: 1, attacker: undefined })
+    expect(entries.find((row) => !row.attackerPlayerId)).toMatchObject({ modelsDestroyed: 1, loggedWounds: 0 })
+    const markdown = battleReportMarkdown(buildBattleReport(session))
+    expect(markdown).toContain('Rejestr starć')
+    expect(markdown).toContain('Nieznane źródło / środowisko')
+    expect(markdown).toContain('jednostka nieznana')
+  })
+
+
   it('splits FFA model value between players and gives only the last hit the kill', () => {
     let session = dispatchBattleEvents(testCauldronGame(), [loss('p-b', 'infantry', 2), loss('p-b', 'infantry', 2, 'p-c', 'infantry')])
     expect(stats(session)).toMatchObject({ modelsDestroyed: 2, enemyPointsDestroyed: 85, kills: 0 })

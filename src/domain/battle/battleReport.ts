@@ -137,6 +137,14 @@ export function battleReportMarkdown(report: BattleReport): string {
     '| Jednostka | Zadane W (Partial) | Otrzymane W (Partial) | Uleczone W | Przywrócone modele |',
     '| --- | --- | --- | --- | --- |',
     ...report.performance.units.map((unit) => `| ${markdownText(unit.name)} | ${unit.damageDealt ?? 'Unknown'} | ${unit.damageReceived ?? 'Unknown'} | ${unit.woundsHealed} | ${unit.modelsRestored} |`),
+    '', '## Rejestr starć — kto komu zadał straty', '',
+    '| Atakujący | Cel | Modele netto | Punkty netto (szacunek) | Zapisane W (Partial) | Eliminacje oddziałów |',
+    '| --- | --- | --- | --- | --- | --- |',
+    ...report.performance.engagements.map((engagement) => {
+      const owner = (id: string) => report.commanderNames?.[id] ?? report.ranking.find((player) => player.playerId === id)?.name ?? id
+      const source = engagement.attacker ? `${engagement.attacker.name} (${owner(engagement.attacker.playerId)})` : engagement.attackerPlayerId ? `${owner(engagement.attackerPlayerId)} — jednostka nieznana` : 'Nieznane źródło / środowisko'
+      return `| ${markdownText(source)} | ${markdownText(`${engagement.target.name} (${owner(engagement.target.playerId)})`)} | ${engagement.modelsDestroyed} | ${amount(engagement.enemyPointsDestroyed)} | ${engagement.loggedWounds} | ${engagement.kills} |`
+    }),
     '', '## Przebieg', '',
     ...report.narrative.flatMap((paragraph) => [markdownText(paragraph), '']), '## Efektywność jednostek', '',
     '| Gracz / jednostka | Koszt | Kills | Modele wroga | Punkty zniszczone | Combat ROI | Akcje | Potwierdzone VP z akcji | Stan |',
@@ -145,6 +153,7 @@ export function battleReportMarkdown(report: BattleReport): string {
     '', '## Wyróżnienia', '',
     ...report.performance.awards.map((award) => `- **${award.title}**: ${award.winners.map((unit) => markdownText(`${unit.name} (${report.ranking.find((player) => player.playerId === unit.playerId)?.name ?? unit.playerId})`)).join(', ')}. ${award.rule}`),
     '', '## Zasady statystyk', '',
+    'Rejestr starć agreguje zapisy według atakującej jednostki i celu. Modele oraz punkty oznaczają STRATY NETTO po reanimacji i korektach; Wounds to historycznie zarejestrowane skuteczne obrażenia (Partial), a nie oszacowanie z poległych modeli. Nieznany sprawca pozostaje nieznany.',
     'Punkty zniszczone są wartością netto utraconych modeli: koszt jednostki / początkowa liczba modeli. Wskrzeszenie lub korekta stanu cofa ostatnie przypisane straty, również z poprzednich rund. Kill otrzymuje sprawca ostatniego ciosu i znika po przywróceniu celu. ROI = punkty zniszczone / koszt własnej jednostki × 100%.',
     'Obrażenia obejmują skutecznie utracone Wounds zapisane w Combat Logging oraz starsze jawne spadki Wounds pojedynczych modeli. Zapis samej utraty modeli lub pełnego KO nie dopisuje obrażeń. Leczenie i reanimacja nie kasują historycznych obrażeń; korekta odejmuje błędnie zapisane straty. Unknown oznacza brak danych, a Partial — tylko zarejestrowany wkład. Wartości bez jednoznacznego sprawcy jednostkowego pozostają na poziomie gracza. Kontrola objective nie daje automatycznie VP konkretnej jednostce. Wielojednostkowe nagrody VP nie są dzielone przez zgadywanie. Zmiana wyniku Secondary przez korektę usuwa pewność wcześniejszych VP z akcji. Inne kategorie i późniejsze potwierdzone nagrody zachowują przypisanie; tabela pokazuje znany wkład.',
     `Straty bez przypisanego gracza: ${amount(report.performance.unattributedPoints)} pkt. Punkty przypisane tylko do gracza: ${amount(report.performance.armies.reduce((sum, army) => sum + army.playerOnlyPoints, 0))} pkt.`,

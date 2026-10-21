@@ -23,6 +23,19 @@ export type UnitPerformance = UnitReference & {
   missionVp: number | null
   combatRoi: number | null
 }
+/** Derived per-attacker → target ledger, never stored in battle events.
+ * Casualties/points are NET of restoration; Wounds are recorded historical
+ * effective damage (partial), retracted only by explicit corrections.
+ */
+export type CombatEngagement = {
+  attackerPlayerId?: string
+  attacker?: UnitReference
+  target: UnitReference
+  modelsDestroyed: number
+  enemyPointsDestroyed: number
+  loggedWounds: number
+  kills: number
+}
 export type ArmyPerformance = {
   playerId: string
   startingPoints: number
@@ -40,6 +53,7 @@ export type BattlePerformance = {
   units: UnitPerformance[]
   armies: ArmyPerformance[]
   awards: UnitAward[]
+  engagements: CombatEngagement[]
   unattributedPoints: number
   partial: boolean
 }
@@ -216,6 +230,40 @@ export function buildUnitPerformance(session: BattleSession, chronicle = buildBa
     const performer = byKey.get(performanceKey(batch.attackerPlayerId ?? '', batch.attackerUnitId ?? ''))
     if (performer && batch.count > 0) performer.damageDealt = (performer.damageDealt ?? 0) + batch.count
   }
+  // Group the existing canonical casualty and damage credits by source and target.
+  // This includes partially damaged surviving units and player-only/unknown sources.
+  // Critically, DO NOT infer Wounds from model-only losses or modify any scoring.
+  const engagementByKey = new Map<string, CombatEngagement>()
+  function engagementFor(targetKey: string, credit: Pick<Credit, 'attackerPlayerId' | 'attackerUnitId'>): CombatEngagement {
+    const target = byKey.get(targetKey)!
+    const playerId = credit.attackerPlayerId && armyById.has(credit.attackerPlayerId) ? credit.attackerPlayerId : undefined
+    const attacker = playerId && credit.attackerUnitId ? byKey.get(performanceKey(playerId, credit.attackerUnitId)) : undefined
+    const pairKey = JSON.stringify([playerId ?? null, attacker?.unitId ?? null, target.playerId, target.unitId])
+    let row = engagementByKey.get(pairKey)
+    if (!row) {
+      row = { attackerPlayerId: playerId, attacker: attacker ? battleUnit(session, attacker.playerId, attacker.unitId) : undefined,
+        target: battleUnit(session, target.playerId, target.unitId), modelsDestroyed: 0, enemyPointsDestroyed: 0, loggedWounds: 0, kills: 0 }
+      engagementByKey.set(pairKey, row)
+    }
+    return row
+  }
+  for (const [targetKey, batches] of credits) {
+    const target = byKey.get(targetKey)!
+    for (const credit of batches) if (credit.count > 0) {
+      const row = engagementFor(targetKey, credit)
+      row.modelsDestroyed += credit.count
+      row.enemyPointsDestroyed += valuePerModel(target) * credit.count
+    }
+  }
+  for (const [targetKey, batches] of wounds) for (const credit of batches) if (credit.count > 0) {
+    engagementFor(targetKey, credit).loggedWounds += credit.count
+  }
+  for (const [targetKey, credit] of kills) engagementFor(targetKey, credit).kills += 1
+  const engagements = [...engagementByKey.values()]
+    .filter((row) => row.modelsDestroyed > 0 || row.loggedWounds > 0 || row.kills > 0)
+    .sort((a, b) => b.enemyPointsDestroyed - a.enemyPointsDestroyed || b.loggedWounds - a.loggedWounds
+      || a.target.name.localeCompare(b.target.name) || (a.attacker?.name ?? '').localeCompare(b.attacker?.name ?? ''))
+
   for (const mission of missions.values()) {
     const performer = byKey.get(performanceKey(mission.unit.playerId, mission.unit.unitId))
     if (performer && mission.completed) performer.completedMissionActions += 1
@@ -225,7 +273,7 @@ export function buildUnitPerformance(session: BattleSession, chronicle = buildBa
     armyById.get(unit.playerId)!.ownPointsLost += unit.modelsLost * valuePerModel(unit)
   }
   return {
-    units, armies, awards: session.state.status === 'completed' ? unitAwards(units) : [], unattributedPoints,
+    units, armies, engagements, awards: session.state.status === 'completed' ? unitAwards(units) : [], unattributedPoints,
     partial: unattributedPoints > 0 || armies.some((army) => army.playerOnlyPoints > 0),
   }
 }

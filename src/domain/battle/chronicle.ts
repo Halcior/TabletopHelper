@@ -170,7 +170,9 @@ export function buildBattleChronicle(session: BattleSession): ChronicleEntry[] {
         const combat = ['UNIT_COMBAT_RESOLVED', 'UNIT_DESTROYED', 'UNIT_MODEL_DESTROYED', 'UNIT_MODEL_RESTORED', 'UNIT_WOUNDS_CHANGED'].includes(event.type)
         if (combat) {
           pending.category = lost > 0 || killed ? 'kills' : 'combat'
-          pending.highlight = killed || (change.destroyedBefore && !change.destroyedAfter)
+          // A partial casualty is still a battle event worth showing. Legacy model-loss
+           // events previously appeared only in Full History/Kills until the last model died.
+           pending.highlight = lost > 0 || killed || change.modelsAfter > change.modelsBefore || (change.destroyedBefore && !change.destroyedAfter)
           const playerName = change.attackerPlayerId ? state.players[change.attackerPlayerId]?.name ?? change.attackerPlayerId : 'Unknown / environment'
           const source = change.attacker ? `${change.attacker.name} (${playerName})` : playerName
           const targetOwner = state.players[change.target.playerId]?.name ?? change.target.playerId
