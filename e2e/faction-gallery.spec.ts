@@ -1,0 +1,20 @@
+import { expect, test } from '@playwright/test'
+
+test('faction artwork contact sheet lists every environment and supports grayscale review', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/faction-art/gallery.html')
+  await expect(page.getByRole('heading', { name: 'Faction environment contact sheet' })).toBeVisible()
+  await expect(page.locator('#grid figure')).toHaveCount(36)
+  await expect(page.locator('#count')).toHaveText('36 of 36 variants')
+  await page.getByRole('searchbox', { name: 'Filter faction' }).fill('shadowkeepers')
+  await expect(page.locator('#grid figure')).toHaveCount(1)
+  const img = page.locator('#grid figure img')
+  await expect(img).toHaveJSProperty('complete', true)
+  expect(await img.evaluate((node: HTMLImageElement) => node.naturalWidth)).toBeGreaterThan(0)
+  await expect(page.locator('#grid figure')).toContainText('Distinct vector scene')
+  await page.getByRole('checkbox', { name: 'Grayscale silhouette test' }).check()
+  await expect(page.locator('body')).toHaveClass(/mono/)
+  await page.getByRole('checkbox', { name: 'Hide faction names' }).check()
+  await expect(page.locator('#grid figure')).toContainText('Faction hidden')
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
+})
