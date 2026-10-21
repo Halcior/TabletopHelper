@@ -96,6 +96,7 @@ test('themed unit cards use faction emblem icons rather than cropped environment
  const fixture=await seed(page)
  await page.goto('/battle/'+fixture.battleId)
  await selectPanel(page,'army')
+ await page.getByRole('button',{name:/Custodes.*Active/}).click()
  const card=page.locator('.unit-grid .unit-card').first()
  await expect(card.locator('.unit-portrait .faction-sigil')).toBeVisible()
  await expect(card.locator('.unit-portrait img')).toHaveCount(0)
