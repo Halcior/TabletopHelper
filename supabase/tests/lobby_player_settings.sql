@@ -60,7 +60,7 @@ select pg_temp.denied($q$select public.set_host_lobby_settings('dddddddd-dddd-4d
 select set_config('request.headers','{"x-room-code":"ABC456","x-client-id":"host","x-seat-credential":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}',true);
 select public.set_host_lobby_settings('dddddddd-dddd-4ddd-8ddd-dddddddddddd',array['p2','p1'],'{}');
 do $$begin
- assert (select turn_order=array['p2','p1'] from social_private.host_lobby_settings where room_id='dddddddd-dddd-4ddd-8ddd-dddddddddddd');
+ assert public.get_host_lobby_settings('dddddddd-dddd-4ddd-8ddd-dddddddddddd')->'turnOrder'='["p2","p1"]'::jsonb;
 end $$;
 update public.shared_participants set display_name='FAKE',force_disposition='disruption' where client_id='host';
 do $$begin
