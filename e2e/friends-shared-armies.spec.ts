@@ -57,6 +57,12 @@ async function chooseArmy(page: Page) {
   await expect(
     picker.getByRole('button', { name: 'Change Army', exact: true }),
   ).toBeEnabled()
+  const disposition = page.getByRole('combobox', { name: 'Force Disposition' })
+  if (await disposition.count()) {
+    await disposition.selectOption('purge-the-foe')
+    await page.getByRole('button', { name: 'Confirm Force Disposition', exact: true }).click()
+    await expect(page.getByText('Selected: Purge the Foe')).toBeVisible()
+  }
 }
 async function newLobby(page: Page, mode = 'duel') {
   await page.goto(`/battle/setup?play=shared&mode=${mode}`)
