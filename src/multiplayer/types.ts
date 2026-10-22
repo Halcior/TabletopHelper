@@ -9,6 +9,7 @@ export type SharedParticipant = {
   clientId: string
   playerId: string
   displayName: string
+  forceDisposition?: string | null
   isHost: boolean
   isReady: boolean
   lastSeenAt: string
@@ -62,6 +63,7 @@ export interface SharedSessionTransport {
   listEvents(roomId: string, afterSequence: number): Promise<SharedEventEnvelope[]>
   listParticipants(roomId: string): Promise<SharedParticipant[]>
   touchParticipant(roomId: string, clientId: string): Promise<void>
+  setSeatSettings(roomId: string, clientId: string, disposition: string | null, owner: string | null): Promise<void>
   setParticipantReady(roomId: string, clientId: string, ready: boolean): Promise<void>
   releaseParticipant(roomId: string, clientId: string): Promise<void>
   startRoom(roomId: string, clientId: string): Promise<string>
