@@ -4,7 +4,7 @@ import { duplicateRoster } from '../features/armyLibrary/repository'
 import { useRosterScope } from '../features/armyLibrary/scope'
 import { Link, useParams } from 'react-router-dom'
 import type { Army } from '../domain/army/types'
-import { ArmyBanner } from '../features/factionVisuals/components'
+import { ArmyBanner, UnitPortrait } from '../features/factionVisuals/components'
 import { useAccount } from '../features/account/store'
 import { Avatar } from '../features/social/ProfilePanel'
 import { useRemote } from '../features/social/hooks'
@@ -485,6 +485,7 @@ function SharedRosterList({
             <div className="roster-unit-list">
               {army.units.map((u) => (
                 <section className="roster-unit" key={u.id}>
+                  <UnitPortrait army={friendOwner ? {...army,localMediaId:cloudMediaId(friendOwner,army.id)} : army} unit={u} forceCustom />
                   <h3>
                     {u.name}
                     {u.isWarlord ? ' · Warlord' : ''}
