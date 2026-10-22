@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArmyBanner } from '../features/factionVisuals/components'
 import {
-  deleteRoster,
   duplicateRoster,
   useRosterLibrary,
 } from '../features/armyLibrary/repository'
@@ -10,6 +9,7 @@ import { exportRosters } from '../domain/army/roster'
 import { downloadJson } from '../features/armyLibrary/download'
 import { useRosterScope } from '../features/armyLibrary/scope'
 import { syncArmies, useSyncState } from '../features/armyLibrary/sync'
+import { DeleteRosterButton } from '../features/armyLibrary/DeleteRosterButton'
 
 export default function ArmyLibrary() {
   const { rows, loading, error } = useRosterLibrary()
@@ -20,7 +20,6 @@ export default function ArmyLibrary() {
     [sort, setSort] = useState('recent')
   const [message, setMessage] = useState(''),
     [busy, setBusy] = useState(false)
-  const [deleting, setDeleting] = useState<string>()
   const filtered = useMemo(
     () =>
       rows
@@ -214,6 +213,7 @@ export default function ArmyLibrary() {
                 >
                   Use in Battle
                 </Link>
+                <DeleteRosterButton key={`${owner}:${row.id}`} army={row.army} owner={owner} disabled={busy} />
               </div>
               <details>
                 <summary>More actions</summary>
@@ -241,45 +241,8 @@ export default function ArmyLibrary() {
                   >
                     Export
                   </button>
-                  <button
-                    className="button button--small"
-                    disabled={busy}
-                    onClick={() => setDeleting(row.id)}
-                  >
-                    Delete
-                  </button>
                 </div>
               </details>
-              {deleting === row.id && (
-                <div
-                  className="alert alert--warning"
-                  role="group"
-                  aria-label="Confirm roster deletion"
-                >
-                  <p>
-                    Delete “{row.army.name}”? Battle snapshots and photos are
-                    kept.
-                  </p>
-                  <button
-                    className="button"
-                    disabled={busy}
-                    onClick={() =>
-                      void act(async () => {
-                        await deleteRoster(row.id)
-                        setDeleting(undefined)
-                      })
-                    }
-                  >
-                    Confirm delete
-                  </button>
-                  <button
-                    className="button"
-                    onClick={() => setDeleting(undefined)}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              )}
             </article>
           ))}
         </div>

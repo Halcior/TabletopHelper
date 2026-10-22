@@ -11,6 +11,10 @@
   gap: 0.5rem;
   align-items: center;
 }
+.roster-delete-confirmation h2,
+.roster-delete-confirmation p {
+  overflow-wrap: anywhere;
+}
 .roster-filters,
 .roster-fields {
   display: grid;
