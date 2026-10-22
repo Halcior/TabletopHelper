@@ -62,7 +62,7 @@ export default function Account() {
     await migrateLocalArmies(ids, user.id)
     await database.libraryPreferences.put({ ownerId: user.id })
     setMessage(
-      'Imported on this device. Originals were kept. Cloud upload is queued; photos stay local.',
+      'Imported on this device. Originals were kept. Cloud upload is queued; use Sync my existing photos to backfill custom images.',
     )
     void syncArmies(user.id)
   }
@@ -321,7 +321,7 @@ export default function Account() {
       {user && <section className="panel">
         <h2>Cloud media</h2>
         <p>Custom army banners and unit portraits are stored privately in Supabase Storage. Friends can see them only for armies you share with them.</p>
-        <button type="button" disabled={busy} onClick={() => void perform(async () => {
+        <button type="button" disabled={busy} onClick={() => void act(async () => {
           const result = await syncLocalCloudMedia()
           setMessage(`Cloud photos synchronized: ${result.uploaded} checked, ${result.failed} failed. Images already stored in the cloud are not overwritten.`)
         })}>Sync my existing photos</button>
