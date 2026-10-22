@@ -468,7 +468,7 @@ function SharedRosterList({
             {copied[army.id] && <Link className="button" to={`/army/${encodeURIComponent(copied[army.id])}/edit`}>Open my copy</Link>}
           </div>
           {copied[army.id] && <p role="status">Copied to your library. The original roster remains unchanged.</p>}
-          {copyError[army.id] && <p role="alert" className="alert alert--danger">{copyError[army.id]}</p>
+          {copyError[army.id] && <p role="alert" className="alert alert--danger">{copyError[army.id]}</p>}
           <p>
             {army.faction} · {army.totalPoints} pts · {army.units.length} units
           </p>
