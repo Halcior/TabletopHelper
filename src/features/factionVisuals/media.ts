@@ -23,7 +23,7 @@ export async function savePhoto(army:Army,file:File,unit?:UnitDefinition){
   void uploadCloudPhoto(key,blob).catch(()=>undefined)
  }finally{bitmap.close()}
 }
-export async function removePhoto(army:Army,unit?:UnitDefinition){const key=mediaKey(army,unit);await database.visualMedia.delete(key);await deleteCloudPhoto(key)}
+export async function removePhoto(army:Army,unit?:UnitDefinition){const key=mediaKey(army,unit);await database.visualMedia.delete(key);void deleteCloudPhoto(key).catch(()=>undefined)}
 export function usePhoto(key:string|undefined){
  const [photo,setPhoto]=useState<{key:string;url:string}>()
  useEffect(()=>{
