@@ -48,6 +48,10 @@ do $$begin
  assert (select force_disposition='take-and-hold' from public.shared_participants where client_id='host');
 end $$;
 
+-- A visible client_id must never authorize someone else to change their seat.
+select set_config('request.headers','{"x-room-code":"ABC456","x-client-id":"host","x-seat-credential":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}',true);
+select pg_temp.denied($q$select public.set_shared_seat_settings('dddddddd-dddd-4ddd-8ddd-dddddddddddd','disruption')$q$);
+select set_config('request.headers','{"x-room-code":"ABC456","x-client-id":"host","x-seat-credential":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}',true);
 reset role; set local role anon;
 select set_config('request.jwt.claim.sub','',true);
 update public.shared_participants set display_name='FAKE',force_disposition='disruption' where client_id='host';
@@ -92,4 +96,8 @@ do $$declare result jsonb; begin
  assert result#>>'{setup,armies,seat:p2,name}'='Necron roster';
 end $$;
 select pg_temp.denied($q$select public.set_shared_seat_settings('dddddddd-dddd-4ddd-8ddd-dddddddddddd','disruption')$q$);
+-- Historical waiting-room participant rows must not block account deletion.
+reset role;
+delete from auth.users where id='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+do $begin assert (select profile_user_id is null from public.shared_participants where player_id='p2'); end $;
 rollback;
