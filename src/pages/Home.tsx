@@ -1,4 +1,6 @@
 import { useRosterLibrary } from '../features/armyLibrary/repository'
+import { DeleteRosterButton } from '../features/armyLibrary/DeleteRosterButton'
+import { useRosterScope } from '../features/armyLibrary/scope'
 import { ArmyBanner } from '../features/factionVisuals/components'
 import { VisualPreferences } from '../features/factionVisuals/VisualPreferences'
 import { useEffect, useState } from 'react'
@@ -31,6 +33,7 @@ function HomeActionContent({ icon, label, title, detail }: { icon: AppIconName; 
 
 export default function Home() {
   const { rows: armies } = useRosterLibrary()
+  const owner = useRosterScope((s) => s.userId)
   const [activeBattle, setActiveBattle] = useState<BattleSession | null>(null)
   const [recentBattles, setRecentBattles] = useState<StoredBattle[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -146,7 +149,10 @@ export default function Home() {
                 <Link className="button button--small" to={`/army/${encodeURIComponent(army.id)}`}>Open / Edit</Link>
                 <div><h3>{army.faction}</h3><p>{army.name}</p></div>
                 <div className="library-card__facts"><strong>{army.totalPoints}</strong><span>PTS</span><strong>{army.units.length}</strong><span>UNITS</span></div>
-                <Link className="button button--small" to={`/battle/setup?armyId=${encodeURIComponent(army.id)}`}>Use</Link>
+                <div className="roster-actions">
+                  <Link className="button button--small" to={`/battle/setup?armyId=${encodeURIComponent(army.id)}`}>Use</Link>
+                  <DeleteRosterButton key={`${owner}:${army.id}`} army={army} owner={owner} />
+                </div>
               </article>
             ))}
           </div>

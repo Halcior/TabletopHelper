@@ -30,6 +30,51 @@ async function sync(page: Page) {
   ).toBeEnabled()
 }
 
+test('visible army deletion on Home and My Armies supports cancellation and survives reload', async ({ browser }) => {
+  const { context, page } = await phone(browser)
+  try {
+    await importLocal(page)
+    const originalName = await page.evaluate(async () => {
+      const { listArmies, duplicateRoster } = await import('/src/features/armyLibrary/repository.ts')
+      const [original] = await listArmies()
+      await duplicateRoster(original.army, 'Delete this roster')
+      return original.army.name
+    })
+    await page.goto('/')
+    const target = page.locator('.home-armies-section article').filter({ has: page.getByText('Delete this roster', { exact: true }) })
+    const trigger = target.getByRole('button', { name: 'Delete army', exact: true })
+    await expect(trigger).toBeVisible()
+    await trigger.click()
+    const dialog = page.getByRole('dialog', { name: 'Delete army: Delete this roster', exact: true })
+    await expect(dialog.getByRole('button', { name: 'Cancel', exact: true })).toBeFocused()
+    await page.screenshot({ path: 'test-results/army-delete-confirmation-phone.png' })
+    await dialog.getByRole('button', { name: 'Cancel', exact: true }).click()
+    await expect(target).toHaveCount(1)
+    await trigger.click()
+    await page.keyboard.press('Escape')
+    await expect(dialog).toHaveCount(0)
+    await expect(trigger).toBeFocused()
+    await trigger.click()
+    await dialog.getByRole('button', { name: 'Confirm delete', exact: true }).click()
+    await expect(target).toHaveCount(0)
+    await page.reload()
+    await expect(page.locator('.home-armies-section article')).toHaveCount(1)
+    await page.goto('/armies')
+    const remaining = page.locator('.roster-card-grid > article')
+    await expect(remaining).toHaveCount(1)
+    await expect(remaining.getByRole('heading', { name: originalName, exact: true })).toBeVisible()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+    await page.screenshot({ path: 'test-results/army-delete-library-phone.png', fullPage: true })
+    await remaining.getByRole('button', { name: 'Delete army', exact: true }).click()
+    await page.getByRole('dialog').getByRole('button', { name: 'Confirm delete', exact: true }).click()
+    await expect(remaining).toHaveCount(0)
+    await page.reload()
+    await expect(page.getByRole('heading', { name: 'Build your library', exact: true })).toBeVisible()
+  } finally {
+    await context.close()
+  }
+})
+
 test('guest edits, copies, exports and restores independent roster variants on a phone', async ({
   browser,
 }) => {
@@ -192,6 +237,17 @@ test('optional accounts migrate once, restore sessions, sync two devices offline
       second.page.getByRole('heading', { name: 'a@example.test' }),
     ).toBeVisible()
     expect(backend.refreshes).toBeGreaterThan(0)
+    // Deleting from the visible library action propagates to the other phone.
+    await second.page.goto('/armies')
+    await second.page.getByRole('button', { name: 'Delete army', exact: true }).click()
+    await second.page.getByRole('dialog').getByRole('button', { name: 'Confirm delete', exact: true }).click()
+    await expect(second.page.locator('.roster-card-grid > article')).toHaveCount(0)
+    await sync(second.page)
+    await first.page.goto('/armies')
+    await sync(first.page)
+    await expect(first.page.locator('.roster-card-grid > article')).toHaveCount(0)
+    expect([...backend.rows.values()].every(row => row.deleted_at)).toBe(true)
+    await second.page.goto('/account')
     await second.page
       .getByRole('button', { name: 'Sign out', exact: true })
       .click()
