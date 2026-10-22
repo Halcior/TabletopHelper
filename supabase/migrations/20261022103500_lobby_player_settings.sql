@@ -46,7 +46,14 @@ begin
    -- Normal room PATCH/seat upserts may update presence but cannot forge
    -- account identity, nickname or mission disposition.
    new.force_disposition := old.force_disposition;
-   new.profile_user_id := old.profile_user_id;
+   -- Allow the FK's ON DELETE SET NULL only after the actual auth account
+   -- disappears; ignore direct attempts to clear another player's binding.
+   if new.profile_user_id is null and old.profile_user_id is not null
+      and not exists(select 1 from auth.users where id=old.profile_user_id) then
+     new.profile_user_id := null;
+   else
+     new.profile_user_id := old.profile_user_id;
+   end if;
    new.display_name := old.display_name;
  end if;
  return new;
