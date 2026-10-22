@@ -119,6 +119,11 @@ test('two accounts: profile, friendship, read-only shared list, invite and indep
       b.page.getByRole('heading', { name: 'Custodes roster', exact: true }),
     ).toBeVisible()
     await b.page.getByText('View units', { exact: true }).click()
+    const expandedRoster = b.page.locator('.library-card > details').first()
+    await expect(expandedRoster).toHaveJSProperty('open', true)
+    await b.page.getByText('Imported weapon profiles & abilities', { exact: true }).click()
+    const expandedProfile = b.page.locator('.roster-unit > details').first()
+    await expect(expandedProfile).toHaveJSProperty('open', true)
     await expect(
       b.page.getByText('1 × Captain · Spear', { exact: true }),
     ).toBeVisible()
