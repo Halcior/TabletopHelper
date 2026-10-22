@@ -61,6 +61,10 @@ function playersForMode(players: PlayerDraft[], mode: CauldronMode): PlayerDraft
 export default function BattleSetup() {
   const [step, setStep] = useState<1 | 2 | 3>(1)
   const [params] = useSearchParams()
+  const [playMode, setPlayMode] = useState<'local' | 'shared' | null>(() => {
+    const requested = params.get('play')
+    return requested === 'local' || requested === 'shared' ? requested : null
+  })
   const navigate = useNavigate()
   const preferredArmyId = params.get('armyId')
   const [mode, setMode] = useState<CauldronMode>(() => setupMode(params.get('mode')))
@@ -82,7 +86,6 @@ export default function BattleSetup() {
     Object.fromEntries(DEFAULT_PLAYERS.map((player) => [player.id, ['OFFICIAL_A_GRIEVOUS_BLOW', 'OFFICIAL_ENGAGE_ON_ALL_FRONTS']])) as Record<string, [OfficialSecondaryId, OfficialSecondaryId]>,
   )
   const [hostPlayerId, setHostPlayerId] = useState(DEFAULT_PLAYERS[0].id)
-  const [bringYourArmy, setBringYourArmy] = useState(false)
   const [sharedWorking, setSharedWorking] = useState(false)
   const [localError, setLocalError] = useState<string | null>(null)
   const [invalidFieldId, setInvalidFieldId] = useState<string | null>(null)
@@ -101,10 +104,16 @@ export default function BattleSetup() {
     const army = armies.find((entry) => entry.id === player.armyId)
     return (army?.units ?? []).filter((unit) => [...unit.categories, ...unit.keywords].some((trait) => trait.toUpperCase() === 'CHARACTER')).map((unit) => ({ value: `${player.id}|${unit.id}`, label: `${player.name} · ${unit.name}` }))
   })
-  function getDoublesSetup(): DoublesSetup {
+  function getDoublesSetup(provisionalArmy?: Army): DoublesSetup {
     return { rulesVersion: 'GW-Doubles-1.0', forces: ([0, 1] as const).map((team) => {
       const members = activePlayers.slice(team * 2, team * 2 + 2)
-      const choice = teamWarlords[team] && warlordOptions(team).some((entry) => entry.value === teamWarlords[team])
+      // Lobby rosters are unknown until each player joins. The server replaces
+      // provisional Warlord references with a valid staged CHARACTER at Start.
+      const provisionalWarlord = provisionalArmy?.units.find((unit) =>
+        [...unit.categories, ...unit.keywords].some((trait) => trait.toUpperCase() === 'CHARACTER'))
+      if (provisionalArmy && !provisionalWarlord) throw new Error('To prepare a Doubles lobby, your temporary roster needs a CHARACTER. Final Warlords are chosen from the players’ lobby rosters.')
+      const choice = provisionalWarlord ? `${members[0].id}|${provisionalWarlord.id}`
+        : teamWarlords[team] && warlordOptions(team).some((entry) => entry.value === teamWarlords[team])
         ? teamWarlords[team] : warlordOptions(team)[0]?.value ?? ''
       const [warlordPlayerId, warlordUnitId] = choice.split('|')
       return { id: team === 0 ? 'team-alpha' : 'team-bravo', name: teamNames[team].trim(),
@@ -171,7 +180,7 @@ export default function BattleSetup() {
     }))
   }
 
-  function validateCommanders(): boolean {
+  function validateCommanders(shared = false): boolean {
     const count = doubles ? 4 : mode === 'duel' ? 2 : 3
     const fail = (message: string, index: number, field: string) => {
       const fieldId = `commander-${index}-${field}`
@@ -181,7 +190,7 @@ export default function BattleSetup() {
       requestAnimationFrame(() => document.getElementById(fieldId)?.focus())
       return false
     }
-    const missing = activePlayers.findIndex((player) => !player.name.trim() || !armies.some((army) => army.id === player.armyId))
+    const missing = activePlayers.findIndex((player) => !player.name.trim() || (!shared && !armies.some((army) => army.id === player.armyId)))
     if (missing >= 0) {
       const nameMissing = !activePlayers[missing].name.trim()
       return fail(`Player ${missing + 1}: ${nameMissing ? 'enter a player name' : 'choose a saved army'}.`, missing, nameMissing ? 'name' : 'army')
@@ -201,14 +210,14 @@ export default function BattleSetup() {
     })
     if (invalidFixed >= 0) return fail(`Player ${invalidFixed + 1}: choose two different Fixed Secondaries.`, invalidFixed, 'fixed-2')
     if (doubles && (!teamNames[0].trim() || !teamNames[1].trim() || teamNames[0].trim() === teamNames[1].trim())) { setLocalError('Commanders · Give each team a distinct name.'); setStep(2); return false }
-    if (doubles && ([0, 1] as const).some((team) => warlordOptions(team).length === 0)) { setLocalError('Commanders · Each team needs a CHARACTER Warlord in one of its two saved armies.'); setStep(2); return false }
+    if (!shared && doubles && ([0, 1] as const).some((team) => warlordOptions(team).length === 0)) { setLocalError('Commanders · Each team needs a CHARACTER Warlord in one of its two saved armies.'); setStep(2); return false }
     return true
   }
 
   function goToStep(next: 1 | 2 | 3) {
     setLocalError(null)
     setInvalidFieldId(null)
-    if (next === 3 && !validateCommanders()) return
+    if (next === 3 && !validateCommanders(playMode === 'shared')) return
     setStep(next)
     window.scrollTo({ top: 0, behavior: 'instant' })
   }
@@ -218,9 +227,8 @@ export default function BattleSetup() {
     setLocalError(null)
     setInvalidFieldId(null)
     if (step < 3) { goToStep((step + 1) as 2 | 3); return }
-    if (!validateCommanders()) return
-    const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null
-    const sharedMode = submitter?.value === 'shared'
+    const sharedMode = playMode === 'shared'
+    if (!validateCommanders(sharedMode)) return
     if (primaryDeck === 'chapter-approved-ffa' && activePlayers.some((player) => player.officialPrimaryId === 'gather-intel') && objectiveLayout !== 'expanded-7' && secondaryDeck !== 'chapter-approved') {
       setLocalError('Battlefield · Gather Intel requires the 7-objective layout with CENTER.')
       setInvalidFieldId('battlefield-layout')
@@ -228,9 +236,19 @@ export default function BattleSetup() {
       return
     }
 
-    const selectedArmies = [...new Set(activePlayers.map((player) => player.armyId))]
+    // A shared lobby only needs a temporary setup snapshot. The room transport
+    // strips these placeholders and each seat stages its *own* roster before Ready.
+    const provisionalArmy = armies[0]
+    if (sharedMode && !provisionalArmy) {
+      setLocalError('Import at least one army to prepare a multiplayer lobby.')
+      return
+    }
+    const selectedArmies = sharedMode ? [provisionalArmy] : [...new Set(activePlayers.map((player) => player.armyId))]
       .map((id) => armies.find((army) => army.id === id))
       .filter((army): army is Army => Boolean(army))
+    const setupPlayers = sharedMode
+      ? activePlayers.map((player) => ({ ...player, armyId: provisionalArmy.id }))
+      : activePlayers
     try {
       if (sharedMode) {
         if (!sharedConfigured) throw new Error('Configure Supabase before creating a shared lobby.')
@@ -241,7 +259,7 @@ export default function BattleSetup() {
         }
       }
       const battleId = await startCauldronBattle(
-        activePlayers,
+        setupPlayers,
         selectedArmies,
         guidance,
         officialPair ? 'classic-6' : objectiveLayout,
@@ -253,10 +271,11 @@ export default function BattleSetup() {
         primaryDeck === 'chapter-approved-duel' ? officialLayout : undefined,
         primaryDeck === 'chapter-approved-duel' ? attackerHomeZone : undefined,
         mode,
-        doubles ? getDoublesSetup() : undefined,
+        doubles ? getDoublesSetup(sharedMode ? provisionalArmy : undefined) : undefined,
+        !sharedMode,
       )
       if (sharedMode) {
-        const membership = await hostCurrentBattle(hostPlayerId, bringYourArmy)
+        const membership = await hostCurrentBattle(hostPlayerId, true)
         navigate(`/shared?room=${membership.roomCode}`)
       } else {
         navigate(`/battle/${battleId}`)
@@ -267,6 +286,16 @@ export default function BattleSetup() {
       setSharedWorking(false)
     }
   }
+
+  if (!playMode) return <div className="page-shell setup-page">
+    <section className="page-intro"><span className="eyebrow">Battle setup</span><h1>How are you playing?</h1><p>Choose where your players will select their armies.</p></section>
+    <div className="setup-mode-picker panel" role="group" aria-label="Play mode">
+      <button type="button" onClick={() => setPlayMode('local')}><FormatGlyph mode="duel" /><strong>On one device</strong><span>Select every army here and start a local battle.</span></button>
+      {sharedConfigured && <button type="button" onClick={() => setPlayMode('shared')}><FormatGlyph mode="ffa3" /><strong>Online multiplayer</strong><span>Create a lobby. Each commander selects their own army after joining.</span></button>}
+    </div>
+    {!sharedConfigured && <p className="context-note">Online lobbies require the configured Supabase backend.</p>}
+    <Link className="button" to="/shared">Join an existing lobby by code or invitation</Link>
+  </div>
 
   if (loadingArmies) return <div className="page-shell"><div className="loading-state" role="status">Loading saved armies…</div></div>
   if (armies.length === 0) return <div className="page-shell"><div className="empty-state">
@@ -279,11 +308,12 @@ export default function BattleSetup() {
   return (
     <div className="page-shell setup-page">
       <section className="page-intro">
-        <span className="eyebrow">Battle setup · Step {step} of 3</span>
+        <span className="eyebrow">{playMode === 'shared' ? 'Online multiplayer' : 'Local battle'} · Step {step} of 3</span>
         <h1>{doubles ? 'New Doubles 2v2 battle' : duel ? 'New Duel 1v1 battle' : 'New FFA 3 battle'}</h1>
-        <p>Choose a format, assign commanders and prepare the battlefield.</p>
+        <p>{playMode === 'shared' ? 'Choose rules and player slots. Everyone will bring their own army in the lobby.' : 'Choose a format, assign commanders and prepare the battlefield.'}</p>
+        <button type="button" className="button button--small" onClick={() => { setPlayMode(null); setStep(1); setLocalError(null) }}>Change play mode</button>
       </section>
-      <nav className="setup-steps" aria-label="Battle setup steps">{(['Rules', 'Commanders', 'Battlefield & Start'] as const).map((label, index) => <button type="button" key={label} aria-current={step === index + 1 ? 'step' : undefined} onClick={() => goToStep((index + 1) as 1 | 2 | 3)}><span>{index + 1}</span><strong>{label}</strong></button>)}</nav>
+      <nav className="setup-steps" aria-label="Battle setup steps">{(['Rules', playMode === 'shared' ? 'Player slots' : 'Commanders', playMode === 'shared' ? 'Create lobby' : 'Battlefield & Start'] as const).map((label, index) => <button type="button" key={label} aria-current={step === index + 1 ? 'step' : undefined} onClick={() => goToStep((index + 1) as 1 | 2 | 3)}><span>{index + 1}</span><strong>{label}</strong></button>)}</nav>
       <form noValidate onSubmit={(event) => void submit(event)}>
       <section className="setup-step" hidden={step !== 1} aria-label="Rules">
       <h2>Choose your rules</h2>
@@ -368,10 +398,10 @@ export default function BattleSetup() {
               <option value="convenience">Force of Convenience · different faction keywords</option>
               <option value="unified">Unified Force · same required faction keywords</option>
             </select></label>
-            <label>One Warlord for the force<select value={teamWarlords[team] && warlordOptions(team).some((option) => option.value === teamWarlords[team]) ? teamWarlords[team] : warlordOptions(team)[0]?.value ?? ''} onChange={(event) => setTeamWarlords((current) => ({ ...current, [team]: event.target.value }))}>
+            {playMode === 'shared' ? <p className="context-note">A valid team Warlord will be assigned from the armies staged in the lobby.</p> : <label>One Warlord for the force<select value={teamWarlords[team] && warlordOptions(team).some((option) => option.value === teamWarlords[team]) ? teamWarlords[team] : warlordOptions(team)[0]?.value ?? ''} onChange={(event) => setTeamWarlords((current) => ({ ...current, [team]: event.target.value }))}>
               {warlordOptions(team).length === 0 && <option value="">Import an army with a CHARACTER</option>}
               {warlordOptions(team).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </select></label>
+            </select></label>}
             <InfoDisclosure label="GW Doubles restrictions"><p className="context-note">One Warlord and one Force Disposition per force. Unique datasheets, Epic Heroes, Enhancements and once-per-army upgrades cannot be duplicated across teammates. Unified/Convenience classification must match the faction keywords; the app does not invent synergies. For GW Doubles, both teammates share one CP pool and one set of Stratagem usage limits.</p></InfoDisclosure>
           </section>
         })}</div>}
@@ -379,10 +409,10 @@ export default function BattleSetup() {
           <section className="panel player-setup-card" key={player.id}>
             <div className="player-setup-card__title"><span>Player {index + 1}</span><strong>Zone {player.deploymentZone} · Turn {player.turnPosition}</strong></div>
             <label>Player name<input id={`commander-${index}-name`} aria-describedby={invalidFieldId === `commander-${index}-name` ? 'setup-error' : undefined} aria-invalid={invalidFieldId === `commander-${index}-name`} value={player.name} required onChange={(event) => updatePlayer(index, 'name', event.target.value)} /></label>
-            <label>Saved army<select id={`commander-${index}-army`} aria-describedby={invalidFieldId === `commander-${index}-army` ? 'setup-error' : undefined} aria-invalid={invalidFieldId === `commander-${index}-army`} value={player.armyId} onChange={(event) => updatePlayer(index, 'armyId', event.target.value)}>
+            {playMode === 'shared' ? <p className="context-note">This commander will select their own army after joining the lobby.</p> : <label>Saved army<select id={`commander-${index}-army`} aria-describedby={invalidFieldId === `commander-${index}-army` ? 'setup-error' : undefined} aria-invalid={invalidFieldId === `commander-${index}-army`} value={player.armyId} onChange={(event) => updatePlayer(index, 'armyId', event.target.value)}>
               {armies.map((army) => <option key={army.id} value={army.id}>{army.faction} · {army.totalPoints} pts · {army.name} · {rosterRows.find(r => r.id === army.id)?.status ?? 'local'}{army.library?.variantOf ? ' · Variant' : ''}</option>)}
-            </select></label>
-            {player.armyId && <Link className="button button--small" target="_blank" rel="noopener noreferrer" to={`/army/${encodeURIComponent(player.armyId)}/edit`}>Edit roster ↗</Link>}
+            </select></label>}
+            {playMode === 'local' && player.armyId && <Link className="button button--small" target="_blank" rel="noopener noreferrer" to={`/army/${encodeURIComponent(player.armyId)}/edit`}>Edit roster ↗</Link>}
             {!doubles && <div className="setup-pair">
               <label>Deployment zone<select id={`commander-${index}-zone`} aria-describedby={invalidFieldId === `commander-${index}-zone` ? 'setup-error' : undefined} aria-invalid={invalidFieldId === `commander-${index}-zone`} value={player.deploymentZone} onChange={(event) => updatePlayer(index, 'deploymentZone', event.target.value as DeploymentZone)}>
                 {(duel ? ['A', 'B'] : ['A', 'B', 'C']).map((zone) => <option key={zone}>{zone}</option>)}
@@ -426,7 +456,7 @@ export default function BattleSetup() {
       </section>
       <section className="setup-step" hidden={step !== 3} aria-label="Battlefield and start">
         <h2>Battlefield & Start</h2>
-        <section className="panel setup-summary" aria-label="Battle setup summary"><div className="rules-source__heading"><span className="eyebrow">Ready to deploy</span><RulesSourceBadge source={rules.source} /></div><h3>{rules.title}</h3><p>{rules.primary} · {rules.secondary}</p><ul>{activePlayers.map((player) => <li key={player.id}><strong>{player.name}</strong><span>Zone {player.deploymentZone} · Turn {player.turnPosition}</span><small>{armies.find((army) => army.id === player.armyId)?.faction}</small></li>)}</ul></section>
+        <section className="panel setup-summary" aria-label="Battle setup summary"><div className="rules-source__heading"><span className="eyebrow">Ready to deploy</span><RulesSourceBadge source={rules.source} /></div><h3>{rules.title}</h3><p>{rules.primary} · {rules.secondary}</p><ul>{activePlayers.map((player) => <li key={player.id}><strong>{player.name}</strong><span>Zone {player.deploymentZone} · Turn {player.turnPosition}</span><small>{playMode === 'shared' ? 'Army chosen in lobby' : armies.find((army) => army.id === player.armyId)?.faction}</small></li>)}</ul></section>
         <section className="panel setup-footer setup-footer--battle-mode">
           {primaryDeck === 'chapter-approved-duel' && <><InfoDisclosure label="Official pairing & setup instructions"><p className="context-note">Secondary deck: Chapter Approved 2026–27. Each force chooses Tactical or Fixed. In Doubles, both players share their active Secondary cards. Pick the recommended layout for your pairing. Roll for Attacker/Defender, then roll separately for first turn as described in the <a href="https://assets.warhammer-community.com/eng_14-10_wh40k_event_companion-rdwnqprl4c-nj8oqogadv.pdf" target="_blank" rel="noreferrer">Warhammer Event Companion</a>. Assign A/B HOME to your actual objectives and turn positions to the first-turn roll. The app’s central and expansion names are generic; use the physical layout to identify them.</p></InfoDisclosure><Link to="/terrain-layouts" target="_blank">Preview official terrain layouts</Link><label>Pairing layout<select value={officialLayout} onChange={(event) => setOfficialLayout(Number(event.target.value) as 1 | 2 | 3)}><option value={1}>Layout A</option><option value={2}>Layout B</option><option value={3}>Layout C</option></select></label></>}
           {primaryDeck === 'chapter-approved-duel' && <label>Attacker HOME assignment<select value={attackerHomeZone} onChange={(event) => setAttackerHomeZone(event.target.value as 'A' | 'B')}><option value="A">A-HOME · Attacker / B-HOME · Defender</option><option value="B">B-HOME · Attacker / A-HOME · Defender</option></select></label>}
@@ -438,20 +468,18 @@ export default function BattleSetup() {
             <option value="expanded-7">{secondaryDeck === 'chapter-approved' ? '7 objectives — 3 HOME + AB/AC/BC-NEUTRAL + CENTER' : '7 objectives — 3 HOME + N1/N2/N3 + CENTER'}</option>
             <option value="classic-6">6 objectives — 3 HOME + N1/N2/N3</option>
           </select></label>}
-          {sharedConfigured && <label>Shared host seat<select value={hostPlayerId} onChange={(event) => setHostPlayerId(event.target.value)}>
+          {playMode === 'shared' && <label>Shared host seat<select value={hostPlayerId} onChange={(event) => setHostPlayerId(event.target.value)}>
             {activePlayers.map((player) => <option key={player.id} value={player.id}>{player.name}</option>)}
           </select></label>}
           {secondaryDeck === 'cauldron' && primaryDeck !== 'chapter-approved-duel' && (duel
             ? <p className="context-note">Duel changes only the player topology: 2 turns per Battle Round, A/B HOME objectives, and a permanent Rival. Primary, Secondary, Operational Plans and scoring caps use the Cauldron {CAULDRON_RULESET_VERSION} balance rules.</p>
             : <p className="context-note">The 7-objective layout treats CENTER as a neutral objective. Gather Intel requires CENTER.</p>)}
-          {sharedConfigured && <label className="context-note"><input type="checkbox" checked={bringYourArmy} onChange={e => setBringYourArmy(e.target.checked)} /> Each player chooses their own army in the lobby (Bring Your Army)<span> Each commander selects a saved roster on their own device before Ready. You only need your own list to host. In Doubles, each team must bring a Warlord or CHARACTER.</span></label>}
+          {playMode === 'shared' && <p className="context-note">Every commander picks their army in the lobby and marks Ready. The temporary setup does not publish your library rosters to other players. The battle starts only when all seats are ready.</p>}
           <div className="setup-submit-actions">
-            <button className={`button${sharedConfigured ? '' : ' button--gold'}`} type="submit" value="local" disabled={loading || sharedWorking}>{loading && !sharedWorking ? 'Preparing…' : 'Start locally'}</button>
-            <button className={`button${sharedConfigured ? ' button--gold' : ''}`} type="submit" value="shared" disabled={loading || sharedWorking || !sharedConfigured} aria-describedby={!sharedConfigured ? 'shared-unavailable' : undefined}>
+            {playMode === 'shared' ? <button className="button button--gold" type="submit" disabled={loading || sharedWorking || !sharedConfigured}>
               {sharedWorking ? 'Preparing shared lobby…' : `Create ${doubles ? '4-player' : duel ? '2-player' : '3-player'} lobby`}
-            </button>
+            </button> : <button className="button button--gold" type="submit" disabled={loading || sharedWorking}>{loading ? 'Preparing…' : 'Start local battle'}</button>}
           </div>
-          {!sharedConfigured && <p id="shared-unavailable" className="context-note">Shared lobbies are unavailable on this installation. Start locally to play on one device.</p>}
         </section>
       </section>
       {(localError || error) && <div id="setup-error" className="alert alert--danger" role="alert">{localError ?? error}</div>}
