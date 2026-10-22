@@ -95,7 +95,7 @@ begin
  if old.started_at is not null or new.started_at is null or not old.bring_your_army then return new; end if;
  select * into opt from social_private.host_lobby_settings where room_id=new.id;
  if opt.room_id is null then return new; end if;
- state_players:=new.session_snapshot#>'{state,players}';
+ state_players:=coalesce(new.session_snapshot#>'{state,players}','{}'::jsonb);
  conf:=new.session_snapshot#>'{setup,rulesetConfig,playerConfigs}';
  for p in select value from jsonb_array_elements(new.session_snapshot#>'{setup,players}') loop
   pid:=p->>'id';
