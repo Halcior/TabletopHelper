@@ -29,7 +29,7 @@ insert into public.shared_rooms(id,code,battle_id,host_client_id,bring_your_army
 "armies":{},"turnOrder":["p1","p2"],
 "rulesetConfig":{"primaryDeck":"chapter-approved-duel",
 "playerConfigs":{"p1":{"forceDisposition":"disruption"},"p2":{"forceDisposition":"priority-assets"}}}},
-"state":{"events":[]}}');
+"state":{"events":[{"type":"TURN_STARTED","payload":{"playerId":"p1"}},{"type":"RULESET_EVENT","payload":{"action":"TURN_SNAPSHOT_CAPTURED","data":{"playerId":"p1","round":1}}}]}}');
 insert into public.shared_participants(id,room_id,client_id,player_id,display_name,is_host) values
 ('10000000-0000-4000-8000-000000000000','dddddddd-dddd-4ddd-8ddd-dddddddddddd','host','p1','Player I',true);
 select public.stage_shared_roster('dddddddd-dddd-4ddd-8ddd-dddddddddddd',
@@ -100,6 +100,8 @@ do $$declare result jsonb; begin
  assert result#>>'{setup,players,1,name}'='Overlord Nemesor';
  assert result#>'{setup,turnOrder}'='["p2","p1"]'::jsonb;
  assert result#>>'{state,activePlayerId}'='p2';
+ assert result#>>'{state,events,0,payload,playerId}'='p2';
+ assert result#>>'{state,events,1,payload,data,playerId}'='p2';
  assert result#>>'{setup,rulesetConfig,playerConfigs,p1,forceDisposition}'='reconnaissance';
  assert result#>>'{setup,rulesetConfig,playerConfigs,p2,forceDisposition}'='purge-the-foe';
  assert result#>>'{setup,armies,seat:p1,name}'='Custodes roster';
