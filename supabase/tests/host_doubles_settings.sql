@@ -15,13 +15,13 @@ do $$begin
 end $$;
 select set_config('request.headers','{"x-room-code":"DUB123","x-client-id":"b","x-seat-credential":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}',true);
 insert into public.shared_participants(id,room_id,client_id,player_id,display_name)
- values('11000000-0000-4000-8000-000000000000','eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee','b','player-b','player-b');
+ values('21000000-0000-4000-8000-000000000000','eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee','b','player-b','player-b');
 select set_config('request.headers','{"x-room-code":"DUB123","x-client-id":"c","x-seat-credential":"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"}',true);
 insert into public.shared_participants(id,room_id,client_id,player_id,display_name)
- values('12000000-0000-4000-8000-000000000000','eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee','c','player-c','player-c');
+ values('22000000-0000-4000-8000-000000000000','eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee','c','player-c','player-c');
 select set_config('request.headers','{"x-room-code":"DUB123","x-client-id":"d","x-seat-credential":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"}',true);
 insert into public.shared_participants(id,room_id,client_id,player_id,display_name)
- values('13000000-0000-4000-8000-000000000000','eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee','d','player-d','player-d');
+ values('23000000-0000-4000-8000-000000000000','eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee','d','player-d','player-d');
 -- A visible client ID is not a host credential.
 select set_config('request.headers','{"x-room-code":"DUB123","x-client-id":"host","x-seat-credential":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}',true);
 create function pg_temp.blocked(q text) returns void language plpgsql as $$
