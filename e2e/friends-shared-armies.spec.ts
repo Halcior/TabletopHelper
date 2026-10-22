@@ -59,12 +59,21 @@ async function chooseArmy(page: Page) {
   ).toBeEnabled()
 }
 async function newLobby(page: Page, mode = 'duel') {
-  await page.goto(`/battle/setup?mode=${mode}`)
+  await page.goto(`/battle/setup?play=shared&mode=${mode}`)
+  await expect(page.getByRole('button', { name: /Online multiplayer/ })).toHaveAttribute('aria-pressed', 'true')
   await page.getByRole('button', { name: 'Next: Commanders' }).click()
+  await expect(page.getByRole('region', { name: 'Commanders' }).getByLabel('Saved army')).toHaveCount(0)
   await page.getByRole('button', { name: 'Next: Battlefield' }).click()
-  await page.getByRole('checkbox', { name: /Each player chooses/ }).check()
   await page.getByRole('button', { name: /Create .* lobby/ }).click()
   await expect(page.getByText('Waiting room', { exact: true })).toBeVisible()
+  const hostSnapshot = await page.evaluate(async () =>
+    (await import('/src/multiplayer/sharedSessionStore.ts')).useSharedSessionStore.getState().inspection?.room.sessionSnapshot)
+  expect(hostSnapshot?.setup.armies).toEqual({})
+  expect(hostSnapshot?.setup.players.every(player => !player.armyId)).toBe(true)
+  // Creating a waiting room must not pollute the saved active-battle history.
+  const savedBeforeStart = await page.evaluate(async () =>
+    (await import('/src/persistence/database.ts')).getLatestActiveBattle())
+  expect(savedBeforeStart).toBeFalsy()
 }
 
 test('two accounts: profile, friendship, read-only shared list, invite and independent battle snapshots', async ({
@@ -110,6 +119,17 @@ test('two accounts: profile, friendship, read-only shared list, invite and indep
       b.page.getByRole('heading', { name: 'Custodes roster', exact: true }),
     ).toBeVisible()
     await b.page.getByText('View units', { exact: true }).click()
+    const expandedRoster = b.page.locator('.library-card > details').first()
+    await expect(expandedRoster).toHaveJSProperty('open', true)
+    await b.page.getByText('Imported weapon profiles & abilities', { exact: true }).click()
+    const expandedProfile = b.page.locator('.roster-unit > details').first()
+    await expect(expandedProfile).toHaveJSProperty('open', true)
+    await expandedRoster.evaluate(el => el.setAttribute('data-keep-open', 'yes'))
+    await b.page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
+    await b.page.getByRole('button', { name: 'Refresh', exact: true }).click()
+    await expect(expandedRoster).toHaveAttribute('data-keep-open', 'yes')
+    await expect(expandedRoster).toHaveJSProperty('open', true)
+    await expect(expandedProfile).toHaveJSProperty('open', true)
     await expect(
       b.page.getByText('1 × Captain · Spear', { exact: true }),
     ).toBeVisible()

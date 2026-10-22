@@ -295,7 +295,7 @@ function startSyncLoop(inspection: SharedRoomInspection, membership: SharedMembe
   if (!localSession || localSession.setup.gameId !== membership.battleId) {
     const session = rehydrateBattleSession(inspection.room.sessionSnapshot)
     useBattleStore.setState({ session, error: null })
-    void saveBattle(session)
+    if (!inspection.room.bringYourArmy || inspection.room.startedAt) void saveBattle(session)
   } else {
     for (const event of findRetryableLocalEvents(inspection.room.sessionSnapshot, localSession)) {
       pendingLocalEvents.set(event.id, event)

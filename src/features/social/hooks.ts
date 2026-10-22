@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { errorText } from './api'
 
-/** Memory only, scoped to this screen; failed/offline reads discard prior data. */
+/** Memory only, scoped to this screen. Background polls update atomically so
+ * native <details> stay mounted; denied/offline/error reads discard prior data. */
 export function useRemote<T>(
   read: () => Promise<T>,
   dependencies: unknown[],
@@ -11,10 +12,13 @@ export function useRemote<T>(
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const generation = useRef(0)
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (background = false) => {
     const id = ++generation.current
-    if (clearOnRefresh) setData(null)
-    setLoading(true)
+    // Explicit/initial loads may clear sensitive projections immediately.
+    // Background checks keep the existing DOM until the permission-checked
+    // response arrives; unmounting cards every 15s collapses expanded details.
+    if (clearOnRefresh && !background) setData(null)
+    if (!background) setLoading(true)
     setError('')
     try {
       if (!navigator.onLine) throw new Error('Go online to load this page.')
@@ -26,16 +30,17 @@ export function useRemote<T>(
         setError(errorText(e))
       }
     } finally {
-      if (id === generation.current) setLoading(false)
+      if (id === generation.current && !background) setLoading(false)
     }
   }, dependencies)
   useEffect(() => {
     setData(null)
     void refresh()
-    const timer = window.setInterval(() => void refresh(), 15_000)
+    const timer = window.setInterval(() => void refresh(true), 15_000)
     const focus = () => {
-      if (document.visibilityState === 'visible') void refresh()
+      if (document.visibilityState === 'visible') void refresh(true)
     }
+    const onOnline = () => void refresh()
     const offline = () => {
       generation.current++
       setData(null)
@@ -44,13 +49,13 @@ export function useRemote<T>(
     }
     document.addEventListener('visibilitychange', focus)
     window.addEventListener('offline', offline)
-    window.addEventListener('online', refresh)
+    window.addEventListener('online', onOnline)
     return () => {
       generation.current++
       clearInterval(timer)
       document.removeEventListener('visibilitychange', focus)
       window.removeEventListener('offline', offline)
-      window.removeEventListener('online', refresh)
+      window.removeEventListener('online', onOnline)
     }
   }, [refresh])
   return { data, error, loading, refresh }

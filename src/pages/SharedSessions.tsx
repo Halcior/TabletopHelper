@@ -390,16 +390,20 @@ export default function SharedSessions() {
 
       <section className="panel shared-session-card shared-session-card--host">
         <span className="eyebrow">Host</span>
-        <h2>Share an active battle</h2>
-        {!latestBattle ? <><p>Create a battle first, then return here to share it.</p><Link className="button" to="/battle/setup">Create battle</Link></> : <>
+        <h2>Create an online lobby</h2>
+        <p>Choose the format and rules first. Each commander selects their own saved army inside the lobby.</p>
+        <Link className="button button--gold button--wide" to="/battle/setup?play=shared">Set up multiplayer</Link>
+        {latestBattle && <details className="setup-custom-settings">
+          <summary>Legacy: share an existing local battle</summary>
+          <p className="context-note">Use this only to continue a previously created battle with host-selected armies. For new games use multiplayer setup above.</p>
           <div className="shared-host-summary"><strong>Round {latestBattle.state.round}</strong><span>{latestBattle.state.phase.replaceAll('_', ' ')}</span></div>
           <label>You are
             <select value={hostPlayerId} onChange={(event) => setHostPlayerId(event.target.value)}>
               {latestBattle.setup.players.map((player) => <option key={player.id} value={player.id}>{player.name}</option>)}
             </select>
           </label>
-          <button className="button button--gold button--wide" disabled={working || backendCheckStatus === 'checking'} onClick={host}>{working ? 'Creating…' : 'Create lobby'}</button>
-        </>}
+          <button className="button button--wide" disabled={working || backendCheckStatus === 'checking'} onClick={host}>{working ? 'Creating…' : 'Share existing battle'}</button>
+        </details>}
       </section>
     </div>
   </div>

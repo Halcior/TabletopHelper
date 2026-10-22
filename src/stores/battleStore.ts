@@ -74,6 +74,7 @@ type BattleStore = {
     battlefieldAttackerHomeZone?: 'A' | 'B',
     mode?: CauldronMode,
     doubles?: DoublesSetup,
+    persist?: boolean,
   ) => Promise<string>
   loadBattle: (id: string) => Promise<void>
   resumeLatest: () => Promise<string | null>
@@ -154,11 +155,13 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
   loading: false,
   error: null,
 
-  async startCauldronBattle(players, armies, guidanceLevel, objectiveLayout, secondaryDeck, officialSecondaryStrategy, fixedSecondarySelections, primaryDeck, officialSecondaryStrategies, officialLayout, battlefieldAttackerHomeZone, mode, doubles) {
+  async startCauldronBattle(players, armies, guidanceLevel, objectiveLayout, secondaryDeck, officialSecondaryStrategy, fixedSecondarySelections, primaryDeck, officialSecondaryStrategies, officialLayout, battlefieldAttackerHomeZone, mode, doubles, persist = true) {
     set({ loading: true, error: null })
     try {
       const session = createCauldronGame({ players, armies, guidanceLevel, objectiveLayout, secondaryDeck, officialSecondaryStrategy, fixedSecondarySelections, primaryDeck, officialSecondaryStrategies, officialLayout, battlefieldAttackerHomeZone, mode, doubles })
-      await saveBattle(session)
+      // Provisional multiplayer setup is not an active battle on this device.
+      // The frozen, server-approved snapshot is persisted after lobby Start.
+      if (persist) await saveBattle(session)
       set({ session, loading: false })
       return session.setup.gameId
     } catch (error: unknown) {
