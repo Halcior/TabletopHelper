@@ -149,6 +149,16 @@ test('two accounts: profile, friendship, read-only shared list, invite and indep
       path: 'test-results/friends-shared-mobile.png',
       fullPage: true,
     })
+    await b.page.getByRole('button', { name: 'Copy to My Armies' }).click()
+    await expect(b.page.getByText('Copied to your library. The original roster remains unchanged.')).toBeVisible()
+    const copy = await b.page.evaluate(async () => {
+      const { listArmies } = await import('/src/features/armyLibrary/repository.ts')
+      const rows = await listArmies()
+      const row = rows.find(entry => entry.army.name.includes('Custodes roster — copy from Golden Commander'))
+      return row ? { id: row.id, faction: row.army.faction, units: row.army.units.length, equipment: row.army.units[0].modelGroups[0].equipment } : null
+    })
+    expect(copy).toMatchObject({ faction: 'Adeptus Custodes', units: 1, equipment: ['Spear'] })
+    expect(copy?.id).toBeTruthy()
     expect(
       await b.page.evaluate(
         () => document.documentElement.scrollWidth <= window.innerWidth,
