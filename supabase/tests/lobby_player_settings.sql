@@ -54,6 +54,14 @@ select pg_temp.denied($q$select public.set_shared_seat_settings('dddddddd-dddd-4
 select set_config('request.headers','{"x-room-code":"ABC456","x-client-id":"host","x-seat-credential":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}',true);
 reset role; set local role anon;
 select set_config('request.jwt.claim.sub','',true);
+-- Host may configure turn order but another room member cannot impersonate host.
+select set_config('request.headers','{"x-room-code":"ABC456","x-client-id":"host","x-seat-credential":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}',true);
+select pg_temp.denied($q$select public.set_host_lobby_settings('dddddddd-dddd-4ddd-8ddd-dddddddddddd',array['p2','p1'],'{}')$q$);
+select set_config('request.headers','{"x-room-code":"ABC456","x-client-id":"host","x-seat-credential":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}',true);
+select public.set_host_lobby_settings('dddddddd-dddd-4ddd-8ddd-dddddddddddd',array['p2','p1'],'{}');
+do $begin
+ assert (select turn_order=array['p2','p1'] from social_private.host_lobby_settings where room_id='dddddddd-dddd-4ddd-8ddd-dddddddddddd');
+end $;
 update public.shared_participants set display_name='FAKE',force_disposition='disruption' where client_id='host';
 do $$begin
  assert (select display_name='Captain Aurelius' and force_disposition='take-and-hold'
@@ -90,6 +98,8 @@ do $$declare result jsonb; begin
  select session_snapshot into result from public.shared_rooms where code='ABC456';
  assert result#>>'{setup,players,0,name}'='Captain Aurelius';
  assert result#>>'{setup,players,1,name}'='Overlord Nemesor';
+ assert result#>'{setup,turnOrder}'='["p2","p1"]'::jsonb;
+ assert result#>>'{state,activePlayerId}'='p2';
  assert result#>>'{setup,rulesetConfig,playerConfigs,p1,forceDisposition}'='reconnaissance';
  assert result#>>'{setup,rulesetConfig,playerConfigs,p2,forceDisposition}'='purge-the-foe';
  assert result#>>'{setup,armies,seat:p1,name}'='Custodes roster';
