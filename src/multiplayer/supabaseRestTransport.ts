@@ -9,6 +9,7 @@ import { createRoomCode, normalizeRoomCode } from './roomCode'
 import type {
   SharedEventEnvelope,
   SharedParticipant,
+  HostLobbySettings,
   SharedRoom,
   SharedRoomInspection,
   SharedSessionTransport,
@@ -215,7 +216,10 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
     const room = mapRoom(row)
     this.rememberRoom(room)
     const rosters = room.bringYourArmy ? await this.request<{ player_id: string; client_id: string; army_data: Army; selection_id: string }[]>(`shared_rosters?room_id=eq.${encodeURIComponent(room.id)}&select=player_id,client_id,army_data,selection_id`, {}, room.code) : undefined
-    return { room, participants: await this.listParticipants(room.id), rosters: rosters?.map(r => ({ playerId: r.player_id, clientId: r.client_id, army: validateArmy(r.army_data), selectionId: r.selection_id })) }
+    const hostSettings = room.bringYourArmy && !room.startedAt
+      ? await this.request<HostLobbySettings>('rpc/get_host_lobby_settings', {method:'POST',body:JSON.stringify({p_room_id:room.id})}, room.code)
+      : undefined
+    return { room, hostSettings, participants: await this.listParticipants(room.id), rosters: rosters?.map(r => ({ playerId: r.player_id, clientId: r.client_id, army: validateArmy(r.army_data), selectionId: r.selection_id })) }
   }
 
   async joinRoom(room: SharedRoom, playerId: string, clientId: string, preserveHost = false): Promise<SharedParticipant> {
@@ -299,6 +303,10 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
     } else {
       await this.request('rpc/stage_shared_roster', { method: 'POST', body: JSON.stringify({ p_room_id: roomId, p_army: roster }) }, capability, clientId)
     }
+  }
+
+  async setHostLobbySettings(roomId: string, clientId: string, settings: HostLobbySettings): Promise<void> {
+    await this.request('rpc/set_host_lobby_settings', { method: 'POST', headers: { 'x-seat-credential': seatCredential() }, body: JSON.stringify({ p_room_id: roomId, p_turn_order: settings.turnOrder, p_team_alpha: settings.teamAlpha }) }, this.roomCode(roomId), clientId)
   }
 
   async setSeatSettings(roomId: string, clientId: string, disposition: string | null, owner: string | null): Promise<void> {
