@@ -80,7 +80,7 @@ select pg_temp.denied($q$select * from public.player_profiles$q$);
 select pg_temp.denied($q$select * from public.friendships$q$);
 select pg_temp.denied($q$select * from public.game_invites$q$);
 -- Lobby fixture with two independently owned seats.
-select set_config('request.headers','{"x-room-code":"ABC234","x-client-id":"host"}',true);
+select set_config('request.headers','{"x-room-code":"ABC234","x-client-id":"host","x-seat-credential":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}',true);
 insert into public.shared_rooms(id,code,battle_id,host_client_id,bring_your_army,session_snapshot) values
  ('dddddddd-dddd-4ddd-8ddd-dddddddddddd','ABC234','bya','host',true,'{"setup":{"players":[{"id":"p1","name":"A"},{"id":"p2","name":"B"}],"armies":{},"turnOrder":["p1","p2"]},"state":{"events":[]}}');
 insert into public.shared_participants(id,room_id,client_id,player_id,display_name,is_host) values('10000000-0000-4000-8000-000000000000','dddddddd-dddd-4ddd-8ddd-dddddddddddd','host','p1','A',true);
@@ -95,7 +95,7 @@ do $$begin assert (select is_ready from public.shared_participants where client_
 select public.stage_shared_roster('dddddddd-dddd-4ddd-8ddd-dddddddddddd','{"id":"local2","name":"A changed","faction":"Custodes","units":[{"id":"u","name":"Guard","points":110,"startingModels":4,"leaderOfUnitId":null}]}');
 do $$begin assert not(select is_ready from public.shared_participants where client_id='host'); end $$;
 update public.shared_participants set is_ready=true where client_id='host';
-select set_config('request.headers','{"x-room-code":"ABC234","x-client-id":"guest"}',true);
+select set_config('request.headers','{"x-room-code":"ABC234","x-client-id":"guest","x-seat-credential":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}',true);
 insert into public.shared_participants(id,room_id,client_id,player_id,display_name) values('20000000-0000-4000-8000-000000000000','dddddddd-dddd-4ddd-8ddd-dddddddddddd','guest','p2','B');
 select public.stage_shared_roster('dddddddd-dddd-4ddd-8ddd-dddddddddddd','{"id":"local","name":"B roster","faction":"Necrons","units":[{"id":"u","name":"Warriors","points":100,"startingModels":10,"leaderOfUnitId":null}]}');
 update public.shared_participants set is_ready=true where client_id='guest';
@@ -108,7 +108,7 @@ select pg_temp.denied($q$select public.stage_shared_roster('dddddddd-dddd-4ddd-8
 -- Invitations require friendship AND a host capability, then expire/cancel safely.
 select set_config('request.jwt.claim.sub','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',true);
 select pg_temp.denied($q$select public.social_action('invite','{"user_id":"bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb","room_id":"dddddddd-dddd-4ddd-8ddd-dddddddddddd"}')$q$);
-select set_config('request.headers','{"x-room-code":"ABC234","x-client-id":"host"}',true);
+select set_config('request.headers','{"x-room-code":"ABC234","x-client-id":"host","x-seat-credential":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}',true);
 select public.social_action('invite','{"user_id":"bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb","room_id":"dddddddd-dddd-4ddd-8ddd-dddddddddddd"}');
 select public.social_action('invite','{"user_id":"bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb","room_id":"dddddddd-dddd-4ddd-8ddd-dddddddddddd"}');
 select set_config('request.jwt.claim.sub','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',true);
@@ -120,7 +120,7 @@ do $$begin assert public.social_action('invites')='[]'::jsonb; end $$;
 select pg_temp.denied($q$select public.social_action('resolve-invite',jsonb_build_object('id',current_setting('test.invite')))$q$);
 reset role; set local role anon;
 select set_config('request.jwt.claim.sub','',true);
-select set_config('request.headers','{"x-room-code":"ABC234","x-client-id":"host"}',true);
+select set_config('request.headers','{"x-room-code":"ABC234","x-client-id":"host","x-seat-credential":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}',true);
 select public.start_shared_room('dddddddd-dddd-4ddd-8ddd-dddddddddddd');
 -- Late lobby Leave is a database-filtered no-op after Start has committed.
 update public.shared_rooms set status='abandoned' where id='dddddddd-dddd-4ddd-8ddd-dddddddddddd' and started_at is null;
@@ -134,6 +134,6 @@ end $$;
 select pg_temp.denied($q$select public.stage_shared_roster('dddddddd-dddd-4ddd-8ddd-dddddddddddd','{}')$q$);
 select pg_temp.denied($q$update public.shared_rooms set session_snapshot='{}' where code='ABC234'$q$);
 select pg_temp.denied($q$update public.shared_rooms set started_at=null where code='ABC234'$q$);
-select set_config('request.headers','{"x-room-code":"ZZZ999","x-client-id":"host"}',true);
+select set_config('request.headers','{"x-room-code":"ZZZ999","x-client-id":"host","x-seat-credential":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}',true);
 do $$begin assert (select count(*) from public.shared_rosters)=0; end $$;
 rollback;
