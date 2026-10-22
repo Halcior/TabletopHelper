@@ -99,5 +99,5 @@ select pg_temp.denied($q$select public.set_shared_seat_settings('dddddddd-dddd-4
 -- Historical waiting-room participant rows must not block account deletion.
 reset role;
 delete from auth.users where id='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
-do $begin assert (select profile_user_id is null from public.shared_participants where player_id='p2'); end $;
+do $$begin assert (select profile_user_id is null from public.shared_participants where player_id='p2'); end $$;
 rollback;
