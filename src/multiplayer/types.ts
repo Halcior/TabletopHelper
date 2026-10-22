@@ -1,3 +1,4 @@
+import type { Army } from '../domain/army/types'
 import type { BattleEvent, BattleLifecycleStatus, BattleSession } from '../domain/battle/types'
 
 export type SharedConnectionStatus = 'idle' | 'connecting' | 'connected' | 'reconnecting' | 'offline' | 'error'
@@ -14,6 +15,7 @@ export type SharedParticipant = {
 }
 
 export type SharedRoom = {
+  bringYourArmy?: boolean
   id: string
   code: string
   battleId: string
@@ -29,7 +31,10 @@ export type SharedBackendCheckStatus = 'idle' | 'checking' | 'ready' | 'failed'
 export type SharedRoomInspection = {
   room: SharedRoom
   participants: SharedParticipant[]
+  rosters?: SharedRoster[]
 }
+
+export type SharedRoster = { playerId: string; clientId: string; army: Army; selectionId: string }
 
 export type SharedEventEnvelope = {
   sequence: number
@@ -50,7 +55,7 @@ export type SharedMembership = {
 export interface SharedSessionTransport {
   readonly configured: boolean
   preflight(): Promise<void>
-  createRoom(session: BattleSession, hostPlayerId: string, clientId: string): Promise<SharedRoomInspection>
+  createRoom(session: BattleSession, hostPlayerId: string, clientId: string, bringYourArmy?: boolean): Promise<SharedRoomInspection>
   inspectRoom(code: string): Promise<SharedRoomInspection | null>
   joinRoom(room: SharedRoom, playerId: string, clientId: string, preserveHost?: boolean): Promise<SharedParticipant>
   publishEvents(roomId: string, events: BattleEvent[], submittedByPlayerId?: string, clientId?: string): Promise<void>

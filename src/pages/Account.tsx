@@ -1,3 +1,4 @@
+import { ProfilePanel } from '../features/social/ProfilePanel'
 import { useEffect, useState } from 'react'
 import { liveQuery } from 'dexie'
 import { Link } from 'react-router-dom'
@@ -101,6 +102,7 @@ export default function Account() {
         <p role="status">Restoring session…</p>
       ) : user ? (
         <>
+          <ProfilePanel key={user.id} owner={user.id} />
           <section className="panel account-panel">
             <h2>{user.email ?? 'Signed in'}</h2>
             <p>

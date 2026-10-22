@@ -1,0 +1,64 @@
+.social-page {
+  max-width: 1200px;
+}
+.social-section {
+  margin: 2rem 0;
+}
+.social-card {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.commander-identity {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  min-width: 0;
+}
+.commander-identity > div {
+  min-width: 0;
+}
+.commander-avatar {
+  flex: 0 0 48px;
+  width: 48px;
+  height: 48px;
+  border: 1px solid #bba46c88;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #e2c890;
+  background: #1e2631;
+  font-weight: 700;
+}
+.friend-code {
+  display: block;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  font-size: 0.8rem;
+  letter-spacing: 0.02em;
+}
+.army-visibility {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+}
+.lobby-roster-picker {
+  display: grid;
+  gap: 0.7rem;
+  margin: 1rem 0;
+}
+.lobby-roster-picker select {
+  width: 100%;
+  min-width: 0;
+}
+@media (max-width: 460px) {
+  .app-header nav a {
+    padding: 0.5rem 0.35rem;
+    font-size: 0.7rem;
+  }
+  .app-header nav {
+    gap: 0.1rem;
+  }
+}

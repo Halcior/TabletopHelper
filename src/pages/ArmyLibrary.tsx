@@ -1,3 +1,6 @@
+import { useRemote } from '../features/social/hooks'
+import { social } from '../features/social/api'
+import { VisibilityControl, type VisibilityMap } from '../features/social/VisibilityControl'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArmyBanner } from '../features/factionVisuals/components'
@@ -14,6 +17,7 @@ import { DeleteRosterButton } from '../features/armyLibrary/DeleteRosterButton'
 export default function ArmyLibrary() {
   const { rows, loading, error } = useRosterLibrary()
   const owner = useRosterScope((s) => s.userId)
+  const sharing = useRemote(() => owner ? social<VisibilityMap>(owner, 'visibility-list') : Promise.resolve({}), [owner])
   const sync = useSyncState()
   const [query, setQuery] = useState(''),
     [faction, setFaction] = useState(''),
@@ -59,7 +63,7 @@ export default function ArmyLibrary() {
           <h1>My Armies</h1>
           <p>
             {owner
-              ? 'Your private lists, available offline and across your devices.'
+              ? 'Your lists, available offline and across your devices. Share selected rosters with friends.'
               : 'Your lists on this device. Sign in for optional cloud sync.'}
           </p>
         </div>
@@ -110,6 +114,7 @@ export default function ArmyLibrary() {
           {error || message || sync.error}
         </p>
       )}
+      {owner && sharing.error && <p role="alert" className="alert">Sharing unavailable: {sharing.error}</p>}
       <div className="roster-filters">
         <label>
           Search rosters
@@ -215,6 +220,8 @@ export default function ArmyLibrary() {
                 </Link>
                 <DeleteRosterButton key={`${owner}:${row.id}`} army={row.army} owner={owner} disabled={busy} />
               </div>
+              {owner && <VisibilityControl key={`${owner}:${row.id}`} owner={owner} armyId={row.id} visibility={sharing.data} refresh={sharing.refresh} />}
+              {!owner && <span>Visibility: Private · local only</span>}
               <details>
                 <summary>More actions</summary>
                 <div className="roster-actions">

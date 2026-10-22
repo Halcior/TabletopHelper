@@ -79,7 +79,7 @@ Then apply the version 6 host-only geometry policy:
 supabase/migrations/20261013094351_battlefield_geometry_host_policy.sql
 ```
 
-Both migrations are idempotent. The Shared page requires `shared_schema_version() >= 6` before touching a room, ensuring geometry edits are protected by server RLS as well as the client policy. New projects should run the complete `supabase/shared_sessions.sql` bootstrap once.
+Both migrations are idempotent. The geometry baseline requires `shared_schema_version() >= 6`; the Friends/BYA client requires version 7 from `20261022082448_friends_shared_armies.sql` before touching a room, ensuring geometry edits are protected by server RLS as well as the client policy. New projects should run the complete `supabase/shared_sessions.sql` bootstrap once.
 
 The schema explicitly grants only the required table, sequence, and RPC privileges to `anon`, then uses RLS and the room/client capability headers to scope rows. This remains private-play capability security, not authenticated public identity.
 
@@ -144,3 +144,7 @@ The browser double checks application behavior but does not replace one final sm
 2. Add browser-level multi-context coverage on top of the deterministic three-client and three-phone lobby tests.
 3. Consider realtime push after correctness testing proves the event model.
 4. Add authenticated identity / stronger room capability before treating the service as public production infrastructure.
+
+## Friends and per-seat roster selection
+
+New lobbies can opt into [Bring Your Army](friends-shared-armies.md): each commander chooses their own roster before Ready, and the backend freezes all selections at Start. The additive Friends migration was applied to the connected project as `20261022092103_friends_shared_armies` after the owner requested merging for testing. Existing host-selected lobbies retain their current protocol. Social invitations resolve to the existing seat-claim flow.

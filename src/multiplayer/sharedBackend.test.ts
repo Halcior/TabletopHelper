@@ -18,7 +18,7 @@ describe('shared backend compatibility', () => {
   })
 
   it('points every known schema mismatch to the cumulative migration', () => {
-    for (const marker of ['shared_schema_version', 'started_at', 'is_ready', 'start_shared_room']) {
+    for (const marker of ['shared_schema_version', 'started_at', 'is_ready', 'start_shared_room', 'bring_your_army', 'shared_rosters', 'stage_shared_roster', 'social_action']) {
       expect(sharedBackendMessage(new Error(marker))).toContain(SHARED_SCHEMA_MIGRATION)
     }
   })

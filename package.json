@@ -12,7 +12,8 @@
     "test:three-phones": "vitest --run src/multiplayer/sharedLobby.test.ts src/multiplayer/threeClientFlow.test.ts",
     "test:e2e": "playwright test",
     "test:e2e:offline": "E2E_PRODUCTION=1 playwright test e2e/army-offline-production.spec.ts",
-    "test:e2e:install": "playwright install chromium"
+    "test:e2e:install": "playwright install chromium",
+    "test:sql": "node scripts/test-social-sql.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.118.0",
@@ -26,6 +27,7 @@
   },
   "devDependencies": {
     "@alpaca-software/40kdc-data": "1.3.3",
+    "@electric-sql/pglite": "0.5.11",
     "@playwright/test": "^1.55.0",
     "@testing-library/react": "^14.0.0",
     "@types/node": "^20.5.8",

@@ -69,7 +69,7 @@ export class MockSupabase {
     const resource = url.pathname.replace(/^\/rest\/v1\//, '')
     const method = request.method()
 
-    if (resource === 'rpc/shared_schema_version') return void await json(route, 6)
+    if (resource === 'rpc/shared_schema_version') return void await json(route, 7)
 
     if (resource === 'rpc/start_shared_room') {
       const body = request.postDataJSON() as { p_room_id?: string }

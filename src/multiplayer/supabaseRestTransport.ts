@@ -1,3 +1,7 @@
+import { rehydrateBattleSession } from '../domain/battle/engine'
+import { validateArmy } from '../domain/army/roster'
+import type { Army } from '../domain/army/types'
+import { accountRequest } from '../features/social/api'
 import type { BattleEvent, BattleLifecycleStatus, BattleSession } from '../domain/battle/types'
 import { createRoomCode, normalizeRoomCode } from './roomCode'
 import type {
@@ -11,6 +15,7 @@ import { createPortableUuid } from './uuid'
 import { assertSharedSchemaVersion } from './sharedBackend'
 
 type SupabaseRoomRow = {
+  bring_your_army?: boolean
   id: string
   code: string
   battle_id: string
@@ -46,11 +51,12 @@ function env(name: string): string | undefined {
 
 function mapRoom(row: SupabaseRoomRow): SharedRoom {
   return {
+    bringYourArmy: row.bring_your_army,
     id: row.id,
     code: row.code,
     battleId: row.battle_id,
     status: row.status,
-    sessionSnapshot: row.session_snapshot,
+    sessionSnapshot: row.bring_your_army && row.started_at ? rehydrateBattleSession(row.session_snapshot) : row.session_snapshot,
     startedAt: row.started_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -71,8 +77,12 @@ function mapParticipant(row: SupabaseParticipantRow): SharedParticipant {
 }
 
 export class SupabaseRestSharedSessionTransport implements SharedSessionTransport {
-  private readonly url = env('VITE_SUPABASE_URL')?.replace(/\/$/, '')
-  private readonly apiKey = env('VITE_SUPABASE_PUBLISHABLE_KEY') ?? env('VITE_SUPABASE_ANON_KEY')
+  private readonly url: string | undefined
+  private readonly apiKey: string | undefined
+  constructor(config?: { url: string; apiKey: string }) {
+    this.url = (config?.url ?? env('VITE_SUPABASE_URL'))?.replace(/\/$/, '')
+    this.apiKey = config?.apiKey ?? env('VITE_SUPABASE_PUBLISHABLE_KEY') ?? env('VITE_SUPABASE_ANON_KEY')
+  }
   private readonly roomCodes = new Map<string, string>()
 
   get configured(): boolean {
@@ -135,10 +145,18 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
     return (text ? JSON.parse(text) : undefined) as T
   }
 
-  async createRoom(session: BattleSession, hostPlayerId: string, clientId: string): Promise<SharedRoomInspection> {
+  async createRoom(session: BattleSession, hostPlayerId: string, clientId: string, bringYourArmy = false): Promise<SharedRoomInspection> {
     const host = session.state.players[hostPlayerId]
     if (!host) throw new Error('Choose a valid host player before sharing the battle.')
 
+    // A BYA lobby must not expose private placeholder rosters selected by the
+    // host's setup form. Actual rosters are only sent by their seated owners.
+    const snapshot = structuredClone(session)
+    if (bringYourArmy) {
+      snapshot.setup.armies = {}
+      snapshot.setup.players = snapshot.setup.players.map(({ armyId: _army, faction: _faction, ...player }) => player)
+      snapshot.state.players = Object.fromEntries(Object.entries(snapshot.state.players).map(([id, player]) => [id, { ...player, armyId: undefined, faction: undefined, units: {} }]))
+    }
     let room: SharedRoom | null = null
     let lastError: unknown
     for (let attempt = 0; attempt < 5 && !room; attempt += 1) {
@@ -152,9 +170,10 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
             code,
             battle_id: session.setup.gameId,
             status: session.state.status,
-            session_snapshot: session,
+            session_snapshot: snapshot,
             host_client_id: clientId,
             started_at: null,
+            ...(bringYourArmy ? { bring_your_army: true } : {}),
           }),
         }, code, clientId)
         room = rows[0] ? mapRoom(rows[0]) : null
@@ -176,7 +195,8 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
     if (!row) return null
     const room = mapRoom(row)
     this.rememberRoom(room)
-    return { room, participants: await this.listParticipants(room.id) }
+    const rosters = room.bringYourArmy ? await this.request<{ player_id: string; client_id: string; army_data: Army; selection_id: string }[]>(`shared_rosters?room_id=eq.${encodeURIComponent(room.id)}&select=player_id,client_id,army_data,selection_id`, {}, room.code) : undefined
+    return { room, participants: await this.listParticipants(room.id), rosters: rosters?.map(r => ({ playerId: r.player_id, clientId: r.client_id, army: validateArmy(r.army_data), selectionId: r.selection_id })) }
   }
 
   async joinRoom(room: SharedRoom, playerId: string, clientId: string, preserveHost = false): Promise<SharedParticipant> {
@@ -250,6 +270,18 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
     }, this.roomCode(roomId), clientId)
   }
 
+  async stageRoster(roomId: string, clientId: string, army: Army, owner: string | null): Promise<void> {
+    const roster = validateArmy(army)
+    delete roster.localMediaId
+    const capability = this.roomCode(roomId)
+    if (owner) {
+      await accountRequest(owner, (client, token) => client.rpc('stage_shared_roster', { p_room_id: roomId, p_army: roster })
+        .setHeader('Authorization', `Bearer ${token}`).setHeader('x-room-code', capability).setHeader('x-client-id', clientId))
+    } else {
+      await this.request('rpc/stage_shared_roster', { method: 'POST', body: JSON.stringify({ p_room_id: roomId, p_army: roster }) }, capability, clientId)
+    }
+  }
+
   async setParticipantReady(roomId: string, clientId: string, ready: boolean): Promise<void> {
     await this.request<void>(`shared_participants?room_id=eq.${encodeURIComponent(roomId)}&client_id=eq.${encodeURIComponent(clientId)}`, {
       method: 'PATCH',
@@ -273,6 +305,15 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
     }, this.roomCode(roomId), clientId)
     if (!startedAt) throw new Error('The room could not be started. Refresh the lobby and try again.')
     return startedAt
+  }
+
+  async closeWaitingRoom(roomId: string, clientId: string): Promise<void> {
+    // A delayed Start acknowledgement must not let Leave abandon a live battle.
+    await this.request<void>(`shared_rooms?id=eq.${encodeURIComponent(roomId)}&started_at=is.null`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ status: 'abandoned', updated_at: new Date().toISOString() }),
+    }, this.roomCode(roomId), clientId)
   }
 
   async updateRoomStatus(roomId: string, status: BattleLifecycleStatus, clientId?: string): Promise<void> {
