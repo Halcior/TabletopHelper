@@ -138,18 +138,18 @@ begin
    if (force->>'id')=new.session_snapshot#>>'{setup,doubles,forces,0,id}' then
     a:=opt.team_alpha;
    else
-    select array_agg(p->>'id') into a from jsonb_array_elements(players)p
-      where not (p->>'id'=any(opt.team_alpha));
+    select array_agg(remaining.value->>'id') into a from jsonb_array_elements(players) AS remaining(value)
+      where not (remaining.value->>'id'=any(opt.team_alpha));
    end if;
    members:=to_jsonb(a);
    select jsonb_build_object('playerId',seat_player.value->>'id','unitId',u.value->>'id') into w
     from jsonb_array_elements(players) AS seat_player(value)
     cross join lateral jsonb_array_elements(new.session_snapshot#>'{setup,armies}'->('seat:'||(seat_player.value->>'id'))->'units') AS u(value)
     where members ? (seat_player.value->>'id')
-      and (coalesce((u->>'isWarlord')::boolean,false)
+      and (coalesce((u.value->>'isWarlord')::boolean,false)
        or exists(select 1 from jsonb_array_elements_text(
-         coalesce(u->'keywords','[]'::jsonb)||coalesce(u->'categories','[]'::jsonb))k where upper(k)='CHARACTER'))
-    order by coalesce((u->>'isWarlord')::boolean,false) desc limit 1;
+         coalesce(u.value->'keywords','[]'::jsonb)||coalesce(u.value->'categories','[]'::jsonb))k where upper(k)='CHARACTER'))
+    order by coalesce((u.value->>'isWarlord')::boolean,false) desc limit 1;
    if w is null then raise exception 'Each assigned team needs a CHARACTER Warlord' using errcode='23514'; end if;
    forces:=forces||jsonb_build_array(force||jsonb_build_object('memberPlayerIds',members,'warlord',w));
   end loop;
