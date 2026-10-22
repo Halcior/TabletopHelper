@@ -391,10 +391,10 @@ export default function BattleSetup() {
             <h3>Team {team === 0 ? 'Alpha' : 'Bravo'} · Shared Force</h3>
             <label>Team name<input value={teamNames[team]} onChange={(event) => setTeamNames((current) => current.map((name, index) => index === team ? event.target.value : name))} /></label>
             <p className="context-note">Seats {team * 2 + 1} & {team * 2 + 2} · one turn, CP pool, VP score and Secondary deck.</p>
-            <label>Force Disposition<select value={captain.forceDisposition ?? 'take-and-hold'} onChange={(event) => updatePlayer(teamCaptainIndex(team), 'forceDisposition', event.target.value as typeof DISPOSITIONS[number])}>
+            {playMode === 'shared' ? <p className="context-note">The team captain chooses Force Disposition in the online lobby.</p> : <label>Force Disposition<select value={captain.forceDisposition ?? 'take-and-hold'} onChange={(event) => updatePlayer(teamCaptainIndex(team), 'forceDisposition', event.target.value as typeof DISPOSITIONS[number])}>
               {DISPOSITIONS.map((disposition) => <option key={disposition} value={disposition}>{DISPOSITION_NAMES[disposition]}</option>)}
-            </select></label>
-            {mission && <p className="plan-description">Team Primary: <strong>{mission.name}</strong> · <a href={mission.url} target="_blank" rel="noreferrer">Full card</a></p>}
+            </select></label>}
+            {playMode === 'local' && mission && <p className="plan-description">Team Primary: <strong>{mission.name}</strong> · <a href={mission.url} target="_blank" rel="noreferrer">Full card</a></p>}
             <label>Force composition<select value={teamTypes[team]} onChange={(event) => setTeamTypes((current) => current.map((kind, i) => i === team ? event.target.value as 'unified' | 'convenience' : kind) as typeof current)}>
               <option value="convenience">Force of Convenience · different faction keywords</option>
               <option value="unified">Unified Force · same required faction keywords</option>
@@ -409,7 +409,7 @@ export default function BattleSetup() {
         <div className={`cauldron-player-grid${officialPair ? ' cauldron-player-grid--duel' : ''}`}>{activePlayers.map((player, index) => (
           <section className="panel player-setup-card" key={player.id}>
             <div className="player-setup-card__title"><span>Player {index + 1}</span><strong>Zone {player.deploymentZone} · Turn {player.turnPosition}</strong></div>
-            <label>Player name<input id={`commander-${index}-name`} aria-describedby={invalidFieldId === `commander-${index}-name` ? 'setup-error' : undefined} aria-invalid={invalidFieldId === `commander-${index}-name`} value={player.name} required onChange={(event) => updatePlayer(index, 'name', event.target.value)} /></label>
+            {playMode === 'shared' ? <p className="context-note">Player {index + 1}: name is loaded from their online profile when joining the lobby (guests keep a seat label).</p> : <label>Player name<input id={`commander-${index}-name`} aria-describedby={invalidFieldId === `commander-${index}-name` ? 'setup-error' : undefined} aria-invalid={invalidFieldId === `commander-${index}-name`} value={player.name} required onChange={(event) => updatePlayer(index, 'name', event.target.value)} /></label>}
             {playMode === 'shared' ? <p className="context-note">This commander will select their own army after joining the lobby.</p> : <label>Saved army<select id={`commander-${index}-army`} aria-describedby={invalidFieldId === `commander-${index}-army` ? 'setup-error' : undefined} aria-invalid={invalidFieldId === `commander-${index}-army`} value={player.armyId} onChange={(event) => updatePlayer(index, 'armyId', event.target.value)}>
               {armies.map((army) => <option key={army.id} value={army.id}>{army.faction} · {army.totalPoints} pts · {army.name} · {rosterRows.find(r => r.id === army.id)?.status ?? 'local'}{army.library?.variantOf ? ' · Variant' : ''}</option>)}
             </select></label>}
@@ -423,10 +423,10 @@ export default function BattleSetup() {
               </select></label>
             </div>}
             {primaryDeck === 'chapter-approved-duel' && duel ? <>
-              <label>Force Disposition<select value={player.forceDisposition} onChange={(event) => updatePlayer(index, 'forceDisposition', event.target.value as typeof DISPOSITIONS[number])}>
+              {playMode === 'shared' ? <p className="context-note">Force Disposition is selected by this commander after claiming their online seat.</p> : <label>Force Disposition<select value={player.forceDisposition} onChange={(event) => updatePlayer(index, 'forceDisposition', event.target.value as typeof DISPOSITIONS[number])}>
                 {DISPOSITIONS.map((disposition) => <option key={disposition} value={disposition}>{DISPOSITION_NAMES[disposition]}</option>)}
-              </select></label>
-              {player.forceDisposition && activePlayers[1 - index]?.forceDisposition && (() => {
+              </select></label>}
+              {playMode === 'local' && player.forceDisposition && activePlayers[1 - index]?.forceDisposition && (() => {
                 const mission = DUEL_MISSIONS[DUEL_PRIMARY_MATRIX[player.forceDisposition!][activePlayers[1 - index].forceDisposition!]]
                 return <p className="plan-description">Your Primary: <strong>{mission.name}</strong> · <a href={mission.url} target="_blank" rel="noreferrer">Full card</a></p>
               })()}
@@ -457,7 +457,7 @@ export default function BattleSetup() {
       </section>
       <section className="setup-step" hidden={step !== 3} aria-label="Battlefield and start">
         <h2>Battlefield & Start</h2>
-        <section className="panel setup-summary" aria-label="Battle setup summary"><div className="rules-source__heading"><span className="eyebrow">Ready to deploy</span><RulesSourceBadge source={rules.source} /></div><h3>{rules.title}</h3><p>{rules.primary} · {rules.secondary}</p><ul>{activePlayers.map((player) => <li key={player.id}><strong>{player.name}</strong><span>Zone {player.deploymentZone} · Turn {player.turnPosition}</span><small>{playMode === 'shared' ? 'Army chosen in lobby' : armies.find((army) => army.id === player.armyId)?.faction}</small></li>)}</ul></section>
+        <section className="panel setup-summary" aria-label="Battle setup summary"><div className="rules-source__heading"><span className="eyebrow">Ready to deploy</span><RulesSourceBadge source={rules.source} /></div><h3>{rules.title}</h3><p>{rules.primary} · {rules.secondary}</p><ul>{activePlayers.map((player) => <li key={player.id}><strong>{playMode === 'shared' ? `Seat ${activePlayers.indexOf(player) + 1} · name from profile` : player.name}</strong><span>Zone {player.deploymentZone} · Turn {player.turnPosition}</span><small>{playMode === 'shared' ? 'Army chosen in lobby' : armies.find((army) => army.id === player.armyId)?.faction}</small></li>)}</ul></section>
         <section className="panel setup-footer setup-footer--battle-mode">
           {primaryDeck === 'chapter-approved-duel' && <><InfoDisclosure label="Official pairing & setup instructions"><p className="context-note">Secondary deck: Chapter Approved 2026–27. Each force chooses Tactical or Fixed. In Doubles, both players share their active Secondary cards. Pick the recommended layout for your pairing. Roll for Attacker/Defender, then roll separately for first turn as described in the <a href="https://assets.warhammer-community.com/eng_14-10_wh40k_event_companion-rdwnqprl4c-nj8oqogadv.pdf" target="_blank" rel="noreferrer">Warhammer Event Companion</a>. Assign A/B HOME to your actual objectives and turn positions to the first-turn roll. The app’s central and expansion names are generic; use the physical layout to identify them.</p></InfoDisclosure><Link to="/terrain-layouts" target="_blank">Preview official terrain layouts</Link><label>Pairing layout<select value={officialLayout} onChange={(event) => setOfficialLayout(Number(event.target.value) as 1 | 2 | 3)}><option value={1}>Layout A</option><option value={2}>Layout B</option><option value={3}>Layout C</option></select></label></>}
           {primaryDeck === 'chapter-approved-duel' && <label>Attacker HOME assignment<select value={attackerHomeZone} onChange={(event) => setAttackerHomeZone(event.target.value as 'A' | 'B')}><option value="A">A-HOME · Attacker / B-HOME · Defender</option><option value="B">B-HOME · Attacker / A-HOME · Defender</option></select></label>}
