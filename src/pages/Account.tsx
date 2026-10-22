@@ -13,6 +13,7 @@ import {
 import { syncArmies, useSyncState } from '../features/armyLibrary/sync'
 import { downloadJson } from '../features/armyLibrary/download'
 import { exportRosters } from '../domain/army/roster'
+import { syncLocalCloudMedia } from '../features/factionVisuals/cloudMedia'
 
 export default function Account() {
   const { user, ready, error: authError } = useAccount()
@@ -317,11 +318,15 @@ export default function Account() {
           </Link>
         </section>
       )}
-      <p className="context-note">
-        Miniature photos remain on this device and are not part of cloud sync or
-        JSON exports. Battle snapshots and multiplayer seats keep their existing
-        behaviour.
-      </p>
+      {user && <section className="panel">
+        <h2>Cloud media</h2>
+        <p>Custom army banners and unit portraits are stored privately in Supabase Storage. Friends can see them only for armies you share with them.</p>
+        <button type="button" disabled={busy} onClick={() => void perform(async () => {
+          const result = await syncLocalCloudMedia()
+          setMessage(`Cloud photos synchronized: ${result.uploaded} checked, ${result.failed} failed. Images already stored in the cloud are not overwritten.`)
+        })}>Sync my existing photos</button>
+      </section>}
+      <p className="context-note">Images still have an offline copy on this device. Cloud media is not included in JSON exports. Friends only see photos belonging to shared armies.</p>
     </div>
   )
 }
