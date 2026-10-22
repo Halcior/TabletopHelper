@@ -124,6 +124,12 @@ test('two accounts: profile, friendship, read-only shared list, invite and indep
     await b.page.getByText('Imported weapon profiles & abilities', { exact: true }).click()
     const expandedProfile = b.page.locator('.roster-unit > details').first()
     await expect(expandedProfile).toHaveJSProperty('open', true)
+    await expandedRoster.evaluate(el => el.setAttribute('data-keep-open', 'yes'))
+    await b.page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
+    await b.page.getByRole('button', { name: 'Refresh', exact: true }).click()
+    await expect(expandedRoster).toHaveAttribute('data-keep-open', 'yes')
+    await expect(expandedRoster).toHaveJSProperty('open', true)
+    await expect(expandedProfile).toHaveJSProperty('open', true)
     await expect(
       b.page.getByText('1 × Captain · Spear', { exact: true }),
     ).toBeVisible()
