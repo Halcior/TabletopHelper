@@ -312,7 +312,7 @@ export default function BattleSetup() {
         <button type="button" aria-pressed={playMode === 'shared'} className={playMode === 'shared' ? 'button--gold' : ''} disabled={!sharedConfigured} onClick={() => { setPlayMode('shared'); setStep(1); setLocalError(null) }}><FormatGlyph mode="ffa3" /><strong>Online multiplayer</strong><span>Everyone brings an army to the lobby.</span></button>
       </div>
       {playMode === 'shared' && <p className="context-note">Already invited? <Link to="/shared">Join a lobby instead</Link>. Hosting creates an empty waiting room and does not start combat.</p>}
-      {playMode === 'local' && <nav className="setup-steps" aria-label="Battle setup steps">{(['Rules', playMode === 'shared' ? 'Player slots' : 'Commanders', playMode === 'shared' ? 'Create lobby' : 'Battlefield & Start'] as const).map((label, index) => <button type="button" key={label} aria-current={step === index + 1 ? 'step' : undefined} onClick={() => goToStep((index + 1) as 1 | 2 | 3)}><span>{index + 1}</span><strong>{label}</strong></button>)}</nav>}
+      {playMode === 'local' && <nav className="setup-steps" aria-label="Battle setup steps">{(['Rules', 'Commanders', 'Battlefield & Start'] as const).map((label, index) => <button type="button" key={label} aria-current={step === index + 1 ? 'step' : undefined} onClick={() => goToStep((index + 1) as 1 | 2 | 3)}><span>{index + 1}</span><strong>{label}</strong></button>)}</nav>}
       <form noValidate onSubmit={(event) => void submit(event)}>
       <section className="setup-step" hidden={step !== 1} aria-label="Rules">
       <h2>Choose your rules</h2>
