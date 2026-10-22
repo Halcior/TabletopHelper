@@ -41,6 +41,8 @@ set local role authenticated;
 select set_config('request.jwt.claim.sub','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',true);
 select set_config('request.jwt.claims','{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"}',true);
 select public.set_shared_seat_settings('dddddddd-dddd-4ddd-8ddd-dddddddddddd','take-and-hold');
+reset role; set local role anon;
+select set_config('request.jwt.claim.sub','',true);
 do $$begin
  assert (select display_name='Captain Aurelius' from public.shared_participants where client_id='host');
  assert (select force_disposition='take-and-hold' from public.shared_participants where client_id='host');
@@ -59,6 +61,8 @@ update public.shared_participants set is_ready=true where client_id='host';
 set local role authenticated;
 select set_config('request.jwt.claim.sub','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',true);
 select public.set_shared_seat_settings('dddddddd-dddd-4ddd-8ddd-dddddddddddd','reconnaissance');
+reset role; set local role anon;
+select set_config('request.jwt.claim.sub','',true);
 do $$begin assert not(select is_ready from public.shared_participants where client_id='host'); end $$;
 
 reset role; set local role anon;
