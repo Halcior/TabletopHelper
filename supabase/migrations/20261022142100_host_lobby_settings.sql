@@ -12,7 +12,7 @@ create function social_private.host_lobby_configuration(p_room_id uuid,p_turn_or
 returns void language plpgsql security definer set search_path='' as $$
 declare r public.shared_rooms; players text[]; host public.shared_participants;
   proof text:=coalesce(current_setting('request.headers',true)::jsonb->>'x-seat-credential','');
-  default_a text; default_b text;
+  default_a text; default_b text; expected integer;
 begin
  select * into r from public.shared_rooms
   where id=p_room_id and code=public.request_shared_room_code() for update;
@@ -27,8 +27,9 @@ begin
  then raise exception 'Private host seat credential required' using errcode='42501'; end if;
  select array_agg(p->>'id' order by p->>'id') into players
  from jsonb_array_elements(r.session_snapshot#>'{setup,players}') p;
- if array_length(p_turn_order,1) is distinct from case when r.session_snapshot#>'{setup,doubles}' is null then array_length(players,1) else 2 end
-  or (select count(distinct x) from unnest(p_turn_order)x)<>array_length(p_turn_order,1)
+ expected:=case when r.session_snapshot#>'{setup,doubles}' is null then array_length(players,1) else 2 end;
+ if coalesce(array_length(p_turn_order,1),0)<>expected
+  or (select count(distinct x) from unnest(p_turn_order)x)<>expected
  then raise exception 'Invalid turn order' using errcode='22023'; end if;
  if r.session_snapshot#>'{setup,doubles}' is not null then
   default_a:=r.session_snapshot#>>'{setup,doubles,forces,0,captainPlayerId}';
