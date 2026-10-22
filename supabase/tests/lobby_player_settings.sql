@@ -22,7 +22,7 @@ reset role;
 set local role anon;
 select set_config('request.jwt.claim.sub','',true);
 select set_config('request.jwt.claims','{}',true);
-select set_config('request.headers','{"x-room-code":"ABC456","x-client-id":"host"}',true);
+select set_config('request.headers','{"x-room-code":"ABC456","x-client-id":"host","x-seat-credential":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}',true);
 insert into public.shared_rooms(id,code,battle_id,host_client_id,bring_your_army,session_snapshot) values(
 'dddddddd-dddd-4ddd-8ddd-dddddddddddd','ABC456','bya-settings','host',true,
 '{"setup":{"players":[{"id":"p1","name":"Player I"},{"id":"p2","name":"Player II"}],
@@ -68,7 +68,7 @@ do $$begin assert not(select is_ready from public.shared_participants where clie
 reset role; set local role anon;
 select set_config('request.jwt.claim.sub','',true);
 update public.shared_participants set is_ready=true where client_id='host';
-select set_config('request.headers','{"x-room-code":"ABC456","x-client-id":"guest"}',true);
+select set_config('request.headers','{"x-room-code":"ABC456","x-client-id":"guest","x-seat-credential":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}',true);
 insert into public.shared_participants(id,room_id,client_id,player_id,display_name) values
 ('20000000-0000-4000-8000-000000000000','dddddddd-dddd-4ddd-8ddd-dddddddddddd','guest','p2','Player II');
 select public.stage_shared_roster('dddddddd-dddd-4ddd-8ddd-dddddddddddd',
@@ -80,7 +80,7 @@ select public.set_shared_seat_settings('dddddddd-dddd-4ddd-8ddd-dddddddddddd','p
 reset role; set local role anon;
 select set_config('request.jwt.claim.sub','',true);
 update public.shared_participants set is_ready=true where client_id='guest';
-select set_config('request.headers','{"x-room-code":"ABC456","x-client-id":"host"}',true);
+select set_config('request.headers','{"x-room-code":"ABC456","x-client-id":"host","x-seat-credential":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}',true);
 select public.start_shared_room('dddddddd-dddd-4ddd-8ddd-dddddddddddd');
 do $$declare result jsonb; begin
  select session_snapshot into result from public.shared_rooms where code='ABC456';
