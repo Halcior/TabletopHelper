@@ -1,4 +1,6 @@
 import { rehydrateBattleSession } from '../domain/battle/engine'
+import { officialObjectivesForPair } from '../domain/battlefield/layouts'
+import { getCauldronConfig } from '../rulesets/cauldronFFA3'
 import { validateArmy } from '../domain/army/roster'
 import type { Army } from '../domain/army/types'
 import { accountRequest } from '../features/social/api'
@@ -12,6 +14,7 @@ import type {
   SharedSessionTransport,
 } from './types'
 import { createPortableUuid } from './uuid'
+import { seatCredential } from './seatCredential'
 import { assertSharedSchemaVersion } from './sharedBackend'
 
 type SupabaseRoomRow = {
@@ -32,6 +35,7 @@ type SupabaseParticipantRow = {
   client_id: string
   player_id: string
   display_name: string
+  force_disposition?: string | null
   is_host: boolean
   is_ready: boolean
   last_seen_at: string
@@ -50,13 +54,27 @@ function env(name: string): string | undefined {
 }
 
 function mapRoom(row: SupabaseRoomRow): SharedRoom {
+  // Official objectives depend on the two player-selected dispositions. They
+  // cannot be final when the empty waiting lobby is first created by the host.
+  // Resolve the pinned official layout only after the server freezes choices.
+  const snapshot = structuredClone(row.session_snapshot)
+  if (row.bring_your_army && row.started_at) {
+    const config = snapshot.setup.rulesetId === 'cauldron-ffa-3' ? getCauldronConfig(snapshot) : null
+    if (config?.primaryDeck === 'chapter-approved-duel') {
+      const pair = snapshot.setup.doubles
+        ? snapshot.setup.doubles.forces.map((force) => force.forceDisposition)
+        : snapshot.setup.turnOrder.map((id) => config.playerConfigs[id]?.forceDisposition)
+      if (pair.length !== 2 || !pair[0] || !pair[1]) throw new Error('Both forces must select their Force Dispositions before battle start.')
+      snapshot.setup.objectives = officialObjectivesForPair(pair[0], pair[1], config.officialLayout ?? 1)
+    }
+  }
   return {
     bringYourArmy: row.bring_your_army,
     id: row.id,
     code: row.code,
     battleId: row.battle_id,
     status: row.status,
-    sessionSnapshot: row.bring_your_army && row.started_at ? rehydrateBattleSession(row.session_snapshot) : row.session_snapshot,
+    sessionSnapshot: row.bring_your_army && row.started_at ? rehydrateBattleSession(snapshot) : snapshot,
     startedAt: row.started_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -70,6 +88,7 @@ function mapParticipant(row: SupabaseParticipantRow): SharedParticipant {
     clientId: row.client_id,
     playerId: row.player_id,
     displayName: row.display_name,
+    forceDisposition: row.force_disposition ?? null,
     isHost: row.is_host,
     isReady: row.is_ready,
     lastSeenAt: row.last_seen_at,
@@ -211,7 +230,7 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
     if (!player) throw new Error('Unknown player seat.')
     const rows = await this.request<SupabaseParticipantRow[]>('shared_participants?on_conflict=room_id,player_id', {
       method: 'POST',
-      headers: { Prefer: 'resolution=merge-duplicates,return=representation' },
+      headers: { Prefer: 'resolution=merge-duplicates,return=representation', 'x-seat-credential': seatCredential() },
       body: JSON.stringify({
         id: createPortableUuid(),
         room_id: room.id,
@@ -279,6 +298,17 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
         .setHeader('Authorization', `Bearer ${token}`).setHeader('x-room-code', capability).setHeader('x-client-id', clientId))
     } else {
       await this.request('rpc/stage_shared_roster', { method: 'POST', body: JSON.stringify({ p_room_id: roomId, p_army: roster }) }, capability, clientId)
+    }
+  }
+
+  async setSeatSettings(roomId: string, clientId: string, disposition: string | null, owner: string | null): Promise<void> {
+    const roomCode = this.roomCode(roomId)
+    const payload = { p_room_id: roomId, p_force_disposition: disposition }
+    if (owner) {
+      await accountRequest(owner, (client, token) => client.rpc('set_shared_seat_settings', payload)
+        .setHeader('Authorization', `Bearer ${token}`).setHeader('x-room-code', roomCode).setHeader('x-client-id', clientId).setHeader('x-seat-credential', seatCredential()))
+    } else {
+      await this.request('rpc/set_shared_seat_settings', { method: 'POST', headers: { 'x-seat-credential': seatCredential() }, body: JSON.stringify(payload) }, roomCode, clientId)
     }
   }
 

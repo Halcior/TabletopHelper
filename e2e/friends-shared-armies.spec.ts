@@ -52,11 +52,20 @@ async function seedArmy(page: Page, name: string) {
 }
 async function chooseArmy(page: Page) {
   const picker = page.getByRole('region', { name: 'Your lobby army' })
-  await picker.getByLabel('Saved army').selectOption({ index: 1 })
+  const selector = picker.getByLabel('Saved army')
+  const options = await selector.locator('option').allTextContents()
+  if (options.some(label => label.startsWith('Necron roster'))) await selector.selectOption({ label: 'Necron roster · 100 pts' })
+  else await selector.selectOption({ index: 1 })
   await picker.getByRole('button', { name: 'Select army', exact: true }).click()
   await expect(
     picker.getByRole('button', { name: 'Change Army', exact: true }),
   ).toBeEnabled()
+  const disposition = page.getByRole('combobox', { name: 'Force Disposition' })
+  if (await disposition.count()) {
+    await disposition.selectOption('purge-the-foe')
+    await page.getByRole('button', { name: 'Confirm Force Disposition', exact: true }).click()
+    await expect(page.getByText('Selected: Purge the Foe')).toBeVisible()
+  }
 }
 async function newLobby(page: Page, mode = 'duel') {
   await page.goto(`/battle/setup?play=shared&mode=${mode}`)
@@ -140,6 +149,16 @@ test('two accounts: profile, friendship, read-only shared list, invite and indep
       path: 'test-results/friends-shared-mobile.png',
       fullPage: true,
     })
+    await b.page.getByRole('button', { name: 'Copy to My Armies' }).click()
+    await expect(b.page.getByText('Copied to your library. The original roster remains unchanged.')).toBeVisible()
+    const copy = await b.page.evaluate(async () => {
+      const { listArmies } = await import('/src/features/armyLibrary/repository.ts')
+      const rows = await listArmies()
+      const row = rows.find(entry => entry.army.name.includes('Custodes roster — copy from Golden Commander'))
+      return row ? { id: row.id, faction: row.army.faction, units: row.army.units.length, equipment: row.army.units[0].modelGroups[0].equipment } : null
+    })
+    expect(copy).toMatchObject({ faction: 'Adeptus Custodes', units: 1, equipment: ['Spear'] })
+    expect(copy?.id).toBeTruthy()
     expect(
       await b.page.evaluate(
         () => document.documentElement.scrollWidth <= window.innerWidth,

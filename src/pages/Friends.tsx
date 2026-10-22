@@ -1,4 +1,6 @@
 import { useRef, useState } from 'react'
+import { duplicateRoster } from '../features/armyLibrary/repository'
+import { useRosterScope } from '../features/armyLibrary/scope'
 import { Link, useParams } from 'react-router-dom'
 import type { Army } from '../domain/army/types'
 import { ArmyBanner } from '../features/factionVisuals/components'
@@ -429,6 +431,29 @@ function SharedRosterList({
   armies: Army[]
   ownerName: string
 }) {
+  const owner = useRosterScope((s) => s.userId)
+  const [copying, setCopying] = useState<string | null>(null)
+  const [copied, setCopied] = useState<Record<string, string>>({})
+  const [copyError, setCopyError] = useState<Record<string, string>>({})
+  const lock = useRef(false)
+  async function copyFriendArmy(army: Army) {
+    if (lock.current) return
+    lock.current = true
+    setCopying(army.id)
+    setCopyError((errors) => ({ ...errors, [army.id]: '' }))
+    try {
+      if (!owner) throw new Error('Sign in to save a copy of a friend’s roster.')
+      // A new independent UUID and rewritten unit references, never a write to
+      // the friend's remote record. Owner check guards account switches.
+      const copy = await duplicateRoster(army, `${army.name} — copy from ${ownerName}`, owner)
+      setCopied((current) => ({ ...current, [army.id]: copy.id }))
+    } catch (error) {
+      setCopyError((errors) => ({ ...errors, [army.id]: errorText(error) }))
+    } finally {
+      lock.current = false
+      setCopying(null)
+    }
+  }
   return (
     <div className="roster-card-grid">
       {armies.map((army) => (
@@ -436,6 +461,14 @@ function SharedRosterList({
           <ArmyBanner army={army} />
           <h2>{army.name}</h2>
           <p>{ownerName} · Read only</p>
+          <div className="roster-actions">
+            <button type="button" disabled={copying !== null} onClick={() => void copyFriendArmy(army)}>
+              {copying === army.id ? 'Copying…' : 'Copy to My Armies'}
+            </button>
+            {copied[army.id] && <Link className="button" to={`/army/${encodeURIComponent(copied[army.id])}/edit`}>Open my copy</Link>}
+          </div>
+          {copied[army.id] && <p role="status">Copied to your library. The original roster remains unchanged.</p>}
+          {copyError[army.id] && <p role="alert" className="alert alert--danger">{copyError[army.id]}</p>}
           <p>
             {army.faction} · {army.totalPoints} pts · {army.units.length} units
           </p>

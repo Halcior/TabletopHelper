@@ -16,6 +16,7 @@ export async function createTestDatabase() {
     'supabase/migrations/20261021124245_private_user_armies.sql',
     'supabase/migrations/20261021125543_enforce_roster_mutation_inputs.sql',
     'supabase/migrations/20261022082448_friends_shared_armies.sql',
+    'supabase/migrations/20261022103500_lobby_player_settings.sql',
   ])
     await db.exec(readFileSync(path, 'utf8'))
   return db
