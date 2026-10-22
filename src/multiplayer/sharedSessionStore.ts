@@ -606,7 +606,7 @@ export const useSharedSessionStore = create<SharedSessionStore>((set, get) => ({
           )
         }
         if (membership.isHost && !get().roomStartedAt && get().inspection?.room.bringYourArmy) {
-          await sharedSessionTransport.updateRoomStatus(membership.roomId, 'abandoned', membership.clientId)
+          await sharedSessionTransport.closeWaitingRoom(membership.roomId, membership.clientId)
         }
         await sharedSessionTransport.releaseParticipant(membership.roomId, membership.clientId)
       } catch {

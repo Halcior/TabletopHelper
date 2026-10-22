@@ -100,6 +100,7 @@ export class PostgresBackend {
           )
             continue
           if (!/^[a-z_]+$/.test(key)) throw new Error('Invalid filter')
+          if (val === 'is.null') { conditions.push(`${key} is null`); continue }
           const match = /^(eq|gt)\.(.*)$/.exec(val)
           if (!match) throw new Error('Invalid comparison')
           values.push(match[2])

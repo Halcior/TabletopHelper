@@ -4,6 +4,7 @@ import fixture from '../../../test-data/1700.json'
 import { NewRecruitImporter } from '../../importers/newRecruit'
 const state = vi.hoisted(() => ({
   headers: [] as string[],
+  schema: 7,
   response: null as unknown,
 }))
 vi.mock('../account/client', async () => {
@@ -20,7 +21,7 @@ vi.mock('../account/client', async () => {
           state.headers.push(
             new Headers(init?.headers).get('Authorization') ?? '',
           )
-          return new Response(JSON.stringify(state.response), {
+          return new Response(JSON.stringify(String(_input).includes('/rpc/shared_schema_version') ? state.schema : state.response), {
             status: 200,
             headers: { 'Content-Type': 'application/json' },
           })
@@ -42,6 +43,7 @@ beforeEach(async () => {
   vi.restoreAllMocks()
   await accountClient!.auth.getSession()
   useRosterScope.setState({ userId: 'a' })
+  state.schema = 7
   state.headers = []
   state.response = {}
   vi.spyOn(accountClient!.auth, 'getSession').mockResolvedValue(session('a'))
@@ -52,7 +54,7 @@ it('binds the captured token even if the SDK later reads another session', async
     session(++calls === 1 ? 'a' : 'b'),
   )
   await social('a', 'request', { user_id: 'b' })
-  expect(state.headers).toEqual(['Bearer token-a'])
+  expect(state.headers).toEqual(['Bearer token-a', 'Bearer token-a'])
 })
 it('rejects an account mismatch before sending a social request', async () => {
   await expect(social('b', 'profile')).rejects.toThrow('account changed')
@@ -102,4 +104,10 @@ it('propagates backend permission errors without returning prior data', async ()
       error: new Error('Friend access required'),
     })),
   ).rejects.toThrow('Friend access required')
+})
+
+it('rejects a version-6 server before calling social endpoints', async () => {
+  state.schema = 6
+  await expect(social('a', 'profile')).rejects.toThrow('older than required')
+  expect(state.headers).toHaveLength(1)
 })

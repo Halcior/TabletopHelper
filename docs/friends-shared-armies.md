@@ -29,6 +29,8 @@ Duel has two seats, FFA three, and Doubles four with the existing two force memb
 
 ## Migration and controlled deployment
 
+Required shared schema version: **7**. Both multiplayer and social entry points reject older servers before using the new endpoints. Lobby Leave uses a database `started_at IS NULL` predicate, so a delayed Start acknowledgement cannot abandon an already-started battle.
+
 New migration:
 
 ```
@@ -39,11 +41,13 @@ It creates four social tables, the `shared_rosters` staging table, the optional 
 
 Before implementation, connected project `mingpauhiknymgdprsxq` migration history was inspected read-only. Its latest recorded migration was `20261021125543_enforce_roster_mutation_inputs`; Army Library and four-seat Doubles migrations are present. Some older remote names/timestamps differ from the repository, as already documented for Army Library. Do not blindly replay or push the entire historical migrations folder.
 
-**This change does not apply the migration to production.** For an actually usable hosted preview, first apply only the reviewed new migration to a disposable/staging Supabase project containing the existing schema. Keep `social_private` out of the Data API's exposed-schema list. Run the rollback-only role test against that staging database. Point this branch's Vercel Preview variables at that staging project and rebuild. A Preview using the current unmigrated production project can render the existing app but cannot exercise the new social/BYA endpoints.
+The owner subsequently requested merging for testing. The reviewed additive migration was applied to connected project `mingpauhiknymgdprsxq` on 22 October 2026 as remote migration `20261022092103_friends_shared_armies`. The repository filename remains the original CLI-generated `20261022082448_friends_shared_armies.sql`; these identify the same migration. **Do not replay it on this project.** Shared schema version 7 and the authenticated/anonymous RPC grants were verified after deployment.
 
-Existing account setup still applies: public Supabase URL/publishable key, email provider/SMTP/template, and exact `/account` redirect URLs including the chosen preview. No new secret/service-role key, bucket, OAuth provider or push service is required. Real email delivery/login and hosted PostgREST behavior must be smoke-tested on staging; local tests do not prove those deployment settings.
+The rollback-only A/B/C/anon SQL integration test passed against the actual connected Supabase database, including private/Friends access, friendship transitions, immutable roster snapshots and the late-Leave Start race. No test identities or rooms were retained. Local PostgreSQL-backed browser tests also passed. These database checks do not prove real email delivery, OAuth configuration or a real user's deployed sign-in.
 
-Once staging is accepted, the owner can schedule the same additive migration for production, then deploy the branch. Do not merge automatically.
+Existing account setup still applies: public Supabase URL/publishable key, email provider/SMTP/template, and exact `/account` redirect URLs. No new secret key, bucket, OAuth provider or push service is required. Preview and main can use the existing configured backend after this migration.
+
+Security advisors reported no new warning-level findings. The three informational RLS-without-policy notices on `friendships`, `army_sharing` and `game_invites` are intentional default-deny tables with no direct client grants; access is through the checked private-schema RPC. See the [RLS advisor explanation](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy). The pre-existing leaked-password-protection setting was unchanged ([Auth setting reference](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection)).
 
 ## Verification
 

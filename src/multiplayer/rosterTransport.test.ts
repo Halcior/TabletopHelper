@@ -87,3 +87,16 @@ it('rehydrates the final server roster snapshot rather than stale provisional un
     Object.keys(result!.room.sessionSnapshot.state.players.a.units),
   ).toHaveLength(army.units.length)
 })
+
+it('only closes rooms that are still waiting when the database handles Leave', async () => {
+  const { session, transport } = setup()
+  const room = { id:'room',code:'ABC234',battle_id:session.setup.gameId,status:'active',session_snapshot:session,started_at:null,created_at:'now',updated_at:'now' }
+  const writes: string[] = []
+  vi.stubGlobal('fetch', vi.fn(async (url: string, init: RequestInit = {}) => {
+    if (init.method === 'PATCH') { writes.push(url); return new Response(null,{status:204}) }
+    return new Response(JSON.stringify(url.includes('shared_rooms?') ? [room] : []),{status:200})
+  }))
+  await transport.inspectRoom('ABC234')
+  await transport.closeWaitingRoom('room', 'host')
+  expect(new URL(writes[0]).searchParams.get('started_at')).toBe('is.null')
+})

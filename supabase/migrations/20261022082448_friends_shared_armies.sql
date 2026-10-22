@@ -252,3 +252,9 @@ begin
 end $$;
 revoke all on function social_private.guard_staged_events() from public,anon,authenticated;
 create trigger guard_staged_events before insert on public.shared_events for each row execute function social_private.guard_staged_events();
+
+-- Version 7 gates all social/BYA dependencies before entering these flows.
+create or replace function public.shared_schema_version() returns integer
+ language sql stable security invoker set search_path='' as $$ select 7 $$;
+revoke all on function public.shared_schema_version() from public;
+grant execute on function public.shared_schema_version() to anon, authenticated;

@@ -1,3 +1,4 @@
+import { assertSharedSchemaVersion, sharedBackendMessage } from '../../multiplayer/sharedBackend'
 import { accountClient } from '../account/client'
 import { useRosterScope } from '../armyLibrary/scope'
 import { validateArmy } from '../../domain/army/roster'
@@ -63,7 +64,10 @@ export function social<T>(
   payload: Record<string, unknown> = {},
   capability?: RoomCapability,
 ): Promise<T> {
-  return accountRequest(owner, (client, token) => {
+  return accountRequest(owner, async (client, token) => {
+    const version = await client.rpc('shared_schema_version').setHeader('Authorization', `Bearer ${token}`)
+    if (version.error) throw new Error(sharedBackendMessage(version.error))
+    assertSharedSchemaVersion(version.data)
     const request = client
       .rpc('social_action', { p_action: action, p_data: payload })
       .setHeader('Authorization', `Bearer ${token}`)

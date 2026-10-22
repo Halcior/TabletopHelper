@@ -1,5 +1,5 @@
-export const SHARED_SCHEMA_VERSION = 6
-export const SHARED_SCHEMA_MIGRATION = 'supabase/migrations/20261013094351_battlefield_geometry_host_policy.sql'
+export const SHARED_SCHEMA_VERSION = 7
+export const SHARED_SCHEMA_MIGRATION = 'supabase/migrations/20261022082448_friends_shared_armies.sql'
 
 function detail(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
@@ -15,6 +15,10 @@ export function sharedBackendMessage(error: unknown): string {
   const message = detail(error)
   const normalized = message.toLocaleLowerCase()
   const schemaOutdated = [
+    'bring_your_army',
+    'shared_rosters',
+    'stage_shared_roster',
+    'social_action',
     'shared_schema_version',
     'shared schema version',
     'started_at',

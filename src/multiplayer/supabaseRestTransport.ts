@@ -307,6 +307,15 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
     return startedAt
   }
 
+  async closeWaitingRoom(roomId: string, clientId: string): Promise<void> {
+    // A delayed Start acknowledgement must not let Leave abandon a live battle.
+    await this.request<void>(`shared_rooms?id=eq.${encodeURIComponent(roomId)}&started_at=is.null`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ status: 'abandoned', updated_at: new Date().toISOString() }),
+    }, this.roomCode(roomId), clientId)
+  }
+
   async updateRoomStatus(roomId: string, status: BattleLifecycleStatus, clientId?: string): Promise<void> {
     await this.request<void>(`shared_rooms?id=eq.${encodeURIComponent(roomId)}`, {
       method: 'PATCH',
