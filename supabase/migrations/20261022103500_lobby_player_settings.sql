@@ -67,7 +67,8 @@ begin
         or coalesce(profile_name,seat.display_name) is distinct from seat.display_name then false else seat.is_ready end,
       last_seen_at=now()
   where id=seat.id;
-end $$;
+ perform set_config('social_private.seat_settings','',true);
+end $;
 revoke all on function social_private.set_seat_settings(uuid,text) from public,anon;
 grant execute on function social_private.set_seat_settings(uuid,text) to anon,authenticated;
 create function public.set_shared_seat_settings(p_room_id uuid,p_force_disposition text default null) returns void
