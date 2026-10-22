@@ -75,7 +75,7 @@ begin
  if not new.is_ready then return new; end if;
  select * into r from public.shared_rooms where id=new.room_id;
  if not r.bring_your_army or r.started_at is not null
-   or r.session_snapshot#>>'{setup,rulesetConfig,primaryDeck}'<>'chapter-approved-duel'
+   or coalesce(r.session_snapshot#>>'{setup,rulesetConfig,primaryDeck}','')<>'chapter-approved-duel'
  then return new; end if;
  doubles:=r.session_snapshot#>'{setup,doubles}' is not null
    and r.session_snapshot#>'{setup,doubles}'<>'null'::jsonb;
