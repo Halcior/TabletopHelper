@@ -74,7 +74,7 @@ function SocialScreen({
       setMessage(notice)
       await friends.refresh()
       await invites.refresh()
-      if (friendId) await armies.refresh()
+      if (friendId) await armies.refresh(true) // In-place refresh keeps open roster details expanded.
     } catch (e) {
       setError(errorText(e))
     } finally {
