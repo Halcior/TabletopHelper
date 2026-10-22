@@ -70,6 +70,10 @@ async function newLobby(page: Page, mode = 'duel') {
     (await import('/src/multiplayer/sharedSessionStore.ts')).useSharedSessionStore.getState().inspection?.room.sessionSnapshot)
   expect(hostSnapshot?.setup.armies).toEqual({})
   expect(hostSnapshot?.setup.players.every(player => !player.armyId)).toBe(true)
+  // Creating a waiting room must not pollute the saved active-battle history.
+  const savedBeforeStart = await page.evaluate(async () =>
+    (await import('/src/persistence/database.ts')).getLatestActiveBattle())
+  expect(savedBeforeStart).toBeFalsy()
 }
 
 test('two accounts: profile, friendship, read-only shared list, invite and independent battle snapshots', async ({
