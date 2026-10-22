@@ -1,6 +1,7 @@
 import { social, errorText } from '../features/social/api'
 import { LobbyArmyPicker } from '../features/social/LobbyArmyPicker'
 import { LobbySeatSettings } from '../features/social/LobbySeatSettings'
+import { LobbyHostSettings } from '../features/social/LobbyHostSettings'
 import { DISPOSITION_NAMES } from '../rulesets/cauldronFFA3'
 import { LobbyFriendInvites } from '../features/social/LobbyFriendInvites'
 import { useRosterScope } from '../features/armyLibrary/scope'
@@ -306,6 +307,7 @@ export default function SharedSessions() {
         </aside>
       </div>
 
+      {!roomStartedAt && membership.isHost && <LobbyHostSettings key={`host:${membership.roomId}:${membership.clientId}`} />}
       <LobbySeatSettings key={`${rosterOwner}:${membership.roomId}:${membership.clientId}`} />
       <LobbyArmyPicker key={`${rosterOwner}:${membership.roomId}`} />
       {!roomStartedAt && membership.isHost && <LobbyFriendInvites membership={membership} />}
