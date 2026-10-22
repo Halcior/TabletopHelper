@@ -89,7 +89,7 @@ grant execute on function public.get_host_lobby_settings(uuid) to anon,authentic
 create function social_private.freeze_host_lobby_configuration() returns trigger
 language plpgsql security definer set search_path='' as $$
 declare opt social_private.host_lobby_settings; pid text; pos integer; zone text;
-  p jsonb; players jsonb:='[]'; state_players jsonb; conf jsonb; force jsonb;
+  p jsonb; players jsonb:='[]'; state_players jsonb; conf jsonb; force jsonb; evt jsonb; evts jsonb:='[]'::jsonb;
   forces jsonb:='[]'; members jsonb; w jsonb; captain text; a text[];
 begin
  if old.started_at is not null or new.started_at is null or not old.bring_your_army then return new; end if;
@@ -120,6 +120,18 @@ begin
  new.session_snapshot:=jsonb_set(new.session_snapshot,'{setup,turnOrder}',to_jsonb(opt.turn_order));
  new.session_snapshot:=jsonb_set(new.session_snapshot,'{state,turnOrder}',to_jsonb(opt.turn_order));
  new.session_snapshot:=jsonb_set(new.session_snapshot,'{state,activePlayerId}',to_jsonb(opt.turn_order[1]));
+ -- Rehydration projects state from events, not the serialized state fields.
+ -- Rewrite the initial TURN_STARTED and corresponding tactical snapshot so
+ -- all devices start on the host-selected commander after reconnect.
+ for evt in select value from jsonb_array_elements(coalesce(new.session_snapshot#>'{state,events}','[]'::jsonb)) loop
+  if evt->>'type'='TURN_STARTED' then
+   evt:=jsonb_set(evt,'{payload,playerId}',to_jsonb(opt.turn_order[1]),true);
+  elsif evt->>'type'='RULESET_EVENT' and evt#>>'{payload,action}'='TURN_SNAPSHOT_CAPTURED' then
+   evt:=jsonb_set(evt,'{payload,data,playerId}',to_jsonb(opt.turn_order[1]),true);
+  end if;
+  evts:=evts||jsonb_build_array(evt);
+ end loop;
+ new.session_snapshot:=jsonb_set(new.session_snapshot,'{state,events}',evts);
  if new.session_snapshot#>'{setup,doubles}' is not null then
   for force in select value from jsonb_array_elements(new.session_snapshot#>'{setup,doubles,forces}') loop
    captain:=force->>'captainPlayerId';
