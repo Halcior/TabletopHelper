@@ -14,6 +14,7 @@ import type {
   SharedSessionTransport,
 } from './types'
 import { createPortableUuid } from './uuid'
+import { seatCredential } from './seatCredential'
 import { assertSharedSchemaVersion } from './sharedBackend'
 
 type SupabaseRoomRow = {
@@ -229,7 +230,7 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
     if (!player) throw new Error('Unknown player seat.')
     const rows = await this.request<SupabaseParticipantRow[]>('shared_participants?on_conflict=room_id,player_id', {
       method: 'POST',
-      headers: { Prefer: 'resolution=merge-duplicates,return=representation' },
+      headers: { Prefer: 'resolution=merge-duplicates,return=representation', 'x-seat-credential': seatCredential() },
       body: JSON.stringify({
         id: createPortableUuid(),
         room_id: room.id,
@@ -305,9 +306,9 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
     const payload = { p_room_id: roomId, p_force_disposition: disposition }
     if (owner) {
       await accountRequest(owner, (client, token) => client.rpc('set_shared_seat_settings', payload)
-        .setHeader('Authorization', `Bearer ${token}`).setHeader('x-room-code', roomCode).setHeader('x-client-id', clientId))
+        .setHeader('Authorization', `Bearer ${token}`).setHeader('x-room-code', roomCode).setHeader('x-client-id', clientId).setHeader('x-seat-credential', seatCredential()))
     } else {
-      await this.request('rpc/set_shared_seat_settings', { method: 'POST', body: JSON.stringify(payload) }, roomCode, clientId)
+      await this.request('rpc/set_shared_seat_settings', { method: 'POST', headers: { 'x-seat-credential': seatCredential() }, body: JSON.stringify(payload) }, roomCode, clientId)
     }
   }
 
