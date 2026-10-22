@@ -48,6 +48,8 @@ do $$declare x jsonb; begin
  assert jsonb_array_length(x)=1, 'Only Friends list returned';
  assert not (x->0 ? 'revision') and not(x->0 ? 'mutation_id'), 'No cloud metadata';
  assert not (x->0->'army' ? 'localMediaId'), 'No local photo namespace';
+ assert social_private.may_view_army_media('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','11111111-1111-4111-8111-111111111111'), 'Friends must see explicitly shared army images';
+ assert not social_private.may_view_army_media('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','22222222-2222-4222-8222-222222222222'), 'Private army images are never shared';
 end $$;
 update public.user_armies set army_data='{}' where user_id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 -- RLS update silently sees zero rows (allowed SQL privilege), so check owner-only data.
@@ -58,6 +60,7 @@ select public.social_action('profile');
 select pg_temp.denied($q$select public.social_action('shared','{"user_id":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"}')$q$);
 select set_config('request.jwt.claim.sub','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',true);
 select public.social_action('remove','{"user_id":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"}');
+do $$begin assert not social_private.may_view_army_media('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','11111111-1111-4111-8111-111111111111'), 'Unfriending revokes cloud media access'; end $$;
 select pg_temp.denied($q$select public.social_action('shared','{"user_id":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"}')$q$);
 -- Cancel, reject, and repeated operations leave no phantom friendships.
 select public.social_action('request','{"user_id":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"}');
