@@ -70,9 +70,8 @@ async function chooseArmy(page: Page) {
 async function newLobby(page: Page, mode = 'duel') {
   await page.goto(`/battle/setup?play=shared&mode=${mode}`)
   await expect(page.getByRole('button', { name: /Online multiplayer/ })).toHaveAttribute('aria-pressed', 'true')
-  await page.getByRole('button', { name: 'Next: Commanders' }).click()
-  await expect(page.getByRole('region', { name: 'Commanders' }).getByLabel('Saved army')).toHaveCount(0)
-  await page.getByRole('button', { name: 'Next: Battlefield' }).click()
+  await expect(page.getByRole('region', { name: 'Rules' })).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Commanders' })).not.toBeVisible()
   await page.getByRole('button', { name: /Create .* lobby/ }).click()
   await expect(page.getByText('Waiting room', { exact: true })).toBeVisible()
   const hostSnapshot = await page.evaluate(async () =>
