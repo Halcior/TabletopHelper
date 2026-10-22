@@ -3,6 +3,7 @@
 alter table public.shared_participants
  add column force_disposition text
  check(force_disposition is null or force_disposition in ('take-and-hold','purge-the-foe','reconnaissance','priority-assets','disruption'));
+alter table public.shared_participants add column profile_user_id uuid references auth.users(id);
 
 -- Changing the claimed client ID cannot inherit another person's settings.
 create function social_private.reset_seat_settings() returns trigger
@@ -10,6 +11,13 @@ language plpgsql security definer set search_path='' as $$
 begin
  if old.client_id is distinct from new.client_id then
    new.force_disposition := null;
+   new.profile_user_id := null;
+ elsif current_setting('social_private.seat_settings',true) is distinct from 'yes' then
+   -- Normal room PATCH/seat upserts may update presence but cannot forge
+   -- account identity, nickname or mission disposition.
+   new.force_disposition := old.force_disposition;
+   new.profile_user_id := old.profile_user_id;
+   new.display_name := old.display_name;
  end if;
  return new;
 end $$;
@@ -50,9 +58,11 @@ begin
    select display_name into profile_name from public.player_profiles where user_id=auth.uid();
  end if;
  chosen:=coalesce(p_force_disposition,seat.force_disposition);
+ perform set_config('social_private.seat_settings','yes',true);
  update public.shared_participants
   set display_name=coalesce(profile_name,seat.display_name),
       force_disposition=chosen,
+      profile_user_id=auth.uid(),
       is_ready=case when chosen is distinct from seat.force_disposition
         or coalesce(profile_name,seat.display_name) is distinct from seat.display_name then false else seat.is_ready end,
       last_seen_at=now()
@@ -111,6 +121,9 @@ begin
     where room_id=new.id and player_id=player_entry->>'id';
    if m.id is null or trim(m.display_name)='' then
      raise exception 'All seats need a player identity' using errcode='23514';
+   end if;
+   if m.profile_user_id is not null then
+     select display_name into m.display_name from public.player_profiles where user_id=m.profile_user_id;
    end if;
    result_players:=result_players||jsonb_build_array(jsonb_set(player_entry,'{name}',to_jsonb(m.display_name)));
    if deck='chapter-approved-duel' and not doubles then
