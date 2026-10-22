@@ -3,7 +3,37 @@
 alter table public.shared_participants
  add column force_disposition text
  check(force_disposition is null or force_disposition in ('take-and-hold','purge-the-foe','reconnaissance','priority-assets','disruption'));
-alter table public.shared_participants add column profile_user_id uuid references auth.users(id);
+alter table public.shared_participants add column profile_user_id uuid references auth.users(id) on delete set null;
+
+-- Private proof of seat possession. The participant client_id is publicly readable
+-- inside the room and MUST NOT be accepted as an authorization credential.
+create table social_private.seat_credentials (
+ participant_id uuid primary key references public.shared_participants(id) on delete cascade,
+ client_id text not null,
+ token_hash text not null
+);
+revoke all on table social_private.seat_credentials from public,anon,authenticated;
+
+create function social_private.capture_seat_credential() returns trigger
+language plpgsql security definer set search_path='' as $$
+declare proof text; existing text;
+begin
+ if not exists(select 1 from public.shared_rooms room where room.id=new.room_id and room.bring_your_army and room.started_at is null) then return new; end if;
+ proof:=coalesce(current_setting('request.headers',true)::jsonb->>'x-seat-credential','');
+ if proof !~ '^[0-9a-f]{64}$' then raise exception 'A private seat credential is required' using errcode='42501'; end if;
+ select token_hash into existing from social_private.seat_credentials where participant_id=new.id;
+ if tg_op='UPDATE' and old.client_id is not distinct from new.client_id and existing is not null then
+   if existing<>md5(proof) then raise exception 'Seat credential does not match' using errcode='42501'; end if;
+ else
+   insert into social_private.seat_credentials(participant_id,client_id,token_hash)
+    values(new.id,new.client_id,md5(proof))
+    on conflict(participant_id) do update set client_id=excluded.client_id,token_hash=excluded.token_hash;
+ end if;
+ return new;
+end $$;
+revoke all on function social_private.capture_seat_credential() from public,anon,authenticated;
+create trigger z_capture_seat_credential after insert or update of client_id on public.shared_participants
+ for each row execute function social_private.capture_seat_credential();
 
 -- Changing the claimed client ID cannot inherit another person's settings.
 create function social_private.reset_seat_settings() returns trigger
@@ -40,6 +70,12 @@ begin
   where room_id=p_room_id and client_id=public.request_shared_client_id()
     and client_id<>'' for update;
  if seat.id is null then raise exception 'Claim your player seat first' using errcode='42501'; end if;
+ -- The header client_id is a room-visible locator, not proof of ownership.
+ if not exists (
+   select 1 from social_private.seat_credentials credential
+   where credential.participant_id=seat.id and credential.client_id=seat.client_id
+     and credential.token_hash=md5(coalesce(current_setting('request.headers',true)::jsonb->>'x-seat-credential',''))
+ ) then raise exception 'Private seat credential mismatch' using errcode='42501'; end if;
  deck:=r.session_snapshot#>>'{setup,rulesetConfig,primaryDeck}';
  doubles:=r.session_snapshot#>'{setup,doubles}' is not null
    and r.session_snapshot#>'{setup,doubles}'<>'null'::jsonb;
@@ -69,7 +105,8 @@ begin
   where id=seat.id;
  perform set_config('social_private.seat_settings','',true);
 end $$;
-revoke all on function social_private.set_seat_settings(uuid,text) from public,anon;
+revoke all on function social_private.set_seat_settings(uuid,text) from public;
+grant usage on schema social_private to anon,authenticated;
 grant execute on function social_private.set_seat_settings(uuid,text) to anon,authenticated;
 create function public.set_shared_seat_settings(p_room_id uuid,p_force_disposition text default null) returns void
 language sql security invoker set search_path='' as $$
