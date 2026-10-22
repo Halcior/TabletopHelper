@@ -30,10 +30,10 @@ export function UnitPortrait({army,unit}:{army:Army;unit:UnitDefinition}){
   <UnitImage key={mediaKey(army,unit)+custom+t.id} custom={custom} themeId={t.id} alt={unit.name}/>
  </span>
 }
-export function ArmyBanner({army,label}:{army:Army;label?:string}){
+export function ArmyBanner({army,label,forceCustom=false}:{army:Army;label?:string;forceCustom?:boolean}){
  const p=useVisualPreferences(s=>s.preferences),t=useFactionTheme(army)
  const enabled=p.appearance!=='minimal'&&p.banners
- const custom=usePhoto(enabled&&p.appearance==='custom'?mediaKey(army):undefined)
+ const custom=usePhoto(enabled&&(forceCustom||p.appearance==='custom')?mediaKey(army):undefined)
  if(!enabled)return null
  return <div className="army-banner" style={themeStyle(t)}><div className="army-banner__art" aria-hidden="true"><FallbackImage key={mediaKey(army)+custom+t.id} custom={custom} thematic={factionArtUrl(t)} srcSet={factionArtSrcSet(t)} alt={t.name}/></div><div className="army-banner__copy"><span className="eyebrow">{label??'Army identity'}</span><strong>{army.faction}</strong><span>{army.name}</span><small>{army.totalPoints} pts · {army.units.length} units{t.id!=='neutral'&&t.name!==army.faction?` · ${t.name} theme`:''}</small></div></div>
 }
