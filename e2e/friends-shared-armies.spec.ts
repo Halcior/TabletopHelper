@@ -59,12 +59,17 @@ async function chooseArmy(page: Page) {
   ).toBeEnabled()
 }
 async function newLobby(page: Page, mode = 'duel') {
-  await page.goto(`/battle/setup?mode=${mode}`)
+  await page.goto(`/battle/setup?play=shared&mode=${mode}`)
+  await expect(page.getByRole('button', { name: /Online multiplayer/ })).toHaveAttribute('aria-pressed', 'true')
   await page.getByRole('button', { name: 'Next: Commanders' }).click()
+  await expect(page.getByRole('region', { name: 'Commanders' }).getByLabel('Saved army')).toHaveCount(0)
   await page.getByRole('button', { name: 'Next: Battlefield' }).click()
-  await page.getByRole('checkbox', { name: /Each player chooses/ }).check()
   await page.getByRole('button', { name: /Create .* lobby/ }).click()
   await expect(page.getByText('Waiting room', { exact: true })).toBeVisible()
+  const hostSnapshot = await page.evaluate(async () =>
+    (await import('/src/multiplayer/sharedSessionStore.ts')).useSharedSessionStore.getState().inspection?.room.sessionSnapshot)
+  expect(hostSnapshot?.setup.armies).toEqual({})
+  expect(hostSnapshot?.setup.players.every(player => !player.armyId)).toBe(true)
 }
 
 test('two accounts: profile, friendship, read-only shared list, invite and independent battle snapshots', async ({
