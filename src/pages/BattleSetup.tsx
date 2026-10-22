@@ -238,13 +238,15 @@ export default function BattleSetup() {
 
     // A shared lobby only needs a temporary setup snapshot. The room transport
     // strips these placeholders and each seat stages its *own* roster before Ready.
-    const provisionalArmy = sharedMode && doubles
-      ? armies.find((army) => army.units.some((unit) => [...unit.categories, ...unit.keywords].some((trait) => trait.toUpperCase() === 'CHARACTER')))
-      : armies[0]
+    const characterRoster = armies.find((army) => army.units.some((unit) =>
+      [...unit.categories, ...unit.keywords].some((trait) => trait.toUpperCase() === 'CHARACTER'))
+    const provisionalArmy = sharedMode && doubles ? characterRoster ?? armies[0] : armies[0]
+    if (sharedMode && doubles && !characterRoster) {
+      setLocalError('Import at least one army containing a CHARACTER to prepare a Doubles lobby.')
+      return
+    }
     if (sharedMode && !provisionalArmy) {
-      setLocalError(doubles
-        ? 'Import at least one army containing a CHARACTER to prepare a Doubles lobby.'
-        : 'Import at least one army to prepare a multiplayer lobby.')
+      setLocalError('Import at least one army to prepare a multiplayer lobby.')
       return
     }
     const selectedArmies = sharedMode ? [provisionalArmy] : [...new Set(activePlayers.map((player) => player.armyId))]
