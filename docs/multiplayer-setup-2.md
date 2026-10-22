@@ -11,11 +11,11 @@
 
 ## Compatibility and limits
 
-- Existing local setup, battle saves, previously created rooms, QR invitations, friends and social schema v7 remain compatible. No SQL migration is needed.
+- Existing local setup, battle saves, previously created rooms, QR invitations and friends remain compatible. The new per-seat settings feature requires additive **schema v8 migration** `supabase/migrations/20261022103500_lobby_player_settings.sql` before clients can create new online rooms. Do not replay v7.
 - The old way to share an already-active battle is still available under **Legacy: share an existing local battle** on the Host or Join page.
 - For compatibility with the current Cauldron game initializer, creating an online room still needs a single locally saved temporary roster. The host's private placeholder is removed by the room transport before the room is created. Other players' real lists are never selected from the host library.
 - Currently, a Doubles lobby's temporary roster must contain a CHARACTER to satisfy the existing game initializer. The server replaces this temporary Warlord with a valid staged army's Warlord/CHARACTER at Start. A future dedicated lobby-draft constructor can eliminate this limitation without weakening battle setup validation.
-- The host still configures force dispositions, Primary/Fixed mission choices and team parameters in the initial wizard. Separate per-player mission selection in the lobby is not part of this change.
+- In new online official Duel rooms each player chooses Force Disposition after claiming their seat, and the profile nickname is loaded from their network account. In Doubles, each captain chooses one shared disposition for the team. The server freezes these into the setup before Start; clients derive the correct official objective set from the final pairing. Other Primary/Fixed mission choices and team parameters still originate in the host wizard.
 - New multiplayer games are always Bring Your Army. Legacy rooms keep their recorded BYA setting.
 - Guests can continue to join by room code and choose an army from their local device; account syncing is optional.
 - A pending lobby is not an ordinary active battle. Restore it using the saved room membership or room code rather than the battle history list.
