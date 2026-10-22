@@ -283,7 +283,7 @@ export default function SharedSessions() {
               <div className="shared-lobby-seat__marker"><span>{String(index + 1).padStart(2, '0')}</span></div>
               <div className="shared-lobby-seat__identity">
                 <span>Commander {index + 1}{occupant?.isHost ? ' · host' : ''}</span>
-                <strong>{inspection?.room.bringYourArmy ? occupant?.displayName ?? `Player ${index + 1}` : player?.name ?? occupant?.displayName ?? `Player ${index + 1}`}</strong>
+                <strong>{inspection?.room.bringYourArmy && !roomStartedAt ? occupant?.displayName ?? `Player ${index + 1}` : player?.name ?? occupant?.displayName ?? `Player ${index + 1}`}</strong>
                 <small>{player?.faction ?? 'Commander'}{mine ? ' · this phone' : ''}</small>
                 {inspection?.room.bringYourArmy && <small>{inspection.rosters?.find(r => r.playerId === playerId && r.clientId === occupant?.clientId)?.army.name ?? 'Army not selected'}</small>}
                 {dispositionSeats.includes(playerId) && inspection?.room.bringYourArmy && <small>{occupant?.forceDisposition ? DISPOSITION_NAMES[occupant.forceDisposition as keyof typeof DISPOSITION_NAMES] : 'Force Disposition not selected'}</small>}
