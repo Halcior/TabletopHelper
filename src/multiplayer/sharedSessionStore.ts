@@ -206,6 +206,10 @@ async function pollRoom(): Promise<void> {
       const inspection = await sharedSessionTransport.inspectRoom(membership.roomCode)
       if (!syncIsCurrent(generation, membership)) return
       if (!inspection) throw new Error('The shared room no longer exists.')
+      if (inspection.room.bringYourArmy && inspection.room.startedAt && !currentRoomStartedAt) {
+        baseSnapshot = inspection.room.sessionSnapshot
+        rebuildFromCanonical()
+      }
       useSharedSessionStore.setState({
         inspection,
         participants: inspection.participants,
@@ -323,7 +327,7 @@ type SharedSessionStore = {
   backendCheckedAt: number | null
   checkBackend: (force?: boolean) => Promise<boolean>
   inspectRoom: (code: string) => Promise<SharedRoomInspection | null>
-  hostCurrentBattle: (playerId: string) => Promise<SharedMembership>
+  hostCurrentBattle: (playerId: string, bringYourArmy?: boolean) => Promise<SharedMembership>
   joinInspectedRoom: (playerId: string) => Promise<SharedMembership>
   restoreForBattle: (battleId: string) => Promise<boolean>
   forceSync: () => Promise<void>
@@ -399,7 +403,7 @@ export const useSharedSessionStore = create<SharedSessionStore>((set, get) => ({
     }
   },
 
-  async hostCurrentBattle(playerId) {
+  async hostCurrentBattle(playerId, bringYourArmy = false) {
     const session = useBattleStore.getState().session
     if (!session) throw new Error('Open or create a battle before hosting a shared session.')
     if (!browserOnline()) throw new Error('Go online before creating a shared room.')
@@ -411,7 +415,7 @@ export const useSharedSessionStore = create<SharedSessionStore>((set, get) => ({
     set({ connectionStatus: 'connecting', error: null })
     try {
       const id = clientId()
-      const inspection = await sharedSessionTransport.createRoom(session, playerId, id)
+      const inspection = await sharedSessionTransport.createRoom(session, playerId, id, bringYourArmy)
       const membership: SharedMembership = {
         roomId: inspection.room.id,
         roomCode: inspection.room.code,
@@ -545,6 +549,9 @@ export const useSharedSessionStore = create<SharedSessionStore>((set, get) => ({
       throw new Error('The active shared room changed. Open its lobby and try again.')
     }
     const playerIds = current.inspection.room.sessionSnapshot.setup.players.map((player) => player.id)
+    if (current.inspection.room.bringYourArmy && !playerIds.every(id => current.inspection?.rosters?.some(r => r.playerId === id && current.participants.some(p => p.playerId === id && p.clientId === r.clientId)))) {
+      throw new Error('Every commander must choose an army before starting.')
+    }
     if (!canStartSharedLobby(true, playerIds, current.participants)) {
       throw new Error(sharedLobbyNotReadyMessage(playerIds))
     }
@@ -552,6 +559,10 @@ export const useSharedSessionStore = create<SharedSessionStore>((set, get) => ({
     try {
       const startedAt = await sharedSessionTransport.startRoom(membership.roomId, membership.clientId)
       const refreshed = await sharedSessionTransport.inspectRoom(membership.roomCode)
+      if (refreshed?.room.bringYourArmy && refreshed.room.startedAt) {
+        baseSnapshot = refreshed.room.sessionSnapshot
+        rebuildFromCanonical()
+      }
       set({
         roomStartedAt: refreshed?.room.startedAt ?? startedAt,
         inspection: refreshed ?? current.inspection,
@@ -576,6 +587,9 @@ export const useSharedSessionStore = create<SharedSessionStore>((set, get) => ({
             membership.playerId,
             membership.clientId,
           )
+        }
+        if (membership.isHost && !get().roomStartedAt && get().inspection?.room.bringYourArmy) {
+          await sharedSessionTransport.updateRoomStatus(membership.roomId, 'abandoned', membership.clientId)
         }
         await sharedSessionTransport.releaseParticipant(membership.roomId, membership.clientId)
       } catch {

@@ -82,6 +82,7 @@ export default function BattleSetup() {
     Object.fromEntries(DEFAULT_PLAYERS.map((player) => [player.id, ['OFFICIAL_A_GRIEVOUS_BLOW', 'OFFICIAL_ENGAGE_ON_ALL_FRONTS']])) as Record<string, [OfficialSecondaryId, OfficialSecondaryId]>,
   )
   const [hostPlayerId, setHostPlayerId] = useState(DEFAULT_PLAYERS[0].id)
+  const [bringYourArmy, setBringYourArmy] = useState(false)
   const [sharedWorking, setSharedWorking] = useState(false)
   const [localError, setLocalError] = useState<string | null>(null)
   const [invalidFieldId, setInvalidFieldId] = useState<string | null>(null)
@@ -255,7 +256,7 @@ export default function BattleSetup() {
         doubles ? getDoublesSetup() : undefined,
       )
       if (sharedMode) {
-        const membership = await hostCurrentBattle(hostPlayerId)
+        const membership = await hostCurrentBattle(hostPlayerId, bringYourArmy)
         navigate(`/shared?room=${membership.roomCode}`)
       } else {
         navigate(`/battle/${battleId}`)
@@ -443,6 +444,7 @@ export default function BattleSetup() {
           {secondaryDeck === 'cauldron' && primaryDeck !== 'chapter-approved-duel' && (duel
             ? <p className="context-note">Duel changes only the player topology: 2 turns per Battle Round, A/B HOME objectives, and a permanent Rival. Primary, Secondary, Operational Plans and scoring caps use the Cauldron {CAULDRON_RULESET_VERSION} balance rules.</p>
             : <p className="context-note">The 7-objective layout treats CENTER as a neutral objective. Gather Intel requires CENTER.</p>)}
+          {sharedConfigured && <label className="context-note"><input type="checkbox" checked={bringYourArmy} onChange={e => setBringYourArmy(e.target.checked)} /> Each player chooses their own army in the lobby (Bring Your Army)<span> Host only needs their own list. Setup lists are placeholders until every commander chooses a roster. In Doubles, each team’s staged Warlord is confirmed at Start.</span></label>}
           <div className="setup-submit-actions">
             <button className={`button${sharedConfigured ? '' : ' button--gold'}`} type="submit" value="local" disabled={loading || sharedWorking}>{loading && !sharedWorking ? 'Preparing…' : 'Start locally'}</button>
             <button className={`button${sharedConfigured ? ' button--gold' : ''}`} type="submit" value="shared" disabled={loading || sharedWorking || !sharedConfigured} aria-describedby={!sharedConfigured ? 'shared-unavailable' : undefined}>

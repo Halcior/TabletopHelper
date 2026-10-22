@@ -1,3 +1,7 @@
+import { social, errorText } from '../features/social/api'
+import { LobbyArmyPicker } from '../features/social/LobbyArmyPicker'
+import { LobbyFriendInvites } from '../features/social/LobbyFriendInvites'
+import { useRosterScope } from '../features/armyLibrary/scope'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
@@ -22,6 +26,7 @@ function syncTime(value: string | null): string {
 }
 
 export default function SharedSessions() {
+  const rosterOwner = useRosterScope(s => s.userId)
   const navigate = useNavigate()
   const location = useLocation()
   const [latestBattle, setLatestBattle] = useState<BattleSession | null>(null)
@@ -31,6 +36,7 @@ export default function SharedSessions() {
   const [working, setWorking] = useState(false)
   const [inviteStatus, setInviteStatus] = useState<'idle' | 'copied'>('idle')
   const [qrExpanded, setQrExpanded] = useState(false)
+  const [invitationError, setInvitationError] = useState('')
   const [clock, setClock] = useState(() => Date.now())
   const previousStartedAt = useRef<string | null | undefined>(undefined)
   const loadBattle = useBattleStore((state) => state.loadBattle)
@@ -79,6 +85,20 @@ export default function SharedSessions() {
     window.addEventListener('online', recoverConnection)
     return () => window.removeEventListener('online', recoverConnection)
   }, [configured, forceSync, membership?.battleId])
+
+  useEffect(() => {
+    const invitation = new URLSearchParams(location.search).get('invite')
+    setInvitationError('')
+    if (!invitation) return
+    if (!rosterOwner) { setInvitationError('Sign in to open this invitation.'); return }
+    let active = true
+    void social<{ room_code: string }>(rosterOwner, 'resolve-invite', { id: invitation }).then(async result => {
+      if (!active) return
+      setRoomCode(result.room_code)
+      await inspectRoom(result.room_code)
+    }).catch(error => { if (active) setInvitationError(errorText(error)) })
+    return () => { active = false }
+  }, [location.search, rosterOwner, inspectRoom])
 
   useEffect(() => {
     if (!configured) return
@@ -131,8 +151,10 @@ export default function SharedSessions() {
   const currentParticipant = membership
     ? participants.find((participant) => participant.clientId === membership.clientId)
     : undefined
+  const rosterReady = !inspection?.room.bringYourArmy || lobbyPlayerIds.every(id => inspection.rosters?.some(r => r.playerId === id && participants.some(p => p.playerId === id && p.clientId === r.clientId)))
+  const myRosterReady = !inspection?.room.bringYourArmy || inspection.rosters?.some(r => r.playerId === membership?.playerId && r.clientId === membership?.clientId)
   const canStart = membership
-    ? canStartSharedLobby(membership.isHost, lobbyPlayerIds, participants, clock)
+    ? rosterReady && canStartSharedLobby(membership.isHost, lobbyPlayerIds, participants, clock)
     : false
   const inviteUrl = membership ? buildSharedInviteUrl(window.location.origin, membership.roomCode) : ''
   const localOnlyInvite = ['localhost', '127.0.0.1'].includes(window.location.hostname)
@@ -256,6 +278,7 @@ export default function SharedSessions() {
                 <span>Commander {index + 1}{occupant?.isHost ? ' · host' : ''}</span>
                 <strong>{player?.name ?? occupant?.displayName ?? `Player ${index + 1}`}</strong>
                 <small>{player?.faction ?? 'Commander'}{mine ? ' · this phone' : ''}</small>
+                {inspection?.room.bringYourArmy && <small>{inspection.rosters?.find(r => r.playerId === playerId && r.clientId === occupant?.clientId)?.army.name ?? 'Army not selected'}</small>}
               </div>
               <div className="shared-lobby-seat__state">
                 {occupant?.isHost && <span className="shared-lobby-seat__host"><AppIcon name="host" /> Host</span>}
@@ -275,6 +298,9 @@ export default function SharedSessions() {
         </aside>
       </div>
 
+      <LobbyArmyPicker key={`${rosterOwner}:${membership.roomId}`} />
+      {!roomStartedAt && membership.isHost && <LobbyFriendInvites membership={membership} />}
+
       {qrExpanded && <CommandDialog label="QR room invite" onClose={() => setQrExpanded(false)}>
         <div className="shared-invite-overlay__panel" onClick={(event) => event.stopPropagation()}>
           <button className="shared-invite-overlay__close" type="button" aria-label="Close QR invite" onClick={() => setQrExpanded(false)}>×</button>
@@ -291,7 +317,7 @@ export default function SharedSessions() {
       {error && <div className="alert alert--danger shared-room-focus__queue">{error}</div>}
 
       {!roomStartedAt && <div className="shared-lobby__ready-actions">
-        <button className={currentParticipant?.isReady ? '' : 'button--gold'} disabled={working || connectionStatus !== 'connected' || backendCheckStatus !== 'ready'} onClick={() => void toggleReady()}>
+        <button className={currentParticipant?.isReady ? '' : 'button--gold'} disabled={working || !myRosterReady || connectionStatus !== 'connected' || backendCheckStatus !== 'ready'} onClick={() => void toggleReady()}>
           {currentParticipant?.isReady ? 'Cancel readiness' : 'I am ready'}
         </button>
         {membership.isHost
@@ -316,7 +342,8 @@ export default function SharedSessions() {
       <p>Each commander uses one player seat. The current player controls phase progression.</p>
     </section>
 
-    {error && <div className="alert alert--danger">{error}</div>}
+    {(error || invitationError) && <div className="alert alert--danger" role="alert">{invitationError || error}</div>}
+    {invitationError && !rosterOwner && <Link className="button" to="/account">Sign in</Link>}
 
     <div className={`shared-backend-check shared-backend-check--${backendCheckStatus}`} role="status">
       <div><span>Shared connection</span><strong>{backendCheckStatus === 'checking' ? 'Connecting…' : backendCheckStatus === 'ready' ? 'Ready' : backendCheckStatus === 'failed' ? 'Needs attention' : 'Waiting'}</strong></div>

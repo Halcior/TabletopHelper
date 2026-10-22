@@ -69,4 +69,4 @@ Development browser checks run with `npm run test:e2e`. A custom installed Chrom
 
 ## Remaining scope
 
-Photo cloud sync, an authoritative datasheet/points catalogue, a complete roster builder, and Bring Your Army inside multiplayer lobbies are separate work. Cloud rosters are polled at 20-second intervals and retried after a local save, manual sync or reconnection; this is not realtime list collaboration. Clearing browser site data deletes guest lists, local photos and pending edits that have not reached the server, so export backups before doing that.
+Photo cloud sync, an authoritative datasheet/points catalogue, a complete roster builder, are separate work. Opt-in Bring Your Army and friend sharing are documented in [Friends & Shared Armies](friends-shared-armies.md). Cloud rosters are polled at 20-second intervals and retried after a local save, manual sync or reconnection; this is not realtime list collaboration. Clearing browser site data deletes guest lists, local photos and pending edits that have not reached the server, so export backups before doing that.

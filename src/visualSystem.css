@@ -31,3 +31,4 @@
 @import './features/factionVisuals/factionVisuals.css' layer(product);
 
 @import './features/armyLibrary/armyLibrary.css' layer(product);
+@import './features/social/social.css' layer(product);

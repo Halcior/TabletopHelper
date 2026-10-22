@@ -144,3 +144,7 @@ The browser double checks application behavior but does not replace one final sm
 2. Add browser-level multi-context coverage on top of the deterministic three-client and three-phone lobby tests.
 3. Consider realtime push after correctness testing proves the event model.
 4. Add authenticated identity / stronger room capability before treating the service as public production infrastructure.
+
+## Friends and per-seat roster selection
+
+New lobbies can opt into [Bring Your Army](friends-shared-armies.md): each commander chooses their own roster before Ready, and the backend freezes all selections at Start. The new migration is additive and not automatically applied to production. Existing host-selected lobbies retain their current protocol. Social invitations resolve to the existing seat-claim flow.
