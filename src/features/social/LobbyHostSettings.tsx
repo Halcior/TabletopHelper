@@ -46,16 +46,17 @@ export function LobbyHostSettings() {
   }
 
   async function save() {
-    if(busy) return
+    const activeMembership=membership
+    if(busy || !activeMembership) return
     setBusy(true);setError('');setSaved(false)
     try {
       const settings:HostLobbySettings = {
         turnOrder:activeOrder,
         teamAlpha:doubles ? [captains[0],partner] : [],
       }
-      await sharedSessionTransport.setHostLobbySettings(membership.roomId,membership.clientId,settings)
-      const latest=await sharedSessionTransport.inspectRoom(membership.roomCode)
-      if(latest && useSharedSessionStore.getState().membership?.roomId===membership.roomId) {
+      await sharedSessionTransport.setHostLobbySettings(activeMembership.roomId,activeMembership.clientId,settings)
+      const latest=await sharedSessionTransport.inspectRoom(activeMembership.roomCode)
+      if(latest && useSharedSessionStore.getState().membership?.roomId===activeMembership.roomId) {
         useSharedSessionStore.setState({inspection:latest,participants:latest.participants})
       }
       setSaved(true)
