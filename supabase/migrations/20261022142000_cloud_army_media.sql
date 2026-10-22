@@ -26,12 +26,18 @@ grant execute on function social_private.may_view_army_media(text,text) to authe
 create policy "army media owner insert" on storage.objects for insert to authenticated
  with check(bucket_id='army-media'
    and (storage.foldername(name))[1]=(select auth.uid())::text
-   and array_length(storage.foldername(name),1)=2);
+   and array_length(storage.foldername(name),1)=2
+   and split_part(name,'/',3) ~ '^[0-9a-f]{64}[.]webp$'
+   and exists(select 1 from public.user_armies a where a.user_id=(select auth.uid())
+     and a.id::text=(storage.foldername(name))[2] and a.deleted_at is null));
 create policy "army media visible download" on storage.objects for select to authenticated
  using(bucket_id='army-media'
    and social_private.may_view_army_media((storage.foldername(name))[1],(storage.foldername(name))[2]));
 create policy "army media owner update" on storage.objects for update to authenticated
  using(bucket_id='army-media' and (storage.foldername(name))[1]=(select auth.uid())::text)
- with check(bucket_id='army-media' and (storage.foldername(name))[1]=(select auth.uid())::text);
+ with check(bucket_id='army-media' and (storage.foldername(name))[1]=(select auth.uid())::text
+   and split_part(name,'/',3) ~ '^[0-9a-f]{64}[.]webp$'
+   and exists(select 1 from public.user_armies a where a.user_id=(select auth.uid())
+     and a.id::text=(storage.foldername(name))[2] and a.deleted_at is null));
 create policy "army media owner delete" on storage.objects for delete to authenticated
  using(bucket_id='army-media' and (storage.foldername(name))[1]=(select auth.uid())::text);
