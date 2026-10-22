@@ -473,7 +473,7 @@ export default function BattleSetup() {
           <div className="setup-submit-actions">
             {playMode === 'shared' ? <button className="button button--gold" type="submit" disabled={loading || sharedWorking || !sharedConfigured}>
               {sharedWorking ? 'Preparing shared lobby…' : `Create ${doubles ? '4-player' : duel ? '2-player' : '3-player'} lobby`}
-            </button> : <button className="button button--gold" type="submit" disabled={loading || sharedWorking}>{loading ? 'Preparing…' : 'Start local battle'}</button>}
+            </button> : <button className="button button--gold" type="submit" disabled={loading || sharedWorking}>{loading ? 'Preparing…' : 'Start locally'}</button>}
           </div>
         </section>
       </section>
