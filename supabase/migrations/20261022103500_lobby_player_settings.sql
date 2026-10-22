@@ -68,7 +68,7 @@ begin
       last_seen_at=now()
   where id=seat.id;
  perform set_config('social_private.seat_settings','',true);
-end $;
+end $$;
 revoke all on function social_private.set_seat_settings(uuid,text) from public,anon;
 grant execute on function social_private.set_seat_settings(uuid,text) to anon,authenticated;
 create function public.set_shared_seat_settings(p_room_id uuid,p_force_disposition text default null) returns void
