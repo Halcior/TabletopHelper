@@ -58,8 +58,8 @@ function mapRoom(row: SupabaseRoomRow): SharedRoom {
   // Resolve the pinned official layout only after the server freezes choices.
   const snapshot = structuredClone(row.session_snapshot)
   if (row.bring_your_army && row.started_at) {
-    const config = getCauldronConfig(snapshot)
-    if (config.primaryDeck === 'chapter-approved-duel') {
+    const config = snapshot.setup.rulesetId === 'cauldron-ffa-3' ? getCauldronConfig(snapshot) : null
+    if (config?.primaryDeck === 'chapter-approved-duel') {
       const pair = snapshot.setup.doubles
         ? snapshot.setup.doubles.forces.map((force) => force.forceDisposition)
         : snapshot.setup.turnOrder.map((id) => config.playerConfigs[id]?.forceDisposition)
