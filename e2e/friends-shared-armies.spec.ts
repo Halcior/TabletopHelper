@@ -126,6 +126,7 @@ test('two accounts: profile, friendship, read-only shared list, invite and indep
       ),
     ).toBe(true)
     // Revoking sharing also clears an already-open friend's viewer on refresh.
+    await a.page.goto('/armies')
     await a.page
       .getByRole('button', { name: 'Make Private', exact: true })
       .click()

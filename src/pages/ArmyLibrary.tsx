@@ -63,7 +63,7 @@ export default function ArmyLibrary() {
           <h1>My Armies</h1>
           <p>
             {owner
-              ? 'Your private lists, available offline and across your devices.'
+              ? 'Your lists, available offline and across your devices. Share selected rosters with friends.'
               : 'Your lists on this device. Sign in for optional cloud sync.'}
           </p>
         </div>
