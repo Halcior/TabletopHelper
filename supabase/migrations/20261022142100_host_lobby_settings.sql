@@ -65,14 +65,14 @@ grant execute on function public.set_host_lobby_settings(uuid,text[],text[]) to 
 
 create function social_private.read_host_lobby_configuration(p_room_id uuid)
 returns jsonb language plpgsql security definer set search_path='' as $$
-declare r public.shared_rooms; options social_private.host_lobby_settings;
+declare r public.shared_rooms; cfg social_private.host_lobby_settings;
 begin
  select * into r from public.shared_rooms where id=p_room_id and code=public.request_shared_room_code();
  if r.id is null then raise exception 'Room not found' using errcode='42501'; end if;
- select * into options from social_private.host_lobby_settings where room_id=p_room_id;
+ select * into cfg from social_private.host_lobby_settings where room_id=p_room_id;
  return jsonb_build_object(
-  'turnOrder',coalesce(to_jsonb(options.turn_order),r.session_snapshot#>'{setup,turnOrder}'),
-  'teamAlpha',coalesce(to_jsonb(options.team_alpha),r.session_snapshot#>'{setup,doubles,forces,0,memberPlayerIds}','[]'::jsonb)
+  'turnOrder',coalesce(to_jsonb(cfg.turn_order),r.session_snapshot#>'{setup,turnOrder}'),
+  'teamAlpha',coalesce(to_jsonb(cfg.team_alpha),r.session_snapshot#>'{setup,doubles,forces,0,memberPlayerIds}','[]'::jsonb)
  );
 end $$;
 revoke all on function social_private.read_host_lobby_configuration(uuid) from public,anon;
