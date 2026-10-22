@@ -176,6 +176,7 @@ test('two accounts: profile, friendship, read-only shared list, invite and indep
     await b.page
       .getByRole('button', { name: 'I am ready', exact: true })
       .click()
+    const provisionalGuest = await b.page.evaluate(async () => (await import('/src/stores/battleStore.ts')).useBattleStore.getState().session!)
     await expect(
       a.page.getByRole('button', { name: 'Start battle', exact: true }),
     ).toBeEnabled()
@@ -200,6 +201,12 @@ test('two accounts: profile, friendship, read-only shared list, invite and indep
           .session!.setup,
     )
     expect(other).toEqual(snapshot)
+    // Simulate a browser that closed in the lobby and whose disk still has the
+    // provisional setup. No battle events exist yet to accidentally repair it.
+    await b.page.evaluate(async stale => (await import('/src/persistence/database.ts')).saveBattle(stale), provisionalGuest)
+    await b.page.reload()
+    await expect.poll(async () => b.page.evaluate(async () => (await import('/src/stores/battleStore.ts')).useBattleStore.getState().session?.setup)).toEqual(snapshot)
+
     const cpBefore = await a.page.evaluate(
       async () =>
         (await import('/src/stores/battleStore.ts')).useBattleStore.getState()

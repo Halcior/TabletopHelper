@@ -30,6 +30,7 @@ const PREFLIGHT_FRESH_MS = 30_000
 let pollTimer: ReturnType<typeof setInterval> | null = null
 let unsubscribeBattle: (() => void) | null = null
 let baseSnapshot: BattleSession | null = null
+let baseRosterStartedAt: string | null = null
 let canonicalEvents: SharedEventEnvelope[] = []
 let pendingLocalEvents = new Map<string, BattleEvent>()
 let suppressBattlePublish = false
@@ -104,6 +105,7 @@ function stopSyncLoop(): void {
   removeBrowserListeners?.()
   removeBrowserListeners = null
   baseSnapshot = null
+  baseRosterStartedAt = null
   canonicalEvents = []
   pendingLocalEvents.clear()
   pollCounter = 0
@@ -133,6 +135,15 @@ function rebuildFromCanonical(): void {
   useBattleStore.setState({ session, error: null })
   suppressBattlePublish = false
   void saveBattle(session)
+}
+
+/** Ready acknowledgements and restores can observe Start before the poller.
+ * Adopt the frozen setup once regardless of which request sees it first. */
+function adoptFinalRosters(inspection: SharedRoomInspection): void {
+  if (useSharedSessionStore.getState().membership?.roomId !== inspection.room.id || !inspection.room.bringYourArmy || !inspection.room.startedAt || baseRosterStartedAt === inspection.room.startedAt) return
+  baseSnapshot = inspection.room.sessionSnapshot
+  baseRosterStartedAt = inspection.room.startedAt
+  rebuildFromCanonical()
 }
 
 async function publishLocalEvents(events: BattleEvent[]): Promise<void> {
@@ -206,10 +217,7 @@ async function pollRoom(): Promise<void> {
       const inspection = await sharedSessionTransport.inspectRoom(membership.roomCode)
       if (!syncIsCurrent(generation, membership)) return
       if (!inspection) throw new Error('The shared room no longer exists.')
-      if (inspection.room.bringYourArmy && inspection.room.startedAt && !currentRoomStartedAt) {
-        baseSnapshot = inspection.room.sessionSnapshot
-        rebuildFromCanonical()
-      }
+      adoptFinalRosters(inspection)
       useSharedSessionStore.setState({
         inspection,
         participants: inspection.participants,
@@ -294,6 +302,8 @@ function startSyncLoop(inspection: SharedRoomInspection, membership: SharedMembe
     }
     updatePendingCount()
   }
+
+  adoptFinalRosters(inspection)
 
   unsubscribeBattle = useBattleStore.subscribe((state, previous) => {
     if (suppressBattlePublish) return
@@ -523,15 +533,21 @@ export const useSharedSessionStore = create<SharedSessionStore>((set, get) => ({
   async setReady(ready) {
     const membership = get().membership
     if (!membership) return
+    const generation = syncGeneration
     if (get().roomStartedAt) return
     if (!await get().checkBackend()) throw new Error(get().backendCheckMessage ?? 'Supabase connection check failed.')
+    if (!syncIsCurrent(generation, membership)) return
     set({ error: null })
     try {
       await sharedSessionTransport.setParticipantReady(membership.roomId, membership.clientId, ready)
+      if (!syncIsCurrent(generation, membership)) return
       const inspection = await sharedSessionTransport.inspectRoom(membership.roomCode)
+      if (!syncIsCurrent(generation, membership)) return
       if (!inspection) throw new Error('The shared room no longer exists.')
+      adoptFinalRosters(inspection)
       set({ inspection, participants: inspection.participants, roomStartedAt: inspection.room.startedAt })
     } catch (error) {
+      if (!syncIsCurrent(generation, membership)) return
       set({ error: message(error) })
       throw error
     }
@@ -541,6 +557,7 @@ export const useSharedSessionStore = create<SharedSessionStore>((set, get) => ({
     const initial = get()
     const membership = initial.membership
     const inspection = initial.inspection
+    const generation = syncGeneration
     if (!membership || !inspection) throw new Error('Open the shared lobby first.')
     if (!membership.isHost) throw new Error('Only the room host can start the battle.')
     if (!await get().checkBackend()) throw new Error(get().backendCheckMessage ?? 'Supabase connection check failed.')
@@ -558,17 +575,17 @@ export const useSharedSessionStore = create<SharedSessionStore>((set, get) => ({
     set({ error: null })
     try {
       const startedAt = await sharedSessionTransport.startRoom(membership.roomId, membership.clientId)
+      if (!syncIsCurrent(generation, membership)) return
       const refreshed = await sharedSessionTransport.inspectRoom(membership.roomCode)
-      if (refreshed?.room.bringYourArmy && refreshed.room.startedAt) {
-        baseSnapshot = refreshed.room.sessionSnapshot
-        rebuildFromCanonical()
-      }
+      if (!syncIsCurrent(generation, membership)) return
+      if (refreshed) adoptFinalRosters(refreshed)
       set({
         roomStartedAt: refreshed?.room.startedAt ?? startedAt,
         inspection: refreshed ?? current.inspection,
         participants: refreshed?.participants ?? current.participants,
       })
     } catch (error) {
+      if (!syncIsCurrent(generation, membership)) return
       set({ error: message(error) })
       throw error
     }
