@@ -1,5 +1,5 @@
-export const SHARED_SCHEMA_VERSION = 8
-export const SHARED_SCHEMA_MIGRATION = 'supabase/migrations/20261022103500_lobby_player_settings.sql'
+export const SHARED_SCHEMA_VERSION = 9
+export const SHARED_SCHEMA_MIGRATION = 'supabase/migrations/20261022142100_host_lobby_settings.sql'
 
 function detail(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
@@ -19,6 +19,8 @@ export function sharedBackendMessage(error: unknown): string {
     'shared_rosters',
     'stage_shared_roster',
     'set_shared_seat_settings',
+    'set_host_lobby_settings',
+    'get_host_lobby_settings',
     'social_action',
     'shared_schema_version',
     'shared schema version',

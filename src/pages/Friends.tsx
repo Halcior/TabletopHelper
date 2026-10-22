@@ -1,9 +1,10 @@
 import { useRef, useState } from 'react'
+import { cloudMediaId } from '../features/armyLibrary/identity'
 import { duplicateRoster } from '../features/armyLibrary/repository'
 import { useRosterScope } from '../features/armyLibrary/scope'
 import { Link, useParams } from 'react-router-dom'
 import type { Army } from '../domain/army/types'
-import { ArmyBanner } from '../features/factionVisuals/components'
+import { ArmyBanner, UnitPortrait } from '../features/factionVisuals/components'
 import { useAccount } from '../features/account/store'
 import { Avatar } from '../features/social/ProfilePanel'
 import { useRemote } from '../features/social/hooks'
@@ -173,6 +174,7 @@ function SocialScreen({
             <SharedRosterList
               armies={armies.data}
               ownerName={friend?.display_name ?? 'Friend'}
+              friendOwner={friendId}
             />
           )}
         </>
@@ -427,9 +429,11 @@ function SocialScreen({
 function SharedRosterList({
   armies,
   ownerName,
+  friendOwner,
 }: {
   armies: Army[]
   ownerName: string
+  friendOwner?: string
 }) {
   const owner = useRosterScope((s) => s.userId)
   const [copying, setCopying] = useState<string | null>(null)
@@ -458,7 +462,7 @@ function SharedRosterList({
     <div className="roster-card-grid">
       {armies.map((army) => (
         <article className="panel library-card" key={army.id}>
-          <ArmyBanner army={army} />
+          <ArmyBanner army={friendOwner?{...army,localMediaId:cloudMediaId(friendOwner,army.id)}:army} forceCustom />
           <h2>{army.name}</h2>
           <p>{ownerName} · Read only</p>
           <div className="roster-actions">
@@ -481,6 +485,7 @@ function SharedRosterList({
             <div className="roster-unit-list">
               {army.units.map((u) => (
                 <section className="roster-unit" key={u.id}>
+                  <UnitPortrait army={friendOwner ? {...army,localMediaId:cloudMediaId(friendOwner,army.id)} : army} unit={u} forceCustom />
                   <h3>
                     {u.name}
                     {u.isWarlord ? ' · Warlord' : ''}

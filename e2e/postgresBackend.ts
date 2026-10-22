@@ -66,6 +66,8 @@ export class PostgresBackend {
               'social_action',
               'stage_shared_roster',
               'set_shared_seat_settings',
+              'set_host_lobby_settings',
+              'get_host_lobby_settings',
               'save_user_army',
               'shared_schema_version',
               'start_shared_room',

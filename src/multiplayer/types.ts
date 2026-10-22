@@ -29,7 +29,10 @@ export type SharedRoom = {
 
 export type SharedBackendCheckStatus = 'idle' | 'checking' | 'ready' | 'failed'
 
+export type HostLobbySettings = { turnOrder: string[]; teamAlpha: string[] }
+
 export type SharedRoomInspection = {
+  hostSettings?: HostLobbySettings
   room: SharedRoom
   participants: SharedParticipant[]
   rosters?: SharedRoster[]
@@ -63,6 +66,7 @@ export interface SharedSessionTransport {
   listEvents(roomId: string, afterSequence: number): Promise<SharedEventEnvelope[]>
   listParticipants(roomId: string): Promise<SharedParticipant[]>
   touchParticipant(roomId: string, clientId: string): Promise<void>
+  setHostLobbySettings(roomId: string, clientId: string, settings: HostLobbySettings): Promise<void>
   setSeatSettings(roomId: string, clientId: string, disposition: string | null, owner: string | null): Promise<void>
   setParticipantReady(roomId: string, clientId: string, ready: boolean): Promise<void>
   releaseParticipant(roomId: string, clientId: string): Promise<void>

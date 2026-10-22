@@ -48,6 +48,8 @@ do $$declare x jsonb; begin
  assert jsonb_array_length(x)=1, 'Only Friends list returned';
  assert not (x->0 ? 'revision') and not(x->0 ? 'mutation_id'), 'No cloud metadata';
  assert not (x->0->'army' ? 'localMediaId'), 'No local photo namespace';
+ assert social_private.may_view_army_media('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','11111111-1111-4111-8111-111111111111'), 'Friends must see explicitly shared army images';
+ assert not social_private.may_view_army_media('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','22222222-2222-4222-8222-222222222222'), 'Private army images are never shared';
 end $$;
 update public.user_armies set army_data='{}' where user_id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 -- RLS update silently sees zero rows (allowed SQL privilege), so check owner-only data.
@@ -58,6 +60,7 @@ select public.social_action('profile');
 select pg_temp.denied($q$select public.social_action('shared','{"user_id":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"}')$q$);
 select set_config('request.jwt.claim.sub','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',true);
 select public.social_action('remove','{"user_id":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"}');
+do $$begin assert not social_private.may_view_army_media('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','11111111-1111-4111-8111-111111111111'), 'Unfriending revokes cloud media access'; end $$;
 select pg_temp.denied($q$select public.social_action('shared','{"user_id":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"}')$q$);
 -- Cancel, reject, and repeated operations leave no phantom friendships.
 select public.social_action('request','{"user_id":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"}');
@@ -124,7 +127,7 @@ select set_config('request.headers','{"x-room-code":"ABC234","x-client-id":"host
 select public.start_shared_room('dddddddd-dddd-4ddd-8ddd-dddddddddddd');
 -- Late lobby Leave is a database-filtered no-op after Start has committed.
 update public.shared_rooms set status='abandoned' where id='dddddddd-dddd-4ddd-8ddd-dddddddddddd' and started_at is null;
-do $$begin assert (select status='active' from public.shared_rooms where code='ABC234'); assert public.shared_schema_version()=8; end $$;
+do $$begin assert (select status='active' from public.shared_rooms where code='ABC234'); assert public.shared_schema_version()=9; end $$;
 do $$declare s jsonb; begin
  select session_snapshot into s from public.shared_rooms where code='ABC234';
  assert s#>>'{setup,players,0,armyId}'='seat:p1';

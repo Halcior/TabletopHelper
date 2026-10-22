@@ -39,6 +39,8 @@ import { describeRules, recommendedRules } from '../rulesets/rulesSource'
 
 type PlayerDraft = CauldronPlayerInput
 
+const LOBBY_PLACEHOLDER: Army = { id: 'temporary-online-lobby', name: 'Temporary lobby initialization', faction: 'Unassigned', totalPoints: 0, detachments: [], units: [{ id:'temporary-character', name:'Temporary Character', points:0, startingModels:1, modelGroups:[{name:'Temporary Character',startingCount:1,equipment:[]}],categories:['CHARACTER'],keywords:['CHARACTER'],rangedWeapons:[],meleeWeapons:[],abilities:[],enhancements:[],wargear:[],isWarlord:true,leaderOfUnitId:null,ledByUnitIds:[] }] }
+
 const DEFAULT_PLAYERS: PlayerDraft[] = [
   { id: 'player-a', name: 'Player I', armyId: '', deploymentZone: 'A', turnPosition: 1, operationalPlanId: 'WYNISZCZENIE', officialPrimaryId: 'battlefield-dominance', forceDisposition: 'take-and-hold' },
   { id: 'player-b', name: 'Player II', armyId: '', deploymentZone: 'B', turnPosition: 2, operationalPlanId: 'DECYDUJACE_NATARCIE', officialPrimaryId: 'meatgrinder', forceDisposition: 'purge-the-foe' },
@@ -226,7 +228,7 @@ export default function BattleSetup() {
     event.preventDefault()
     setLocalError(null)
     setInvalidFieldId(null)
-    if (step < 3) { goToStep((step + 1) as 2 | 3); return }
+    if (step < 3 && playMode !== 'shared') { goToStep((step + 1) as 2 | 3); return }
     const sharedMode = playMode === 'shared'
     if (!validateCommanders(sharedMode)) return
     if (primaryDeck === 'chapter-approved-ffa' && activePlayers.some((player) => player.officialPrimaryId === 'gather-intel') && objectiveLayout !== 'expanded-7' && secondaryDeck !== 'chapter-approved') {
@@ -240,11 +242,7 @@ export default function BattleSetup() {
     // strips these placeholders and each seat stages its *own* roster before Ready.
     const characterRoster = armies.find((army) => army.units.some((unit) =>
       [...unit.categories, ...unit.keywords].some((trait) => trait.toUpperCase() === 'CHARACTER')))
-    const provisionalArmy = sharedMode && doubles ? characterRoster ?? armies[0] : armies[0]
-    if (sharedMode && doubles && !characterRoster) {
-      setLocalError('Import at least one army containing a CHARACTER to prepare a Doubles lobby.')
-      return
-    }
+    const provisionalArmy = sharedMode && doubles ? characterRoster ?? LOBBY_PLACEHOLDER : armies[0] ?? LOBBY_PLACEHOLDER
     if (sharedMode && !provisionalArmy) {
       setLocalError('Import at least one army to prepare a multiplayer lobby.')
       return
@@ -294,7 +292,7 @@ export default function BattleSetup() {
   }
 
   if (loadingArmies) return <div className="page-shell"><div className="loading-state" role="status">Loading saved armies…</div></div>
-  if (armies.length === 0) return <div className="page-shell"><div className="empty-state">
+  if (armies.length === 0 && playMode !== 'shared') return <div className="page-shell"><div className="empty-state">
     <span className="eyebrow">Your first battle</span><h1>Add your first army</h1><p>Import a New Recruit JSON roster, then choose your format and commanders. You can add more rosters before playing.</p>
     <Link className="button button--gold" to="/army-import">Import army</Link>
   </div></div>
@@ -304,7 +302,7 @@ export default function BattleSetup() {
   return (
     <div className="page-shell setup-page">
       <section className="page-intro">
-        <span className="eyebrow">{playMode === 'shared' ? 'Online multiplayer' : 'Local battle'} · Step {step} of 3</span>
+        <span className="eyebrow">{playMode === 'shared' ? 'Online multiplayer · Choose format' : `Local battle · Step ${step} of 3`}</span>
         <h1>{doubles ? 'New Doubles 2v2 battle' : duel ? 'New Duel 1v1 battle' : 'New FFA 3 battle'}</h1>
         <p>{playMode === 'shared' ? 'Choose rules and player slots. Everyone will bring their own army in the lobby.' : 'Choose a format, assign commanders and prepare the battlefield.'}</p>
 
@@ -314,7 +312,7 @@ export default function BattleSetup() {
         <button type="button" aria-pressed={playMode === 'shared'} className={playMode === 'shared' ? 'button--gold' : ''} disabled={!sharedConfigured} onClick={() => { setPlayMode('shared'); setStep(1); setLocalError(null) }}><FormatGlyph mode="ffa3" /><strong>Online multiplayer</strong><span>Everyone brings an army to the lobby.</span></button>
       </div>
       {playMode === 'shared' && <p className="context-note">Already invited? <Link to="/shared">Join a lobby instead</Link>. Hosting creates an empty waiting room and does not start combat.</p>}
-      <nav className="setup-steps" aria-label="Battle setup steps">{(['Rules', playMode === 'shared' ? 'Player slots' : 'Commanders', playMode === 'shared' ? 'Create lobby' : 'Battlefield & Start'] as const).map((label, index) => <button type="button" key={label} aria-current={step === index + 1 ? 'step' : undefined} onClick={() => goToStep((index + 1) as 1 | 2 | 3)}><span>{index + 1}</span><strong>{label}</strong></button>)}</nav>
+      {playMode === 'local' && <nav className="setup-steps" aria-label="Battle setup steps">{(['Rules', 'Commanders', 'Battlefield & Start'] as const).map((label, index) => <button type="button" key={label} aria-current={step === index + 1 ? 'step' : undefined} onClick={() => goToStep((index + 1) as 1 | 2 | 3)}><span>{index + 1}</span><strong>{label}</strong></button>)}</nav>}
       <form noValidate onSubmit={(event) => void submit(event)}>
       <section className="setup-step" hidden={step !== 1} aria-label="Rules">
       <h2>Choose your rules</h2>
@@ -374,8 +372,9 @@ export default function BattleSetup() {
               ? 'Fixed: choose two eligible cards for each player. They remain active throughout the battle and each can score up to 20 VP.'
               : 'Tactical: draw two cards at each own Command phase. There is no free general mulligan: once per battle New Orders replaces one card for 1 CP; specific When Drawn cards have their own replacement rules. At your turn end, discard active cards to gain 1 CP.'} Secondary scores up to 15 VP per round and 45 VP per battle. {duel ? 'Duel uses the two-player card text.' : 'FFA cards keep their assigned Secondary Rival. Enemy presence checks both other armies. Only your army’s kills against that assigned Rival score. Tactical is recommended; Fixed is experimental because target availability depends on the matchup.'}</p></InfoDisclosure>
         </section>}
+        {playMode === 'shared' && <div className="panel setup-footer"><p>After creating your room, players join, choose their own rosters and dispositions. You can configure turn order and Doubles teams as host inside the lobby.</p><button className="button button--gold" type="submit" disabled={sharedWorking || loading || !sharedConfigured}>{sharedWorking ? 'Creating room…' : `Create ${doubles ? '4-player' : mode === 'ffa3' ? '3-player' : '2-player'} lobby`}</button></div>}
       </section>
-      <section className="setup-step" hidden={step !== 2} aria-label="Commanders">
+      <section className="setup-step" hidden={step !== 2 || playMode === 'shared'} aria-label="Commanders">
         <h2>Assign your commanders</h2>
         <div className="setup-toolbar panel">
           <div><span className="eyebrow">Assignment tools</span><strong>Manual or randomized</strong></div>
@@ -455,7 +454,7 @@ export default function BattleSetup() {
           </section>
         ))}</div>
       </section>
-      <section className="setup-step" hidden={step !== 3} aria-label="Battlefield and start">
+      <section className="setup-step" hidden={step !== 3 || playMode === 'shared'} aria-label="Battlefield and start">
         <h2>Battlefield & Start</h2>
         <section className="panel setup-summary" aria-label="Battle setup summary"><div className="rules-source__heading"><span className="eyebrow">Ready to deploy</span><RulesSourceBadge source={rules.source} /></div><h3>{rules.title}</h3><p>{rules.primary} · {rules.secondary}</p><ul>{activePlayers.map((player) => <li key={player.id}><strong>{playMode === 'shared' ? `Seat ${activePlayers.indexOf(player) + 1} · name from profile` : player.name}</strong><span>Zone {player.deploymentZone} · Turn {player.turnPosition}</span><small>{playMode === 'shared' ? 'Army chosen in lobby' : armies.find((army) => army.id === player.armyId)?.faction}</small></li>)}</ul></section>
         <section className="panel setup-footer setup-footer--battle-mode">
@@ -484,10 +483,10 @@ export default function BattleSetup() {
         </section>
       </section>
       {(localError || error) && <div id="setup-error" className="alert alert--danger" role="alert">{localError ?? error}</div>}
-      <div className="setup-step-actions">
+      {playMode === 'local' && <div className="setup-step-actions">
         {step > 1 && <button type="button" onClick={() => goToStep((step - 1) as 1 | 2)}>Back</button>}
         {step < 3 && <button className="button--gold" type="button" onClick={() => goToStep((step + 1) as 2 | 3)}>{step === 1 ? 'Next: Commanders' : 'Next: Battlefield'}</button>}
-      </div>
+      </div>}
       </form>
     </div>
   )

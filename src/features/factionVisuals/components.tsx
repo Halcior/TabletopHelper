@@ -21,19 +21,19 @@ function UnitImage({custom,themeId,alt}:{custom?:string;themeId:string;alt:strin
  if(custom&&!failed)return <img src={custom} alt={"Custom photo: "+alt} loading="lazy" decoding="async" onError={()=>setFailed(true)}/>
  return <FactionSigil themeId={themeId}/>
 }
-export function UnitPortrait({army,unit}:{army:Army;unit:UnitDefinition}){
+export function UnitPortrait({army,unit,forceCustom=false}:{army:Army;unit:UnitDefinition;forceCustom?:boolean}){
  const p=useVisualPreferences(s=>s.preferences),t=useFactionTheme(army)
  const enabled=p.appearance!=='minimal'&&p.portraits!=='off'
- const custom=usePhoto(enabled&&p.appearance==='custom'?mediaKey(army,unit):undefined)
+ const custom=usePhoto(enabled&&(forceCustom||p.appearance==='custom')?mediaKey(army,unit):undefined)
  if(!enabled)return null
  return <span className={'unit-portrait unit-portrait--'+p.portraits} style={themeStyle(t)} role="img" aria-label={custom?'Custom unit photo or faction emblem: '+unit.name:'Faction emblem: '+t.name}>
   <UnitImage key={mediaKey(army,unit)+custom+t.id} custom={custom} themeId={t.id} alt={unit.name}/>
  </span>
 }
-export function ArmyBanner({army,label}:{army:Army;label?:string}){
+export function ArmyBanner({army,label,forceCustom=false}:{army:Army;label?:string;forceCustom?:boolean}){
  const p=useVisualPreferences(s=>s.preferences),t=useFactionTheme(army)
  const enabled=p.appearance!=='minimal'&&p.banners
- const custom=usePhoto(enabled&&p.appearance==='custom'?mediaKey(army):undefined)
+ const custom=usePhoto(enabled&&(forceCustom||p.appearance==='custom')?mediaKey(army):undefined)
  if(!enabled)return null
  return <div className="army-banner" style={themeStyle(t)}><div className="army-banner__art" aria-hidden="true"><FallbackImage key={mediaKey(army)+custom+t.id} custom={custom} thematic={factionArtUrl(t)} srcSet={factionArtSrcSet(t)} alt={t.name}/></div><div className="army-banner__copy"><span className="eyebrow">{label??'Army identity'}</span><strong>{army.faction}</strong><span>{army.name}</span><small>{army.totalPoints} pts · {army.units.length} units{t.id!=='neutral'&&t.name!==army.faction?` · ${t.name} theme`:''}</small></div></div>
 }

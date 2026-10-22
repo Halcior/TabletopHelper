@@ -4,7 +4,7 @@ import fixture from '../../../test-data/1700.json'
 import { NewRecruitImporter } from '../../importers/newRecruit'
 const state = vi.hoisted(() => ({
   headers: [] as string[],
-  schema: 8,
+  schema: 9,
   response: null as unknown,
 }))
 vi.mock('../account/client', async () => {
@@ -43,7 +43,7 @@ beforeEach(async () => {
   vi.restoreAllMocks()
   await accountClient!.auth.getSession()
   useRosterScope.setState({ userId: 'a' })
-  state.schema = 8
+  state.schema = 9
   state.headers = []
   state.response = {}
   vi.spyOn(accountClient!.auth, 'getSession').mockResolvedValue(session('a'))
