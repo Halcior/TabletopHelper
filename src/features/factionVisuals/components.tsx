@@ -21,10 +21,10 @@ function UnitImage({custom,themeId,alt}:{custom?:string;themeId:string;alt:strin
  if(custom&&!failed)return <img src={custom} alt={"Custom photo: "+alt} loading="lazy" decoding="async" onError={()=>setFailed(true)}/>
  return <FactionSigil themeId={themeId}/>
 }
-export function UnitPortrait({army,unit}:{army:Army;unit:UnitDefinition}){
+export function UnitPortrait({army,unit,forceCustom=false}:{army:Army;unit:UnitDefinition;forceCustom?:boolean}){
  const p=useVisualPreferences(s=>s.preferences),t=useFactionTheme(army)
  const enabled=p.appearance!=='minimal'&&p.portraits!=='off'
- const custom=usePhoto(enabled&&p.appearance==='custom'?mediaKey(army,unit):undefined)
+ const custom=usePhoto(enabled&&(forceCustom||p.appearance==='custom')?mediaKey(army,unit):undefined)
  if(!enabled)return null
  return <span className={'unit-portrait unit-portrait--'+p.portraits} style={themeStyle(t)} role="img" aria-label={custom?'Custom unit photo or faction emblem: '+unit.name:'Faction emblem: '+t.name}>
   <UnitImage key={mediaKey(army,unit)+custom+t.id} custom={custom} themeId={t.id} alt={unit.name}/>
