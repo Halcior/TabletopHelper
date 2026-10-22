@@ -142,10 +142,10 @@ begin
       where not (p->>'id'=any(opt.team_alpha));
    end if;
    members:=to_jsonb(a);
-   select jsonb_build_object('playerId',p->>'id','unitId',u->>'id') into w
-    from jsonb_array_elements(players)p
-    cross join lateral jsonb_array_elements(new.session_snapshot#>'{setup,armies}'->('seat:'||(p->>'id'))->'units')u
-    where members ? (p->>'id')
+   select jsonb_build_object('playerId',seat_player.value->>'id','unitId',u.value->>'id') into w
+    from jsonb_array_elements(players) AS seat_player(value)
+    cross join lateral jsonb_array_elements(new.session_snapshot#>'{setup,armies}'->('seat:'||(seat_player.value->>'id'))->'units') AS u(value)
+    where members ? (seat_player.value->>'id')
       and (coalesce((u->>'isWarlord')::boolean,false)
        or exists(select 1 from jsonb_array_elements_text(
          coalesce(u->'keywords','[]'::jsonb)||coalesce(u->'categories','[]'::jsonb))k where upper(k)='CHARACTER'))
