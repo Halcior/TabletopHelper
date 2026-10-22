@@ -52,7 +52,10 @@ async function seedArmy(page: Page, name: string) {
 }
 async function chooseArmy(page: Page) {
   const picker = page.getByRole('region', { name: 'Your lobby army' })
-  await picker.getByLabel('Saved army').selectOption({ index: 1 })
+  const selector = picker.getByLabel('Saved army')
+  const options = await selector.locator('option').allTextContents()
+  if (options.some(label => label.startsWith('Necron roster'))) await selector.selectOption({ label: 'Necron roster · 100 pts' })
+  else await selector.selectOption({ index: 1 })
   await picker.getByRole('button', { name: 'Select army', exact: true }).click()
   await expect(
     picker.getByRole('button', { name: 'Change Army', exact: true }),
