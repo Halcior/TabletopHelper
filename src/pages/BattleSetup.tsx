@@ -63,7 +63,7 @@ export default function BattleSetup() {
   const [params] = useSearchParams()
   const [playMode, setPlayMode] = useState<'local' | 'shared' | null>(() => {
     const requested = params.get('play')
-    return requested === 'local' || requested === 'shared' ? requested : null
+    return requested === 'shared' ? 'shared' : 'local'
   })
   const navigate = useNavigate()
   const preferredArmyId = params.get('armyId')
@@ -287,16 +287,6 @@ export default function BattleSetup() {
     }
   }
 
-  if (!playMode) return <div className="page-shell setup-page">
-    <section className="page-intro"><span className="eyebrow">Battle setup</span><h1>How are you playing?</h1><p>Choose where your players will select their armies.</p></section>
-    <div className="setup-mode-picker panel" role="group" aria-label="Play mode">
-      <button type="button" onClick={() => setPlayMode('local')}><FormatGlyph mode="duel" /><strong>On one device</strong><span>Select every army here and start a local battle.</span></button>
-      {sharedConfigured && <button type="button" onClick={() => setPlayMode('shared')}><FormatGlyph mode="ffa3" /><strong>Online multiplayer</strong><span>Create a lobby. Each commander selects their own army after joining.</span></button>}
-    </div>
-    {!sharedConfigured && <p className="context-note">Online lobbies require the configured Supabase backend.</p>}
-    <Link className="button" to="/shared">Join an existing lobby by code or invitation</Link>
-  </div>
-
   if (loadingArmies) return <div className="page-shell"><div className="loading-state" role="status">Loading saved armies…</div></div>
   if (armies.length === 0) return <div className="page-shell"><div className="empty-state">
     <span className="eyebrow">Your first battle</span><h1>Add your first army</h1><p>Import a New Recruit JSON roster, then choose your format and commanders. You can add more rosters before playing.</p>
@@ -311,8 +301,13 @@ export default function BattleSetup() {
         <span className="eyebrow">{playMode === 'shared' ? 'Online multiplayer' : 'Local battle'} · Step {step} of 3</span>
         <h1>{doubles ? 'New Doubles 2v2 battle' : duel ? 'New Duel 1v1 battle' : 'New FFA 3 battle'}</h1>
         <p>{playMode === 'shared' ? 'Choose rules and player slots. Everyone will bring their own army in the lobby.' : 'Choose a format, assign commanders and prepare the battlefield.'}</p>
-        <button type="button" className="button button--small" onClick={() => { setPlayMode(null); setStep(1); setLocalError(null) }}>Change play mode</button>
+
       </section>
+      <div className="setup-mode-picker panel" role="group" aria-label="Play mode">
+        <button type="button" aria-pressed={playMode === 'local'} className={playMode === 'local' ? 'button--gold' : ''} onClick={() => { setPlayMode('local'); setStep(1); setLocalError(null) }}><FormatGlyph mode="duel" /><strong>On one device</strong><span>Choose all armies here.</span></button>
+        <button type="button" aria-pressed={playMode === 'shared'} className={playMode === 'shared' ? 'button--gold' : ''} disabled={!sharedConfigured} onClick={() => { setPlayMode('shared'); setStep(1); setLocalError(null) }}><FormatGlyph mode="ffa3" /><strong>Online multiplayer</strong><span>Everyone brings an army to the lobby.</span></button>
+      </div>
+      {playMode === 'shared' && <p className="context-note">Already invited? <Link to="/shared">Join a lobby instead</Link>. Hosting creates an empty waiting room and does not start combat.</p>}
       <nav className="setup-steps" aria-label="Battle setup steps">{(['Rules', playMode === 'shared' ? 'Player slots' : 'Commanders', playMode === 'shared' ? 'Create lobby' : 'Battlefield & Start'] as const).map((label, index) => <button type="button" key={label} aria-current={step === index + 1 ? 'step' : undefined} onClick={() => goToStep((index + 1) as 1 | 2 | 3)}><span>{index + 1}</span><strong>{label}</strong></button>)}</nav>
       <form noValidate onSubmit={(event) => void submit(event)}>
       <section className="setup-step" hidden={step !== 1} aria-label="Rules">
