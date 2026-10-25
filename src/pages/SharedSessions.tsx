@@ -1,3 +1,4 @@
+import { LobbyClockSettings } from '../features/battleClock/LobbyClockSettings'
 import { social, errorText } from '../features/social/api'
 import { LobbyArmyPicker } from '../features/social/LobbyArmyPicker'
 import { LobbySeatSettings } from '../features/social/LobbySeatSettings'
@@ -307,6 +308,7 @@ export default function SharedSessions() {
         </aside>
       </div>
 
+      {!roomStartedAt && <LobbyClockSettings key={`clock:${membership.roomId}`} />}
       {!roomStartedAt && membership.isHost && <LobbyHostSettings key={`host:${membership.roomId}:${membership.clientId}`} />}
       <LobbySeatSettings key={`${rosterOwner}:${membership.roomId}:${membership.clientId}`} />
       <LobbyArmyPicker key={`${rosterOwner}:${membership.roomId}`} />

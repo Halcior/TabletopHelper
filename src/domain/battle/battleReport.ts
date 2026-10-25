@@ -1,3 +1,4 @@
+import { timeStatistics, formatDuration, type ClockStatistics } from '../../features/battleClock/model'
 import { getCauldronConfig } from '../../rulesets/cauldronFFA3/sessionConfig'
 import { getDuelMission, isDuelPrimary } from '../../rulesets/cauldronFFA3/duelPrimary'
 import { getOfficialPrimaryId, isOfficialPrimary, OFFICIAL_PRIMARY_MISSIONS } from '../../rulesets/cauldronFFA3/officialPrimary'
@@ -8,6 +9,7 @@ import { buildUnitPerformance, type BattlePerformance } from './unitPerformance'
 
 export type NarrativeStyle = 'tactical' | 'war-chronicle'
 export type BattleReport = {
+  timeStatistics?: ClockStatistics[]
   schemaVersion: 1
   gameId: string
   status: BattleSession['state']['status']
@@ -28,7 +30,7 @@ export type BattleReport = {
 /** Optional future adapters can consume this factual report; offline is default. */
 export type BattleNarrator = { generate: (report: BattleReport, style: NarrativeStyle) => Promise<string[]> }
 
-export function buildBattleReport(session: BattleSession, style: NarrativeStyle = 'tactical'): BattleReport {
+export function buildBattleReport(session: BattleSession, style: NarrativeStyle = 'tactical', now = Date.now()): BattleReport {
   const chronicle = buildBattleChronicle(session)
   const performance = buildUnitPerformance(session, chronicle)
   const ranked = session.setup.turnOrder.map((playerId) => {
@@ -67,6 +69,7 @@ export function buildBattleReport(session: BattleSession, style: NarrativeStyle 
     leaderChanges: changes.get(round) ?? [],
   }))
   const report: BattleReport = {
+    timeStatistics: timeStatistics(session.battleClock, now),
     schemaVersion: 1, gameId: session.setup.gameId, status: session.state.status, mode, missions,
     roundsPlayed: session.state.round, maxRounds: session.setup.maxRounds, ranking, winnerPlayerIds,
     commanderNames: Object.fromEntries(session.setup.players.map((player) => [player.id, player.name])),
@@ -158,6 +161,11 @@ export function battleReportMarkdown(report: BattleReport): string {
     'Obrażenia obejmują skutecznie utracone Wounds zapisane w Combat Logging oraz starsze jawne spadki Wounds pojedynczych modeli. Zapis samej utraty modeli lub pełnego KO nie dopisuje obrażeń. Leczenie i reanimacja nie kasują historycznych obrażeń; korekta odejmuje błędnie zapisane straty. Unknown oznacza brak danych, a Partial — tylko zarejestrowany wkład. Wartości bez jednoznacznego sprawcy jednostkowego pozostają na poziomie gracza. Kontrola objective nie daje automatycznie VP konkretnej jednostce. Wielojednostkowe nagrody VP nie są dzielone przez zgadywanie. Zmiana wyniku Secondary przez korektę usuwa pewność wcześniejszych VP z akcji. Inne kategorie i późniejsze potwierdzone nagrody zachowują przypisanie; tabela pokazuje znany wkład.',
     `Straty bez przypisanego gracza: ${amount(report.performance.unattributedPoints)} pkt. Punkty przypisane tylko do gracza: ${amount(report.performance.armies.reduce((sum, army) => sum + army.playerOnlyPoints, 0))} pkt.`,
   ]
+  if (report.timeStatistics?.length) lines.push('', '## Time Statistics', '',
+    '| Gracz / drużyna | Wykorzystano | Pozostało | Przekazania | Przekroczenie |',
+    '| --- | --- | --- | --- | --- |',
+    ...report.timeStatistics.map(row => `| ${markdownText(row.name)} | ${formatDuration(row.usedMs)} | ${formatDuration(row.remainingMs)} | ${row.manualPasses} | ${formatDuration(row.overtimeMs)} |`),
+    '', ...report.timeStatistics.map(row => `${markdownText(row.name)}: ${Object.entries(row.rounds).map(([round, ms]) => `runda ${round} — ${formatDuration(ms)}`).join('; ')}`))
   return lines.join('\n')
 }
 

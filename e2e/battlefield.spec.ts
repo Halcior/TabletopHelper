@@ -532,9 +532,7 @@ test('three phones share host geometry and control, rejecting non-host edits and
     backend.failNextEventInsertAfterCommitForPlayerId = 'player-a'
     await alpha.context.setOffline(false)
     await alpha.page.reload()
-    await alpha.page
-      .getByRole('link', { name: 'Open battle', exact: true })
-      .click()
+    await expect(alpha.page.getByRole('navigation', { name: 'Battle panels' })).toBeVisible()
     await openBoard(alpha.page)
     for (const { page } of phones)
       await expect(page.locator('.battlefield-canvas')).toHaveAttribute(
@@ -550,9 +548,7 @@ test('three phones share host geometry and control, rejecting non-host edits and
       .toBeGreaterThanOrEqual(2)
     expect(backend.storedEvents('BATTLEFIELD_LAYOUT_CHANGED')).toHaveLength(2)
     await bravo.page.reload()
-    await bravo.page
-      .getByRole('link', { name: 'Open battle', exact: true })
-      .click()
+    await expect(bravo.page.getByRole('navigation', { name: 'Battle panels' })).toBeVisible()
     await openBoard(bravo.page)
     await expect(marker(bravo.page, 'CENTER')).toHaveAttribute(
       'data-board-x',

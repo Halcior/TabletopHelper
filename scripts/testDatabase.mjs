@@ -25,6 +25,7 @@ export async function createTestDatabase() {
     'supabase/migrations/20261022142000_cloud_army_media.sql',
     'supabase/migrations/20261022142100_host_lobby_settings.sql',
     'supabase/migrations/20261022144000_fix_host_doubles_freeze.sql',
+    'supabase/migrations/20261025174428_battle_clock_2.sql',
   ])
     await db.exec(readFileSync(path, 'utf8'))
   return db

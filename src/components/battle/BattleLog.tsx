@@ -1,3 +1,4 @@
+import { ClockStatistics } from '../../features/battleClock/ClockStatistics'
 import { ChronicleIdentity } from '../../features/factionVisuals/components'
 import { useMemo, useState } from 'react'
 import { buildBattleChronicle, type ChronicleCategory } from '../../domain/battle/chronicle'
@@ -58,6 +59,7 @@ export function BattleLog({ session }: { session: BattleSession }) {
   const visible = matching.slice(0, limit)
   return <section className="panel log-panel chronicle-panel">
     <div className="section-heading"><div><span className="eyebrow">From recorded events</span><h2>Battle Chronicle</h2></div><small>{matching.length} events</small></div>
+    {session.battleClock && <details><summary>Battle Clock · statystyki</summary><ClockStatistics session={session} /></details>}
     <div className="chronicle-filters" role="group" aria-label="Chronicle filters">{([['highlights', 'Highlights'], ['full', 'Full History'], ['combat', 'Combat'], ['kills', 'Kills'], ['objectives', 'Objectives'], ['vp', 'VP']] as const).map(([value, title]) => <button key={value} aria-pressed={filter === value} onClick={() => { setFilter(value); setLimit(80) }}>{title}</button>)}</div>
     <div className="report-filters"><label><span>Chronicle player</span><select value={playerId} onChange={(event) => { setPlayerId(event.target.value); setLimit(80) }}><option value="all">All players</option>{session.setup.players.map((player) => <option key={player.id} value={player.id}>{player.name}</option>)}</select></label><label><span>Battle Round</span><select value={round} onChange={(event) => { setRound(event.target.value); setLimit(80) }}><option value="all">All rounds</option>{[...new Set(entries.map((entry) => entry.round))].map((value) => <option key={value} value={value}>Round {value}</option>)}</select></label></div>
     <details className="scoring-audit" open={session.state.status !== 'active'}><summary>Scoring audit <span>{scoring.length} entries</span></summary>{scoring.length === 0 ? <p>No scoring has been recorded yet.</p> : <ol>{[...scoring].reverse().map((entry) => <li key={entry.id}><span><strong>{session.state.players[entry.playerId]?.name ?? entry.playerId}</strong><small>Round {entry.round} · {entry.category} · {entry.label}</small></span><strong>{entry.setTo !== undefined ? `set ${entry.setTo}` : `${(entry.points ?? 0) >= 0 ? '+' : ''}${entry.points}`} VP</strong></li>)}</ol>}</details>

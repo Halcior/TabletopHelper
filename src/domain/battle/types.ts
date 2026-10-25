@@ -1,3 +1,4 @@
+import type { BattleClockState, ClockConfig } from '../../features/battleClock/model'
 import type { Army, UnitState, CombatProfileState } from '../army/types'
 import type { ReactionWindow, TimingState } from '../stratagems/types'
 import type { BattlefieldGeometry } from '../battlefield/types'
@@ -52,6 +53,7 @@ export type DoublesSetup = {
 }
 
 export type BattleSetup = {
+  battleClock?: ClockConfig
   gameId: string
   rulesetId: string
   players: PlayerSetup[]
@@ -253,6 +255,7 @@ export type GameState = {
 }
 
 export type BattleSession = {
+  battleClock?: BattleClockState
   setup: BattleSetup
   state: GameState
   redoActions: BattleEvent[][]

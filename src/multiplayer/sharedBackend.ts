@@ -1,5 +1,5 @@
-export const SHARED_SCHEMA_VERSION = 9
-export const SHARED_SCHEMA_MIGRATION = 'supabase/migrations/20261022142100_host_lobby_settings.sql'
+export const SHARED_SCHEMA_VERSION = 10
+export const SHARED_SCHEMA_MIGRATION = 'supabase/migrations/20261025174428_battle_clock_2.sql'
 
 function detail(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
@@ -15,6 +15,7 @@ export function sharedBackendMessage(error: unknown): string {
   const message = detail(error)
   const normalized = message.toLocaleLowerCase()
   const schemaOutdated = [
+    'battle_clock_action',
     'bring_your_army',
     'shared_rosters',
     'stage_shared_roster',

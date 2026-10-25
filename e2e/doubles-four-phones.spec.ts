@@ -73,7 +73,7 @@ test('four phones play one GW Doubles turn with exactly two shared CP and VP poo
     await beta.page.getByRole('button', { name: 'Rotate 180°' }).click()
     await expect(alpha.page.getByRole('button', { name: 'Rotate 180°' })).toHaveAttribute('aria-pressed','false')
     await delta.page.reload()
-    await delta.page.getByRole('link', { name: 'Open battle', exact: true }).click()
+    await expect(delta.page.getByRole('navigation', { name: 'Battle panels' })).toBeVisible()
     await dismissSecondaryReveal(delta.page)
     await selectPanel(delta.page, 'objectives')
     await expect(delta.page.locator('[data-terrain-id]')).toHaveCount(16)

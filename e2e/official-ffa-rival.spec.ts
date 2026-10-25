@@ -84,7 +84,7 @@ test('three Tactical phones keep Primary Rival scopes after turn handoffs, round
       await expect(page.locator('.official-primary-panel').first()).toContainText('Battle Round 2')
     }
     await bravo.page.reload()
-    await bravo.page.getByRole('link', { name: 'Open battle', exact: true }).click()
+    await expect(bravo.page.getByRole('navigation', { name: 'Battle panels' })).toBeVisible()
     await expect(bravo.page.locator('.official-primary-panel').first()).toContainText('Current Rival: Player I · A-HOME')
     await expect(scoreCard(bravo.page, 'Player II').locator('.score-card__numbers strong').first()).toHaveText('3')
     await endTacticalTurn(alpha.page, pages, 'Player I')

@@ -1,3 +1,4 @@
+import type { ClockSnapshot, ClockCommand, ClockConfig } from '../features/battleClock/model'
 import { rehydrateBattleSession } from '../domain/battle/engine'
 import { officialObjectivesForPair } from '../domain/battlefield/layouts'
 import { getCauldronConfig } from '../rulesets/cauldronFFA3'
@@ -259,7 +260,7 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
     }))
     await this.request<unknown>('shared_events?on_conflict=room_id,event_id', {
       method: 'POST',
-      headers: { Prefer: 'resolution=ignore-duplicates,return=minimal' },
+      headers: { Prefer: 'resolution=ignore-duplicates,return=minimal', 'x-seat-credential': seatCredential() },
       body: JSON.stringify(normalizedEvents.map((event) => ({
         room_id: roomId,
         event_id: event.id,
@@ -267,6 +268,15 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
         actor_player_id: event.actorPlayerId ?? null,
         event_payload: event,
       }))),
+    }, this.roomCode(roomId), clientId)
+  }
+
+  async battleClock(roomId: string, clientId: string, command?: ClockCommand | { type: 'configure'; config: ClockConfig }, revision?: number): Promise<ClockSnapshot> {
+    return this.request<ClockSnapshot>('rpc/battle_clock_action', {
+      method: 'POST', headers: { 'x-seat-credential': seatCredential() },
+      body: JSON.stringify({ p_room_id: roomId, p_command: command?.type ?? 'read', p_revision: revision ?? null,
+        p_target: command?.type === 'pass' ? command.targetId : null,
+        p_config: command?.type === 'configure' ? command.config : null }),
     }, this.roomCode(roomId), clientId)
   }
 

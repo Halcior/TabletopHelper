@@ -1,3 +1,6 @@
+import { ClockSettings } from '../features/battleClock/ClockSettings'
+import { OFF_CLOCK, type ClockConfig } from '../features/battleClock/model'
+import '../features/battleClock/battleClock.css'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import type { Army } from '../domain/army/types'
@@ -74,6 +77,7 @@ export default function BattleSetup() {
   const { rows: rosterRows, loading: loadingArmies, error: libraryError } = useRosterLibrary()
   const armies = useMemo(() => rosterRows.map(row => row.army), [rosterRows])
   const [players, setPlayers] = useState<PlayerDraft[]>(() => playersForMode(DEFAULT_PLAYERS, setupMode(params.get('mode'))))
+  const [clock, setClock] = useState<ClockConfig>(OFF_CLOCK)
   const [guidance, setGuidance] = useState<GuidanceLevel>('guided')
   const [secondaryDeck, setSecondaryDeck] = useState<SecondaryDeck>(() => recommendedRules(mode).secondaryDeck)
   const [primaryDeck, setPrimaryDeck] = useState<PrimaryDeck>(() => recommendedRules(mode).primaryDeck)
@@ -277,6 +281,7 @@ export default function BattleSetup() {
         mode,
         doubles ? getDoublesSetup(sharedMode ? provisionalArmy : undefined) : undefined,
         !sharedMode,
+        sharedMode ? undefined : clock,
       )
       if (sharedMode) {
         const membership = await hostCurrentBattle(hostPlayerId, true)
@@ -456,6 +461,7 @@ export default function BattleSetup() {
       </section>
       <section className="setup-step" hidden={step !== 3 || playMode === 'shared'} aria-label="Battlefield and start">
         <h2>Battlefield & Start</h2>
+        <ClockSettings value={clock} onChange={setClock} />
         <section className="panel setup-summary" aria-label="Battle setup summary"><div className="rules-source__heading"><span className="eyebrow">Ready to deploy</span><RulesSourceBadge source={rules.source} /></div><h3>{rules.title}</h3><p>{rules.primary} · {rules.secondary}</p><ul>{activePlayers.map((player) => <li key={player.id}><strong>{playMode === 'shared' ? `Seat ${activePlayers.indexOf(player) + 1} · name from profile` : player.name}</strong><span>Zone {player.deploymentZone} · Turn {player.turnPosition}</span><small>{playMode === 'shared' ? 'Army chosen in lobby' : armies.find((army) => army.id === player.armyId)?.faction}</small></li>)}</ul></section>
         <section className="panel setup-footer setup-footer--battle-mode">
           {primaryDeck === 'chapter-approved-duel' && <><InfoDisclosure label="Official pairing & setup instructions"><p className="context-note">Secondary deck: Chapter Approved 2026–27. Each force chooses Tactical or Fixed. In Doubles, both players share their active Secondary cards. Pick the recommended layout for your pairing. Roll for Attacker/Defender, then roll separately for first turn as described in the <a href="https://assets.warhammer-community.com/eng_14-10_wh40k_event_companion-rdwnqprl4c-nj8oqogadv.pdf" target="_blank" rel="noreferrer">Warhammer Event Companion</a>. Assign A/B HOME to your actual objectives and turn positions to the first-turn roll. The app’s central and expansion names are generic; use the physical layout to identify them.</p></InfoDisclosure><Link to="/terrain-layouts" target="_blank">Preview official terrain layouts</Link><label>Pairing layout<select value={officialLayout} onChange={(event) => setOfficialLayout(Number(event.target.value) as 1 | 2 | 3)}><option value={1}>Layout A</option><option value={2}>Layout B</option><option value={3}>Layout C</option></select></label></>}

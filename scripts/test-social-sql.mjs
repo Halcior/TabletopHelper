@@ -7,7 +7,8 @@ try {
   )
   await db.exec(readFileSync('supabase/tests/lobby_player_settings.sql', 'utf8'))
   await db.exec(readFileSync('supabase/tests/host_doubles_settings.sql', 'utf8'))
-  console.log('PostgreSQL social/lobby and per-seat settings integration passed; both transactions rolled back.')
+  await db.exec(readFileSync('supabase/tests/battle_clock.sql', 'utf8'))
+  console.log('PostgreSQL social/lobby, seat settings and Battle Clock integration passed; all test transactions rolled back.')
 } finally {
   await db.close()
 }
