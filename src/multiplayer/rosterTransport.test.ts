@@ -100,3 +100,19 @@ it('only closes rooms that are still waiting when the database handles Leave', a
   await transport.closeWaitingRoom('room', 'host')
   expect(new URL(writes[0]).searchParams.get('started_at')).toBe('is.null')
 })
+
+it('reclaims the existing participant primary key when a stale seat changes browsers', async () => {
+  const { session, transport } = setup()
+  const room = {id:'room',code:'ABC234',battleId:session.setup.gameId,status:'active',sessionSnapshot:session,startedAt:'2026-10-25T18:00:00Z',createdAt:'now',updatedAt:'now'} as const
+  let claimed: Record<string,unknown> | undefined
+  vi.stubGlobal('fetch',vi.fn(async (_url:string,init:RequestInit={})=>{
+    if(init.method==='POST') {
+      claimed=JSON.parse(String(init.body))
+      return new Response(JSON.stringify([claimed]),{status:200})
+    }
+    return new Response(JSON.stringify([{id:'existing-participant',room_id:'room',client_id:'old-browser',player_id:'b',display_name:'B',is_host:false,is_ready:false,last_seen_at:'2026-10-25T17:00:00Z'}]),{status:200})
+  }))
+  await transport.joinRoom(room,'b','replacement-browser')
+  expect(claimed?.id).toBe('existing-participant')
+  expect(claimed?.client_id).toBe('replacement-browser')
+})

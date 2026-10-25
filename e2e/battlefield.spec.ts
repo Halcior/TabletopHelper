@@ -1,3 +1,4 @@
+import { shareExistingBattle } from './helpers'
 import { setupCommanders } from './helpers'
 import { selectPanel, setupBattlefield, setupRules, chooseCauldronPreset } from './helpers'
 import { expect, test, type Page } from '@playwright/test'
@@ -417,9 +418,7 @@ test('three phones share host geometry and control, rejecting non-host edits and
       .getByRole('combobox', { name: 'Secondary strategy', exact: true })
       .selectOption('fixed')
     await setupBattlefield(alpha.page)
-    await alpha.page
-      .getByRole('button', { name: 'Create 3-player lobby', exact: true })
-      .click()
+    await shareExistingBattle(alpha.page)
     const code = (await alpha.page
       .locator('.shared-room-focus__code strong')
       .textContent())!.trim()
@@ -532,9 +531,7 @@ test('three phones share host geometry and control, rejecting non-host edits and
     backend.failNextEventInsertAfterCommitForPlayerId = 'player-a'
     await alpha.context.setOffline(false)
     await alpha.page.reload()
-    await alpha.page
-      .getByRole('link', { name: 'Open battle', exact: true })
-      .click()
+    await expect(alpha.page.getByRole('navigation', { name: 'Battle panels' })).toBeVisible()
     await openBoard(alpha.page)
     for (const { page } of phones)
       await expect(page.locator('.battlefield-canvas')).toHaveAttribute(
@@ -550,9 +547,7 @@ test('three phones share host geometry and control, rejecting non-host edits and
       .toBeGreaterThanOrEqual(2)
     expect(backend.storedEvents('BATTLEFIELD_LAYOUT_CHANGED')).toHaveLength(2)
     await bravo.page.reload()
-    await bravo.page
-      .getByRole('link', { name: 'Open battle', exact: true })
-      .click()
+    await expect(bravo.page.getByRole('navigation', { name: 'Battle panels' })).toBeVisible()
     await openBoard(bravo.page)
     await expect(marker(bravo.page, 'CENTER')).toHaveAttribute(
       'data-board-x',

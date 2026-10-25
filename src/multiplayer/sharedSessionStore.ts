@@ -1,3 +1,4 @@
+import { withClockSnapshot, type ClockSnapshot, type ClockCommand, type ClockConfig } from '../features/battleClock/model'
 import { create } from 'zustand'
 import { rehydrateBattleSession } from '../domain/battle/engine'
 import type { BattleEvent, BattleSession } from '../domain/battle/types'
@@ -125,6 +126,7 @@ function rebuildFromCanonical(): void {
   const pending = [...pendingLocalEvents.values()].filter((event) => !eventIds.has(event.id))
   const session = rehydrateBattleSession({
     ...baseSnapshot,
+    battleClock: useSharedSessionStore.getState().clockSnapshot?.clock ?? undefined,
     state: {
       ...baseSnapshot.state,
       events: [...baseSnapshot.state.events, ...orderedRemote, ...pending],
@@ -142,6 +144,8 @@ function rebuildFromCanonical(): void {
 function adoptFinalRosters(inspection: SharedRoomInspection): void {
   if (useSharedSessionStore.getState().membership?.roomId !== inspection.room.id || !inspection.room.bringYourArmy || !inspection.room.startedAt || baseRosterStartedAt === inspection.room.startedAt) return
   baseSnapshot = inspection.room.sessionSnapshot
+  const clock = useSharedSessionStore.getState().clockSnapshot
+  if (clock) baseSnapshot = withClockSnapshot(baseSnapshot, clock)
   baseRosterStartedAt = inspection.room.startedAt
   rebuildFromCanonical()
 }
@@ -203,6 +207,11 @@ async function pollRoom(): Promise<void> {
       rebuildFromCanonical()
     }
 
+    const clockRequestAt = performance.now()
+    const clockSnapshot = await sharedSessionTransport.battleClock(membership.roomId, membership.clientId)
+    if (!syncIsCurrent(generation, membership)) return
+    adoptClockSnapshot(clockSnapshot, clockRequestAt)
+
     pollCounter += 1
     if (pollCounter % PRESENCE_EVERY_POLLS === 0) {
       await sharedSessionTransport.touchParticipant(membership.roomId, membership.clientId)
@@ -253,6 +262,27 @@ async function pollRoom(): Promise<void> {
   }
 }
 
+function adoptClockSnapshot(snapshot: ClockSnapshot, requestAt: number): void {
+  const shared = useSharedSessionStore.getState()
+  const previous = shared.clockSnapshot
+  if (previous && (snapshot.serverNow < previous.serverNow
+    || (snapshot.clock && previous.clock && snapshot.clock.revision < previous.clock.revision))) return
+  const receivedAt = performance.now()
+  // Approximate half the round trip; display error is bounded by network jitter.
+  useSharedSessionStore.setState({ clockSnapshot: snapshot, clockAnchor: {
+    serverNow: snapshot.serverNow + (receivedAt - requestAt) / 2, monotonicAt: receivedAt,
+  } })
+  if (baseSnapshot) baseSnapshot = withClockSnapshot(baseSnapshot, snapshot)
+  const current = useBattleStore.getState().session
+  if (!current || current.setup.gameId !== shared.membership?.battleId) return
+  const unchanged = JSON.stringify(current.setup.battleClock) === JSON.stringify(snapshot.config.preset === 'off' ? undefined : snapshot.config)
+    && current.battleClock?.revision === snapshot.clock?.revision
+  if (unchanged) return
+  const session = withClockSnapshot(current, snapshot)
+  useBattleStore.setState({ session })
+  if (shared.roomStartedAt) void saveBattle(session)
+}
+
 function attachBrowserSyncListeners(): void {
   if (typeof window === 'undefined' || typeof document === 'undefined') return
   const onOnline = () => {
@@ -279,6 +309,7 @@ function startSyncLoop(inspection: SharedRoomInspection, membership: SharedMembe
   setSharedRuntimeMembership(membership)
   useSharedSessionStore.setState({
     membership,
+    clockSnapshot: null, clockAnchor: null,
     participants: inspection.participants,
     roomStatus: inspection.room.status,
     roomStartedAt: inspection.room.startedAt,
@@ -321,6 +352,9 @@ function startSyncLoop(inspection: SharedRoomInspection, membership: SharedMembe
 }
 
 type SharedSessionStore = {
+  clockSnapshot: ClockSnapshot | null
+  clockAnchor: { serverNow: number; monotonicAt: number } | null
+  clockCommand: (command: ClockCommand | { type: 'configure'; config: ClockConfig }) => Promise<boolean>
   configured: boolean
   connectionStatus: SharedConnectionStatus
   membership: SharedMembership | null
@@ -348,6 +382,18 @@ type SharedSessionStore = {
 }
 
 export const useSharedSessionStore = create<SharedSessionStore>((set, get) => ({
+  clockSnapshot: null,
+  clockAnchor: null,
+  async clockCommand(command) {
+    const { membership, connectionStatus, clockSnapshot } = get()
+    if (!membership || connectionStatus !== 'connected' || !browserOnline()) throw new Error('Połącz się ponownie, aby zmienić zegar.')
+    const generation = syncGeneration
+    const started = performance.now()
+    const snapshot = await sharedSessionTransport.battleClock(membership.roomId, membership.clientId, command, clockSnapshot?.clock?.revision)
+    if (!syncIsCurrent(generation, membership)) return false
+    adoptClockSnapshot(snapshot, started)
+    return snapshot.applied
+  },
   configured: sharedSessionTransport.configured,
   connectionStatus: 'idle',
   membership: initialMembership,

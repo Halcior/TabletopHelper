@@ -1,3 +1,4 @@
+import { shareExistingBattle } from './helpers'
 import { setupBattlefield, setupRules } from './helpers'
 import { expect, test, type Page } from '@playwright/test'
 import { dismissSecondaryReveal, importTestArmy, phone, scoreCard } from './helpers'
@@ -58,7 +59,7 @@ test('three Tactical phones keep Primary Rival scopes after turn handoffs, round
     await alpha.page.getByLabel('Guidance level').selectOption('fast')
     await expect(alpha.page.getByLabel('Objective layout')).toHaveValue('expanded-7')
     await setupBattlefield(alpha.page)
-    await alpha.page.getByRole('button', { name: 'Create 3-player lobby' }).click()
+    await shareExistingBattle(alpha.page)
     const code = (await alpha.page.locator('.shared-room-focus__code strong').textContent())!.trim()
     await join(bravo.page, code, 'player-b')
     await join(charlie.page, code, 'player-c')
@@ -84,7 +85,7 @@ test('three Tactical phones keep Primary Rival scopes after turn handoffs, round
       await expect(page.locator('.official-primary-panel').first()).toContainText('Battle Round 2')
     }
     await bravo.page.reload()
-    await bravo.page.getByRole('link', { name: 'Open battle', exact: true }).click()
+    await expect(bravo.page.getByRole('navigation', { name: 'Battle panels' })).toBeVisible()
     await expect(bravo.page.locator('.official-primary-panel').first()).toContainText('Current Rival: Player I · A-HOME')
     await expect(scoreCard(bravo.page, 'Player II').locator('.score-card__numbers strong').first()).toHaveText('3')
     await endTacticalTurn(alpha.page, pages, 'Player I')

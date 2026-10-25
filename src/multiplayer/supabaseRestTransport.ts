@@ -1,3 +1,4 @@
+import type { ClockSnapshot, ClockCommand, ClockConfig } from '../features/battleClock/model'
 import { rehydrateBattleSession } from '../domain/battle/engine'
 import { officialObjectivesForPair } from '../domain/battlefield/layouts'
 import { getCauldronConfig } from '../rulesets/cauldronFFA3'
@@ -226,17 +227,20 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
     const player = room.sessionSnapshot.state.players[playerId]
     if (!player) throw new Error('That player seat does not exist in this battle.')
     this.rememberRoom(room)
-    return this.upsertParticipant(room, playerId, clientId, preserveHost)
+    // Reclaim the existing participant row. Replacing its primary key would
+    // break references held by private credentials and other seat metadata.
+    const existing = (await this.listParticipants(room.id)).find(p => p.playerId === playerId)
+    return this.upsertParticipant(room, playerId, clientId, preserveHost, existing?.id)
   }
 
-  private async upsertParticipant(room: SharedRoom, playerId: string, clientId: string, isHost: boolean): Promise<SharedParticipant> {
+  private async upsertParticipant(room: SharedRoom, playerId: string, clientId: string, isHost: boolean, participantId?: string): Promise<SharedParticipant> {
     const player = room.sessionSnapshot.state.players[playerId]
     if (!player) throw new Error('Unknown player seat.')
     const rows = await this.request<SupabaseParticipantRow[]>('shared_participants?on_conflict=room_id,player_id', {
       method: 'POST',
       headers: { Prefer: 'resolution=merge-duplicates,return=representation', 'x-seat-credential': seatCredential() },
       body: JSON.stringify({
-        id: createPortableUuid(),
+        id: participantId ?? createPortableUuid(),
         room_id: room.id,
         client_id: clientId,
         player_id: playerId,
@@ -259,7 +263,7 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
     }))
     await this.request<unknown>('shared_events?on_conflict=room_id,event_id', {
       method: 'POST',
-      headers: { Prefer: 'resolution=ignore-duplicates,return=minimal' },
+      headers: { Prefer: 'resolution=ignore-duplicates,return=minimal', 'x-seat-credential': seatCredential() },
       body: JSON.stringify(normalizedEvents.map((event) => ({
         room_id: roomId,
         event_id: event.id,
@@ -267,6 +271,15 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
         actor_player_id: event.actorPlayerId ?? null,
         event_payload: event,
       }))),
+    }, this.roomCode(roomId), clientId)
+  }
+
+  async battleClock(roomId: string, clientId: string, command?: ClockCommand | { type: 'configure'; config: ClockConfig }, revision?: number): Promise<ClockSnapshot> {
+    return this.request<ClockSnapshot>('rpc/battle_clock_action', {
+      method: 'POST', headers: { 'x-seat-credential': seatCredential() },
+      body: JSON.stringify({ p_room_id: roomId, p_command: command?.type ?? 'read', p_revision: revision ?? null,
+        p_target: command?.type === 'pass' ? command.targetId : null,
+        p_config: command?.type === 'configure' ? command.config : null }),
     }, this.roomCode(roomId), clientId)
   }
 

@@ -1,3 +1,5 @@
+import { useSharedSessionStore } from '../../multiplayer/sharedSessionStore'
+import { ClockStatistics } from '../../features/battleClock/ClockStatistics'
 import { PlayerArmyBanner, PlayerUnitPortrait } from '../../features/factionVisuals/components'
 import { useMemo, useState, type MouseEvent } from 'react'
 import { buildBattleReport, downloadBattleReport, type NarrativeStyle } from '../../domain/battle/battleReport'
@@ -15,7 +17,8 @@ export function BattleReport({ session }: { session: BattleSession }) {
   const [style, setStyle] = useState<NarrativeStyle>('tactical')
   const [playerId, setPlayerId] = useState('all')
   const [sort, setSort] = useState('points')
-  const report = useMemo(() => buildBattleReport(session, style), [session, style])
+  const anchor = useSharedSessionStore(s => s.membership?.battleId === session.setup.gameId ? s.clockAnchor : null)
+  const report = useMemo(() => buildBattleReport(session, style, anchor ? anchor.serverNow + performance.now() - anchor.monotonicAt : Date.now()), [session, style, anchor])
   const frames = useMemo(() => buildBattlefieldReplay(session), [session])
   const highlights = useMemo(() => reportHighlights(buildBattleChronicle(session), leadChangeEventIds(frames)), [session, frames])
   const playerName = (id: string) => session.state.players[id]?.name ?? report.ranking.find((player) => player.playerId === id)?.name ?? id
@@ -47,6 +50,7 @@ export function BattleReport({ session }: { session: BattleSession }) {
       </article>)}
     </section>
     <section className="panel report-highlights" aria-label="Battle highlights"><span className="eyebrow">From recorded events</span><h3>Battle highlights</h3>{highlights.length > 0 ? <ol>{highlights.map((entry) => <li key={entry.id}><small>Round {entry.round} · {entry.phase.replace('_', ' ')}</small><p>{entry.description}</p></li>)}</ol> : <p>No battle highlights recorded yet.</p>}</section>
+    <ClockStatistics session={session} statistics={report.timeStatistics} />
     <ScoreHistoryChart session={session} frames={frames} />
     {report.performance.units.some((unit) => unit.enemyPointsDestroyed > 0 || unit.completedMissionActions > 0) && <section className="panel report-top-units"><span className="eyebrow">Recorded contribution · provisional while live</span><h3>Standout units</h3><div>{[...report.performance.units].filter((unit) => unit.enemyPointsDestroyed > 0 || unit.completedMissionActions > 0).sort((a, b) => b.enemyPointsDestroyed - a.enemyPointsDestroyed || b.completedMissionActions - a.completedMissionActions).slice(0, 3).map((unit) => <a key={`${unit.playerId}:${unit.unitId}`} href={`#performance-${unit.playerId}-${unit.unitId}`} onClick={(event) => openUnit(event, `performance-${unit.playerId}-${unit.unitId}`)}><PlayerUnitPortrait session={session} playerId={unit.playerId} unitId={unit.unitId} /><strong>{unit.name}</strong><span>{playerName(unit.playerId)}</span><small>{points(unit.enemyPointsDestroyed)} enemy pts · {unit.completedMissionActions} actions</small></a>)}</div></section>}
     <details className="panel report-missions"><summary>Selected missions</summary><ul>{report.missions.map((mission) => <li key={mission}>{mission}</li>)}</ul></details>

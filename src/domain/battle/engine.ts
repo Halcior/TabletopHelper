@@ -660,6 +660,7 @@ export function serializeBattleSession(session: BattleSession): string {
 /** Replays persisted events so sessions saved by older compatible builds gain new projected state. */
 export function rehydrateBattleSession(session: BattleSession): BattleSession {
   return {
+    battleClock: session.battleClock,
     setup: session.setup,
     state: projectState(session.setup, session.state.events as BattleEvent[]),
     redoActions: session.redoActions,

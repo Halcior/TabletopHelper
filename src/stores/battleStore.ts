@@ -1,3 +1,4 @@
+import { commandClock, createBattleClock, reconcileClock, type ClockConfig, type ClockCommand } from '../features/battleClock/model'
 import { create } from 'zustand'
 import { grantCommandPhaseCp as grantCauldronCoreCp } from '../rulesets/cauldronFFA3/session'
 import type { Army } from '../domain/army/types'
@@ -75,7 +76,9 @@ type BattleStore = {
     mode?: CauldronMode,
     doubles?: DoublesSetup,
     persist?: boolean,
+    clock?: ClockConfig,
   ) => Promise<string>
+  clockCommand: (command: ClockCommand) => void
   loadBattle: (id: string) => Promise<void>
   resumeLatest: () => Promise<string | null>
   dispatch: (event: BattleEventInput) => void
@@ -128,7 +131,9 @@ function applySessionUpdate(
 ): void {
   if (!current) return
   try {
-    const session = update(current)
+    const next = update(current)
+    const shared = getSharedRuntimeMembership()?.battleId === current.setup.gameId
+    const session = { ...next, battleClock: shared ? current.battleClock : reconcileClock(current.battleClock, next, Date.now()) }
     assertSharedMutationAllowed(current, session)
     set({ session, error: null })
     queueSave(session)
@@ -155,10 +160,14 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
   loading: false,
   error: null,
 
-  async startCauldronBattle(players, armies, guidanceLevel, objectiveLayout, secondaryDeck, officialSecondaryStrategy, fixedSecondarySelections, primaryDeck, officialSecondaryStrategies, officialLayout, battlefieldAttackerHomeZone, mode, doubles, persist = true) {
+  async startCauldronBattle(players, armies, guidanceLevel, objectiveLayout, secondaryDeck, officialSecondaryStrategy, fixedSecondarySelections, primaryDeck, officialSecondaryStrategies, officialLayout, battlefieldAttackerHomeZone, mode, doubles, persist = true, clock) {
     set({ loading: true, error: null })
     try {
       const session = createCauldronGame({ players, armies, guidanceLevel, objectiveLayout, secondaryDeck, officialSecondaryStrategy, fixedSecondarySelections, primaryDeck, officialSecondaryStrategies, officialLayout, battlefieldAttackerHomeZone, mode, doubles })
+      if (clock && clock.preset !== 'off') {
+        session.setup.battleClock = clock
+        session.battleClock = createBattleClock(session.setup, clock, Date.now())
+      }
       // Provisional multiplayer setup is not an active battle on this device.
       // The frozen, server-approved snapshot is persisted after lobby Start.
       if (persist) await saveBattle(session)
@@ -171,11 +180,22 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
     }
   },
 
+  clockCommand(command) {
+    const session = get().session
+    if (!session?.battleClock || getSharedRuntimeMembership()?.battleId === session.setup.gameId) return
+    const next = { ...session, battleClock: commandClock(session.battleClock, command, Date.now()) }
+    set({ session: next, error: null })
+    queueSave(next)
+  },
+
   async loadBattle(id) {
     if (get().session?.setup.gameId === id) return
     set({ loading: true, error: null })
     try {
       const stored = await getBattle(id)
+      // Network restore may install the canonical room while IndexedDB is
+      // loading. Never overwrite that live session with an older disk copy.
+      if (get().session?.setup.gameId === id) { set({ loading: false }); return }
       const session = stored ? rehydrateBattleSession(stored) : undefined
       set({ session: session ?? null, loading: false, error: session ? null : 'Battle not found.' })
     } catch (error: unknown) {

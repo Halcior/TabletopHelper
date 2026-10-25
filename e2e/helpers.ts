@@ -100,3 +100,13 @@ export async function resolvePriorityTargetIfNeeded(page: Page): Promise<void> {
   const gamma = panel.locator('.context-choice-list button:not(:disabled)').first()
   if (await gamma.isVisible().catch(() => false)) await gamma.click()
 }
+
+// Current setup starts local matches directly; sharing one uses the explicit
+// legacy entry point. Keep old deterministic-roster scenarios on that flow.
+export async function shareExistingBattle(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Start locally', exact: true }).click()
+  await page.goto('/shared')
+  await page.getByText('Legacy: share an existing local battle', { exact: true }).click()
+  await page.getByRole('button', { name: 'Share existing battle', exact: true }).click()
+  await expect(page.locator('.shared-room-focus__code strong')).toBeVisible()
+}

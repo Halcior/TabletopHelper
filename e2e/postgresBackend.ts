@@ -63,6 +63,7 @@ export class PostgresBackend {
           const name = resource.slice(4)
           if (
             ![
+              'battle_clock_action',
               'social_action',
               'stage_shared_roster',
               'set_shared_seat_settings',

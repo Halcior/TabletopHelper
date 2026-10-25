@@ -1,0 +1,58 @@
+.battle-clock { margin: 12px max(calc((100vw - 1400px) / 2), 24px); padding: 14px 16px; border: 1px solid var(--border, #3c3d40); border-left: 3px solid var(--gold, #c3a66a); border-radius: 10px; background: var(--panel-bg, #15191f); color: var(--text, #e6e4de); min-width: 0; }
+.battle-clock__heading { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.battle-clock__heading > div { display: grid; gap: 4px; flex: 1; }
+.battle-clock__heading small { color: var(--muted, #a9aeb5); }
+.battle-clock__heading button { min-width: 44px; min-height: 44px; }
+.battle-clock__budgets { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+.battle-clock__budget { display: grid; gap: 4px; padding: 10px 12px; border: 1px solid #3d424b; border-radius: 7px; min-width: 0; }
+.battle-clock__budget > span { overflow-wrap: anywhere; font-weight: 600; }
+.battle-clock__budget time { font: 700 clamp(24px, 3vw, 34px)/1.2 ui-monospace, SFMono-Regular, Consolas, monospace; font-variant-numeric: tabular-nums; }
+.battle-clock__budget small { min-height: 1.3em; font-size: 11px; opacity: .8; }
+.battle-clock__budget.is-active { border-color: #c9ae74; background: #c9ae7412; box-shadow: inset 0 2px #c9ae74; }
+.clock-warning--quarter time { color: #d8bd7a; }
+.clock-warning--five time { color: #ffb56e; }
+.clock-warning--one time, .clock-warning--expired time, .clock-expiry { color: #ff8888; }
+.battle-clock__budget.clock-warning--expired { border-color: #bb6666; }
+.battle-clock__controls { display: flex; align-items: end; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.battle-clock__controls button, .battle-clock__controls select { min-height: 44px; }
+.battle-clock__controls button { padding-inline: 14px; }
+.battle-clock__pass { flex: 1; min-width: 130px; }
+.battle-clock__target { display: grid; gap: 4px; font-size: 12px; }
+.battle-clock details { margin-top: 10px; }
+.battle-clock summary { padding-block: 8px; cursor: pointer; }
+.battle-clock.is-collapsed .battle-clock__heading { margin-bottom: 0; }
+.battle-clock__mini { font-size: 13px; display: grid; text-align: right; overflow-wrap: anywhere; }
+.battle-clock__mini time { font: 700 20px ui-monospace, monospace; }
+.battle-clock__help { max-width: 620px; padding: 12px; }
+.battle-clock__help ul { padding-left: 22px; }
+.battle-clock__help li { margin-block: 12px; line-height: 1.5; }
+.clock-settings { margin: 12px 0; border: 1px solid #42464b; border-radius: 8px; padding: 14px; display: grid; gap: 12px; min-width: 0; }
+.clock-settings legend { font-weight: 700; padding: 0 6px; }
+.clock-settings label { display: grid; gap: 6px; }
+.clock-settings small { color: var(--muted, #a9aeb5); line-height: 1.5; }
+.clock-statistics { padding: 10px 0; min-width: 0; }
+.clock-statistics th, .clock-statistics td { padding: 8px 12px; white-space: nowrap; }
+.clock-statistics h3 { margin: 0 0 10px; }
+@media (max-width: 600px) {
+  .battle-clock { padding: 10px; margin: 8px 10px; }
+  .battle-clock.is-collapsed { position: sticky; top: var(--battle-hud-height, 88px); z-index: 24; }
+  .battle-clock__budgets { grid-template-columns: repeat(auto-fit, minmax(82px, 1fr)); gap: 6px; }
+  .battle-clock__budget { padding: 8px; }
+  .battle-clock__budget > span { font-size: 12px; }
+  .battle-clock__budget time { font-size: 22px; }
+  .battle-clock__budget small { font-size: 10px; }
+  .battle-clock__target { flex-basis: 100%; }
+  .battle-clock__controls { gap: 6px; }
+}
+@media print { .battle-clock { display: none; } }
+@media (min-width: 900px) {
+  .battle-clock { display: grid; grid-template-columns: minmax(0, 1fr) minmax(240px, 360px); gap: 8px 20px; align-items: center; padding-block: 10px; }
+  .battle-clock__heading { grid-column: 1 / -1; margin: 0; }
+  .battle-clock__heading > div { display: flex; gap: 14px; align-items: center; }
+  .battle-clock__controls { margin: 0; }
+  .battle-clock__budget { padding-block: 8px; }
+  .battle-clock__budget time { font-size: 28px; }
+  .battle-clock > details, .battle-clock > p { grid-column: 1 / -1; margin: 0; }
+  .battle-clock > details > summary { padding-block: 4px; }
+  .battle-clock.is-collapsed .battle-clock__heading { grid-column: 1; }
+}

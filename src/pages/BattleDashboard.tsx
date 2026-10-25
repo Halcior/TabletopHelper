@@ -1,3 +1,4 @@
+import { BattleClock } from '../features/battleClock/BattleClock'
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { AppIcon, type AppIconName } from '../components/AppIcon'
@@ -96,6 +97,8 @@ export default function BattleDashboard() {
   const [armyPreferredPlayerId, setArmyPreferredPlayerId] = useState<string | null>(null)
   const sharedMembership = useSharedSessionStore((state) => state.membership)
   const sharedRoomStartedAt = useSharedSessionStore((state) => state.roomStartedAt)
+  const sharedRestore = useSharedSessionStore((state) => state.restoreForBattle)
+  const sharedRestoreError = useSharedSessionStore((state) => state.error)
   const {
     session,
     loading,
@@ -125,6 +128,17 @@ export default function BattleDashboard() {
     if (battleId) void loadBattle(battleId)
   }, [battleId, loadBattle])
 
+  // Restore before the lobby guard. A hard reload starts with an unknown room
+  // status; redirecting at that point unmounts the status component that used
+  // to initiate restore, leaving a live battle on the waiting-room screen.
+  useEffect(() => {
+    if (!battleId) return
+    const restore = () => { void sharedRestore(battleId) }
+    restore()
+    window.addEventListener('online', restore)
+    return () => window.removeEventListener('online', restore)
+  }, [battleId, sharedRestore])
+
   useEffect(() => {
     if (!session || session.state.status !== 'active') return
     setTab('overview')
@@ -142,6 +156,13 @@ export default function BattleDashboard() {
   }, [session?.setup.gameId, session?.state.status, loading])
   if (loading && session?.setup.gameId !== battleId) return <div className="page-shell"><div className="loading-state" role="status">Restoring battle…</div></div>
   if (!session || session.setup.gameId !== battleId) return <div className="page-shell"><div className="empty-state"><h1>Battle unavailable</h1><p>{error ?? 'The local battle could not be found.'}</p><Link className="button" to="/">Return home</Link></div></div>
+  if (sharedMembership?.battleId === session.setup.gameId && sharedRoomStartedAt === undefined) {
+    return <div className="page-shell"><section className="panel" role="status"><h1>Restoring shared battle…</h1>
+      {sharedRestoreError && <p>{sharedRestoreError}</p>}
+      <button onClick={() => void sharedRestore(session.setup.gameId)}>Retry connection</button>
+      <Link className="button" to={`/shared?room=${sharedMembership.roomCode}`}>Open room</Link>
+    </section></div>
+  }
   if (sharedMembership?.battleId === session.setup.gameId && !sharedBattleHasStarted(sharedRoomStartedAt)) {
     return <Navigate to={`/shared?room=${sharedMembership.roomCode}`} replace />
   }
@@ -327,6 +348,7 @@ export default function BattleDashboard() {
           viewerPlayerId={viewerPlayerId}
           feedback={liveFeedback}
         />
+        <BattleClock session={session} />
         <PhaseStepper phase={session.state.phase} />
         {sharedBattle && <SharedSyncWarning battleId={session.setup.gameId} />}
         {sharedBattle && <div className={`shared-flow-notice${canControlTurn ? ' shared-flow-notice--active' : ''}`}>{canControlTurn ? `Your turn · ${viewer?.name ?? active.name}` : `Waiting for ${sharedPermissions.waitingForPlayerName ?? active.name} · playing as ${viewer?.name ?? 'player'}`}</div>}
