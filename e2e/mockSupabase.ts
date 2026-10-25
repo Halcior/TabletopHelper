@@ -69,7 +69,7 @@ export class MockSupabase {
     const resource = url.pathname.replace(/^\/rest\/v1\//, '')
     const method = request.method()
 
-    if (resource === 'rpc/shared_schema_version') return void await json(route, 10)
+    if (resource === 'rpc/shared_schema_version') return void await json(route, 11)
 
     if (resource === 'rpc/battle_clock_action') return void await json(route, { config: { preset: 'off', limitMs: 0 }, clock: null, serverNow: Date.now(), applied: true })
 

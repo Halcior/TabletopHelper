@@ -227,17 +227,20 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
     const player = room.sessionSnapshot.state.players[playerId]
     if (!player) throw new Error('That player seat does not exist in this battle.')
     this.rememberRoom(room)
-    return this.upsertParticipant(room, playerId, clientId, preserveHost)
+    // Reclaim the existing participant row. Replacing its primary key would
+    // break references held by private credentials and other seat metadata.
+    const existing = (await this.listParticipants(room.id)).find(p => p.playerId === playerId)
+    return this.upsertParticipant(room, playerId, clientId, preserveHost, existing?.id)
   }
 
-  private async upsertParticipant(room: SharedRoom, playerId: string, clientId: string, isHost: boolean): Promise<SharedParticipant> {
+  private async upsertParticipant(room: SharedRoom, playerId: string, clientId: string, isHost: boolean, participantId?: string): Promise<SharedParticipant> {
     const player = room.sessionSnapshot.state.players[playerId]
     if (!player) throw new Error('Unknown player seat.')
     const rows = await this.request<SupabaseParticipantRow[]>('shared_participants?on_conflict=room_id,player_id', {
       method: 'POST',
       headers: { Prefer: 'resolution=merge-duplicates,return=representation', 'x-seat-credential': seatCredential() },
       body: JSON.stringify({
-        id: createPortableUuid(),
+        id: participantId ?? createPortableUuid(),
         room_id: room.id,
         client_id: clientId,
         player_id: playerId,

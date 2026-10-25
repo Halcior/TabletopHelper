@@ -127,7 +127,7 @@ select set_config('request.headers','{"x-room-code":"ABC234","x-client-id":"host
 select public.start_shared_room('dddddddd-dddd-4ddd-8ddd-dddddddddddd');
 -- Late lobby Leave is a database-filtered no-op after Start has committed.
 update public.shared_rooms set status='abandoned' where id='dddddddd-dddd-4ddd-8ddd-dddddddddddd' and started_at is null;
-do $$begin assert (select status='active' from public.shared_rooms where code='ABC234'); assert public.shared_schema_version()=10; end $$;
+do $$begin assert (select status='active' from public.shared_rooms where code='ABC234'); assert public.shared_schema_version()=11; end $$;
 do $$declare s jsonb; begin
  select session_snapshot into s from public.shared_rooms where code='ABC234';
  assert s#>>'{setup,players,0,armyId}'='seat:p1';

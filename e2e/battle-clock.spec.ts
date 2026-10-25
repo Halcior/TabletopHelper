@@ -120,6 +120,7 @@ test('two independent devices: real PostgreSQL RPC, host config, races, clock sk
   const backend=new PostgresBackend(); await backend.init()
   const a=await browser.newContext(PHONE), b=await browser.newContext({viewport:{width:1440,height:1000}})
   const host=await a.newPage(), guest=await b.newPage()
+  let replacement: Awaited<ReturnType<typeof browser.newContext>> | undefined
   try {
     await backend.attach(a); await backend.attach(b)
     const id=await seed(host,2,false)
@@ -180,5 +181,23 @@ test('two independent devices: real PostgreSQL RPC, host config, races, clock sk
     await expect.poll(async()=> (await clockState(guest))?.turnBudgetId).toBe('p1')
     await expect.poll(async()=> (await clockState(guest))?.activeBudgetId).toBe('p1')
     expect((await clockState(guest))?.running).toBe(false)
-  } finally {await a.close();await b.close();await backend.close()}
+    // A replacement browser can reclaim a stale guest seat after Start. Its
+    // private proof rotates while the participant primary key remains stable.
+    await b.setOffline(true)
+    await backend.expirePresence(membership.roomId,'p1')
+    replacement=await browser.newContext(PHONE)
+    await backend.attach(replacement)
+    const recovered=await replacement.newPage()
+    await recovered.goto(`/shared?room=${membership.roomCode}`)
+    await recovered.locator('input[name="shared-seat"][value="p1"]').check()
+    await recovered.getByRole('button',{name:'Join battle',exact:true}).click()
+    await expect(recovered).toHaveURL(new RegExp(`/battle/${id}`))
+    await expect(recovered.getByTestId('battle-clock')).toBeVisible()
+    await dismissHelp(recovered)
+    await expect.poll(async()=> (await clockState(recovered))?.revision).toBe((await clockState(host))!.revision)
+    await recovered.getByTestId('battle-clock').getByRole('button',{name:'Wznów',exact:true}).click()
+    await expect.poll(async()=> (await clockState(host))?.running).toBe(true)
+    await recovered.evaluate(async()=> (await import('/src/stores/battleStore.ts')).useBattleStore.getState().dispatch({type:'TURN_STARTED',payload:{playerId:'p0'}}))
+    await expect.poll(async()=> (await clockState(host))?.turnBudgetId).toBe('p0')
+  } finally {await replacement?.close();await a.close();await b.close();await backend.close()}
 })

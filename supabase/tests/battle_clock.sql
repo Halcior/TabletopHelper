@@ -103,4 +103,37 @@ do $$declare s jsonb; cfg jsonb:='{"preset":"casual","limitMs":7200000}'; begin
  s:=social_private.clock_initial('{"setup":{"turnOrder":["a","b","c"],"players":[{"id":"a","name":"A"},{"id":"b","name":"B"},{"id":"c","name":"C"}]}}',cfg,1000);
  assert jsonb_array_length(s->'budgets')=3 and s->>'activeBudgetId'='a';
 end $$;
+-- Post-start stale-seat reclaim rotates the proof without replacing its row.
+update public.shared_participants set last_seen_at=now()-interval '1 minute'
+ where room_id='cc000000-0000-4000-8000-000000000001' and player_id='p2';
+set local role anon;
+select set_config('request.headers','{"x-room-code":"CLK234","x-client-id":"replacement","x-seat-credential":"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"}',true);
+update public.shared_participants set client_id='replacement',last_seen_at=now()
+ where room_id='cc000000-0000-4000-8000-000000000001' and player_id='p2';
+do $$begin
+ assert public.battle_clock_action('cc000000-0000-4000-8000-000000000001')#>>'{clock,revision}'='8';
+end $$;
+select set_config('request.headers','{"x-room-code":"CLK234","x-client-id":"guest","x-seat-credential":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}',true);
+select pg_temp.clock_denied($q$select public.battle_clock_action('cc000000-0000-4000-8000-000000000001')$q$);
+reset role;
+
+-- Sharing a live local battle starts at its current player and round, not setup order.
+select set_config('request.headers','{"x-room-code":"CLK235","x-client-id":"host2","x-seat-credential":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}',true);
+insert into public.shared_rooms(id,code,battle_id,host_client_id,session_snapshot) values
+('cc000000-0000-4000-8000-000000000002','CLK235','midbattle-clock','host2',
+'{"setup":{"players":[{"id":"p1","name":"A"},{"id":"p2","name":"B"}],"armies":{},"turnOrder":["p1","p2"]},"state":{"events":[],"round":3,"activePlayerId":"p2"}}');
+insert into public.shared_participants(id,room_id,client_id,player_id,display_name,is_host) values
+('ca000000-0000-4000-8000-000000000002','cc000000-0000-4000-8000-000000000002','host2','p1','A',true),
+('cb000000-0000-4000-8000-000000000002','cc000000-0000-4000-8000-000000000002','guest2','p2','B',false);
+set local role anon;
+select public.battle_clock_action('cc000000-0000-4000-8000-000000000002','configure',p_config:='{"preset":"casual","limitMs":7200000}');
+reset role;
+update public.shared_participants set is_ready=true where room_id='cc000000-0000-4000-8000-000000000002';
+set local role anon;
+select public.start_shared_room('cc000000-0000-4000-8000-000000000002');
+do $$declare x jsonb;begin
+ x:=public.battle_clock_action('cc000000-0000-4000-8000-000000000002');
+ assert x#>>'{clock,activeBudgetId}'='p2' and x#>>'{clock,turnBudgetId}'='p2' and x#>>'{clock,round}'='3';
+ assert x#>>'{clock,running}'='false';
+end $$;
 rollback;

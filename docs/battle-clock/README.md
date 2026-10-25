@@ -47,8 +47,10 @@ phase eligibility, scoring, unit state or tournament penalties.
   changing them. Public participant IDs alone do not authorize changes.
 - Host configuration is only accepted before Start. Start initializes the
   budgets **after** roster/team/turn-order freeze, so the actual team topology
-  and profile names are used. Newly claimed legacy seats also capture the
-  existing transport's proof. Old disabled rooms without proofs stay compatible.
+  and profile names are used. Sharing an ongoing local battle initializes
+  from its current player and round, starting a fresh paused budget at that point. Newly claimed legacy seats also capture the
+  existing transport's proof. Authorized stale-seat claims rotate it after
+  Start too, preserving the participant primary key and related metadata. Old disabled rooms without proofs stay compatible.
 - Commands serialize with Start/turn changes using room and clock row locks in
   the same order. An expected revision makes retries and competing clicks
   idempotent: a stale action returns the canonical state with `applied=false`
@@ -74,15 +76,16 @@ phase eligibility, scoring, unit state or tournament penalties.
 
 ## Database rollout
 
-Apply `supabase/migrations/20261025174428_battle_clock_2.sql` before deploying
-this branch (shared schema version 10). It is additive and preserves existing
+Apply `supabase/migrations/20261025174428_battle_clock_2.sql`, then
+`supabase/migrations/20261025181032_battle_clock_restore_and_current_turn.sql`
+before deploying this branch (shared schema version 11). It is additive and preserves existing
 battles; it does not enable clocks in existing rooms. New frontend builds fail
 preflight clearly if the backend migration is missing. Do not run the base
 `shared_sessions.sql` again against existing rooms.
 
 ## Verification
 
-Validated locally: 629 unit tests, 13 browser scenarios, PostgreSQL integration,
+Validation covers unit tests, 13 browser scenarios, PostgreSQL integration,
 TypeScript, production build and whitespace checks. The existing multi-device
 board and official FFA scenarios use the current explicit legacy-sharing flow.
 
