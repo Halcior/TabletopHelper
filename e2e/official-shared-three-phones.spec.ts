@@ -1,3 +1,4 @@
+import { shareExistingBattle } from './helpers'
 import { setupBattlefield, setupRules } from './helpers'
 import { expect, test, type Page } from '@playwright/test'
 import { dismissSecondaryReveal, importTestArmy, phone } from './helpers'
@@ -24,7 +25,7 @@ test('independent Primary and Chapter Approved Secondary synchronize on three ph
     await setupRules(alpha.page)
     await alpha.page.getByLabel('Secondary strategy').selectOption('fixed')
     await setupBattlefield(alpha.page)
-    await alpha.page.getByRole('button', { name: 'Create 3-player lobby' }).click()
+    await shareExistingBattle(alpha.page)
     const code = (await alpha.page.locator('.shared-room-focus__code strong').textContent())!.trim()
     await join(bravo.page, code, 'player-b')
     await join(charlie.page, code, 'player-c')

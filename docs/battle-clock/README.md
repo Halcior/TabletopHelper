@@ -82,6 +82,10 @@ preflight clearly if the backend migration is missing. Do not run the base
 
 ## Verification
 
+Validated locally: 629 unit tests, 13 browser scenarios, PostgreSQL integration,
+TypeScript, production build and whitespace checks. The existing multi-device
+board and official FFA scenarios use the current explicit legacy-sharing flow.
+
 - Unit tests: full five-round Duel through the real engine; phase vs turn
   changes; Overwatch and repeated Fight handoffs; explicit FFA recipients;
   shared Doubles budgets; pause/resume; active reload; expiry and overtime;

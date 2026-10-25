@@ -1,3 +1,4 @@
+import { shareExistingBattle } from './helpers'
 import { setupCommanders } from './helpers'
 import { selectPanel, setupBattlefield, setupRules, chooseCauldronPreset } from './helpers'
 import { expect, test, type Page } from '@playwright/test'
@@ -417,9 +418,7 @@ test('three phones share host geometry and control, rejecting non-host edits and
       .getByRole('combobox', { name: 'Secondary strategy', exact: true })
       .selectOption('fixed')
     await setupBattlefield(alpha.page)
-    await alpha.page
-      .getByRole('button', { name: 'Create 3-player lobby', exact: true })
-      .click()
+    await shareExistingBattle(alpha.page)
     const code = (await alpha.page
       .locator('.shared-room-focus__code strong')
       .textContent())!.trim()
