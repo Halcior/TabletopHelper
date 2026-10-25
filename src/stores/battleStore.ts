@@ -193,6 +193,9 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
     set({ loading: true, error: null })
     try {
       const stored = await getBattle(id)
+      // Network restore may install the canonical room while IndexedDB is
+      // loading. Never overwrite that live session with an older disk copy.
+      if (get().session?.setup.gameId === id) { set({ loading: false }); return }
       const session = stored ? rehydrateBattleSession(stored) : undefined
       set({ session: session ?? null, loading: false, error: session ? null : 'Battle not found.' })
     } catch (error: unknown) {

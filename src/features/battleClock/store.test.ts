@@ -1,4 +1,6 @@
 import 'fake-indexeddb/auto'
+import * as databaseApi from '../../persistence/database'
+import type { BattleSession } from '../../domain/battle/types'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createBattleSession } from '../../domain/battle/engine'
 import { useBattleStore } from '../../stores/battleStore'
@@ -41,6 +43,18 @@ describe('clock integration in the existing battle store',()=>{
     expect(session.battleClock?.endedAt).toBe(11000)
     expect(timeStatistics(session.battleClock,100000)[0].usedMs).toBe(10000)
     await vi.waitFor(async()=>expect((await getBattle(session.setup.gameId))?.battleClock).toEqual(session.battleClock))
+  })
+  it('keeps the restored server snapshot if it wins a race with an older disk load', async () => {
+    const restored=createBattleSession({gameId:'restored-shared-clock',rulesetId:'core',players:[{id:'a',name:'Restored commander'},{id:'b',name:'B'}]})
+    const stale={...restored,setup:{...restored.setup,players:[{id:'a',name:'Provisional commander'},{id:'b',name:'B'}]}}
+    let resolveStored!: (session:BattleSession) => void
+    vi.spyOn(databaseApi,'getBattle').mockImplementationOnce(()=>new Promise(resolve=>{resolveStored=resolve}))
+    const loading=useBattleStore.getState().loadBattle(restored.setup.gameId)
+    useBattleStore.setState({session:restored})
+    resolveStored(stale)
+    await loading
+    expect(useBattleStore.getState().session).toBe(restored)
+    expect(useBattleStore.getState().loading).toBe(false)
   })
   it('never accepts a local command as authority for an online battle',()=>{
     const session=useBattleStore.getState().session!
