@@ -8,9 +8,9 @@ import { AppIcon, type AppIconName } from '../AppIcon'
 import { buildBattlefieldReplay } from '../../domain/battlefield/replay'
 import { importantChronicleEntry, leadChangeEventIds } from './reportPresentation'
 
-type Filter = 'highlights' | 'full' | 'combat' | 'kills' | 'objectives' | 'vp'
-const ICONS: Record<ChronicleCategory, AppIconName> = { kills: 'eliminate', combat: 'target', objectives: 'objectives', vp: 'host', actions: 'mission', stratagems: 'cards', flow: 'next', other: 'log' }
-const TITLES: Record<ChronicleCategory, string> = { kills: 'Casualty recorded', combat: 'Combat update', objectives: 'Objective control', vp: 'Score recorded', actions: 'Mission action', stratagems: 'Archived tactic', flow: 'Battle progression', other: 'Table update' }
+type Filter = 'highlights' | 'full' | 'combat' | 'kills' | 'objectives' | 'vp' | 'movement'
+const ICONS: Record<ChronicleCategory, AppIconName> = { kills: 'eliminate', combat: 'target', objectives: 'objectives', vp: 'host', actions: 'mission', stratagems: 'cards', flow: 'next', movement: 'army', other: 'log' }
+const TITLES: Record<ChronicleCategory, string> = { kills: 'Casualty recorded', combat: 'Combat update', objectives: 'Objective control', vp: 'Score recorded', actions: 'Mission action', stratagems: 'Archived tactic', flow: 'Battle progression', movement: 'Unit position', other: 'Table update' }
 
 // Chronicle styling is derived from recorded events; it never invents damage
 // or an elimination simply because an event belongs to the combat category.
@@ -46,7 +46,7 @@ function eventIcon(entry: ReturnType<typeof buildBattleChronicle>[number]): AppI
   }
 }
 
-export function BattleLog({ session }: { session: BattleSession }) {
+export function BattleLog({ session, onShowMap }: { session: BattleSession; onShowMap?: (eventId: string) => void }) {
   const [filter, setFilter] = useState<Filter>('highlights')
   const [playerId, setPlayerId] = useState('all')
   const [round, setRound] = useState('all')
@@ -60,7 +60,7 @@ export function BattleLog({ session }: { session: BattleSession }) {
   return <section className="panel log-panel chronicle-panel">
     <div className="section-heading"><div><span className="eyebrow">From recorded events</span><h2>Battle Chronicle</h2></div><small>{matching.length} events</small></div>
     {session.battleClock && <details><summary>Battle Clock · statystyki</summary><ClockStatistics session={session} /></details>}
-    <div className="chronicle-filters" role="group" aria-label="Chronicle filters">{([['highlights', 'Highlights'], ['full', 'Full History'], ['combat', 'Combat'], ['kills', 'Kills'], ['objectives', 'Objectives'], ['vp', 'VP']] as const).map(([value, title]) => <button key={value} aria-pressed={filter === value} onClick={() => { setFilter(value); setLimit(80) }}>{title}</button>)}</div>
+    <div className="chronicle-filters" role="group" aria-label="Chronicle filters">{([['highlights', 'Highlights'], ['full', 'Full History'], ['combat', 'Combat'], ['kills', 'Kills'], ['objectives', 'Objectives'], ['vp', 'VP'], ['movement', 'Movement']] as const).map(([value, title]) => <button key={value} aria-pressed={filter === value} onClick={() => { setFilter(value); setLimit(80) }}>{title}</button>)}</div>
     <div className="report-filters"><label><span>Chronicle player</span><select value={playerId} onChange={(event) => { setPlayerId(event.target.value); setLimit(80) }}><option value="all">All players</option>{session.setup.players.map((player) => <option key={player.id} value={player.id}>{player.name}</option>)}</select></label><label><span>Battle Round</span><select value={round} onChange={(event) => { setRound(event.target.value); setLimit(80) }}><option value="all">All rounds</option>{[...new Set(entries.map((entry) => entry.round))].map((value) => <option key={value} value={value}>Round {value}</option>)}</select></label></div>
     <details className="scoring-audit" open={session.state.status !== 'active'}><summary>Scoring audit <span>{scoring.length} entries</span></summary>{scoring.length === 0 ? <p>No scoring has been recorded yet.</p> : <ol>{[...scoring].reverse().map((entry) => <li key={entry.id}><span><strong>{session.state.players[entry.playerId]?.name ?? entry.playerId}</strong><small>Round {entry.round} · {entry.category} · {entry.label}</small></span><strong>{entry.setTo !== undefined ? `set ${entry.setTo}` : `${(entry.points ?? 0) >= 0 ? '+' : ''}${entry.points}`} VP</strong></li>)}</ol>}</details>
     <ol className="chronicle-timeline">{visible.map((entry, index) => <li key={entry.id} className={`chronicle-entry chronicle-entry--${entry.category} chronicle-entry--${eventKind(entry)}${importantChronicleEntry(entry, leadChanges) ? ' chronicle-entry--important' : ' chronicle-entry--quiet'}`}>
@@ -72,7 +72,7 @@ export function BattleLog({ session }: { session: BattleSession }) {
         {Boolean(entry.unitChange.woundsHealed) && <span>{entry.unitChange.woundsHealed} W healed</span>}
         {entry.unitChange.destroyedAfter && !entry.unitChange.destroyedBefore && <span>Unit eliminated</span>}
         {entry.unitChange.modelsBefore > entry.unitChange.modelsAfter && <span>Source: {entry.unitChange.attacker ? `${entry.unitChange.attacker.name} · ${session.state.players[entry.unitChange.attacker.playerId]?.name ?? entry.unitChange.attacker.playerId}` : entry.unitChange.attackerPlayerId ? `${session.state.players[entry.unitChange.attackerPlayerId]?.name ?? entry.unitChange.attackerPlayerId} · unit unknown` : 'unknown'}</span>}
-      </div>}{entry.note && <p className="chronicle-entry__note">{entry.note}</p>}<details><summary>Event details</summary><small>{entry.event.type} · {entry.playerIds.map((id) => session.state.players[id]?.name ?? id).join(' / ') || 'Battle'}</small><code>{entry.id}</code></details></div></div>
+      </div>}{entry.spatialCombat && <div className="chronicle-spatial"><small>{entry.spatialCombat.attacker?.position && entry.spatialCombat.target.position ? 'Combat positions recorded' : 'Position data incomplete'}</small>{onShowMap && <button onClick={() => onShowMap(entry.id)}>Show on Tactical Map</button>}</div>}{entry.category === 'movement' && onShowMap && <button onClick={() => onShowMap(entry.id)}>Show on Tactical Map</button>}{entry.note && <p className="chronicle-entry__note">{entry.note}</p>}<details><summary>Event details</summary><small>{entry.event.type} · {entry.playerIds.map((id) => session.state.players[id]?.name ?? id).join(' / ') || 'Battle'}</small><code>{entry.id}</code></details></div></div>
     </li>)}</ol>
     {matching.length === 0 && <p className="context-note">No recorded events match these filters.</p>}
     {matching.length > limit && <button className="chronicle-load" onClick={() => setLimit((current) => current + 80)}>Show 80 more events</button>}

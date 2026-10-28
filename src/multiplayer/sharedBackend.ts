@@ -1,5 +1,5 @@
-export const SHARED_SCHEMA_VERSION = 11
-export const SHARED_SCHEMA_MIGRATION = 'supabase/migrations/20261025181032_battle_clock_restore_and_current_turn.sql'
+export const SHARED_SCHEMA_VERSION = 12
+export const SHARED_SCHEMA_MIGRATION = 'supabase/migrations/20261027140525_battlefield_unit_tracking.sql'
 
 function detail(error: unknown): string {
   return error instanceof Error ? error.message : String(error)

@@ -1,10 +1,11 @@
+import { mapEntry, spatialCombatBefore, type SpatialCombat } from '../battlefield/unitTracking'
 import { totalCombatWounds } from './combatState'
 import { doublesScorekeeperId } from './doubles'
 import { visitBattleHistory } from './engine'
 import { describeBattleEvent } from './eventLog'
 import type { BattleEvent, BattlePhase, BattleSession, GameState, MissionActionState } from './types'
 
-export type ChronicleCategory = 'kills' | 'combat' | 'objectives' | 'vp' | 'actions' | 'stratagems' | 'flow' | 'other'
+export type ChronicleCategory = 'kills' | 'combat' | 'objectives' | 'vp' | 'actions' | 'stratagems' | 'flow' | 'movement' | 'other'
 export type UnitReference = { playerId: string; unitId: string; name: string }
 export type UnitChange = {
   target: UnitReference
@@ -34,6 +35,7 @@ export type ChronicleEntry = {
   highlight: boolean
   description: string
   note?: string
+  spatialCombat?: SpatialCombat
   unitChange?: UnitChange
   missionAction?: MissionActionState
   missionWasActive?: boolean
@@ -84,6 +86,20 @@ export function buildBattleChronicle(session: BattleSession): ChronicleEntry[] {
         id: event.id, event, round: state.round, phase: state.phase, turnPlayerId: state.activePlayerId,
         playerIds: event.actorPlayerId ? [event.actorPlayerId] : [], category: 'other', highlight: false,
         description: describeBattleEvent(event, session.setup),
+      }
+      pending.spatialCombat = spatialCombatBefore(state, event)
+      if (event.type === 'UNIT_MAP_CHANGED') {
+        pending.category = 'movement'
+        const previous = mapEntry(state, event.payload.playerId, event.payload.unitId)
+        if (event.payload.status === 'battlefield' && previous?.status === 'reserves') {
+          pending.highlight = true
+          pending.description = `${battleUnit(session, event.payload.playerId, event.payload.unitId).name} deployed from Reserves`
+        }
+        // A rejected offline conflict remains auditable, but never looks like an accepted move.
+        if (event.payload.expectedRevision !== (previous?.revision ?? null) || !state.unitTracking?.enabled || state.players[event.payload.playerId]?.units[event.payload.unitId]?.destroyed) {
+          pending.highlight = false
+          pending.description += ' · stale change ignored'
+        }
       }
       objectiveBefore = undefined
       scoreCategory = undefined
@@ -147,6 +163,7 @@ export function buildBattleChronicle(session: BattleSession): ChronicleEntry[] {
         pending.phase = state.phase
         pending.turnPlayerId = state.activePlayerId
       }
+      if (event.type === 'UNIT_MAP_CHANGED') delete pending.unitChange
       const change = pending.unitChange
       if (change) {
         const unit = state.players[change.target.playerId].units[change.target.unitId]
@@ -167,6 +184,10 @@ export function buildBattleChronicle(session: BattleSession): ChronicleEntry[] {
         }
         const lost = Math.max(0, change.modelsBefore - change.modelsAfter)
         const killed = !change.destroyedBefore && change.destroyedAfter
+        if (pending.spatialCombat) {
+          pending.spatialCombat.modelsLost = lost
+          pending.spatialCombat.eliminated = killed
+        }
         const combat = ['UNIT_COMBAT_RESOLVED', 'UNIT_DESTROYED', 'UNIT_MODEL_DESTROYED', 'UNIT_MODEL_RESTORED', 'UNIT_WOUNDS_CHANGED'].includes(event.type)
         if (combat) {
           pending.category = lost > 0 || killed ? 'kills' : 'combat'

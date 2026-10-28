@@ -228,6 +228,14 @@ export function authorizeSharedAction(
   for (const event of events) {
     const attributionError = combatAttributionError(sessionBefore.setup, event)
     if (attributionError) return deny(attributionError)
+    if (event.type === 'UNIT_TRACKING_CHANGED') {
+      if (!membership.isHost) return deny('Only the room host can enable or disable Unit Tracking.')
+      continue
+    }
+    if (event.type === 'UNIT_MAP_CHANGED') {
+      if (event.payload.playerId !== viewerPlayerId && !membership.isHost) return deny('Each commander can only move their own army, including in Doubles.')
+      continue
+    }
     if (event.type === 'BATTLEFIELD_LAYOUT_CHANGED') {
       if (!membership.isHost) return deny('Only the room host can edit battlefield geometry.')
       try { validateBattlefieldGeometry(sessionBefore.setup, event.payload.geometry) }
