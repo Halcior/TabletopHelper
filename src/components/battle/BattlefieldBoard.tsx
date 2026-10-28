@@ -1,3 +1,4 @@
+import { TacticalUnits } from './TacticalUnits'
 import { BattlefieldMapSvg, DEFAULT_TERRAIN_LAYERS, TerrainLayerControls, TerrainLegend } from './BattlefieldMapSvg'
 import { PlayerFactionMarks } from '../../features/factionVisuals/components'
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react'
@@ -28,6 +29,8 @@ export function BattlefieldBoard({
   liveObjectiveIds = [],
   onOpenList,
   replayRequest = 0,
+  replayEventId,
+  tactical = false,
   onEditingChange,
   active = true,
 }: {
@@ -36,6 +39,8 @@ export function BattlefieldBoard({
   liveObjectiveIds?: string[]
   onOpenList?: (objectiveId: string) => void
   replayRequest?: number
+  replayEventId?: string | null
+  tactical?: boolean
   onEditingChange?: (editing: boolean) => void
   active?: boolean
 }) {
@@ -51,6 +56,8 @@ export function BattlefieldBoard({
   const [draft, setDraft] = useState<BattlefieldGeometry | null>(null)
   const [error, setError] = useState('')
   const [replay, setReplay] = useState(session.state.status !== 'active')
+  const [playing, setPlaying] = useState(false)
+  const [speed, setSpeed] = useState(1)
   const [replayIndex, setReplayIndex] = useState<number | null>(null)
   const canvas = useRef<HTMLDivElement>(null)
   const dragging = useRef<string | null>(null)
@@ -59,7 +66,7 @@ export function BattlefieldBoard({
   useEffect(() => {
     if (replayRequest === lastReplayRequest.current) return
     lastReplayRequest.current = replayRequest
-    if (!draft) { setReplay(true); setReplayIndex(null); setSelectedId(null) }
+    if (!draft) { setReplay(true); setReplayIndex(null); setSelectedId(null); setPlaying(false) }
   }, [replayRequest, draft])
   useEffect(() => { onEditingChange?.(Boolean(draft)) }, [Boolean(draft), onEditingChange])
   useEffect(() => { if (!active) setSelectedId(null) }, [active])
@@ -71,6 +78,17 @@ export function BattlefieldBoard({
   }, [])
   const frames = useMemo(() => buildBattlefieldReplay(session), [session])
   const entries = useMemo(() => buildBattleChronicle(session), [session])
+  useEffect(() => {
+    if (!replayEventId || !replayRequest || draft) return
+    const index = frames.findIndex(step => step.eventId === replayEventId)
+    if (index >= 0) { setReplay(true); setReplayIndex(index); setPlaying(false) }
+  }, [replayRequest, replayEventId])
+  useEffect(() => {
+    if (!playing || !replay || !active) return
+    const timer = window.setInterval(() => setReplayIndex(current => Math.min((current ?? frames.length - 1) + 1, frames.length - 1)), 1100 / speed)
+    return () => window.clearInterval(timer)
+  }, [playing, replay, active, speed, frames.length])
+  useEffect(() => { if (playing && replayIndex === frames.length - 1) setPlaying(false) }, [playing, replayIndex, frames.length])
   const frame =
     frames[Math.min(replayIndex ?? frames.length - 1, frames.length - 1)]
   const liveGeometry =
@@ -219,6 +237,7 @@ export function BattlefieldBoard({
             disabled={Boolean(draft)}
             onClick={() => {
               setSelectedId(null)
+              setPlaying(false)
               setReplay((current) => !current)
               setReplayIndex(null)
             }}
@@ -310,6 +329,12 @@ export function BattlefieldBoard({
               Event {frame?.index ?? 0} / {frames.length - 1}
             </span>
           </div>
+          <div className="battlefield-replay__transport">
+            <button disabled={(frame?.index ?? 0) <= 0} onClick={() => { setPlaying(false); setReplayIndex(Math.max(0, (frame?.index ?? 0) - 1)) }}>Previous Event</button>
+            <button aria-pressed={playing} onClick={() => { if (!playing && (frame?.index ?? 0) === frames.length - 1) setReplayIndex(0); setPlaying(value => !value) }}>{playing ? 'Pause' : 'Play'}</button>
+            <button disabled={(frame?.index ?? 0) >= frames.length - 1} onClick={() => { setPlaying(false); setReplayIndex(Math.min(frames.length - 1, (frame?.index ?? 0) + 1)) }}>Next Event</button>
+            <label>Playback speed<select aria-label="Playback speed" value={speed} onChange={event => setSpeed(Number(event.target.value))}><option value={1}>1×</option><option value={2}>2×</option><option value={4}>4×</option></select></label>
+          </div>
           <label>
             <span>Replay event</span>
             <input
@@ -319,6 +344,7 @@ export function BattlefieldBoard({
               step={1}
               value={frame?.index ?? 0}
               onChange={(event) => {
+                setPlaying(false)
                 setReplayIndex(Number(event.target.value))
                 setSelectedId(null)
               }}
@@ -340,7 +366,8 @@ export function BattlefieldBoard({
                   disabled={steps.length === 0}
                   aria-pressed={frame?.round === round}
                   onClick={() => {
-                    setReplayIndex(steps.at(-1)!.index)
+                    setPlaying(false)
+                    setReplayIndex(steps[0].index)
                     setSelectedId(null)
                   }}
                 >
@@ -350,6 +377,7 @@ export function BattlefieldBoard({
             })}
           </div>
           <p>{frame?.description}</p>
+          <details><summary>Choose recorded event</summary><select aria-label="Recorded event" value={frame?.index ?? 0} onChange={event => { setPlaying(false); setReplayIndex(Number(event.target.value)) }}>{frames.map(step => <option key={step.eventId ?? 'initial'} value={step.index}>R{step.round} · {step.phase} · {step.description}</option>)}</select></details>
           <div className="battlefield-replay__scores">
             {session.setup.players.filter((player) => !session.setup.doubles || session.state.turnOrder.includes(player.id)).map((player) => (
               <span key={player.id}>
@@ -622,6 +650,7 @@ export function BattlefieldBoard({
           {labelLayout.labels.map((label) => <span key={label.id} className={`objective-label objective-label--player-${playerIndex(controllers[label.id])}`} title={`${label.id} · ${controllerName(label.id)}`} style={{ left: label.x, top: label.y, width: label.width, height: label.height }}><strong>{label.id.replaceAll('-', ' ')}</strong>{controllers[label.id] && <small>{controllerName(label.id)}</small>}</span>)}
         </div>
       </div>
+      {(tactical || replay && Boolean(frame?.unitTracking)) && !draft && <TacticalUnits session={session} dispatch={dispatch} canvas={canvas.current} geometry={geometry} rotated={rotated} canvasSize={canvasSize} frame={frame} replay={replay} membership={membership} active={active} />}
       {legendIds.length > 0 && <div className="battlefield-label-overflow" aria-label="Objectives with labels below the board">{legendIds.map((id) => <button key={id} disabled={Boolean(draft)} onClick={() => setSelectedId(id)}>{id}{controllers[id] ? ` · ${controllerName(id)}` : ''}</button>)}</div>}
       {presentation.unplacedIds.length > 0 && (
         <section className="panel battlefield-unplaced">

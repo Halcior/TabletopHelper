@@ -1,3 +1,4 @@
+import { applyUnitMapEvent, reconcileUnitMapLifecycle, validateUnitMapChange } from '../battlefield/unitTracking'
 import { combatConsequenceInputs } from '../../rulesets/cauldronFFA3/secondary'
 import { z } from 'zod'
 import { combatProfiles, readCombatState, resolveCombat, setCombatState } from './combatState'
@@ -192,6 +193,12 @@ function unitDefinition(setup: BattleSetup, playerId: string, unitId: string): U
 
 function applyEvent(state: GameState, event: BattleEvent, setup: BattleSetup): void {
   state.updatedAt = event.timestamp
+  if (applyUnitMapEvent(state, event)) return
+  applyCoreEvent(state, event, setup)
+  reconcileUnitMapLifecycle(state, event)
+}
+
+function applyCoreEvent(state: GameState, event: BattleEvent, setup: BattleSetup): void {
   switch (event.type) {
     case 'BATTLEFIELD_LAYOUT_CHANGED':
       validateBattlefieldGeometry(setup, event.payload.geometry)
@@ -512,6 +519,11 @@ export function dispatchBattleEvents(session: BattleSession, inputs: BattleEvent
     throw new Error(`The battle is ${session.state.status} and can no longer be changed.`)
   }
   for (const input of inputs) {
+    if (input.type === 'UNIT_MAP_CHANGED') {
+      validateUnitMapChange(session.state, input.payload)
+      if (!session.state.unitTracking?.enabled) throw new Error('Enable Unit Tracking first.')
+      if (session.state.players[input.payload.playerId].units[input.payload.unitId].destroyed) throw new Error('Restore the unit through Combat Log before placing it.')
+    }
     const error = combatAttributionError(session.setup, input)
     if (error) throw new Error(error)
   }

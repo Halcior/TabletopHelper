@@ -328,7 +328,7 @@ function startSyncLoop(inspection: SharedRoomInspection, membership: SharedMembe
     useBattleStore.setState({ session, error: null })
     if (!inspection.room.bringYourArmy || inspection.room.startedAt) void saveBattle(session)
   } else {
-    for (const event of findRetryableLocalEvents(inspection.room.sessionSnapshot, localSession)) {
+    for (const event of findRetryableLocalEvents(inspection.room.sessionSnapshot, localSession, membership.playerId)) {
       pendingLocalEvents.set(event.id, event)
     }
     updatePendingCount()

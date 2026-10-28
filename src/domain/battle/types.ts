@@ -1,3 +1,4 @@
+import type { UnitMapChange, UnitTrackingState } from '../battlefield/unitTracking'
 import type { BattleClockState, ClockConfig } from '../../features/battleClock/model'
 import type { Army, UnitState, CombatProfileState } from '../army/types'
 import type { ReactionWindow, TimingState } from '../stratagems/types'
@@ -158,6 +159,8 @@ export type CombatResolution = CombatAttribution & {
 }
 
 export type BattleEvent = BattleEventMetadata & (
+  | { type: 'UNIT_TRACKING_CHANGED'; payload: { enabled: boolean } }
+  | { type: 'UNIT_MAP_CHANGED'; payload: UnitMapChange }
   | { type: 'UNIT_COMBAT_RESOLVED'; payload: CombatResolution }
   | { type: 'GAME_STARTED'; payload: Record<string, never> }
   | { type: 'GAME_ENDED'; payload: Record<string, never> }
@@ -248,6 +251,7 @@ export type GameState = {
   }
   timing: TimingState
   missionActions: Record<string, MissionActionState>
+  unitTracking?: UnitTrackingState
   battlefield?: BattlefieldGeometry
   events: BattleEvent[]
   createdAt: string

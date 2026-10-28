@@ -9,17 +9,18 @@ type ObjectivesPanelProps = {
   liveObjectiveIds?: string[]
   focusObjectiveId?: string | null
   replayRequest?: number
+  replayEventId?: string | null
   onEditingChange?: (editing: boolean) => void
   active?: boolean
 }
 
 export function ObjectivesPanel(props: ObjectivesPanelProps) {
-  const [mode, setMode] = useState<'board' | 'list'>('board')
+  const [mode, setMode] = useState<'board' | 'tactical' | 'list'>('board')
   const [focusObjectiveId, setFocusObjectiveId] = useState<string | null>(null)
-  useEffect(() => { if (props.replayRequest) setMode('board') }, [props.replayRequest])
+  useEffect(() => { if (props.replayRequest) setMode(props.replayEventId ? 'tactical' : 'board') }, [props.replayRequest])
   return <div className="objectives-workspace">
-    <nav className="objectives-view-switch" aria-label="Objective view"><button aria-pressed={mode === 'board'} onClick={() => setMode('board')}>Board</button><button aria-pressed={mode === 'list'} onClick={() => setMode('list')}>List</button></nav>
-    <div hidden={mode !== 'board'} className="objective-view"><BattlefieldBoard {...props} active={props.active !== false && mode === 'board'} onOpenList={(id) => { setFocusObjectiveId(id); setMode('list') }} /></div>
+    <nav className="objectives-view-switch" aria-label="Objective view"><button aria-pressed={mode === 'board'} onClick={() => setMode('board')}>Board</button><button aria-pressed={mode === 'tactical'} onClick={() => setMode('tactical')}>Tactical Map</button><button aria-pressed={mode === 'list'} onClick={() => setMode('list')}>List</button></nav>
+    <div hidden={mode === 'list'} className="objective-view"><BattlefieldBoard {...props} tactical={mode === 'tactical'} active={props.active !== false && mode !== 'list'} onOpenList={(id) => { setFocusObjectiveId(id); setMode('list') }} /></div>
     {mode === 'list' && <ObjectivesList {...props} focusObjectiveId={focusObjectiveId} />}
   </div>
 }

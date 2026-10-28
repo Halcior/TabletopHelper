@@ -43,7 +43,7 @@ beforeEach(async () => {
   vi.restoreAllMocks()
   await accountClient!.auth.getSession()
   useRosterScope.setState({ userId: 'a' })
-  state.schema = 11
+  state.schema = 12
   state.headers = []
   state.response = {}
   vi.spyOn(accountClient!.auth, 'getSession').mockResolvedValue(session('a'))
