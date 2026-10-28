@@ -1,5 +1,12 @@
 import type { BattleEvent, BattleSession } from '../domain/battle/types'
 
+/** Match transport attribution before persistence, including an ally acting for a captain. */
+export function attributeLocalSharedEvents(before: BattleSession, after: BattleSession, submitterPlayerId: string): BattleSession {
+  const previousIds = new Set(before.state.events.map(event => event.id))
+  return { ...after, state: { ...after.state, events: after.state.events.map(event =>
+    previousIds.has(event.id) || event.derivedFromCombatId ? event : { ...event, actorPlayerId: submitterPlayerId }) } }
+}
+
 /**
  * Local battle events missing from the room creation snapshot are safe retry
  * candidates because shared_events is idempotent on (room_id, event_id).

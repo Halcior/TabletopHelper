@@ -292,6 +292,23 @@ for (const count of [2, 4]) test(`${count === 4 ? 'Doubles' : 'Duel'}: PostgreSQ
     await peer.reload(); await dismissSecondaryReveal(peer); await tactical(peer)
     await expect(token(peer, 'p0')).toHaveAttribute('data-board-x', '0.25')
     await expect(token(peer, 'p1')).toHaveAttribute('data-board-x', '0.75')
+    if (count === 4) {
+      let blockPhasePosts = true
+      await peer.route('https://mock.supabase.test/rest/v1/shared_events**', route =>
+        blockPhasePosts && route.request().method() === 'POST' ? route.abort('internetdisconnected') : route.fallback())
+      await clients[1].context.setOffline(true)
+      await peer.evaluate(async () => (await import('/src/stores/battleStore.ts')).useBattleStore.getState().nextPhase())
+      await expect.poll(() => peer.evaluate(async () => (await import('/src/stores/battleStore.ts')).useBattleStore.getState().session!.state.phase)).toBe('MOVEMENT')
+      await expect.poll(() => peer.evaluate(async () => (await (await import('/src/persistence/database.ts')).getBattle('tracking-4'))?.state.events.at(-1)?.actorPlayerId)).toBe('p1')
+      await clients[1].context.setOffline(false)
+      await peer.reload(); await dismissSecondaryReveal(peer)
+      await expect.poll(() => peer.evaluate(async () => (await import('/src/multiplayer/sharedSessionStore.ts')).useSharedSessionStore.getState().pendingEventCount)).toBeGreaterThan(0)
+      await expect.poll(() => peer.evaluate(async () => (await import('/src/stores/battleStore.ts')).useBattleStore.getState().session!.state.phase)).toBe('MOVEMENT')
+      blockPhasePosts = false
+      await expect.poll(() => host.evaluate(async () => (await import('/src/stores/battleStore.ts')).useBattleStore.getState().session!.state.phase)).toBe('MOVEMENT')
+      await expect.poll(() => peer.evaluate(async () => (await import('/src/multiplayer/sharedSessionStore.ts')).useSharedSessionStore.getState().pendingEventCount)).toBe(0)
+      expect(await host.evaluate(async () => (await import('/src/stores/battleStore.ts')).useBattleStore.getState().session!.state.events.filter(event => event.type === 'PHASE_CHANGED' && event.payload.phase === 'MOVEMENT' && event.actorPlayerId === 'p1').length)).toBe(1)
+    }
   } finally {
     await Promise.allSettled(clients.map(client => client.context.close()))
     await backend.close()
