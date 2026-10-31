@@ -30,6 +30,8 @@ Schema **12** requires `supabase/migrations/20261027140525_battlefield_unit_trac
 
 The SQL runner and browser PostgreSQL fixture execute the same migration. Hosted Supabase Auth/PostgREST and physical devices are separate from the embedded PostgreSQL/HTTP-routing fixture; do not represent fixture coverage as live multi-phone verification.
 
+The connected backend was upgraded to schema 12 on 2026-10-31 (migration history entry `20261031224647_battlefield_unit_tracking`). The version RPC, map INSERT policy and enabled RLS were verified after deployment. Other environments still require the migration above.
+
 ## Validation
 
 - TypeScript, full Vitest suite, PostgreSQL RLS suite, production build and production/offline browser checks.
@@ -37,5 +39,6 @@ The SQL runner and browser PostgreSQL fixture execute the same migration. Hosted
 - Browser coverage: desktop and touch dragging, single-event commits, rotation, refresh, historical combat/replay controls, 60 duplicate-name units on an objective, exact saved coordinates, bounded group selection and phone layouts.
 - Three independent browser clients cover FFA synchronization, opponent read-only controls, offline movement, reload and a lost acknowledgement without duplicate events.
 - Duel and four-seat Doubles browser flows use actual PostgreSQL policies/RPCs through the existing fixture, including concurrent positions, per-army ownership and reconnect. The non-captain Doubles seat advances a phase offline, reloads while event uploads remain blocked, then reconnects with exactly one canonical phase event.
+- The Duel flow reproduces a Ready command waiting on backend preflight while lobby restoration runs. Restoring the same active seat must preserve the synchronization loop and allow readiness to complete.
 
 Before a real game, open the same preview on two/four physical devices; deploy one unit each, enter from Reserves, rotate one view, disconnect/reconnect one phone, record casualties, then inspect the combat event in replay. Confirm objective taps and scrolling on the actual touchscreens. No physical-device benchmark or automatic rules validation is claimed.
