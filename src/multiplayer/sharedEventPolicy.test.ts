@@ -9,6 +9,7 @@ import { CAULDRON_SECONDARY_IDS } from '../rulesets/cauldronFFA3/secondaryDefini
 import type { SecondaryId } from '../rulesets/cauldronFFA3/secondaryTypes'
 import { authorizeSharedMutation } from './sharedEventPolicy'
 import type { SharedMembership } from './types'
+import { canQuickDamage } from '../components/battle/QuickDamagePanel'
 
 function membership(playerId: string, isHost = false): SharedMembership {
   return {
@@ -22,6 +23,21 @@ function membership(playerId: string, isHost = false): SharedMembership {
 }
 
 describe('shared event policy', () => {
+  it('Quick damage exposes only existing owner/active-attacker permissions and records normal attributed events', () => {
+    const before = testCauldronGame()
+    expect(canQuickDamage(before, 'p-b', true, 'p-b')).toBe(true)
+    expect(canQuickDamage(before, 'p-b', true, 'p-a')).toBe(true)
+    expect(canQuickDamage(before, 'p-a', true, 'p-b')).toBe(false)
+    expect(canQuickDamage(before, 'p-c', true, 'p-b')).toBe(false)
+    expect(canQuickDamage(before, 'p-c', true, null)).toBe(false)
+    const after = dispatchBattleEvent(before, { type: 'UNIT_COMBAT_RESOLVED', payload: {
+      playerId: 'p-b', unitId: 'infantry', kind: 'damage', destroyedByPlayerId: 'p-a', attackerUnitId: 'tank', allocations: [{ profileId: 'unit', models: 2 }],
+    } })
+    expect(after.state.players['p-b'].units.infantry.modelsAlive).toBe(2)
+    expect(after.state.events.length).toBe(before.state.events.length + 1)
+    expect(authorizeSharedMutation(before, after, membership('p-a')).allowed).toBe(true)
+    expect(authorizeSharedMutation(before, after, membership('p-c')).allowed).toBe(false)
+  })
   it('lets a commander maintain their own CP even outside their turn', () => {
     const before = testCauldronGame()
     const after = dispatchBattleEvent(before, {

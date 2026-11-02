@@ -199,3 +199,64 @@ test('partial casualties remain visible and net attribution is grouped by unit i
     expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false)
   } finally { await context.close() }
 })
+
+test('global Quick damage records one attributed batch, keeps its target and survives reload', async ({ browser }) => {
+  const { context, page } = await phone(browser)
+  try {
+    await page.goto('/')
+    await page.evaluate(async () => {
+      const { testCauldronGame } = await import('/src/rulesets/cauldronFFA3/cauldronTestUtils.ts')
+      const { dispatchBattleEvent } = await import('/src/domain/battle/engine.ts')
+      const { saveBattle } = await import('/src/persistence/database.ts')
+      const game = testCauldronGame()
+      game.setup.gameId = 'quick-damage-3'
+      await saveBattle(dispatchBattleEvent(game, { type: 'PHASE_CHANGED', payload: { phase: 'SHOOTING' } }))
+    })
+    await page.goto('/battle/quick-damage-3')
+    await expect(page.getByLabel('Battle Focus', { exact: true })).toBeVisible()
+    await selectPanel(page, 'objectives')
+    await page.getByRole('button', { name: 'Damage', exact: true }).click()
+    const dialog = page.getByRole('dialog', { name: 'Quick damage', exact: true })
+    await dialog.getByLabel('Receiving army', { exact: true }).selectOption('p-b')
+    await dialog.getByLabel('Receiving unit', { exact: true }).selectOption('infantry')
+    await dialog.getByLabel('Damaged / models lost to').selectOption('p-a')
+    await dialog.getByLabel('Attacking unit (optional)').selectOption('tank')
+    await dialog.getByLabel('Loss type', { exact: true }).selectOption('models')
+    await dialog.getByLabel('Loss amount', { exact: true }).fill('2')
+    await dialog.getByRole('button', { name: 'Record 2 Models Lost', exact: true }).click()
+    await expect(dialog.getByRole('status')).toContainText('4 → 2 models')
+    const stored = await page.evaluate(async () => {
+      const { useBattleStore } = await import('/src/stores/battleStore.ts')
+      const { buildBattleChronicle } = await import('/src/domain/battle/chronicle.ts')
+      const game = useBattleStore.getState().session!
+      return { models: game.state.players['p-b'].units.infantry.modelsAlive,
+        events: game.state.events.filter(event => event.type === 'UNIT_COMBAT_RESOLVED').length,
+        change: buildBattleChronicle(game).filter(entry => entry.event.type === 'UNIT_COMBAT_RESOLVED').at(-1)?.unitChange }
+    })
+    expect(stored.models).toBe(2)
+    expect(stored.events).toBe(1)
+    expect(stored.change?.attackerPlayerId).toBe('p-a')
+    expect(stored.change?.attacker?.unitId).toBe('tank')
+    await dialog.getByRole('button', { name: 'Close Quick damage' }).click()
+    await page.getByRole('button', { name: 'Damage', exact: true }).click()
+    await expect(dialog.getByLabel('Receiving unit', { exact: true })).toHaveValue('infantry')
+    await expect(dialog.getByLabel('Attacking unit (optional)')).toHaveValue('tank')
+    await dialog.getByLabel('Loss type', { exact: true }).selectOption('models')
+    await dialog.getByLabel('Loss amount', { exact: true }).fill('2')
+    const record = dialog.getByRole('button', { name: 'Record 2 Models Lost', exact: true })
+    await record.scrollIntoViewIfNeeded()
+    const before = await record.boundingBox()
+    await record.click()
+    await expect(record).toBeDisabled()
+    await expect(dialog.getByLabel('Receiving unit', { exact: true })).toHaveValue('infantry')
+    const after = await record.boundingBox()
+    expect(Math.abs(before!.y - after!.y)).toBeLessThan(2)
+    expect(await dialog.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true)
+    if (process.env.CAPTURE_UI === '1') await page.screenshot({ path: 'test-results/quick-damage-mobile.png' })
+    await dialog.getByRole('button', { name: 'Close Quick damage' }).click()
+    await page.reload()
+    await page.getByRole('button', { name: 'Damage', exact: true }).click()
+    await expect(dialog.getByLabel('Receiving unit', { exact: true })).toHaveValue('infantry')
+    await expect(dialog.locator('.combat-vitals')).toContainText('0 / 4 models')
+  } finally { await context.close() }
+})

@@ -1,11 +1,12 @@
 import type { BattleSession, CombatAttribution } from '../../domain/battle/types'
 
-export function CombatSourcePicker({ session, targetPlayerId, value, onChange, disabled }: {
+export function CombatSourcePicker({ session, targetPlayerId, value, onChange, disabled, lockedAttackerPlayerId }: {
   session: BattleSession
   targetPlayerId: string
   value: CombatAttribution
   onChange: (value: CombatAttribution) => void
   disabled: boolean
+  lockedAttackerPlayerId?: string
 }) {
   const attackerId = value.destroyedByPlayerId ?? ''
   const player = session.setup.players.find((entry) => entry.id === attackerId)
@@ -14,7 +15,7 @@ export function CombatSourcePicker({ session, targetPlayerId, value, onChange, d
   return <section className="combat-source panel" aria-label="Combat attribution">
     <div><span className="eyebrow">Credit partial and final casualties</span><h3>Combat attribution</h3><p>Choose who inflicted the next losses. Quick Wounds, model casualties and full eliminations keep this source in Chronicle and the report. Change the attacker for split fire; earlier records will not change.</p></div>
     <div className="combat-source__selectors">
-      <label><span>Damaged / models lost to</span><select disabled={disabled} value={attackerId} onChange={(event) => onChange({ destroyedByPlayerId: event.target.value || null, note: value.note })}>
+      <label><span>Damaged / models lost to</span><select disabled={disabled || Boolean(lockedAttackerPlayerId)} value={attackerId} onChange={(event) => onChange({ destroyedByPlayerId: event.target.value || null, note: value.note })}>
         {session.setup.players.filter((entry) => entry.id !== targetPlayerId).map((entry) => <option key={entry.id} value={entry.id}>{entry.name}{entry.id === session.state.activePlayerId ? ' · current' : ''}</option>)}
         <option value="">Unknown / environment</option>
       </select></label>
