@@ -7,6 +7,7 @@ import type { BattleSession } from '../../domain/battle/types'
 import { AppIcon, type AppIconName } from '../AppIcon'
 import { buildBattlefieldReplay } from '../../domain/battlefield/replay'
 import { importantChronicleEntry, leadChangeEventIds } from './reportPresentation'
+import { QuickUndoAction } from './QuickUndoAction'
 
 type Filter = 'highlights' | 'full' | 'combat' | 'kills' | 'objectives' | 'vp'
 const ICONS: Record<ChronicleCategory, AppIconName> = { kills: 'eliminate', combat: 'target', objectives: 'objectives', vp: 'host', actions: 'mission', stratagems: 'cards', flow: 'next', other: 'log' }
@@ -72,7 +73,7 @@ export function BattleLog({ session }: { session: BattleSession }) {
         {Boolean(entry.unitChange.woundsHealed) && <span>{entry.unitChange.woundsHealed} W healed</span>}
         {entry.unitChange.destroyedAfter && !entry.unitChange.destroyedBefore && <span>Unit eliminated</span>}
         {entry.unitChange.modelsBefore > entry.unitChange.modelsAfter && <span>Source: {entry.unitChange.attacker ? `${entry.unitChange.attacker.name} · ${session.state.players[entry.unitChange.attacker.playerId]?.name ?? entry.unitChange.attacker.playerId}` : entry.unitChange.attackerPlayerId ? `${session.state.players[entry.unitChange.attackerPlayerId]?.name ?? entry.unitChange.attackerPlayerId} · unit unknown` : 'unknown'}</span>}
-      </div>}{entry.note && <p className="chronicle-entry__note">{entry.note}</p>}<details><summary>Event details</summary><small>{entry.event.type} · {entry.playerIds.map((id) => session.state.players[id]?.name ?? id).join(' / ') || 'Battle'}</small><code>{entry.id}</code></details></div></div>
+      </div>}{entry.note && <p className="chronicle-entry__note">{entry.note}</p>}<details><summary>Event details</summary><small>{entry.event.type} · {entry.playerIds.map((id) => session.state.players[id]?.name ?? id).join(' / ') || 'Battle'}</small><code>{entry.id}</code></details><QuickUndoAction session={session} eventId={entry.id} /></div></div>
     </li>)}</ol>
     {matching.length === 0 && <p className="context-note">No recorded events match these filters.</p>}
     {matching.length > limit && <button className="chronicle-load" onClick={() => setLimit((current) => current + 80)}>Show 80 more events</button>}

@@ -20,3 +20,15 @@ Changed areas: BattleFocus, QuickDamagePanel, battleExperience.css; optional bat
 Validation: TypeScript, 653 Vitest tests, production build, 18 targeted browser scenarios: FFA at 375/1440px, Duel, mixed-profile casualties and attribution, Quick damage, two/three/four-context multiplayer, clocks, reconnect and card choices. Screenshots inspected. Browser contexts emulate phones; physical playtest remains necessary for tap reach, grouping flow and elapsed interaction time.
 
 The subsequent stages remain separate: guarded compensating corrections in Stage B; read-only Table Mode and presentation-only PL/EN preferences in Stage C. None of these stages automatically merges main or PR #39.
+
+## Stage B — Multiplayer reliability
+
+Host-only Quick Undo is available on the latest Chronicle event and the Quick damage confirmation. It uses the existing STATE_CORRECTED event, restoring a precise before value/profile snapshot instead of negating an amount. Only a single isolated, undoable action qualifies. Grouped scoring, automatic casualty consequences, flow, clock and unknown model allocations open the existing explicit correction form.
+
+The optional quickUndo payload contains the expected latest event and action IDs. Canonical replay applies it only while that predecessor still matches. Concurrent corrections, a repeated acknowledgement, or an offline inverse rebased after another action cannot overwrite newer state. A stale correction remains in Chronicle with an explicit skipped result; no events are removed or reordered. Successful compensation retracts the reversed action's outstanding Secondary kill credit and turn-summary delta without changing ordinary scoring rules or historical entries. Skipped corrections do not affect scoring audit or performance attribution.
+
+Permissions remain the existing host-only correction policy; army ownership is not expanded. No database tables, RLS changes or migrations are needed. Participants must use this preview version together: older application builds do not understand the optional quick-undo guard. Battle Clock state/history is independent and never reversed.
+
+Changed areas: domain/battle/correctionGuard, quickCorrections and their tests; optional payload in types; guarded projection and matching Chronicle visitor; scoring-audit/performance/Secondary-kill/turn-summary treatment of successful or skipped compensation; QuickUndoAction in Chronicle and Quick damage. Existing three-context E2E now verifies exact canonical correction count after an acknowledgement-loss retry and actual synchronized CP totals, with the original action retained.
+
+Validation: TypeScript, 663 Vitest tests, embedded PostgreSQL authorization/integration suite, production build, and targeted browser coverage for Chronicle, combat, three-context offline/retry, FFA and clocks including the two-context PostgreSQL RPC fixture. Ten correction cases cover exact restoration, capped CP/VP, unknown allocation, automatic consequences, concurrent inverses, retry, reload, host authorization, stale no-op and net scoring/kill credit. Physical devices and a mixed-version hosted room were not tested.

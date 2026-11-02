@@ -1,4 +1,5 @@
 import type { BattleSession, ScoreCategory } from './types'
+import { quickCorrectionOutcomes } from './correctionGuard'
 
 export type ScoringAuditEntry = {
   id: string
@@ -19,12 +20,14 @@ function dataOf(value: unknown): RulesetData | null {
 }
 
 export function buildScoringAudit(session: BattleSession): ScoringAuditEntry[] {
+  const { skippedEventIds } = quickCorrectionOutcomes(session.state.events)
   const entries: ScoringAuditEntry[] = []
   const groups = new Map<string, typeof session.state.events>()
   for (const event of session.state.events) groups.set(event.actionId, [...(groups.get(event.actionId) ?? []), event])
   let round = 1
 
   for (const event of session.state.events) {
+    if (skippedEventIds.has(event.id)) continue
     if (event.type === 'ROUND_STARTED') round = event.payload.round
     if (event.type === 'RULESET_EVENT' && event.payload.action === 'SECONDARY_COMPLETED') {
       const data = dataOf(event.payload.data)

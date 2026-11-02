@@ -7,6 +7,7 @@ import { useBattleStore } from '../../stores/battleStore'
 import { CommandDialog } from '../ui/CommandDialog'
 import { CombatControls } from './CombatControls'
 import { CombatSourcePicker } from './CombatSourcePicker'
+import { QuickUndoAction } from './QuickUndoAction'
 import './battleExperience.css'
 
 type Selection = { playerId: string; unitId: string; source: CombatAttribution }
@@ -69,6 +70,7 @@ export function QuickDamagePanel({ session, dispatch, shared = false, viewerId, 
       <CombatSourcePicker session={session} targetPlayerId={targetId} value={source} onChange={value => update({ source: value })} disabled={!canEdit} lockedAttackerPlayerId={lockedAttacker} />
       {unit && <CombatControls key={`${targetId}:${unit.id}`} unit={unit} state={session.state.players[targetId].units[unit.id]} playerId={targetId} source={source} dispatch={record} canEdit={canEdit} damageOnly compact quickBatch />}
       <div className="quick-damage__notice" role="status" aria-label="Quick damage confirmation">{notice || 'Select losses after saves and allocation. One press records one event.'}</div>
+      {notice && <QuickUndoAction session={session} eventId={session.state.events.at(-1)?.id ?? ''} />}
       {error && <p role="alert">{error}</p>}
     </section>
   </CommandDialog>

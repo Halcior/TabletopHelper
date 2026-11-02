@@ -1,6 +1,6 @@
 import { setupBattlefield, chooseCauldronPreset } from './helpers'
 import { expect, test, type Page } from '@playwright/test'
-import { dismissSecondaryReveal, importTestArmy, phone, scoreCard } from './helpers'
+import { dismissSecondaryReveal, importTestArmy, phone, scoreCard, selectPanel } from './helpers'
 import { MockSupabase } from './mockSupabase'
 import fs from 'node:fs/promises'
 
@@ -94,6 +94,25 @@ test('three phones start, synchronize and recover one idempotent offline action'
     await expect.poll(() => backend.attemptsFor(stored[0].event_id)).toBeGreaterThanOrEqual(2)
     expect(backend.storedEvents('CP_GAINED', 'player-b')).toHaveLength(1)
     await expect(bravo.page.getByText('This phone is offline')).toBeHidden()
+
+    // Host corrections append a guarded inverse and survive acknowledgement loss.
+    // The original CP event remains present exactly once.
+    await selectPanel(alpha.page, 'log')
+    await alpha.page.getByRole('button', { name: 'Full History', exact: true }).click()
+    await expect(bravo.page.getByRole('button', { name: 'Undo last action', exact: true })).toHaveCount(0)
+    backend.failNextEventInsertAfterCommitForPlayerId = 'player-a'
+    await alpha.page.getByRole('button', { name: 'Undo last action', exact: true }).click()
+    for (const member of [alpha.page, bravo.page, charlie.page]) {
+      await expect(scoreCard(member, 'Player II').locator('.score-card__numbers strong').nth(1)).toHaveText('2')
+      await expect(scoreCard(member, 'Player I').locator('.score-card__numbers strong').nth(1)).toHaveText('3')
+    }
+    await expect.poll(() => backend.storedEvents('STATE_CORRECTED').length).toBe(1)
+    const correction = backend.storedEvents('STATE_CORRECTED')[0]
+    await expect.poll(() => backend.attemptsFor(correction.event_id)).toBeGreaterThanOrEqual(2)
+    expect(backend.storedEvents('CP_GAINED', 'player-b')).toHaveLength(1)
+    expect(backend.storedEvents('STATE_CORRECTED')).toHaveLength(1)
+    await selectPanel(alpha.page, 'overview')
+
 
     const target = await alpha.page.evaluate(async () => {
       const { useBattleStore } = await import('/src/stores/battleStore.ts')
