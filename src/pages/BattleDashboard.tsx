@@ -439,7 +439,7 @@ export default function BattleDashboard() {
                   session={session}
                   viewerPlayerId={viewerPlayerId}
                   currentRivalPlayerId={rivalId}
-                  showCards={false}
+                  showCards={cauldron && !officialSecondary}
                   onOpenArmy={() => {
                     setArmyPreferredPlayerId(viewerPlayerId)
                     setArmySecondaryFilter(null)
