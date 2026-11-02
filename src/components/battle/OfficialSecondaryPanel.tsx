@@ -8,7 +8,7 @@ import {
   officialTurnKey,
 } from '../../rulesets/cauldronFFA3/officialSecondary'
 import {
-  getOfficialSecondaryRival, isOfficialFfa, officialHomeId,
+  getOfficialSecondaryRival, isOfficialFfa,
   officialNmlObjectives, officialPlayerUnits, officialRivalKills, officialTemptingTargets,
 } from '../../rulesets/cauldronFFA3/officialSecondaryFFA'
 import { getGameSecondaryVp, getRoundSecondaryVp, getSecondaryState } from '../../rulesets/cauldronFFA3/secondary'
@@ -16,6 +16,8 @@ import type { OfficialSecondaryConfirmation, OfficialSecondaryId } from '../../r
 import { useBattleStore } from '../../stores/battleStore'
 import { OfficialSecondaryConfirmationFields } from './OfficialSecondaryConfirmationFields'
 import { InfoDisclosure } from '../ui/InfoDisclosure'
+import { RivalHelp, SecondaryScope } from './RivalClarity'
+import { FFA_SCORING_BRIEF } from './rivalPresentation'
 
 type OfficialSecondaryPanelProps = { session: BattleSession; playerId: string; editable: boolean }
 
@@ -58,6 +60,7 @@ function OfficialSecondaryForm({ session, playerId, editable }: OfficialSecondar
       <div><span className="eyebrow">Chapter Approved 2026–27 · {fixed ? 'Fixed' : 'Tactical'}</span><h2>{session.setup.doubles?.forces.find((force) => force.captainPlayerId === playerId)?.name ?? player.name} · Secondary Missions</h2></div>
       <div className="secondary-score"><strong>{getRoundSecondaryVp(session, playerId)} / 15</strong><span>round</span><small>{getGameSecondaryVp(session, playerId)} / 45 game</small></div>
     </div>
+    {ffa && <RivalHelp />}
     <InfoDisclosure label="Secondary rules & table confirmations">
     {ffa && <p className="context-note">FFA balance patch: each Rival card keeps the Rival assigned when drawn. Physical enemy presence checks both other armies; only kills by your own army against the assigned Rival count. Primary still uses Current Rival. NML is outside all deployment zones; fixed Territories A/B/C are a separate layer. Territory boundaries count as inside; “outside” requires wholly outside. Confirm distances and footprints at the table.</p>}
     {ffa && fixed && <p className="context-note">Fixed is experimental in FFA because matchups affect target availability. Tactical is recommended.</p>}
@@ -93,17 +96,18 @@ function OfficialSecondaryForm({ session, playerId, editable }: OfficialSecondar
         const required = choiceRequired || canScore || Boolean(redraw) || canDiscard
         const status = canScore && actualAward > 0 ? 'Ready to Score' : required ? 'Action Required' : definition.scoreAt === 'opponent' && ownTurn ? 'Awaiting Rival' : 'Active'
         const description = ffa ? officialFfaDescription(cardId) : definition.description
-        const firstSentence = description.split(/(?<=[.!?])\s/)[0]
+        const firstSentence = ffa ? FFA_SCORING_BRIEF[cardId] : description.split(/(?<=[.!?])\s/)[0]
         return <article className={`secondary-card secondary-card--official${required ? ' secondary-card--input_required' : ''}`} key={cardId}>
-          <div className="secondary-card__heading"><div className="secondary-card__identity"><div><span>{fixed ? 'Fixed' : 'Tactical'} · {definition.scoreAt === 'either' ? 'either turn' : definition.scoreAt === 'own' ? 'your turn' : 'Rival turn'}</span><h3>{definition.name}</h3></div></div><div className="secondary-card__vp"><strong>{fixed ? '20' : '5'}</strong><span>max VP</span></div></div>
+          <div className="secondary-card__heading"><div className="secondary-card__identity"><div><span>{fixed ? 'Fixed' : 'Tactical'}{!ffa && ` · ${definition.scoreAt === 'either' ? 'either turn' : definition.scoreAt === 'own' ? 'your turn' : 'Rival turn'}`}</span><h3>{definition.name}</h3></div></div><div className="secondary-card__vp"><strong>{fixed ? '20' : '5'}</strong><span>max VP</span></div></div>
           <span className={`mission-status${required ? ' mission-status--required' : ''}${status === 'Ready to Score' ? ' mission-status--ready' : ''}`}>{status}</span>
-          {ffa && rivalId && <p className="secondary-card__progress">Target Rival: {session.state.players[rivalId]?.name} · {officialHomeId(session, rivalId)}</p>}
-          {ffa && definition.enemyScope === 'all-enemies' && <small>Enemy scope: All opponents</small>}
+          {ffa && <SecondaryScope session={session} playerId={playerId} cardId={cardId} />}
           <p className="secondary-card__objective secondary-card__brief">{firstSentence}</p>
+          {ffa && endTurn && <small className="context-note">{canScore ? (awards.length ? 'Eligible window · current recorded facts and confirmations support a VP award.' : 'Eligible window · condition not met or table confirmations needed.') : 'No scoring available now · check the timing, previous review and card cap.'}</small>}
           {fixed && <p className="secondary-card__progress">{scoredOnCard} / 20 VP scored on this card</p>}
           <details className="mission-card-details" open={required || actionAvailable || Boolean(expandedCards[cardId])} onToggle={(event) => { if (!required && !actionAvailable) { const open = event.currentTarget.open; setExpandedCards((current) => current[cardId] === open ? current : { ...current, [cardId]: open }) } }}>
           <summary>{required ? 'Required choices & scoring' : actionAvailable ? 'Mission Action available' : 'Full rules & actions'}</summary>
-          <p className="secondary-card__full-rules">{description}</p>
+          {ffa ? <InfoDisclosure label="Full card rules"><p className="secondary-card__full-rules">{description}</p></InfoDisclosure>
+            : <p className="secondary-card__full-rules">{description}</p>}
           {targetCard && !ffa && cardId !== 'OFFICIAL_BEACON' && !(session.setup.doubles && cardId === 'OFFICIAL_BURDEN_OF_TRUST') && <div className="official-secondary-input"><label>{cardId === 'OFFICIAL_A_TEMPTING_TARGET' ? 'Objective selected by the Rival' : 'Units guarding objectives'}<input value={notes[cardId] ?? note ?? ''} onChange={(event) => setNotes((current) => ({ ...current, [cardId]: event.target.value }))} disabled={!editable} placeholder="Record the choice at the table" /></label>{editable && <button type="button" disabled={!(notes[cardId] ?? '').trim()} onClick={() => noteOfficialTarget(playerId, cardId, notes[cardId])}>Save choice</button>}</div>}
           {targetCard && (ffa || cardId === 'OFFICIAL_BEACON') && cardId !== 'OFFICIAL_BURDEN_OF_TRUST' && <div className="official-secondary-input">
             {note ? <strong>Locked choice: {note}</strong> : <><label>{cardId === 'OFFICIAL_A_TEMPTING_TARGET' ? 'Objective selected by the assigned Rival' : 'Chosen own unit'}<select value={notes[cardId] ?? ''} disabled={!editable || !command} onChange={(event) => setNotes((current) => ({ ...current, [cardId]: event.target.value }))}>

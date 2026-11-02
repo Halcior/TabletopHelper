@@ -1,0 +1,21 @@
+.current-rival, .secondary-scope {
+  display: grid;
+  gap: .3rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.current-rival {
+  border-inline-start: 2px solid var(--gold, #b79c68);
+  padding: .35rem .75rem;
+  margin: .65rem 0;
+}
+.current-rival > strong, .secondary-scope__label { color: var(--text, #ece6d9); font-size: .95rem; line-height: 1.4; }
+.current-rival > small, .secondary-scope > small { color: var(--muted, #b5b1a8); font-size: .78rem; line-height: 1.5; }
+.secondary-scope { margin: .5rem 0; padding: .5rem 0; border-block: 1px solid rgba(183, 156, 104, .2); }
+.secondary-scope .secondary-scope__timing { color: var(--text, #ece6d9); }
+.secondary-scope .secondary-scope__difference { border-inline-start: 2px solid #b79c68; padding-inline-start: .5rem; }
+.rival-help { min-width: 0; margin-block: .4rem; }
+.rival-help summary { overflow-wrap: anywhere; }
+.rival-help p { margin-block: .3rem; font-size: .8rem; }
+.rival-rotation { margin: .5rem 1rem; padding: .55rem .75rem; border: 1px solid rgba(183, 156, 104, .3); background: #1b1b1b; overflow-wrap: anywhere; }
+.rival-rotation p { margin: .25rem 0 0; font-size: .82rem; line-height: 1.5; }

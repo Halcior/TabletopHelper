@@ -880,17 +880,20 @@ export function getActiveSecondaryViews(session: BattleSession, playerId: string
   if (isOfficialSecondary(session)) return (state?.active ?? []).map((card) => {
     const definition = OFFICIAL_SECONDARY_BY_ID[card.cardId as keyof typeof OFFICIAL_SECONDARY_BY_ID]
     const ffa = session.setup.players.length === 3
-    const rivalId = card.secondaryRivalPlayerId ?? getCurrentRivalPlayerId(session, playerId)
-    const targetLabel = ffa && definition.usesSecondaryRival
-      ? `Target Rival: ${session.state.players[rivalId]?.name} · ${session.state.players[rivalId]?.deploymentZone}-HOME. `
-      : ffa && definition.enemyScope === 'all-enemies' ? 'Enemy scope: All opponents. ' : ''
+    const savedRival = card.secondaryRivalPlayerId ? session.state.players[card.secondaryRivalPlayerId] : undefined
+    const rivalName = savedRival?.name ?? 'Unrecorded rival (check at the table)'
+    const targetLabel = ffa && definition.enemyScope === 'rival'
+      ? `Target Rival: ${rivalName}. `
+      : ffa && definition.enemyScope === 'all-enemies' ? 'ALL ENEMIES: both enemy armies. ' : ffa ? 'BATTLEFIELD OBJECTIVE. ' : ''
+    const timingLabel = ffa && definition.usesSecondaryRival && definition.enemyScope !== 'rival'
+      ? `Scoring timing rival: ${rivalName}. ` : ''
     return {
       cardId: card.cardId,
       name: definition.name,
       vp: definition.vp,
       objective: ffa ? officialFfaDescription(definition.id) : definition.description,
       status: 'INPUT_REQUIRED',
-      progress: targetLabel + (secondaryStrategyFor(session, playerId) === 'fixed'
+      progress: targetLabel + timingLabel + (secondaryStrategyFor(session, playerId) === 'fixed'
         ? 'Fixed: score whenever the condition is met, up to 20 VP for this card.'
         : `Tactical: confirm at the end of ${definition.scoreAt === 'either' ? 'your or the assigned Rival’s turn' : definition.scoreAt === 'own' ? 'your turn' : 'the assigned Rival’s turn'}.`),
       pointsAwarded: state.scoreHistory.filter((entry) => entry.cardId === card.cardId).reduce((sum, entry) => sum + entry.pointsAwarded, 0),

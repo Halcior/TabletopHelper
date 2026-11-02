@@ -8,6 +8,7 @@ import type { BattleEvent, BattleEventInput, BattleSession } from '../../domain/
 import { CAULDRON_SECONDARY_BY_ID } from '../../rulesets/cauldronFFA3/secondaryDefinitions'
 import type { SecondaryId } from '../../rulesets/cauldronFFA3/secondaryTypes'
 import { useBattleStore } from '../../stores/battleStore'
+import { isOfficialFfa } from '../../rulesets/cauldronFFA3/officialSecondaryFFA'
 
 type DamageNotice = {
   title: string
@@ -115,6 +116,7 @@ export function RivalDamagePanel({
   const setupPlayer = session.setup.players.find((player) => player.id === victimPlayerId)
   const army = setupPlayer?.armyId ? session.setup.armies[setupPlayer.armyId] : undefined
   const victimIsRival = session.setup.doubles ? doublesScorekeeperId(session.setup, victimPlayerId) === currentRivalPlayerId : victimPlayerId === currentRivalPlayerId
+  const ffaRivals = isOfficialFfa(session)
 
   const units = useMemo(() => {
     if (!army || !victim) return []
@@ -164,15 +166,15 @@ export function RivalDamagePanel({
           onClick={() => setVictimPlayerId(playerId)}
         >
           <strong>{player.name}</strong>
-          <span>{isRival ? 'Current Rival · scoring target' : 'Other opponent'}</span>
+          <span>{isRival ? ffaRivals ? 'Current Rival · Primary' : 'Current Rival · scoring target' : 'Other opponent'}</span>
         </button>
       })}
     </div>}
 
     {victim && army ? <>
       <div className={`rival-damage-panel__scoring-note${victimIsRival ? ' is-rival' : ''}`}>
-        <strong>{victimIsRival ? 'Current Rival' : 'Non-Rival target'}</strong>
-        <span>{victimIsRival
+        <strong>{victimIsRival ? 'Current Rival' : ffaRivals ? 'Other opponent' : 'Non-Rival target'}</strong>
+        <span>{ffaRivals ? 'Secondary kill scoring uses each card’s Target Rival, which can differ from Current Rival.' : victimIsRival
           ? 'Kills can satisfy Rival-based Cauldron Secondary conditions.'
           : 'You can attack and record losses normally, but Rival-only kill scoring does not count this opponent.'}</span>
       </div>

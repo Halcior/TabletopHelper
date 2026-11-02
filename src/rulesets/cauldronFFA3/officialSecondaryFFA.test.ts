@@ -1,4 +1,8 @@
 import { describe, expect, it } from 'vitest'
+import { createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
+import { SecondaryScope } from '../../components/battle/RivalClarity'
+import { secondaryScope } from '../../components/battle/rivalPresentation'
 import { deserializeBattleSession, dispatchBattleEvent, dispatchBattleEvents, serializeBattleSession, undoLastAction } from '../../domain/battle/engine'
 import type { Army } from '../../domain/army/types'
 import type { BattleSession } from '../../domain/battle/types'
@@ -53,6 +57,66 @@ function kill(session: BattleSession, unitId: string, target = 'p-b', killer: st
 }
 
 describe('FFA Secondary Balance Patch', () => {
+  it('presents separate B/C card targets after rotation and replay without changing saved state', () => {
+    let session = game(['OFFICIAL_ASSASSINATION', 'OFFICIAL_NO_PRISONERS'])
+    expect(getCurrentRivalPlayerId(session, 'p-a')).toBe('p-b')
+    expect(secondaryScope(session, 'p-a', 'OFFICIAL_ASSASSINATION')).toMatchObject({
+      label: 'Target Rival: army-b faction — Player B', difference: undefined,
+      assignment: 'Assigned in Round 1 · Locked until this card is resolved.',
+    })
+    session = window(session, 2, 'p-a', false)
+    session = dispatchBattleEvents(session, officialDrawEvents(session, 'p-a', ['OFFICIAL_BRING_IT_DOWN'], 1, 2, 2))
+    const before = serializeBattleSession(session)
+    const old = secondaryScope(session, 'p-a', 'OFFICIAL_ASSASSINATION')
+    const fresh = secondaryScope(session, 'p-a', 'OFFICIAL_BRING_IT_DOWN')
+    expect(old?.label).toBe('Target Rival: army-b faction — Player B')
+    expect(old?.difference).toBe('Different from Current Rival. This card keeps its original target.')
+    expect(fresh).toMatchObject({ label: 'Target Rival: army-c faction — Player C', difference: undefined })
+    const markup = renderToStaticMarkup(createElement(SecondaryScope, { session, playerId: 'p-a', cardId: 'OFFICIAL_ASSASSINATION' }))
+    expect(markup).toContain(old!.label)
+    expect(markup).toContain('Score at:')
+    expect(markup).not.toContain('Target Rival: army-c')
+    const replayed = deserializeBattleSession(before)
+    expect(secondaryScope(replayed, 'p-a', 'OFFICIAL_ASSASSINATION')).toEqual(old)
+    expect(secondaryScope(replayed, 'p-a', 'OFFICIAL_BRING_IT_DOWN')).toEqual(fresh)
+    expect(serializeBattleSession(session)).toBe(before)
+  })
+
+  it.each(OFFICIAL_SECONDARY_IDS)('presents %s scope from its rule metadata, independently of visual category', (cardId) => {
+    const second = cardId === 'OFFICIAL_OUTFLANK' ? 'OFFICIAL_CLEANSE' : 'OFFICIAL_OUTFLANK'
+    let session = cardId === 'OFFICIAL_DEFEND_STRONGHOLD' ? window(game(['OFFICIAL_OUTFLANK', 'OFFICIAL_CLEANSE']), 2, 'p-a', false) : game([cardId, second])
+    if (cardId === 'OFFICIAL_DEFEND_STRONGHOLD') session = dispatchBattleEvents(session, officialDrawEvents(session, 'p-a', [cardId], 1, 2, 2))
+    const definition = OFFICIAL_SECONDARY_BY_ID[cardId]
+    const scope = secondaryScope(session, 'p-a', cardId)!
+    expect(scope.label.startsWith('Target Rival:')).toBe(definition.enemyScope === 'rival')
+    expect(Boolean(scope.assignment)).toBe(definition.usesSecondaryRival)
+    if (definition.enemyScope === 'all-enemies') expect(scope.conditionScope).toBe('Condition checks both enemy armies.')
+    if (definition.scoreAt !== 'own') expect(scope.timing).toContain(cardId === 'OFFICIAL_DEFEND_STRONGHOLD' ? 'army-c faction — Player C’s turn' : 'army-b faction — Player B’s turn')
+    if (definition.scoreAt === 'opponent') expect(scope.timing).toContain('end of Round 5')
+  })
+
+  it('separates all-enemy conditions from the saved timing rival and does not invent missing targets', () => {
+    let session = game(['OFFICIAL_DISPLAY_OF_MIGHT', 'OFFICIAL_CENTRE_GROUND'])
+    session = window(session, 2, 'p-a')
+    const scope = secondaryScope(session, 'p-a', 'OFFICIAL_DISPLAY_OF_MIGHT')!
+    expect(scope.label).toBe('ALL ENEMIES')
+    expect(scope.timing).toContain('Player B’s turn')
+    expect(scope.difference).toContain('Scoring timing differs')
+    expect(secondaryScope(session, 'p-a', 'OFFICIAL_CENTRE_GROUND')).toMatchObject({
+      label: 'ALL ENEMIES', timing: 'End of your turn', assignment: undefined, difference: undefined,
+    })
+    // Legacy records with no saved id must not silently display the Current Rival as a target.
+    session = game(['OFFICIAL_ASSASSINATION', 'OFFICIAL_OUTFLANK'])
+    for (const event of session.state.events) {
+      if (event.type === 'RULESET_EVENT' && event.payload.action === 'SECONDARY_DRAWN') {
+        delete (event.payload.data as { secondaryRivalPlayerId?: string }).secondaryRivalPlayerId
+      }
+    }
+    const unknown = secondaryScope(session, 'p-a', 'OFFICIAL_ASSASSINATION')
+    expect(unknown?.label).toContain('Unrecorded rival')
+    expect(unknown?.label).not.toContain('Player B')
+  })
+
   it('draws the first cards at each actual own Command and requires when-drawn choices before progression', () => {
     let session = game(['OFFICIAL_BEACON', 'OFFICIAL_NO_PRISONERS'])
     expect(getSecondaryState(session)['p-b'].active).toEqual([])

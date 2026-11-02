@@ -11,6 +11,7 @@ import { QRCodeSVG } from 'qrcode.react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { CommandDialog } from '../components/ui/CommandDialog'
 import { InfoDisclosure } from '../components/ui/InfoDisclosure'
+import { RivalHelp } from '../components/battle/RivalClarity'
 import { RulesSourceBadge } from '../components/ui/RulesSourceBadge'
 import { rulesForSession } from '../rulesets/rulesSource'
 import { AppIcon } from '../components/AppIcon'
@@ -274,6 +275,7 @@ export default function SharedSessions() {
         : 'Cauldron'}. {secondaryConfig.mode === 'ffa3' && secondaryConfig.secondaryDeck === 'chapter-approved' ? 'FFA cards retain their assigned Secondary Rival; enemy presence checks both opponents.' : ''}</p></InfoDisclosure>}
 
       <div className="shared-lobby__content">
+        {secondaryConfig?.mode === 'ffa3' && secondaryConfig.secondaryDeck === 'chapter-approved' && <RivalHelp />}
         <div className="shared-lobby__seats" aria-label="Player seats">
           {lobbyPlayerIds.map((playerId, index) => {
             const player = lobbySession?.state.players[playerId]

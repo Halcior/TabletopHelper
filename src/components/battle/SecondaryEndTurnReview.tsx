@@ -16,6 +16,7 @@ import { isOfficialSecondary } from '../../rulesets/cauldronFFA3/secondary'
 import { officialPendingReviewPlayers } from '../../rulesets/cauldronFFA3/officialSecondary'
 import { OfficialSecondaryPanel } from './OfficialSecondaryPanel'
 import { OfficialPrimaryInputs } from './OfficialPrimaryInputs'
+import { CurrentRivalPanel } from './RivalClarity'
 import { DuelPrimaryPanel } from './DuelPrimaryPanel'
 import type { EndTurnSecondaryConfirmations, SecondaryId } from '../../rulesets/cauldronFFA3/secondaryTypes'
 import { useBattleStore } from '../../stores/battleStore'
@@ -192,6 +193,7 @@ function CauldronEndTurnReview({
       <section className="panel turn-review-section">
         <div className="section-heading"><div><span className="eyebrow">{officialPrimary ? '11th edition Primary · FFA' : 'Primary · Balance patch 2.1.2'}</span><h2>{primaryPreview.official?.missionName ?? 'Score at the end of your turn'}</h2></div><strong>{primaryPreview.roundPrimary} VP</strong></div>
         {officialPrimary && <>
+          <CurrentRivalPanel session={session} playerId={playerId} />
           <p className="context-note">Command checks use control recorded when you left Command; in round 5 they use end-of-turn control. Opponent and enemy conditions use your Current Rival for this Battle Round. The score is saved now, once per condition.</p>
           <OfficialPrimaryInputs session={session} playerId={playerId} value={confirmations.officialPrimary ?? {}} onChange={(value) => setConfirmations((current) => ({ ...current, officialPrimary: value }))} />
         </>}

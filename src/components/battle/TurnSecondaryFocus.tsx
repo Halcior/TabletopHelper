@@ -2,6 +2,9 @@ import type { BattleSession } from '../../domain/battle/types'
 import { getActiveSecondaryViews, getRoundSecondaryVp, getSecondaryRoundCap } from '../../rulesets/cauldronFFA3/secondary'
 import { AppIcon } from '../AppIcon'
 import { getSecondaryPresentation } from './secondaryPresentation'
+import { SecondaryScope } from './RivalClarity'
+import { FFA_SCORING_BRIEF, secondaryScope } from './rivalPresentation'
+import type { OfficialSecondaryId } from '../../rulesets/cauldronFFA3/secondaryTypes'
 
 function statusCopy(status: ReturnType<typeof getActiveSecondaryViews>[number]['status']): string {
   switch (status) {
@@ -39,13 +42,15 @@ export function TurnSecondaryFocus({
       ? <div className="turn-secondary-focus__empty"><strong>No active Secondary</strong><span>Cards refill at the start of your next Command phase.</span></div>
       : <div className="turn-secondary-focus__cards">{cards.map((card) => {
         const visual = getSecondaryPresentation(card)
+        const scope = secondaryScope(session, playerId, card.cardId)
         return <article className={`turn-secondary-focus__card turn-secondary-focus__card--${card.status.toLowerCase()} turn-secondary-focus__card--${visual.kind}`} key={card.cardId}>
           <div className="turn-secondary-focus__card-top">
             <div><span className="turn-secondary-focus__card-icon"><AppIcon name={visual.icon} /></span><span>{visual.label} · {statusCopy(card.status)}</span><h3>{card.name}</h3></div>
             <strong>{card.vp} VP</strong>
           </div>
-          <p>{card.objective}</p>
-          <div className="turn-secondary-focus__progress"><span>Progress</span><strong>{card.progress}</strong></div>
+          <SecondaryScope session={session} playerId={playerId} cardId={card.cardId} />
+          <p>{scope ? FFA_SCORING_BRIEF[card.cardId as OfficialSecondaryId] : card.objective}</p>
+          {!scope && <div className="turn-secondary-focus__progress"><span>Progress</span><strong>{card.progress}</strong></div>}
         </article>
       })}</div>}
 
