@@ -26,14 +26,14 @@ export function BattleFocus({ session, playerId, onDamage, onObjectives, onCards
     return !definition || (phase === 'FIGHT' ? definition.category === 'ELIMINATION' : definition.category !== 'ELIMINATION')
   }) : []
   return <section className="panel battle-focus" aria-label={tr("Battle Focus")}>
-    <div className="section-heading"><div><span className="eyebrow">{tr("Battle Focus · ")}{session.state.players[playerId]?.name}</span><h2>{phase.replace('_', ' ').toLowerCase()} {tr(" phase")}</h2></div></div>
-    <p className="context-note">{PHASE_COPY[phase]}</p>
+    <div className="section-heading"><div><span className="eyebrow">{tr("Battle Focus · ")}{session.state.players[playerId]?.name}</span><h2>{tr(phase.replace('_', ' ').toLowerCase() + ' phase')}</h2></div></div>
+    <p className="context-note">{tr(PHASE_COPY[phase])}</p>
     <div className="battle-focus__actions">
       <button type="button" className={phase === 'SHOOTING' || phase === 'FIGHT' ? 'button--gold' : ''} onClick={onDamage}>{tr("Quick damage")}</button>
       <button type="button" onClick={onObjectives}>{phase === 'MOVEMENT' ? tr('Map & objectives') : tr('Objectives')}</button>
       <button type="button" onClick={onCards}>{tr("Mission cards")}</button>
       {phase === 'END_TURN' && onReview && <button type="button" onClick={onReview}>{tr("Review scoring")}</button>}
     </div>
-    {cards.length > 0 && <div className="battle-focus__missions">{cards.map(card => <article key={card.cardId}><strong>{card.name}</strong><SecondaryScope session={session} playerId={playerId} cardId={card.cardId} /><p>{secondaryScope(session, playerId, card.cardId) ? FFA_SCORING_BRIEF[card.cardId as OfficialSecondaryId] : card.objective}</p></article>)}</div>}
+    {cards.length > 0 && <div className="battle-focus__missions">{cards.map(card => <article key={card.cardId}><strong>{card.name}</strong><SecondaryScope session={session} playerId={playerId} cardId={card.cardId} /><p>{tr(secondaryScope(session, playerId, card.cardId) ? FFA_SCORING_BRIEF[card.cardId as OfficialSecondaryId] : card.objective)}</p></article>)}</div>}
   </section>
 }

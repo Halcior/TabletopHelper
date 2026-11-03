@@ -388,7 +388,7 @@ export default function BattleDashboard() {
         /> : <>
           <nav className="battle-tabs" aria-label={tr("Battle panels")}>
             {dashboardTabs.map((item) => (
-              <button aria-pressed={tab === item} className={`${tab === item ? 'selected ' : ''}${['log', 'report'].includes(item) ? 'battle-tabs__desktop' : ''}`} key={item} onClick={() => selectDashboardTab(item)}><AppIcon name={DASHBOARD_TAB_ICONS[item]} /><span>{item === 'overview' ? tr('Battle') : item === 'log' ? tr('Chronicle') : item.charAt(0).toUpperCase() + item.slice(1)}</span></button>
+              <button aria-pressed={tab === item} className={`${tab === item ? 'selected ' : ''}${['log', 'report'].includes(item) ? 'battle-tabs__desktop' : ''}`} key={item} onClick={() => selectDashboardTab(item)}><AppIcon name={DASHBOARD_TAB_ICONS[item]} /><span>{tr(item === 'overview' ? 'Battle' : item === 'log' ? 'Chronicle' : item.charAt(0).toUpperCase() + item.slice(1))}</span></button>
             ))}
             <button ref={moreTrigger} aria-haspopup="menu" aria-expanded={moreOpen} className={`battle-tabs__more${['log', 'report'].includes(tab) ? ' selected' : ''}`} onClick={() => setMoreOpen((current) => !current)}><AppIcon name="more" /><span>{tr("More")}</span></button>
           </nav>
@@ -485,7 +485,7 @@ export default function BattleDashboard() {
               className="button--gold next-phase"
               disabled={!canControlTurn}
               onClick={handleNextAction}
-            ><span className="next-phase__copy"><strong>{!canControlTurn ? tr(`Waiting for ${active.name}`, "Waiting for {0}") : flowPaused && progressionBlockers.length === 0 ? tr('Legacy pause') : tr(nextLabel)}</strong><small>{!canControlTurn ? tr(`Room ${sharedMembership?.roomCode ?? ''}`, "Room {0}") : flowPaused && progressionBlockers.length === 0 ? tr('Close legacy pause to continue') : nextDestination}</small></span><AppIcon name="next" className="next-phase__icon" /></button>
+            ><span className="next-phase__copy"><strong>{!canControlTurn ? tr(`Waiting for ${active.name}`, "Waiting for {0}") : flowPaused && progressionBlockers.length === 0 ? tr('Legacy pause') : tr(nextLabel)}</strong><small>{!canControlTurn ? tr(`Room ${sharedMembership?.roomCode ?? ''}`, "Room {0}") : flowPaused && progressionBlockers.length === 0 ? tr('Close legacy pause to continue') : tr(nextDestination)}</small></span><AppIcon name="next" className="next-phase__icon" /></button>
           </footer>
         </>}
       </>}

@@ -241,7 +241,7 @@ export function buildBattleChronicle(session: BattleSession): ChronicleEntry[] {
       }
       pending.playerIds = [...new Set(pending.playerIds)]
       if (skippedCorrection) {
-        pending.description = 'Quick correction skipped: later events changed the state. Original action retained; review an explicit correction.'
+        pending.description = 'Quick correction skipped: synchronized history changed. Original action retained; review an explicit correction.'
         pending.category = 'other'
         pending.highlight = false
         pending.unitChange = undefined

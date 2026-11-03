@@ -108,7 +108,7 @@ export function SecondaryDrawReveal({
             </div>
             <h3>{card.name}</h3>
             <SecondaryScope session={session} playerId={playerId} cardId={card.cardId} />
-            <p>{scope ? FFA_SCORING_BRIEF[card.cardId as OfficialSecondaryId] : card.objective}</p>
+            <p>{tr(scope ? FFA_SCORING_BRIEF[card.cardId as OfficialSecondaryId] : card.objective)}</p>
             {!scope && <small>{tr(card.progress)}</small>}
             {stage === 'choose' && <button className="button button--danger" type="button" onClick={() => chooseMulligan(card.cardId)}>
               {tr(" Mulligan this card ")}</button>}

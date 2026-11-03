@@ -1,3 +1,4 @@
+import { quickCorrectionOutcomes } from './correctionGuard'
 import { describe, expect, it } from 'vitest'
 import { testCauldronGame } from '../../rulesets/cauldronFFA3/cauldronTestUtils'
 import { CAULDRON_SECONDARY_IDS } from '../../rulesets/cauldronFFA3/secondaryDefinitions'
@@ -38,6 +39,23 @@ describe('guarded append-only quick corrections', () => {
     expect(corrected.state.events.length).toBe(base.state.events.length + 2)
     expect(corrected.state.events.slice(0, changed.state.events.length)).toEqual(changed.state.events)
     expect(deserializeBattleSession(serializeBattleSession(corrected)).state.players).toEqual(corrected.state.players)
+  })
+
+  it('rejects an offline snapshot when canonical events arrive before both the action and its inverse', () => {
+    const base = testCauldronGame()
+    const local = dispatchBattleEvent(base, { type: 'CP_GAINED', payload: { playerId: 'p-a', amount: 1 } })
+    const undone = dispatchBattleEvent(local, inverse(local))
+    const remote = dispatchBattleEvent(base, { type: 'CP_GAINED', payload: { playerId: 'p-a', amount: 1 } })
+    const pending = findRetryableLocalEvents(base, undone)
+    const rebased = rehydrateBattleSession({ ...remote, state: { ...remote.state, events: [...remote.state.events, ...pending] } })
+    // The stale inverse is visible and skipped; neither recorded gain is erased.
+    expect(rebased.state.players['p-a'].cp).toBe(base.state.players['p-a'].cp + 2)
+    const last = rebased.state.events.at(-1)!
+    const outcomes = quickCorrectionOutcomes(rebased.state.events)
+    expect(outcomes.skippedEventIds.has(last.id)).toBe(true)
+    expect(outcomes.revertedActionIds.has(local.state.events.at(-1)!.actionId)).toBe(false)
+    expect(buildBattleChronicle(rebased).at(-1)?.description).toContain('Quick correction skipped')
+    expect(deserializeBattleSession(serializeBattleSession(rebased)).state.players).toEqual(rebased.state.players)
   })
 
   it('does not overwrite later actions after offline rebase; stale compensation is an explicit no-op', () => {

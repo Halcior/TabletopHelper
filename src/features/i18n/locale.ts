@@ -35,9 +35,9 @@ const patterns = Object.entries(catalog).filter(([key]) => /\{\d+\}/.test(key)).
 export function t<T>(source: T, template?: string): T {
   if (typeof source !== 'string' || useLocale.getState().locale === 'en') return source
   const clean = source.trim()
-  if (catalog[clean]) return source.replace(clean, () => catalog[clean]) as T
+  if (Object.hasOwn(catalog, clean)) return source.replace(clean, () => catalog[clean]) as T
   for (const pattern of patterns) {
-    if (template ? pattern.key !== template.trim() : pattern.key.indexOf('{') < 4) continue
+    if (template ? pattern.key !== template.trim() : pattern.key.indexOf('{') < 4 || pattern.key.startsWith('Player ')) continue
     const match = pattern.regex.exec(clean)
     if (!match) continue
     const values = new Map(pattern.indexes.map((index, i) => [index, match[i + 1]]))

@@ -1,3 +1,4 @@
+import { useLocale } from '../i18n/locale'
 import { t as tr } from '../i18n/locale'
 import { useEffect, useState } from 'react'
 import { clockConfig, OFF_CLOCK, type ClockConfig, type ClockPreset } from './model'
@@ -7,7 +8,7 @@ export function ClockSettings({ value, onChange, disabled = false }: { value: Cl
   const c = clockCopy()
   const [minutes, setMinutes] = useState(String((value.limitMs || 5_400_000) / 60_000))
   useEffect(() => { if (value.preset === 'custom') setMinutes(String(value.limitMs / 60_000)) }, [value.limitMs, value.preset])
-  return <fieldset className="clock-settings" disabled={disabled} lang="pl">
+  return <fieldset className="clock-settings" disabled={disabled} lang={useLocale.getState().locale}>
     <legend>{tr(c.title)}</legend>
     <label>{c.preset}<select value={value.preset} onChange={e => {
       const preset = e.target.value as ClockPreset

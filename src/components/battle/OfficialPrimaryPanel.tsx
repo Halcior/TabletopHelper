@@ -18,7 +18,7 @@ export function OfficialPrimaryPanel({ session, playerId }: { session: BattleSes
     <InfoDisclosure label={tr("Primary conditions & scoring")}>
     {balanced && <p className="context-note">{tr("FFA-adjusted VP values. Follow the scoring below for this battle; your selected mission keeps its conditions and timing.")}</p>}
     <p className="context-note">{tr("Battle Round ")}{session.state.round}{tr(". Primary opponent/enemy references use ")}{rival.homeObjectiveId} {tr(" and this Rival’s territory, comparisons and destroyed units.")}</p>
-    <ul>{definition.rules.map((rule) => <li key={rule}>{rule}</li>)}</ul>
+    <ul>{definition.rules.map((rule) => <li key={rule}>{tr(rule)}</li>)}</ul>
     <a href={definition.url} target="_blank" rel="noreferrer">{tr("Read original card ↗")}</a>
     </InfoDisclosure>
     {markers.length > 0 && <p className="context-note">{tr("Operation markers: ")}{markers.join(', ')}</p>}

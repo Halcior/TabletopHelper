@@ -44,7 +44,7 @@ export function PhaseGuidance({ session, dispatch }: PhaseGuidanceProps) {
       <ul className="reminder-list">
         {reminders.map((reminder) => <li className={`reminder reminder--${reminder.state}`} key={reminder.id}>
           <span className="reminder__icon" aria-hidden="true">{{ complete: '✓', action: '○', attention: '!', info: 'i' }[reminder.state]}</span>
-          <span className="reminder__copy"><strong>{tr(reminder.title)}</strong>{reminder.detail && <small>{reminder.detail}</small>}</span>
+          <span className="reminder__copy"><strong>{tr(reminder.title)}</strong>{reminder.detail && <small>{tr(reminder.detail)}</small>}</span>
           <span className="reminder__status">{reminder.status}</span>
         </li>)}
       </ul>

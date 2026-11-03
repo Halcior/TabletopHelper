@@ -39,8 +39,8 @@ export function BattleQuickStatus({
           : <ul className="quick-objective-list">
             {objectives.map((objective) => {
               const controller = objective.controllerPlayerId
-                ? session.state.players[objective.controllerPlayerId]?.name ?? 'Unknown'
-                : 'Uncontrolled'
+                ? session.state.players[objective.controllerPlayerId]?.name ?? tr('Unknown')
+                : tr('Uncontrolled')
               const controllerIndex = objective.controllerPlayerId
                 ? session.state.turnOrder.indexOf(objective.controllerPlayerId)
                 : -1

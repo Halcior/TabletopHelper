@@ -1,6 +1,5 @@
 import { useLocale } from '../i18n/locale'
-// The application currently has no global i18n service. Keep all clock copy in
-// keyed dictionaries so a future app locale can select it without changing UI.
+// Reuse the clock dictionaries with the application presentation language.
 const pl = {
   title: 'Battle Clock', off: 'Wyłączony', casual: 'Casual · 120 min', competitive: 'Competitive · 90 min', custom: 'Własny limit',
   preset: 'Tryb zegara', minutes: 'Minuty na gracza / drużynę', perTeam: 'W 2v2 obaj gracze drużyny korzystają ze wspólnego czasu.',

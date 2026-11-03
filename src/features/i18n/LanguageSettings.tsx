@@ -1,3 +1,4 @@
+import './i18n.css'
 import { t, useLocale, type Locale } from './locale'
 
 export function LanguageSettings() {

@@ -27,7 +27,7 @@ function statusLabel(status: StoredBattle['status']): string {
 function HomeActionContent({ icon, label, title, detail }: { icon: AppIconName; label: string; title: string; detail: string }) {
   return <>
     <span className="home-action__icon"><AppIcon name={icon} /></span>
-    <span className="home-action__copy"><small>{tr(label)}</small><strong>{tr(title)}</strong><span>{detail}</span></span>
+    <span className="home-action__copy"><small>{tr(label)}</small><strong>{tr(title)}</strong><span>{tr(detail)}</span></span>
     <AppIcon name="chevron" className="home-action__arrow" />
   </>
 }

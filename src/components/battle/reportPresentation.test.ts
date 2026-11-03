@@ -1,9 +1,25 @@
+import { publicTableEvents } from './TableMode'
+import { testCauldronGame } from '../../rulesets/cauldronFFA3/cauldronTestUtils'
+import { dispatchBattleEvents, serializeBattleSession } from '../../domain/battle/engine'
 import { describe, expect, it } from 'vitest'
 import { leadChangeEventIds, reportHighlights } from './reportPresentation'
 import type { BattlefieldReplayFrame } from '../../domain/battlefield/replay'
 import type { ChronicleEntry } from '../../domain/battle/chronicle'
 
 describe('report presentation uses recorded history', () => {
+  it('publishes only highlights without notes, corrections, cards or pending decisions', () => {
+    const session = dispatchBattleEvents(testCauldronGame(), [
+      { type: 'UNIT_MODEL_DESTROYED', payload: { playerId: 'p-b', unitId: 'infantry', amount: 1, note: 'PRIVATE NOTE sentinel' } },
+      { type: 'STATE_CORRECTED', payload: { correction: { kind: 'OBJECTIVE_CONTROL', objectiveId: 'N1', controllerPlayerId: 'p-a' }, reason: 'PRIVATE CORRECTION sentinel' } },
+    ])
+    const before = serializeBattleSession(session)
+    const events = publicTableEvents(session)
+    expect(events.length).toBeGreaterThan(0)
+    expect(events.length).toBeLessThanOrEqual(6)
+    expect(JSON.stringify(events)).not.toMatch(/PRIVATE|cardId|cardSpecificState|pending/)
+    expect(events.some(event => event.description.includes('model'))).toBe(true)
+    expect(serializeBattleSession(session)).toBe(before)
+  })
   it('marks a new sole leader without inventing a change on initialization or a tie', () => {
     const frames = [[0, 0], [5, 0], [5, 5], [5, 8], [10, 8]].map(([a, b], index) => ({ index, eventId: `e${index}`, scores: { a, b } } as unknown as BattlefieldReplayFrame))
     expect([...leadChangeEventIds(frames)]).toEqual(['e4'])

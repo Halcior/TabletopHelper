@@ -209,7 +209,7 @@ export function ContextCommandCentre({
   return <section className={`context-centre context-centre--${context.guidanceLevel}${visibleSections.length === 0 ? " context-centre--idle" : ""}`}>
 
     <div className="context-centre__heading">
-      <div><span className="eyebrow">{tr("What matters now")}</span><h2>{phaseLabel(context.phase)} {tr(" priorities")}</h2></div>
+      <div><span className="eyebrow">{tr("What matters now")}</span><h2>{tr(`${tr(phaseLabel(context.phase))} priorities`, '{0} priorities')}</h2></div>
       {sharedMode && !viewerControlsTurn
         ? <span className="context-clear">{tr("Watching ")}{session.state.players[playerId]?.name ?? tr('active player')}</span>
         : blockerCount > 0
@@ -226,10 +226,10 @@ export function ContextCommandCentre({
           key={item.id}
           tabIndex={-1}
         >
-          <div className="context-item__top"><span>{sourceLabel(item)}</span><strong>{statusLabel(item)}</strong></div>
-          <h4>{tr(item.title)}</h4>
-          <p>{item.shortDescription}</p>
-          {item.details && item.details.length > 0 && (['BLOCKING', 'REQUIRED'].includes(item.status) ? <ul>{item.details.map((detail) => <li key={detail}>{detail.replace('confirm timing', 'timing unverified')}</li>)}</ul> : <details className="context-item__more"><summary>{tr("Timing & details")}</summary><ul>{item.details.map((detail) => <li key={detail}>{detail.replace('confirm timing', 'timing unverified')}</li>)}</ul></details>)}
+          <div className="context-item__top"><span>{tr(sourceLabel(item))}</span><strong>{tr(statusLabel(item))}</strong></div>
+          <h4>{item.type === 'SECONDARY_GOAL' || item.source === 'OPERATIONAL_PLAN' ? item.title : tr(item.title)}</h4>
+          <p>{tr(item.shortDescription)}</p>
+          {item.details && item.details.length > 0 && (['BLOCKING', 'REQUIRED'].includes(item.status) ? <ul>{item.details.map((detail) => <li key={detail}>{tr(detail.replace('confirm timing', 'timing unverified'))}</li>)}</ul> : <details className="context-item__more"><summary>{tr("Timing & details")}</summary><ul>{item.details.map((detail) => <li key={detail}>{tr(detail.replace('confirm timing', 'timing unverified'))}</li>)}</ul></details>)}
           {item.actions.length > 0 && <div className="context-item__actions">{item.actions.map((itemAction) => {
             const allowed = viewerCanUseAction(itemAction)
             const priorityOwner = itemAction.type === 'SELECT_PRIORITY_TARGET' && priorityNeedsAlpha

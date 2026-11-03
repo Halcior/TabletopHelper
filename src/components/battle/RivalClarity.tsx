@@ -30,8 +30,8 @@ export function SecondaryScope({ session, playerId, cardId }: { session: BattleS
   return <div className="secondary-scope" aria-label={tr("Secondary card scope")}>
     <strong className="secondary-scope__label">{tr(scope.label)}</strong>
     {scope.conditionScope && <small>{tr(scope.conditionScope)}</small>}
-    {scope.assignment && <small>{scope.assignment}</small>}
+    {scope.assignment && <small>{tr(scope.assignment)}</small>}
     <small className="secondary-scope__timing"><b>{tr("Score at:")}</b> {tr(scope.timing)}</small>
-    {scope.difference && <small className="secondary-scope__difference">{scope.difference}</small>}
+    {scope.difference && <small className="secondary-scope__difference">{tr(scope.difference)}</small>}
   </div>
 }

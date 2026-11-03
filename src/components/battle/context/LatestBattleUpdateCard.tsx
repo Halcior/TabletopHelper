@@ -14,15 +14,15 @@ export function LatestBattleUpdateCard({ session }: { session: BattleSession }) 
     <summary className="latest-battle-update__heading">
       <div>
         <span className="eyebrow">{tr("Latest table update")}</span>
-        <h3>{tr(update.title)}</h3>
+        <h3>{tr(update.title, update.title.includes(' · casualty recorded') ? '{0} · casualty recorded' : undefined)}</h3>
       </div>
       <span className="latest-battle-update__toggle">{tr("Details")}</span>
     </summary>
     <div className="latest-battle-update__body">
-      <p>{update.detail}</p>
+      <p>{tr(update.detail)}</p>
       {update.consequences.length > 0 && <div className="latest-battle-update__effects">
         <span>{tr("Automatic effects")}</span>
-        <ul>{update.consequences.map((effect) => <li key={effect}>{effect}</li>)}</ul>
+        <ul>{update.consequences.map((effect) => <li key={effect}>{tr(effect)}</li>)}</ul>
       </div>}
     </div>
   </details>

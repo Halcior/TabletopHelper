@@ -111,11 +111,11 @@ export function SecondaryPanel({
             <div className="secondary-card__heading">
               <div className="secondary-card__identity">
                 <span className="secondary-card__icon"><AppIcon name={visual.icon} /></span>
-                <div><span>{tr(visual.label)} · {statusLabel(card.status)}</span><h3>{card.name}</h3></div>
+                <div><span>{tr(visual.label)} · {tr(statusLabel(card.status))}</span><h3>{card.name}</h3></div>
               </div>
               <div className="secondary-card__vp"><strong>{card.vp}</strong><span>{tr("VP")}</span></div>
             </div>
-            <p className="secondary-card__objective">{card.objective}</p>
+            <p className="secondary-card__objective">{tr(card.objective)}</p>
             <p className="secondary-card__progress"><i aria-hidden="true" />{tr(card.progress)}</p>
             {card.action && <button
               className={card.status === 'DECISION_REQUIRED' ? 'button--danger' : ''}

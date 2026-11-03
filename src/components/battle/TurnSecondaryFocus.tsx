@@ -46,11 +46,11 @@ export function TurnSecondaryFocus({
         const scope = secondaryScope(session, playerId, card.cardId)
         return <article className={`turn-secondary-focus__card turn-secondary-focus__card--${card.status.toLowerCase()} turn-secondary-focus__card--${visual.kind}`} key={card.cardId}>
           <div className="turn-secondary-focus__card-top">
-            <div><span className="turn-secondary-focus__card-icon"><AppIcon name={visual.icon} /></span><span>{tr(visual.label)} · {statusCopy(card.status)}</span><h3>{card.name}</h3></div>
+            <div><span className="turn-secondary-focus__card-icon"><AppIcon name={visual.icon} /></span><span>{tr(visual.label)} · {tr(statusCopy(card.status))}</span><h3>{card.name}</h3></div>
             <strong>{card.vp} {tr(" VP")}</strong>
           </div>
           <SecondaryScope session={session} playerId={playerId} cardId={card.cardId} />
-          <p>{scope ? FFA_SCORING_BRIEF[card.cardId as OfficialSecondaryId] : card.objective}</p>
+          <p>{tr(scope ? FFA_SCORING_BRIEF[card.cardId as OfficialSecondaryId] : card.objective)}</p>
           {!scope && <div className="turn-secondary-focus__progress"><span>{tr("Progress")}</span><strong>{tr(card.progress)}</strong></div>}
         </article>
       })}</div>}

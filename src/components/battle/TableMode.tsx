@@ -1,6 +1,7 @@
+import { chronicleCopy } from '../../features/i18n/chronicleCopy'
 import { t as tr } from '../../features/i18n/locale'
 import { totalScore } from '../../domain/battle/selectors'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { BattleSession } from '../../domain/battle/types'
 import { buildBattleChronicle } from '../../domain/battle/chronicle'
 import { doublesForceForPlayer } from '../../domain/battle/doubles'
@@ -15,8 +16,9 @@ import './tableMode.css'
 /** Explicit public allowlist: no free-text notes, card hands or pending choices. */
 export function publicTableEvents(session: BattleSession) {
   return buildBattleChronicle(session).filter(entry => entry.highlight
-    && ['kills', 'combat', 'objectives', 'flow'].includes(entry.category))
-    .slice(-6).reverse().map(({ id, round, description }) => ({ id, round, description }))
+    && ['kills', 'combat', 'objectives', 'flow'].includes(entry.category)
+    && entry.event.type !== 'STATE_CORRECTED')
+    .slice(-6).reverse().map(entry => ({ id: entry.id, round: entry.round, description: chronicleCopy(entry) }))
 }
 
 export function TableMode({ session, onClose }: { session: BattleSession; onClose: () => void }) {
@@ -33,6 +35,7 @@ export function TableMode({ session, onClose }: { session: BattleSession; onClos
     return () => clearInterval(timer)
   }, [shared, clockAnchor])
   const stale = shared && (connectionStatus !== 'connected' || !clockAnchor || performance.now() - clockAnchor.monotonicAt > 5000)
+  const events = useMemo(() => publicTableEvents(session), [session])
   const rows = timeStatistics(session.battleClock, now)
   const players = session.setup.players.filter(player => !session.setup.doubles || session.state.turnOrder.includes(player.id))
   async function fullscreen() {
@@ -60,8 +63,8 @@ export function TableMode({ session, onClose }: { session: BattleSession; onClos
       {stale && <small role="status">{clockCopy().offline}</small>}
     </section>}
     <div className="table-mode__body"><section className="table-mode__board" aria-label={t('Battlefield overview')}><BattlefieldBoard session={session} dispatch={() => {}} readOnly /></section>
-      <aside className="table-mode__events"><h2>{t('Public events')}</h2>{publicTableEvents(session).map(entry => <p key={entry.id}><small>{t('Round')} {entry.round}</small>{t(entry.description)}</p>)}
-        {publicTableEvents(session).length === 0 && <p>{t('No public highlights yet.')}</p>}
+      <aside className="table-mode__events"><h2>{t('Public events')}</h2>{events.map(entry => <p key={entry.id}><small>{t('Round')} {entry.round}</small>{t(entry.description)}</p>)}
+        {events.length === 0 && <p>{t('No public highlights yet.')}</p>}
       </aside></div>
   </div>
 }

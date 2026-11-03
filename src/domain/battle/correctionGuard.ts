@@ -1,11 +1,22 @@
 import type { BattleEvent, GameState } from './types'
 
-/** Canonical compare-and-set: stale/retried inverses remain in history as no-ops. */
-export function correctionGuardMatches(state: Pick<GameState, 'events'>, event: Extract<BattleEvent, { type: 'STATE_CORRECTED' }>): boolean {
+type CorrectionEvent = Extract<BattleEvent, { type: 'STATE_CORRECTED' }>
+
+function matchesHistory(events: readonly BattleEvent[], index: number, event: CorrectionEvent): boolean {
   const guard = event.payload.quickUndo
   if (!guard) return true
-  const last = state.events.at(-1)
-  return last?.id === guard.expectedLastEventId && last.actionId === guard.actionId
+  const last = events[index - 1]
+  if (last?.id !== guard.expectedLastEventId || last.actionId !== guard.actionId) return false
+  // Baseline IDs are exact, ordered and collision-free. An offline inverse must
+  // not restore a snapshot derived before newly inserted canonical events.
+  // Old recorded corrections without a baseline retain their historical meaning.
+  const baseline = guard.expectedBaselineEventIds
+  return !baseline || (baseline.length === index - 1 && baseline.every((id, i) => events[i]?.id === id))
+}
+
+/** Canonical compare-and-set: stale/retried inverses remain in history as no-ops. */
+export function correctionGuardMatches(state: Pick<GameState, 'events'>, event: CorrectionEvent): boolean {
+  return matchesHistory(state.events, state.events.length, event)
 }
 
 export function quickCorrectionOutcomes(events: readonly BattleEvent[]) {
@@ -14,9 +25,7 @@ export function quickCorrectionOutcomes(events: readonly BattleEvent[]) {
   for (let index = 0; index < events.length; index += 1) {
     const event = events[index]
     if (event.type !== 'STATE_CORRECTED' || !event.payload.quickUndo) continue
-    const guard = event.payload.quickUndo
-    const previous = events[index - 1]
-    if (previous?.id === guard.expectedLastEventId && previous.actionId === guard.actionId) revertedActionIds.add(guard.actionId)
+    if (matchesHistory(events, index, event)) revertedActionIds.add(event.payload.quickUndo.actionId)
     else skippedEventIds.add(event.id)
   }
   return { revertedActionIds, skippedEventIds }

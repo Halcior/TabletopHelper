@@ -1,3 +1,4 @@
+import { t } from '../../features/i18n/locale'
 import type { BattleSession } from '../../domain/battle/types'
 import { OFFICIAL_SECONDARY_BY_ID } from '../../rulesets/cauldronFFA3/officialSecondaryDefinitions'
 import { isOfficialFfa } from '../../rulesets/cauldronFFA3/officialSecondaryFFA'
@@ -22,17 +23,17 @@ export function secondaryScope(session: BattleSession, playerId: string, cardId:
   if (!card) return undefined
   const rivalId = card.secondaryRivalPlayerId
   const rival = rivalId ? rivalIdentity(session, rivalId) : 'Unrecorded rival (check at the table)'
-  const rivalTurn = `${rival}’s turn`
-  const timing = definition.scoreAt === 'own' ? 'End of your turn'
-    : definition.scoreAt === 'either' ? `End of your turn or ${rivalTurn}`
-      : `End of ${rivalTurn}, or end of Round ${session.state.maxRounds}`
+  const rivalTurn = t(`${rival}’s turn`, '{0}’s turn')
+  const timing = definition.scoreAt === 'own' ? t('End of your turn')
+    : definition.scoreAt === 'either' ? t(`End of your turn or ${rivalTurn}`, 'End of your turn or {0}')
+      : t(`End of ${rivalTurn}, or end of Round ${session.state.maxRounds}`, 'End of {0}, or end of Round {1}')
   return {
-    label: definition.enemyScope === 'rival' ? `Target Rival: ${rival}`
-      : definition.enemyScope === 'all-enemies' ? 'ALL ENEMIES' : 'BATTLEFIELD OBJECTIVE',
-    conditionScope: definition.enemyScope === 'all-enemies' ? 'Condition checks both enemy armies.' : undefined,
-    timing: `${cardId === 'OFFICIAL_DEFEND_STRONGHOLD' ? 'From Round 2 · ' : ''}${timing}`,
+    label: definition.enemyScope === 'rival' ? t(`Target Rival: ${rival}`, 'Target Rival: {0}')
+      : definition.enemyScope === 'all-enemies' ? t('ALL ENEMIES') : t('BATTLEFIELD OBJECTIVE'),
+    conditionScope: definition.enemyScope === 'all-enemies' ? t('Condition checks both enemy armies.') : undefined,
+    timing: `${cardId === 'OFFICIAL_DEFEND_STRONGHOLD' ? t('From Round 2 · ') : ''}${timing}`,
     assignment: definition.usesSecondaryRival
-      ? `${definition.enemyScope === 'rival' ? 'Assigned' : 'Timing assigned'} ${card.drawnRound ? `in Round ${card.drawnRound}` : 'when drawn'} · Locked until this card is resolved.`
+      ? t(`${definition.enemyScope === 'rival' ? t('Assigned') : t('Timing assigned')} ${card.drawnRound ? t(`in Round ${card.drawnRound}`, 'in Round {0}') : t('when drawn')} · Locked until this card is resolved.`, '{0} {1} · Locked until this card is resolved.')
       : undefined,
     difference: definition.usesSecondaryRival && rivalId && rivalId !== getCurrentRivalPlayerId(session, playerId)
       ? definition.enemyScope === 'rival'

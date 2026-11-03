@@ -408,7 +408,7 @@ export default function BattleSetup() {
             </select></label>
             {playMode === 'shared' ? <p className="context-note">{tr("A valid team Warlord will be assigned from the armies staged in the lobby.")}</p> : <label>{tr("One Warlord for the force")}<select value={teamWarlords[team] && warlordOptions(team).some((option) => option.value === teamWarlords[team]) ? teamWarlords[team] : warlordOptions(team)[0]?.value ?? ''} onChange={(event) => setTeamWarlords((current) => ({ ...current, [team]: event.target.value }))}>
               {warlordOptions(team).length === 0 && <option value="">{tr("Import an army with a CHARACTER")}</option>}
-              {warlordOptions(team).map((option) => <option key={option.value} value={option.value}>{tr(option.label)}</option>)}
+              {warlordOptions(team).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
             </select></label>}
             <InfoDisclosure label={tr("GW Doubles restrictions")}><p className="context-note">{tr("One Warlord and one Force Disposition per force. Unique datasheets, Epic Heroes, Enhancements and once-per-army upgrades cannot be duplicated across teammates. Unified/Convenience classification must match the faction keywords; the app does not invent synergies. For GW Doubles, both teammates share one CP pool and one set of Stratagem usage limits.")}</p></InfoDisclosure>
           </section>

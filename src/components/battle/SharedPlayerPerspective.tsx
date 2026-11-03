@@ -111,9 +111,9 @@ export function SharedPlayerPerspective({
           const ownerId = doublesScorekeeperId(session.setup, viewerPlayerId)
           const scope = secondaryScope(session, ownerId, card.cardId)
           return <article className={`shared-secondary-card shared-secondary-card--${card.status.toLowerCase()} shared-secondary-card--${visual.kind}`} key={card.cardId}>
-            <div className="shared-secondary-card__top"><div className="shared-secondary-card__identity"><span className="shared-secondary-card__icon"><AppIcon name={visual.icon} /></span><span><small>{tr(visual.label)} · {secondaryStatus(card.status)}</small><strong>{card.name}</strong></span></div><b>{card.vp} {tr(" VP")}</b></div>
+            <div className="shared-secondary-card__top"><div className="shared-secondary-card__identity"><span className="shared-secondary-card__icon"><AppIcon name={visual.icon} /></span><span><small>{tr(visual.label)} · {tr(secondaryStatus(card.status))}</small><strong>{card.name}</strong></span></div><b>{card.vp} {tr(" VP")}</b></div>
             <SecondaryScope session={session} playerId={ownerId} cardId={card.cardId} />
-            <p>{scope ? FFA_SCORING_BRIEF[card.cardId as OfficialSecondaryId] : card.objective}</p>
+            <p>{tr(scope ? FFA_SCORING_BRIEF[card.cardId as OfficialSecondaryId] : card.objective)}</p>
             {!scope && <div className="shared-secondary-card__progress"><span>{tr("Progress")}</span><strong>{tr(card.progress)}</strong></div>}
           </article>
         })}</div>}

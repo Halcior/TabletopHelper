@@ -236,7 +236,7 @@ export function BattlefieldBoard({
           )}
         </div>}
       </header>
-      {presentation.official && (
+      {!readOnly && presentation.official && (
         <InfoDisclosure label={tr("Source & Attacker / Defender")} className="battlefield-source-disclosure"><div className="battlefield-source">
           <a
             href={`${presentation.sourceUrl}#page=${presentation.sourcePage}`}
@@ -546,7 +546,7 @@ export function BattlefieldBoard({
                   if (dragging.current) {
                     dragging.current = null
                     event.currentTarget.releasePointerCapture(event.pointerId)
-                  } else if (!draft && event.pointerType === 'touch') {
+                  } else if (!readOnly && !draft && event.pointerType === 'touch') {
                     setSelectedId(id)
                   }
                 }}
@@ -612,7 +612,7 @@ export function BattlefieldBoard({
           {labelLayout.labels.map((label) => <span key={label.id} className={`objective-label objective-label--player-${playerIndex(controllers[label.id])}`} title={tr(`${label.id} · ${controllerName(label.id)}`, "{0} · {1}")} style={{ left: label.x, top: label.y, width: label.width, height: label.height }}><strong>{label.id.replaceAll('-', ' ')}</strong>{controllers[label.id] && <small>{controllerName(label.id)}</small>}</span>)}
         </div>
       </div>
-      {legendIds.length > 0 && <div className="battlefield-label-overflow" aria-label={tr("Objectives with labels below the board")}>{legendIds.map((id) => <button key={id} disabled={Boolean(draft)} onClick={() => setSelectedId(id)}>{id}{controllers[id] ? tr(` · ${controllerName(id)}`, " · {0}") : ''}</button>)}</div>}
+      {legendIds.length > 0 && <div className="battlefield-label-overflow" aria-label={tr("Objectives with labels below the board")}>{legendIds.map((id) => <button key={id} disabled={readOnly || Boolean(draft)} onClick={() => { if (!readOnly) setSelectedId(id) }}>{id}{controllers[id] ? tr(` · ${controllerName(id)}`, " · {0}") : ''}</button>)}</div>}
       {presentation.unplacedIds.length > 0 && (
         <section className="panel battlefield-unplaced">
           <h4>{tr("Saved objectives without a source position")}</h4>
@@ -626,7 +626,7 @@ export function BattlefieldBoard({
                 key={id}
                 data-objective-id={id}
                 data-controller-id={controllers[id] ?? 'none'}
-                onClick={() => setSelectedId(id)}
+                onClick={() => { if (!readOnly) setSelectedId(id) }}
               >
                 {id} · {controllerName(id)}
               </button>
@@ -647,7 +647,7 @@ export function BattlefieldBoard({
           </ul>
         </details>
       )}
-      {!canEdit && shared && !replay && (
+      {!readOnly && !canEdit && shared && !replay && (
         <p className="context-note">
           {tr(" Only the room host can edit geometry. Every commander keeps the existing objective-control permissions. ")}</p>
       )}

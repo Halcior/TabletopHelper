@@ -42,6 +42,13 @@ test('independent Primary and Chapter Approved Secondary synchronize on three ph
     await expect(bravo.page.locator('.official-primary-panel h2').first()).toHaveText('Meatgrinder')
     await expect(charlie.page.locator('.official-primary-panel h2').first()).toHaveText('Outmanoeuvre')
 
+    await charlie.page.getByRole('button', { name: 'More', exact: true }).click()
+    await charlie.page.getByRole('menuitem', { name: 'Table Mode', exact: true }).click()
+    await alpha.page.getByRole('button', { name: 'Gain 1 CP for Player I', exact: true }).click()
+    await expect(charlie.page.getByLabel('Public scores')).toContainText('3 CP')
+    await expect(charlie.page.locator('.next-phase')).toHaveCount(0)
+    await charlie.page.getByRole('button', { name: 'Back to battle' }).click()
+
     for (let index = 0; index < 6; index += 1) await alpha.page.locator('.next-phase').click()
     await expect(alpha.page.getByRole('heading', { name: 'End Turn Review' })).toBeVisible()
     await expect(alpha.page.getByText('Secondary review pending')).toBeVisible()
