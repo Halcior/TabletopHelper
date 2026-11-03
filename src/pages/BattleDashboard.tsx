@@ -24,6 +24,8 @@ import { SecondaryEndTurnReview } from '../components/battle/SecondaryEndTurnRev
 import { SecondaryDetailPanel } from '../components/battle/SecondaryPanel'
 import { OfficialSecondaryPanel } from '../components/battle/OfficialSecondaryPanel'
 import { RivalRotationNotice } from '../components/battle/RivalRotationNotice'
+import { BattleFocus } from '../components/battle/BattleFocus'
+import { QuickDamagePanel } from '../components/battle/QuickDamagePanel'
 import { OfficialPrimaryPanel } from '../components/battle/OfficialPrimaryPanel'
 import { DuelPrimaryPanel } from '../components/battle/DuelPrimaryPanel'
 import { SharedPlayerPerspective } from '../components/battle/SharedPlayerPerspective'
@@ -68,6 +70,7 @@ const DASHBOARD_TAB_ICONS: Record<DashboardTab, AppIconName> = {
 }
 
 export default function BattleDashboard() {
+  const [quickDamageOpen, setQuickDamageOpen] = useState(false)
   const { battleId } = useParams()
   const [tab, setSelectedTab] = useState<DashboardTab>('overview')
   const [visitedPanels, setVisitedPanels] = useState<Set<DashboardTab>>(() => new Set(['overview']))
@@ -283,6 +286,7 @@ export default function BattleDashboard() {
 
   return (
     <div className="battle-page" style={{ '--battle-hud-height': `${headerHeight}px` } as CSSProperties}>
+      {quickDamageOpen && <QuickDamagePanel key={session.setup.gameId} session={session} dispatch={dispatch} shared={sharedBattle} viewerId={viewerPlayerId} onClose={() => setQuickDamageOpen(false)} />}
       <header ref={headerRef} className={`battle-status battle-status--player-${activePlayerIndex}${liveFeedback.phaseChanged ? ' battle-transition-live' : ''}`}>
         <div className="battle-round"><span>Battle round</span><strong>{session.state.round}<small>/ {session.state.maxRounds}</small></strong></div>
         <div className="battle-turn">
@@ -405,6 +409,7 @@ export default function BattleDashboard() {
             </section>}
             {battleContext && <div className="tactical-dashboard tactical-dashboard--context">
               <div className="tactical-column tactical-column--primary">
+                <BattleFocus session={session} playerId={primaryViewerId} onDamage={() => setQuickDamageOpen(true)} onObjectives={() => setTab('objectives')} onCards={() => setTab('cards')} onReview={canControlTurn ? () => setTurnReviewOpen(true) : undefined} />
                 <ContextCommandCentre
                   context={battleContext}
                   session={session}
@@ -427,14 +432,14 @@ export default function BattleDashboard() {
                 />
                 {officialPrimary && <OfficialPrimaryPanel session={session} playerId={sharedBattle ? viewerPlayerId ?? active.id : active.id} />}
                 {duelPrimary && <DuelPrimaryPanel session={session} playerId={primaryViewerId} window={duelReviewWindow} editable={!sharedBattle || Boolean(viewerPlayerId)} />}
-                {officialSecondary && <OfficialSecondaryPanel session={session} playerId={primaryViewerId} editable={!sharedBattle || viewerPlayerId === (viewerPlayerId ?? active.id)} />}
+                {officialSecondary && ['COMMAND', 'SHOOTING', 'END_TURN'].includes(session.state.phase) && <OfficialSecondaryPanel session={session} playerId={primaryViewerId} editable={!sharedBattle || viewerPlayerId === (viewerPlayerId ?? active.id)} />}
               </div>
               <aside className="tactical-column tactical-column--context-aside">
                 {sharedBattle && viewerPlayerId && <SharedPlayerPerspective
                   session={session}
                   viewerPlayerId={viewerPlayerId}
                   currentRivalPlayerId={rivalId}
-                  showCards={cauldron}
+                  showCards={cauldron && !officialSecondary}
                   onOpenArmy={() => {
                     setArmyPreferredPlayerId(viewerPlayerId)
                     setArmySecondaryFilter(null)
@@ -468,6 +473,7 @@ export default function BattleDashboard() {
           </main>
 
           <footer className="battle-actions battle-actions--primary">
+            <button type="button" className="battle-damage-trigger" onClick={() => setQuickDamageOpen(true)}>Damage</button>
             <button
               className="button--gold next-phase"
               disabled={!canControlTurn}

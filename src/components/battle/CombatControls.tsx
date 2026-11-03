@@ -3,9 +3,9 @@ import type { UnitDefinition, UnitState } from '../../domain/army/types'
 import type { BattleEventInput, CombatAttribution, CombatResolution } from '../../domain/battle/types'
 import { combatProfiles, combatStatus, readCombatState } from '../../domain/battle/combatState'
 
-export function CombatControls({ unit, state, playerId, source = {}, dispatch, canEdit = true, damageOnly = false, compact = false }: {
+export function CombatControls({ unit, state, playerId, source = {}, dispatch, canEdit = true, damageOnly = false, compact = false, quickBatch = false }: {
   unit: UnitDefinition; state: UnitState; playerId: string; source?: CombatAttribution
-  dispatch: (event: BattleEventInput) => void; canEdit?: boolean; damageOnly?: boolean; compact?: boolean
+  dispatch: (event: BattleEventInput) => void; canEdit?: boolean; damageOnly?: boolean; compact?: boolean; quickBatch?: boolean
 }) {
   const profiles = combatProfiles(unit)
   const groups = readCombatState(unit, state)
@@ -48,6 +48,7 @@ export function CombatControls({ unit, state, playerId, source = {}, dispatch, c
       <button type="button" disabled={!enabled || !alive} onClick={() => record('damage', 1, 'models')}>−1 Model</button>
       {!damageOnly && <button type="button" disabled={!enabled || state.destroyed || (group?.modelsAlive ?? 0) >= (profile?.startingModels ?? 0)} onClick={() => record('restore', 1, 'models')}>+1 Model</button>}
     </div>
+    {quickBatch && <div className="combat-batch"><label><span>Loss type</span><select aria-label="Loss type" value={measure} onChange={event => setMeasure(event.target.value as 'wounds' | 'models')}><option value="wounds">Effective Wounds</option><option value="models">Models</option></select></label><label><span>Loss amount</span><input aria-label="Loss amount" type="number" min="1" max="10000" step="1" value={amount} onChange={event => setAmount(Number(event.target.value))} /></label><button type="button" className="button--gold" disabled={!enabled || !alive || !Number.isSafeInteger(amount) || amount < 1 || amount > 10000 || (measure === 'wounds' && !known)} onClick={() => record('damage', amount, measure)}>Record {amount} {measure === 'models' ? 'Models Lost' : 'Wounds Lost'}</button></div>}
     {!compact && alive && known && (group.woundsPerModel ?? 0) <= 6 && <div className="combat-wound-presets" aria-label="Set current model Wounds">{Array.from({ length: group.woundsPerModel! }, (_, index) => index + 1).map((value) => <button type="button" key={value} aria-label={`Set current model to ${value} W`} disabled={!enabled || value === group.currentModelWounds || (damageOnly && value > group.currentModelWounds!)} onClick={() => record(value < group.currentModelWounds! ? 'damage' : 'heal', Math.abs(value - group.currentModelWounds!), 'wounds')}>{value}/{group.woundsPerModel}</button>)}</div>}
     {!damageOnly && state.destroyed && <button type="button" disabled={!enabled} onClick={() => record('restore', 1, 'models')}>Return 1 model to battlefield</button>}
     <details className="combat-resolution" open={detailed} onToggle={(event) => setDetailed(event.currentTarget.open)}>

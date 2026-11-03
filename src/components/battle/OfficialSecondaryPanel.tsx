@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import type { BattleSession } from '../../domain/battle/types'
 import { secondaryStrategyFor } from '../../rulesets/cauldronFFA3/sessionConfig'
 import { OFFICIAL_SECONDARY_BY_ID, officialFfaDescription } from '../../rulesets/cauldronFFA3/officialSecondaryDefinitions'
@@ -51,6 +51,14 @@ function OfficialSecondaryForm({ session, playerId, editable }: OfficialSecondar
   const player = session.state.players[playerId]
   if (!player || !state) return null
 
+  function reviewGroup(cardId: OfficialSecondaryId): 'Ready to Score' | 'Needs Confirmation' | 'Carry Over / Discard' {
+    if (!canScoreOfficialSecondary(session, playerId, cardId)) return 'Carry Over / Discard'
+    if (!ffa) return 'Needs Confirmation'
+    return officialAwards(session, playerId, cardId, confirmations[`${officialTurnKey(session)}:${cardId}`]).length ? 'Ready to Score' : 'Needs Confirmation'
+  }
+  const groupOrder = ['Ready to Score', 'Needs Confirmation', 'Carry Over / Discard']
+  const cards = endTurn ? [...state.active].sort((a, b) => groupOrder.indexOf(reviewGroup(a.cardId as OfficialSecondaryId)) - groupOrder.indexOf(reviewGroup(b.cardId as OfficialSecondaryId))) : state.active
+
   function updateAction(cardId: OfficialSecondaryId, field: 'unit' | 'target', value: string) {
     setActionDrafts((current) => ({ ...current, [cardId]: { ...(current[cardId] ?? { unit: '', target: '' }), [field]: value } }))
   }
@@ -75,7 +83,7 @@ function OfficialSecondaryForm({ session, playerId, editable }: OfficialSecondar
       <div><strong>{state.discarded.length}</strong><span>Discarded</span></div>
     </div>
     <div className="secondary-card-grid">
-      {state.active.map((card) => {
+      {cards.map((card, index) => {
         const cardId = card.cardId as OfficialSecondaryId
         const definition = OFFICIAL_SECONDARY_BY_ID[cardId]
         const redraw = editable && command ? officialRedrawReason(session, playerId, cardId) : undefined
@@ -94,10 +102,13 @@ function OfficialSecondaryForm({ session, playerId, editable }: OfficialSecondar
         const choiceRequired = editable && command && targetCard && (cardId === 'OFFICIAL_BURDEN_OF_TRUST' && ffa ? card.cardSpecificState?.officialGuardAssignmentTurnKey !== officialTurnKey(session) : !note)
         const actionAvailable = editable && ownTurn && session.state.phase === 'SHOOTING' && missionAction
         const required = choiceRequired || canScore || Boolean(redraw) || canDiscard
-        const status = canScore && actualAward > 0 ? 'Ready to Score' : required ? 'Action Required' : definition.scoreAt === 'opponent' && ownTurn ? 'Awaiting Rival' : 'Active'
+        const status = canScore && !ffa ? 'Needs Confirmation' : canScore && actualAward > 0 ? 'Ready to Score' : required ? 'Action Required' : definition.scoreAt === 'opponent' && ownTurn ? 'Awaiting Rival' : 'Active'
         const description = ffa ? officialFfaDescription(cardId) : definition.description
         const firstSentence = ffa ? FFA_SCORING_BRIEF[cardId] : description.split(/(?<=[.!?])\s/)[0]
-        return <article className={`secondary-card secondary-card--official${required ? ' secondary-card--input_required' : ''}`} key={cardId}>
+        const group = endTurn ? reviewGroup(cardId) : undefined
+        return <Fragment key={cardId}>
+          {group && (index === 0 || reviewGroup(cards[index - 1].cardId as OfficialSecondaryId) !== group) && <h3 className="secondary-review-group">{group}</h3>}
+          <article data-review-group={group} className={`secondary-card secondary-card--official${required ? ' secondary-card--input_required' : ''}`}>
           <div className="secondary-card__heading"><div className="secondary-card__identity"><div><span>{fixed ? 'Fixed' : 'Tactical'}{!ffa && ` · ${definition.scoreAt === 'either' ? 'either turn' : definition.scoreAt === 'own' ? 'your turn' : 'Rival turn'}`}</span><h3>{definition.name}</h3></div></div><div className="secondary-card__vp"><strong>{fixed ? '20' : '5'}</strong><span>max VP</span></div></div>
           <span className={`mission-status${required ? ' mission-status--required' : ''}${status === 'Ready to Score' ? ' mission-status--ready' : ''}`}>{status}</span>
           {ffa && <SecondaryScope session={session} playerId={playerId} cardId={cardId} />}
@@ -145,7 +156,7 @@ function OfficialSecondaryForm({ session, playerId, editable }: OfficialSecondar
           </div>}
           {canDiscard && <label className="review-check-row"><input type="checkbox" checked={selectedDiscard.includes(cardId)} onChange={(event) => setSelectedDiscard((current) => event.target.checked ? [...current, cardId] : current.filter((id) => id !== cardId))} /><span>Discard at the end of this turn</span></label>}
           </details>
-        </article>
+        </article></Fragment>
       })}
     </div>
     {state.active.length === 0 && <p className="context-note">No active cards. {fixed ? 'Check the selected Fixed cards in setup.' : 'Draw two cards in your next Command phase while the deck lasts.'}</p>}

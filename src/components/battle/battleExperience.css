@@ -1,0 +1,20 @@
+.battle-focus { min-width: 0; }
+.battle-focus h2 { text-transform: capitalize; }
+.battle-focus__actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.battle-focus__actions button { min-height: 44px; flex: 1 1 120px; }
+.battle-focus__missions { display: grid; gap: .6rem; margin-top: .75rem; }
+.battle-focus__missions article { min-width: 0; overflow-wrap: anywhere; padding: .65rem; border: 1px solid #b79c6833; border-radius: .5rem; }
+.battle-focus__missions p { font-size: .82rem; line-height: 1.5; margin: .4rem 0 0; }
+.quick-damage { display: grid; gap: .7rem; min-width: 0; }
+.quick-damage label, .combat-batch label { display: grid; gap: .3rem; min-width: 0; }
+.quick-damage select, .combat-batch input, .combat-batch select { min-width: 0; width: 100%; }
+.quick-damage .combat-source { padding: .6rem; }
+.quick-damage .combat-source p { display: none; }
+.quick-damage__recent { display: flex; gap: .35rem; flex-wrap: wrap; }
+.quick-damage__recent button { min-height: 44px; font-size: .78rem; }
+.quick-damage__notice { min-height: 3rem; font-size: .82rem; line-height: 1.5; overflow-wrap: anywhere; }
+.combat-batch { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; padding-block: .65rem; }
+.combat-batch > button { grid-column: 1 / -1; min-height: 44px; }
+.secondary-review-group { grid-column: 1 / -1; margin: .5rem 0 0; font-size: 1rem; color: var(--gold, #b79c68); }
+.battle-actions--primary > .battle-damage-trigger { flex: 0 0 auto; min-width: 80px; min-height: 44px; }
+.battle-actions.battle-actions--primary { grid-template-columns: minmax(72px, .25fr) minmax(0, 1fr); }

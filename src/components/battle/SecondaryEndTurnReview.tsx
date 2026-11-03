@@ -146,7 +146,7 @@ function CauldronEndTurnReview({
   return <main className="battle-content secondary-turn-review">
     <div className="round-review__intro"><span className="eyebrow">{player.name}</span><h1>End Turn Review</h1><p>{official ? 'Confirm Chapter Approved scoring with each eligible commander, then resolve your Primary and advance.' : 'Resolve Mission Actions, Secondary scoring and your own Primary before advancing to the next player.'}</p></div>
 
-    {official && (sharedBattle ? [playerId] : session.state.turnOrder).map((ownerId) => <OfficialSecondaryPanel key={ownerId} session={session} playerId={ownerId} editable />)}
+    {official && (sharedBattle ? [playerId] : session.state.turnOrder).filter(ownerId => getSecondaryState(session)[ownerId]?.active.length || pendingOfficial.includes(ownerId)).map((ownerId) => <OfficialSecondaryPanel key={ownerId} session={session} playerId={ownerId} editable />)}
     {official && pendingOfficial.length > 0 && <section className="panel turn-review-section"><strong>Secondary review pending</strong><p>{pendingOfficial.map((id) => session.state.players[id]?.name ?? id).join(', ')} must score eligible cards or mark this turn reviewed. Each commander can use their Cards panel on their phone.</p></section>}
 
     {!evaluated && <>

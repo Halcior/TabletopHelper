@@ -266,6 +266,12 @@ test('FFA touch editor persists seven IDs, supports reset and undo, and replays 
     }
     await page.getByRole('button', { name: 'Save Layout', exact: true }).click()
     await expect(page.locator('.battlefield-editor')).toHaveCount(0)
+    await expect.poll(() => page.evaluate(async () => {
+      const { getBattle } = await import('/src/persistence/database.ts')
+      const { useBattleStore } = await import('/src/stores/battleStore.ts')
+      const id = useBattleStore.getState().session!.setup.gameId
+      return (await getBattle(id))?.state.battlefield?.widthCm
+    })).toBe(160)
     await page.reload()
     await openBoard(page)
     await expect(page.locator('.battlefield-canvas')).toHaveAttribute(
@@ -591,6 +597,12 @@ test('Battlefield 2.0 edits terrain footprints without changing objective contro
     await page.getByLabel('Footprint rotation').fill('45')
     await expect(page.locator('.objective-footprint[data-footprint-id="N1"]')).toHaveAttribute('data-footprint-width-cm', '24')
     await page.getByRole('button', { name: 'Save Layout', exact: true }).click()
+    // Wait for the existing asynchronous IndexedDB save before simulating refresh.
+    await expect.poll(() => page.evaluate(async () => {
+      const { getBattle } = await import('/src/persistence/database.ts')
+      const saved = await getBattle('battlefield-footprints')
+      return saved?.state.battlefield?.footprints?.N1?.kind
+    })).toBe('rectangle')
     await page.reload()
     await openBoard(page)
     await expect(page.locator('.objective-footprint[data-footprint-id="N1"]')).toHaveAttribute('data-footprint-kind', 'rectangle')
