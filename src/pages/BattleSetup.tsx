@@ -1,3 +1,8 @@
+import { createCauldronGame } from '../rulesets/cauldronFFA3/session'
+import { rematchPreset, rosterDifference, type RematchPreset } from '../features/battleLegacy/rematch'
+import { database } from '../persistence/storage'
+import { legacyOwner, prepareArchive } from '../features/battleLegacy/repository'
+import { useRosterScope } from '../features/armyLibrary/scope'
 import { t as tr } from '../features/i18n/locale'
 import { ClockSettings } from '../features/battleClock/ClockSettings'
 import { OFF_CLOCK, type ClockConfig } from '../features/battleClock/model'
@@ -74,10 +79,16 @@ export default function BattleSetup() {
   })
   const navigate = useNavigate()
   const preferredArmyId = params.get('armyId')
+  const accountOwner = useRosterScope(s => s.userId)
+  const rematchId = params.get('rematch'), presetId = params.get('preset')
+  const [preset, setPreset] = useState<RematchPreset | null>(null)
+  const [reuseGeometry, setReuseGeometry] = useState(true)
+  const [presetMessage, setPresetMessage] = useState('')
+  const [presetName, setPresetName] = useState('')
   const [mode, setMode] = useState<CauldronMode>(() => setupMode(params.get('mode')))
   const [objectiveLayout, setObjectiveLayout] = useState<CauldronObjectiveLayout>('expanded-7')
   const { rows: rosterRows, loading: loadingArmies, error: libraryError } = useRosterLibrary()
-  const armies = useMemo(() => rosterRows.map(row => row.army), [rosterRows])
+  const armies = useMemo(() => [...(preset?.input.armies ?? []), ...rosterRows.map(row => row.army)], [rosterRows, preset])
   const [players, setPlayers] = useState<PlayerDraft[]>(() => playersForMode(DEFAULT_PLAYERS, setupMode(params.get('mode'))))
   const [clock, setClock] = useState<ClockConfig>(OFF_CLOCK)
   const [guidance, setGuidance] = useState<GuidanceLevel>('guided')
@@ -133,7 +144,39 @@ export default function BattleSetup() {
   }
 
   useEffect(() => {
-    if (loadingArmies) return
+    let live = true
+    setPreset(null)
+    if (!rematchId && !presetId) return
+    const owner = legacyOwner()
+    void (async () => {
+      if (rematchId) await prepareArchive(owner)
+      const record = rematchId ? await database.battleArchive.get([owner, rematchId]) : undefined
+      const saved = presetId ? await database.battlePresets.get([owner, presetId]) : undefined
+      const next = saved ?? (record && !record.withdrawn ? rematchPreset(record.session, owner) : null)
+      if (!live || legacyOwner() !== owner) return
+      if (!next) { setLocalError('Battle preset is unavailable in this account.'); return }
+      if (record) next.online = record.online
+      setPreset(next); setPresetName(next.name); setMode(next.input.mode ?? 'duel'); setClock(next.clock); setGuidance(next.input.guidanceLevel)
+      setPlayers([...next.input.players, ...DEFAULT_PLAYERS.slice(next.input.players.length).map((player, i) => ({ ...player, id: `rematch-extra-${i}` }))])
+      setObjectiveLayout(next.input.objectiveLayout ?? 'classic-6'); setPrimaryDeck(next.input.primaryDeck ?? 'cauldron'); setSecondaryDeck(next.input.secondaryDeck ?? 'cauldron')
+      setOfficialStrategy(next.input.officialSecondaryStrategy ?? 'tactical'); setDuelStrategies(next.input.officialSecondaryStrategies ?? {}); setFixedSelections(next.input.fixedSecondarySelections ?? {})
+      setOfficialLayout(next.input.officialLayout ?? 1); setAttackerHomeZone(next.input.battlefieldAttackerHomeZone ?? 'A')
+      setPlayMode(next.online ? 'shared' : 'local')
+      if (next.input.doubles) {
+        setTeamNames(next.input.doubles.forces.map(f => f.name))
+        setTeamTypes(next.input.doubles.forces.map(f => f.forceType) as ['unified','convenience'])
+        setTeamWarlords(Object.fromEntries(next.input.doubles.forces.map((f, i) => [i, `${f.warlord.playerId}|${f.warlord.unitId}`])))
+      }
+    })().catch(e => { if (live) setLocalError(String(e)) })
+    return () => { live = false }
+  }, [rematchId, presetId, accountOwner])
+  const presetCompatible = Boolean(preset && mode === preset.input.mode && primaryDeck === (preset.input.primaryDeck ?? 'cauldron') && secondaryDeck === (preset.input.secondaryDeck ?? 'cauldron') && officialLayout === (preset.input.officialLayout ?? 1) && objectiveLayout === (preset.input.objectiveLayout ?? 'classic-6') && attackerHomeZone === (preset.input.battlefieldAttackerHomeZone ?? 'A') && activePlayers.every(p => {
+    const previous = preset.input.players.find(old => old.id === p.id)
+    return previous?.forceDisposition === p.forceDisposition && previous?.officialPrimaryId === p.officialPrimaryId
+  }))
+
+  useEffect(() => {
+    if (loadingArmies || (rematchId || presetId) && !preset) return
     const fallback = armies.find(army => army.id === preferredArmyId) ?? armies[0]
     if (fallback) setPlayers(current => current.map(player => ({ ...player, armyId: armies.some(army => army.id === player.armyId) ? player.armyId : fallback.id })))
     if (libraryError) setLocalError(libraryError)
@@ -230,6 +273,21 @@ export default function BattleSetup() {
     window.scrollTo({ top: 0, behavior: 'instant' })
   }
 
+  async function saveCurrentPreset() {
+    if (!validateCommanders(false)) return
+    const name = presetName
+    if (!name?.trim()) return
+    try {
+      const session = createCauldronGame({ players: activePlayers, armies: armies.filter(army => activePlayers.some(p => p.armyId === army.id)), guidanceLevel: guidance, mode, doubles: doubles ? getDoublesSetup() : undefined, objectiveLayout, primaryDeck, secondaryDeck, officialSecondaryStrategy: officialStrategy, officialSecondaryStrategies: duelStrategies, fixedSecondarySelections: fixedSelections, officialLayout, battlefieldAttackerHomeZone: attackerHomeZone, ffaCpPolicy: preset && mode === preset.input.mode ? preset.input.ffaCpPolicy : undefined })
+      session.setup.battleClock = clock
+      if (reuseGeometry && presetCompatible && preset) { session.state.battlefield = preset.geometry; session.setup.battlefieldSourceId = preset.sourceId }
+      const saved = rematchPreset(session, legacyOwner())
+      saved.sourceArmyIds = Object.fromEntries(Object.entries(saved.sourceArmyIds).map(([id, source]) => [id, preset?.sourceArmyIds[source] ?? source]))
+      await database.battlePresets.put({ ...saved, name: name.trim().slice(0,100), online: playMode === 'shared' })
+      setPresetMessage('Preset saved on this device.')
+    } catch (e) { setLocalError(String(e)) }
+  }
+
   async function submit(event: FormEvent) {
     event.preventDefault()
     setLocalError(null)
@@ -284,9 +342,11 @@ export default function BattleSetup() {
         doubles ? getDoublesSetup(sharedMode ? provisionalArmy : undefined) : undefined,
         !sharedMode,
         sharedMode ? undefined : clock,
+        preset ? { ffaCpPolicy: mode === preset.input.mode ? preset.input.ffaCpPolicy : undefined, officialPrimaryBalance: primaryDeck === preset.input.primaryDeck ? preset.input.officialPrimaryBalance : undefined, geometry: reuseGeometry && presetCompatible ? preset.geometry : undefined, sourceId: reuseGeometry && presetCompatible ? preset.sourceId : undefined } : undefined,
       )
       if (sharedMode) {
         const membership = await hostCurrentBattle(hostPlayerId, true)
+        if (preset && clock.preset !== 'off') await useSharedSessionStore.getState().clockCommand({ type: 'configure', config: clock })
         navigate(`/shared?room=${membership.roomCode}`)
       } else {
         navigate(`/battle/${battleId}`)
@@ -298,7 +358,8 @@ export default function BattleSetup() {
     }
   }
 
-  if (loadingArmies) return <div className="page-shell"><div className="loading-state" role="status">{tr("Loading saved armies…")}</div></div>
+  if (loadingArmies || (rematchId || presetId) && !preset && !localError) return <div className="page-shell"><div className="loading-state" role="status">{tr("Loading saved armies…")}</div></div>
+  if ((rematchId || presetId) && !preset && localError) return <main className="page-shell"><p role="alert">{tr(localError)}</p><Link to="/archive">{tr('Battle Archive')}</Link></main>
   if (armies.length === 0 && playMode !== 'shared') return <div className="page-shell"><div className="empty-state">
     <span className="eyebrow">{tr("Your first battle")}</span><h1>{tr("Add your first army")}</h1><p>{tr("Import a New Recruit JSON roster, then choose your format and commanders. You can add more rosters before playing.")}</p>
     <Link className="button button--gold" to="/army-import">{tr("Import army")}</Link>
@@ -314,6 +375,7 @@ export default function BattleSetup() {
         <p>{playMode === 'shared' ? tr('Choose rules and player slots. Everyone will bring their own army in the lobby.') : tr('Choose a format, assign commanders and prepare the battlefield.')}</p>
 
       </section>
+      {preset && <section className="panel"><h2>{tr('Play Rematch')}</h2><p>{tr('Review the recorded setup. A new session starts with fresh game state.')}</p><label><input type="checkbox" checked={reuseGeometry && presetCompatible} disabled={!presetCompatible} onChange={e => setReuseGeometry(e.target.checked)} />{tr('Reuse recorded battlefield')}</label>{!presetCompatible && <p>{tr('Changed rules or format use the new setup battlefield.')}</p>}{preset.input.armies.map(army => <p key={army.id}><strong>{army.name}</strong> · {army.totalPoints} pts · <span>{tr(rosterDifference(army, rosterRows.find(row => row.id === preset.sourceArmyIds[army.id])?.army))}</span></p>)}<label>{tr('Preset name')}<input maxLength={100} value={presetName} onChange={e => setPresetName(e.target.value)} /></label><button type="button" onClick={() => void saveCurrentPreset()}>{tr('Save battle preset')}</button>{presetMessage && <p role="status">{tr(presetMessage)}</p>}</section>}
       <div className="setup-mode-picker panel" role="group" aria-label={tr("Play mode")}>
         <button type="button" aria-pressed={playMode === 'local'} className={playMode === 'local' ? 'button--gold' : ''} onClick={() => { setPlayMode('local'); setStep(1); setLocalError(null) }}><FormatGlyph mode="duel" /><strong>{tr("On one device")}</strong><span>{tr("Choose all armies here.")}</span></button>
         <button type="button" aria-pressed={playMode === 'shared'} className={playMode === 'shared' ? 'button--gold' : ''} disabled={!sharedConfigured} onClick={() => { setPlayMode('shared'); setStep(1); setLocalError(null) }}><FormatGlyph mode="ffa3" /><strong>{tr("Online multiplayer")}</strong><span>{tr("Everyone brings an army to the lobby.")}</span></button>

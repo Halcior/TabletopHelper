@@ -35,3 +35,32 @@ test('private archive survives refresh, requires identity links and keeps FFA re
  await page.getByRole('button', { name: 'Battles', exact: true }).click()
  await expect(page.getByText('No completed battles in this archive yet.')).toBeVisible()
 })
+
+test('rematch uses deleted roster snapshots, allows review and starts a fresh independent session', async ({ page }) => {
+ await page.goto('/')
+ const original = await page.evaluate(async () => {
+  const { testCauldronGame } = await import('/src/rulesets/cauldronFFA3/cauldronTestUtils.ts')
+  const { dispatchBattleEvent, completeBattle } = await import('/src/domain/battle/engine.ts')
+  const { saveBattle } = await import('/src/persistence/database.ts')
+  let s = dispatchBattleEvent(testCauldronGame(), { type: 'SCORE_ADJUSTED', payload: { playerId: 'p-a', category: 'adjustment', delta: 65 } })
+  s = dispatchBattleEvent(s, { type: 'UNIT_DESTROYED', payload: { playerId: 'p-b', unitId: 'tank' } })
+  s = completeBattle(s); await saveBattle(s)
+  return { id: s.setup.gameId, serialized: JSON.stringify(s) }
+ })
+ await page.goto(`/battle/setup?rematch=${original.id}`)
+ await expect(page.getByRole('heading', { name: 'Play Rematch', exact: true })).toBeVisible()
+ await expect(page.getByText('Original roster missing. The recorded snapshot remains available.', { exact: true })).toHaveCount(3)
+ await expect(page.getByRole('button', { name: 'FFA 3', exact: false })).toHaveAttribute('aria-pressed','true')
+ await page.getByRole('button', { name: 'Next: Commanders', exact: true }).click()
+ await expect(page.locator('#commander-0-name')).toHaveValue('Alpha')
+ await page.getByRole('button', { name: /Battlefield & Start/ }).click()
+ await page.getByRole('button', { name: 'Start locally', exact: true }).click()
+ await expect(page).toHaveURL(/\/battle\/(?!setup)/)
+ const current = await page.evaluate(async () => {
+  const { useBattleStore } = await import('/src/stores/battleStore.ts')
+  const { getBattle } = await import('/src/persistence/database.ts')
+  const s = useBattleStore.getState().session!
+  return { id: s.setup.gameId, vp: s.state.players['p-a'].score.adjustment, alive: !s.state.players['p-b'].units.tank.destroyed, original: JSON.stringify(await getBattle('cauldron-test')) }
+ })
+ expect(current.id).not.toBe(original.id); expect(current.vp).toBe(0); expect(current.alive).toBe(true); expect(current.original).toBe(original.serialized)
+})

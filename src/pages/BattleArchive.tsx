@@ -1,3 +1,5 @@
+import type { RematchPreset } from '../features/battleLegacy/rematch'
+import { database } from '../persistence/storage'
 import { useEffect, useMemo, useState } from 'react'
 import { liveQuery } from 'dexie'
 import { Link, useParams } from 'react-router-dom'
@@ -17,6 +19,7 @@ export default function BattleArchive() {
   const self = account ?? 'local:self'
   const { archiveId } = useParams()
   const [records, setRecords] = useState<ArchiveRecord[]>([])
+  const [presets, setPresets] = useState<RematchPreset[]>([])
   const [friends, setFriends] = useState<Friend[]>([])
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -28,8 +31,9 @@ export default function BattleArchive() {
   useEffect(() => {
     setRecords([]); setError(''); setIdentity(self)
     void prepareArchive(owner).catch(e => setError(errorText(e)))
+    const presetSub = liveQuery(() => database.battlePresets.where('ownerId').equals(owner).toArray()).subscribe(setPresets)
     const sub = liveQuery(() => listArchive(owner)).subscribe({ next: setRecords, error: e => setError(errorText(e)) })
-    return () => sub.unsubscribe()
+    return () => { sub.unsubscribe(); presetSub.unsubscribe() }
   }, [owner])
   useEffect(() => {
     setFriends([])
@@ -52,6 +56,7 @@ export default function BattleArchive() {
     {error && <p role="alert">{tr(error)}</p>}
     {records.filter(record => record.cloudConflict).map(record => <section className="panel" key={record.id}><h2>{tr('Archive sync conflict')}</h2><p>{record.session.setup.players.map(p => p.name).join(' · ')}</p><p>{tr('Local identities')}: {Object.values(record.identities).map(i => i.label).join(' / ') || '—'} · {tr(record.withdrawn ? 'Withdrawn' : 'Completed')}</p><p>{tr('Cloud identities')}: {Object.values(record.cloudConflict!.record.identities).map(i => i.label).join(' / ') || '—'} · {tr(record.cloudConflict!.record.withdrawn ? 'Withdrawn' : 'Completed')}</p><div className="legacy-actions"><button disabled={busy} onClick={() => void act(() => resolveArchiveConflict(owner, record.id, 'cloud'))}>{tr('Use cloud version')}</button><button disabled={busy} onClick={() => void act(() => resolveArchiveConflict(owner, record.id, 'local'))}>{tr('Keep local version for next sync')}</button></div></section>)}
     {selected ? <>
+      <Link className="button" to={`/battle/setup?rematch=${encodeURIComponent(selected.id)}`}>{tr("Play Rematch")}</Link>
       <Link to="/archive">← {tr('All battles')}</Link>
       <section className="panel"><h2>{tr('Participants')}</h2><p>{tr('Link identities explicitly to include a battle in statistics. Names alone never identify a person.')}</p>
         {selected.session.setup.players.map(player => <div key={player.id} className="legacy-participant"><strong>{player.name}</strong><select aria-label={`${tr('Identity')} · ${player.name}`} value={selected.identities[player.id]?.id ?? ''} disabled={busy} onChange={event => void act(() => saveArchiveMetadata(setParticipant(selected, player.id, event.target.value, identities.get(event.target.value) ?? event.target.value)))}><option value="">{tr('Unlinked')}</option>{[...identities].map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select><form onSubmit={event => { event.preventDefault(); const input = new FormData(event.currentTarget).get('label')?.toString().trim() ?? ''; if (input) void act(() => saveArchiveMetadata(setParticipant(selected, player.id, `local:${input.toLocaleLowerCase()}`, input))) }}><input name="label" maxLength={100} aria-label={`${tr('Local identity')} · ${player.name}`} placeholder={tr('Local identity')} /><button disabled={busy}>{tr('Link')}</button></form></div>)}
@@ -63,6 +68,7 @@ export default function BattleArchive() {
       {view === 'replay' && <BattlefieldBoard key={selected.id} session={archiveFacts(selected).session} dispatch={() => {}} tactical />}
     </> : archiveId ? <p role="status">{tr('Battle not found in this account archive.')}</p> : <>
       <nav className="legacy-actions" aria-label={tr('Archive navigation')}>{(['archive', 'statistics', 'rivalries'] as const).map(value => <button key={value} aria-pressed={section === value} onClick={() => setSection(value)}>{tr(value === 'archive' ? 'Battles' : value === 'statistics' ? 'Player Statistics' : 'Rivalries — Head to Head')}</button>)}</nav>
+      {section === 'archive' && presets.length > 0 && <section className="panel"><h2>{tr('Battle presets')}</h2>{presets.map(preset => <p key={preset.id}><Link className="button" to={`/battle/setup?preset=${preset.id}`}>{preset.name}</Link></p>)}</section>}
       {section === 'archive' ? <div className="legacy-grid">{records.length === 0 && <p>{tr('No completed battles in this archive yet.')}</p>}{records.map(record => {
         const facts = archiveFacts(record)
         return <article key={record.id} className="panel legacy-card"><span className="eyebrow">{facts.format} · {new Date(facts.endedAt).toLocaleDateString()}</span><h2>{record.session.setup.players.map(p => p.name).join(' · ')}</h2><p>{facts.report.ranking.map(row => `${row.faction}: ${row.vp} VP`).join(' / ')}</p><strong>{tr(facts.report.winnerPlayerIds.length > 1 ? 'Draw' : 'Winner')}: {facts.report.ranking.filter(r => facts.report.winnerPlayerIds.includes(r.playerId)).map(r => r.name).join(' / ') || '—'}</strong><small>{tr('Rounds')}: {facts.report.roundsPlayed} · {facts.durationMs === null ? tr('Duration unknown') : `${Math.round(facts.durationMs / 60000)} min`}</small>{!facts.reliable && <small>{tr('Incomplete historical data')}</small>}<Link className="button" to={`/archive/${encodeURIComponent(record.id)}`}>{tr('Open battle')}</Link></article>

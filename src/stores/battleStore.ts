@@ -1,4 +1,5 @@
-import { commandClock, createBattleClock, reconcileClock, type ClockConfig, type ClockCommand } from '../features/battleClock/model'
+import { freshBattle, type RematchOptions } from '../features/battleLegacy/rematch'
+import { commandClock, reconcileClock, type ClockConfig, type ClockCommand } from '../features/battleClock/model'
 import { create } from 'zustand'
 import { grantCommandPhaseCp as grantCauldronCoreCp } from '../rulesets/cauldronFFA3/session'
 import type { Army } from '../domain/army/types'
@@ -34,7 +35,6 @@ import {
   CAULDRON_RULESET_ID,
   changeOperationalPlan,
   confirmCauldronEndRound,
-  createCauldronGame,
   choosePriorityTarget as choosePriorityTargetInBattle,
   discardSecondaryCards as discardSecondaryCardsInBattle,
   dispatchCauldronBattleEvent,
@@ -78,6 +78,7 @@ type BattleStore = {
     doubles?: DoublesSetup,
     persist?: boolean,
     clock?: ClockConfig,
+    rematch?: RematchOptions,
   ) => Promise<string>
   clockCommand: (command: ClockCommand) => void
   loadBattle: (id: string) => Promise<void>
@@ -165,14 +166,10 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
   loading: false,
   error: null,
 
-  async startCauldronBattle(players, armies, guidanceLevel, objectiveLayout, secondaryDeck, officialSecondaryStrategy, fixedSecondarySelections, primaryDeck, officialSecondaryStrategies, officialLayout, battlefieldAttackerHomeZone, mode, doubles, persist = true, clock) {
+  async startCauldronBattle(players, armies, guidanceLevel, objectiveLayout, secondaryDeck, officialSecondaryStrategy, fixedSecondarySelections, primaryDeck, officialSecondaryStrategies, officialLayout, battlefieldAttackerHomeZone, mode, doubles, persist = true, clock, rematch) {
     set({ loading: true, error: null })
     try {
-      const session = createCauldronGame({ players, armies, guidanceLevel, objectiveLayout, secondaryDeck, officialSecondaryStrategy, fixedSecondarySelections, primaryDeck, officialSecondaryStrategies, officialLayout, battlefieldAttackerHomeZone, mode, doubles })
-      if (clock && clock.preset !== 'off') {
-        session.setup.battleClock = clock
-        session.battleClock = createBattleClock(session.setup, clock, Date.now())
-      }
+      const session = freshBattle({ players, armies, guidanceLevel, objectiveLayout, secondaryDeck, officialSecondaryStrategy, fixedSecondarySelections, primaryDeck, officialSecondaryStrategies, officialLayout, battlefieldAttackerHomeZone, mode, doubles }, clock, rematch)
       // Provisional multiplayer setup is not an active battle on this device.
       // The frozen, server-approved snapshot is persisted after lobby Start.
       if (persist) await saveBattle(session)

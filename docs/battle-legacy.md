@@ -67,3 +67,26 @@ B backend: additive migration applied after checking deployed history. RLS, owne
 Hosted migration history: archive `20261103104136_battle_archive_private`; grant hardening has its own follow-up migration. Hosted default anon privileges are explicitly revoked, in addition to owner-only RLS.
 
 B review fixes: atomic missing-only backfill cannot revive a withdrawn battle. Sync pulls first, tracks the last acknowledged mutation, refreshes clean records and retains both conflicting versions. Users can choose cloud/local; one conflict does not block other battles. Two transport tests cover a second device edit/withdrawal and both recovery choices.
+
+## C — rematch and battle presets
+
+Play Rematch opens the existing setup wizard for review. Participants, rosters,
+format, rules source, force dispositions, team assignments, clock and battlefield
+can be reviewed or changed. Original roster definitions are retained under new
+snapshot IDs, so deleted/changed library entries are never substituted silently.
+The form labels missing and changed originals and offers current library versions.
+Incompatible format/mission changes use the new setup's default battlefield.
+Online rematches create a new waiting lobby; commanders still bring their own
+rosters. A recorded online mode is retained when available; older saves default
+to the editable local/online selector.
+
+Presets save the reviewed current form in account-scoped IndexedDB v5. They are
+available in Battle Archive. Only setup fields are retained. A new session is
+created through the existing engine, with freshly initialized Secondary decks,
+normal starting CP and zero VP/damage. Clock budgets and tracking positions reset.
+Original sessions remain untouched. No backend migration.
+
+Validation: two domain rematch tests plus a browser flow using deleted roster
+snapshots, reviewing commanders, starting a new session and checking zero VP,
+restored models, a new ID and exact preservation of the source save. TypeScript,
+production build, existing rules/clock tests and PostgreSQL suite pass.

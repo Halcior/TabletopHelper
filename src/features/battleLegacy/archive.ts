@@ -8,6 +8,7 @@ export type BattleFormat = '1v1' | 'FFA' | '2v2'
 export type ArchiveRecord = {
   schemaVersion: 1
   withdrawn?: boolean
+  online?: boolean
   syncedMutationId?: string
   cloudConflict?: { record: ArchiveRecord; revision: number }
   id: string

@@ -1,3 +1,4 @@
+import { getSharedRuntimeMembership } from '../../multiplayer/sharedRuntime'
 import { normalizeLegacySession } from '../../persistence/legacyBattle'
 import { database } from '../../persistence/storage'
 import { useRosterScope } from '../armyLibrary/scope'
@@ -9,7 +10,7 @@ import type { BattleSession } from '../../domain/battle/types'
 export const legacyOwner = () => useRosterScope.getState().userId ?? 'guest'
 const assertScope = (owner: string) => { if (legacyOwner() !== owner) throw new Error('The account changed. Open this page again.') }
 export function newArchive(session: BattleSession, ownerId: string): ArchiveRecord {
-  return { schemaVersion: 1, id: session.setup.gameId, ownerId, session: structuredClone(normalizeLegacySession(session)), identities: {}, revision: 0, mutationId: createPortableUuid() }
+  return { schemaVersion: 1, online: getSharedRuntimeMembership()?.battleId === session.setup.gameId, id: session.setup.gameId, ownerId, session: structuredClone(normalizeLegacySession(session)), identities: {}, revision: 0, mutationId: createPortableUuid() }
 }
 export async function archiveCompleted(input: BattleSession, ownerId: string) {
   const session = normalizeLegacySession(input)
