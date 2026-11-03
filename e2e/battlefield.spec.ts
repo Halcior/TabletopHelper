@@ -266,6 +266,12 @@ test('FFA touch editor persists seven IDs, supports reset and undo, and replays 
     }
     await page.getByRole('button', { name: 'Save Layout', exact: true }).click()
     await expect(page.locator('.battlefield-editor')).toHaveCount(0)
+    await expect.poll(() => page.evaluate(async () => {
+      const { getBattle } = await import('/src/persistence/database.ts')
+      const { useBattleStore } = await import('/src/stores/battleStore.ts')
+      const id = useBattleStore.getState().session!.setup.gameId
+      return (await getBattle(id))?.state.battlefield?.widthCm
+    })).toBe(160)
     await page.reload()
     await openBoard(page)
     await expect(page.locator('.battlefield-canvas')).toHaveAttribute(
