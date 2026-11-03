@@ -16,6 +16,8 @@ export async function createTestDatabase() {
     grant usage on schema storage to anon,authenticated; grant select,insert,update,delete on storage.objects to authenticated;`)
   for (const path of [
     'supabase/shared_sessions.sql',
+    'supabase/migrations/20261103103209_battle_archive_private.sql',
+    'supabase/migrations/20261103104214_restrict_archive_default_grants.sql',
     'supabase/migrations/20261013094351_battlefield_geometry_host_policy.sql',
     'supabase/migrations/20261014121951_gw_doubles_four_seat_lobby.sql',
     'supabase/migrations/20261021124245_private_user_armies.sql',
@@ -28,7 +30,9 @@ export async function createTestDatabase() {
     'supabase/migrations/20261025174428_battle_clock_2.sql',
     'supabase/migrations/20261025181032_battle_clock_restore_and_current_turn.sql',
     'supabase/migrations/20261027140525_battlefield_unit_tracking.sql',
-  ])
+  ]) {
+    if (path.endsWith('restrict_archive_default_grants.sql')) await db.exec('grant all on public.battle_archive to anon')
     await db.exec(readFileSync(path, 'utf8'))
+  }
   return db
 }

@@ -1,4 +1,5 @@
-import type { Army } from '../domain/army/types'
+import { archiveCompleted, legacyOwner } from '../features/battleLegacy/repository'
+import { normalizeLegacySession } from './legacyBattle'
 import type { BattleSession } from '../domain/battle/types'
 import { database, type StoredBattle } from './storage'
 export { database } from './storage'
@@ -6,11 +7,18 @@ export type { StoredArmy, StoredBattle } from './storage'
 export { saveArmy, getArmy, listArmies } from '../features/armyLibrary/repository'
 
 export async function saveBattle(session: BattleSession): Promise<void> {
+  const savingOwner = legacyOwner()
+  await database.transaction('rw', database.battles, database.battleArchive, async () => {
+  const previous = await database.battles.get(session.setup.gameId)
+  const archiveOwner = previous ? previous.archiveOwner ?? 'guest' : savingOwner
   await database.battles.put({
+    archiveOwner,
     id: session.setup.gameId,
     session,
     status: session.state.status,
     updatedAt: session.state.updatedAt,
+  })
+  await archiveCompleted(session, archiveOwner)
   })
 }
 
@@ -31,22 +39,4 @@ export async function listRecentBattles(limit = 6): Promise<StoredBattle[]> {
     ...stored,
     session: normalizeLegacySession(stored.session),
   }))
-}
-
-type LegacyPlayerSetup = BattleSession['setup']['players'][number] & { army?: Army }
-
-function normalizeLegacySession(session: BattleSession): BattleSession {
-  const legacySetup = session.setup as Omit<BattleSession['setup'], 'armies' | 'players'> & {
-    armies?: Record<string, Army>
-    players: LegacyPlayerSetup[]
-  }
-  if (legacySetup.armies) return session
-  const armies = Object.fromEntries(legacySetup.players.flatMap((player) => (
-    player.army ? [[player.army.id, player.army] as const] : []
-  )))
-  const players = legacySetup.players.map((player) => {
-    const { army, ...setupPlayer } = player
-    return { ...setupPlayer, armyId: setupPlayer.armyId ?? army?.id }
-  })
-  return { ...session, setup: { ...session.setup, players, armies } }
 }
