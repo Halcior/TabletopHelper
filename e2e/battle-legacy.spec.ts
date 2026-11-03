@@ -150,7 +150,7 @@ test('online rematch waits for its first server clock snapshot and reaches the c
 
 test('private campaign sync grants a member read-only access and removes it after revocation',async({browser})=>{
  const backend=new PostgresBackend();await backend.init()
- const a=await browser.newContext(),b=await browser.newContext(),host=await a.newPage(),member=await b.newPage()
+ const a=await browser.newContext(),b=await browser.newContext(),copy=await browser.newContext(),host=await a.newPage(),member=await b.newPage(),copyHost=await copy.newPage()
  async function login(page: typeof host,email:string){
   await page.goto('/account');await page.getByRole('textbox',{name:'Email',exact:true}).fill(email)
   await page.getByRole('button',{name:'Send sign-in link'}).click();await page.getByText('Enter email code',{exact:true}).click()
@@ -158,7 +158,7 @@ test('private campaign sync grants a member read-only access and removes it afte
   await expect(page.getByRole('heading',{name:email,exact:true})).toBeVisible()
  }
  try {
-  await backend.attach(a);await backend.attach(b);await login(host,'a@example.test');await login(member,'b@example.test')
+  await backend.attach(a);await backend.attach(b);await backend.attach(copy);await login(host,'a@example.test');await login(member,'b@example.test')
   const id=await host.evaluate(async()=>{
    const { createCampaign }=await import('/src/features/campaigns/model.ts')
    const { saveCampaign }=await import('/src/features/campaigns/repository.ts')
@@ -170,6 +170,12 @@ test('private campaign sync grants a member read-only access and removes it afte
   await member.goto(`/campaigns/${id}`);await expect(member.getByRole('heading',{name:'Private sector',exact:true})).toBeVisible()
   await expect(member.getByRole('heading',{name:'Assign an archived battle',exact:true})).toHaveCount(0)
   expect(await member.evaluate(async()=> (await (await import('/src/persistence/storage.ts')).database.campaigns.toArray()).length)).toBe(0)
+  await login(copyHost,'a@example.test');await copyHost.goto(`/campaigns/${id}`)
+  await expect(copyHost.getByRole('heading',{name:'Private sector',exact:true})).toBeVisible()
+  expect(await copyHost.evaluate(async()=> (await (await import('/src/persistence/storage.ts')).database.campaigns.toArray()).length)).toBe(0)
+  await copyHost.getByRole('button',{name:'Sync private campaign',exact:true}).click()
+  await expect.poll(async()=>await copyHost.evaluate(async()=> (await (await import('/src/persistence/storage.ts')).database.campaigns.toArray()).length)).toBe(1)
+  await copy.setOffline(true);await expect(copyHost.getByRole('heading',{name:'Private sector',exact:true})).toBeVisible()
   await host.getByText('Participant account access',{exact:true}).click()
   await host.getByLabel('Account access · Member',{exact:true}).selectOption('')
   await host.getByRole('button',{name:'Sync private campaign',exact:true}).click()
@@ -185,5 +191,5 @@ test('private campaign sync grants a member read-only access and removes it afte
   await host.screenshot({path:'test-results/campaign-mobile.png',fullPage:true})
   await host.setViewportSize({width:1440,height:1000})
   await host.screenshot({path:'test-results/campaign-desktop.png',fullPage:true})
- } finally {await a.close();await b.close();await backend.close()}
+ } finally {await a.close();await b.close();await copy.close();await backend.close()}
 })

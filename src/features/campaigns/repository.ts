@@ -29,7 +29,7 @@ export async function syncCampaign(campaign: Campaign): Promise<{ conflict?: Cam
  if (remote?.mutationId === campaign.mutationId) {
   await database.transaction('rw', database.campaigns, async () => {
    const current = await database.campaigns.get([campaign.ownerId,campaign.id])
-   if (current) await database.campaigns.put({ ...current,revision:remote.revision,syncedMutationId:campaign.mutationId })
+   await database.campaigns.put({ ...(current ?? remote),revision:remote.revision,syncedMutationId:campaign.mutationId })
   })
   return {}
  }
@@ -42,7 +42,7 @@ export async function syncCampaign(campaign: Campaign): Promise<{ conflict?: Cam
  assertCampaignOwner(campaign)
  await database.transaction('rw', database.campaigns, async () => {
   const current = await database.campaigns.get([campaign.ownerId, campaign.id])
-  if (current) await database.campaigns.put({ ...current, revision: saved.revision, syncedMutationId: campaign.mutationId })
+  await database.campaigns.put({ ...(current ?? saved), revision: saved.revision, syncedMutationId: campaign.mutationId })
  })
  return {}
 }
