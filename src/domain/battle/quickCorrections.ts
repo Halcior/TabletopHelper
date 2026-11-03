@@ -31,6 +31,6 @@ export function planQuickUndo(session: BattleSession, eventId = session.state.ev
     default: return { safe: false, reason: 'This action needs an explicit correction. Battle Clock and turn history cannot be reversed here.' }
   }
   return { safe: true, label: 'Undo last action', input: { type: 'STATE_CORRECTED', payload: {
-    correction, reason: 'Undo last isolated action', quickUndo: { expectedLastEventId: last.id, actionId: last.actionId },
+    correction, reason: 'Undo last isolated action', quickUndo: { expectedLastEventId: last.id, actionId: last.actionId, expectedBaselineEventIds: session.state.events.slice(0, -1).map(event => event.id) },
   } } }
 }

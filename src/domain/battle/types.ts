@@ -170,7 +170,7 @@ export type BattleEvent = BattleEventMetadata & (
   | { type: 'CP_GAINED'; payload: { playerId: string; amount: number } }
   | { type: 'CP_SPENT'; payload: { playerId: string; amount: number } }
   | { type: 'SCORE_ADJUSTED'; payload: { playerId: string; category: ScoreCategory; delta: number } }
-  | { type: 'STATE_CORRECTED'; payload: { correction: BattleCorrection; reason: string; quickUndo?: { expectedLastEventId: string; actionId: string } } }
+  | { type: 'STATE_CORRECTED'; payload: { correction: BattleCorrection; reason: string; quickUndo?: { expectedLastEventId: string; actionId: string; expectedBaselineEventIds?: string[] } } }
   | { type: 'BATTLEFIELD_LAYOUT_CHANGED'; payload: { geometry: BattlefieldGeometry } }
   | {
     type: 'UNIT_MODEL_DESTROYED'

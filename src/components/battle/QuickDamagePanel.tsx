@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { BattleEventInput, BattleSession, CombatAttribution } from '../../domain/battle/types'
 import { doublesScorekeeperId, onSameDoublesForce } from '../../domain/battle/doubles'
 import { selectRecentUnits } from '../../domain/battle/recentUnits'
@@ -15,6 +15,15 @@ function remembered(key: string): Partial<Selection> {
   try { return JSON.parse(sessionStorage.getItem(key) ?? '{}') } catch { return {} }
 }
 
+function resolveSelection(session: BattleSession, shared: boolean, viewerId: string | null | undefined, saved: Partial<Selection>): Selection {
+  const defaultId = shared ? viewerId : session.setup.players.find(player => player.id !== session.state.activePlayerId)?.id
+  const playerId = saved.playerId && session.state.players[saved.playerId] ? saved.playerId : defaultId ?? session.state.activePlayerId
+  const player = session.state.players[playerId]
+  const units = player.armyId ? session.setup.armies[player.armyId]?.units ?? [] : []
+  const unitId = units.find(unit => unit.id === saved.unitId)?.id ?? units[0]?.id ?? ''
+  return { playerId, unitId, source: saved.source ?? {} }
+}
+
 export function canQuickDamage(session: BattleSession, targetId: string, shared: boolean, viewerId?: string | null) {
   if (session.state.status !== 'active') return false
   if (!shared) return true
@@ -28,8 +37,12 @@ export function QuickDamagePanel({ session, dispatch, shared = false, viewerId, 
   session: BattleSession; dispatch: (event: BattleEventInput) => void; shared?: boolean; viewerId?: string | null; onClose: () => void
 }) {
   const key = `battle-quick-damage:v1:${session.setup.gameId}:${viewerId ?? 'local'}`
-  const [selection, setSelection] = useState<Partial<Selection>>(() => remembered(key))
+  const [selection, setSelection] = useState<Selection>(() => resolveSelection(session, shared, viewerId, remembered(key)))
+  useEffect(() => {
+    try { sessionStorage.setItem(key, JSON.stringify(selection)) } catch { /* optional UI preference */ }
+  }, [key, selection])
   const [notice, setNotice] = useState('')
+  const [recordedEventId, setRecordedEventId] = useState<string | null>(null)
   const error = useBattleStore(state => state.error)
   const [recentByPlayer] = useState(() => Object.fromEntries(session.setup.players.map(player => [player.id, selectRecentUnits(session, player.id, 3)])))
   const defaultId = shared ? viewerId : session.setup.players.find(player => player.id !== session.state.activePlayerId)?.id
@@ -45,7 +58,7 @@ export function QuickDamagePanel({ session, dispatch, shared = false, viewerId, 
   const source = lockedAttacker ? { ...selection.source, destroyedByPlayerId: lockedAttacker } : selection.source ?? {}
   const recent = recentByPlayer[targetId] ?? []
   function update(patch: Partial<Selection>) {
-    const next = { ...selection, ...patch }
+    const next = resolveSelection(session, shared, viewerId, { ...selection, ...patch })
     setSelection(next)
     try { sessionStorage.setItem(key, JSON.stringify(next)) } catch { /* optional UI preference */ }
   }
@@ -57,6 +70,7 @@ export function QuickDamagePanel({ session, dispatch, shared = false, viewerId, 
     if (next?.setup.gameId !== session.setup.gameId || next.state.events.length <= session.state.events.length) return
     const after = next.state.players[targetId].units[unit.id]
     const recorded = next.state.events.slice(session.state.events.length).find(entry => entry.type === 'UNIT_COMBAT_RESOLVED')
+    setRecordedEventId(recorded?.id ?? null)
     const change = recorded && buildBattleChronicle(next).find(entry => entry.id === recorded.id)?.unitChange
     setNotice(`Recorded · ${unit.name} · ${before.modelsAlive} → ${after.modelsAlive} models${change?.effectiveWoundsLost ? ` · ${change.effectiveWoundsLost} effective Wounds lost` : ''}. ${after.destroyed ? 'Unit destroyed.' : 'Saved to Chronicle.'}`)
   }
@@ -70,7 +84,7 @@ export function QuickDamagePanel({ session, dispatch, shared = false, viewerId, 
       <CombatSourcePicker session={session} targetPlayerId={targetId} value={source} onChange={value => update({ source: value })} disabled={!canEdit} lockedAttackerPlayerId={lockedAttacker} />
       {unit && <CombatControls key={`${targetId}:${unit.id}`} unit={unit} state={session.state.players[targetId].units[unit.id]} playerId={targetId} source={source} dispatch={record} canEdit={canEdit} damageOnly compact quickBatch />}
       <div className="quick-damage__notice" role="status" aria-label="Quick damage confirmation">{notice || 'Select losses after saves and allocation. One press records one event.'}</div>
-      {notice && <QuickUndoAction session={session} eventId={session.state.events.at(-1)?.id ?? ''} />}
+      {notice && recordedEventId && <QuickUndoAction session={session} eventId={recordedEventId} />}
       {error && <p role="alert">{error}</p>}
     </section>
   </CommandDialog>
