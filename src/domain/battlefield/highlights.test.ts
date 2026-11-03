@@ -17,3 +17,13 @@ it('does not highlight an elimination that was restored', () => {
   s = dispatchBattleEvent(s, { type: 'UNIT_MODEL_RESTORED', payload: { playerId: 'p-b', unitId: 'tank', amount: 1 } })
   expect(battleHighlights(s).some(f => f.combat?.eliminated)).toBe(false)
 })
+
+it('selects only the final outstanding elimination when both occur in one round', () => {
+  let s = dispatchBattleEvent(testCauldronGame(), { type: 'UNIT_DESTROYED', payload: { playerId: 'p-b', unitId: 'tank' } })
+  const first = s.state.events.at(-1)!.id
+  s = dispatchBattleEvent(s, { type: 'UNIT_MODEL_RESTORED', payload: { playerId: 'p-b', unitId: 'tank', amount: 1 } })
+  s = dispatchBattleEvent(s, { type: 'UNIT_DESTROYED', payload: { playerId: 'p-b', unitId: 'tank' } })
+  const ids = battleHighlights(s).map(frame => frame.eventId)
+  expect(ids).not.toContain(first)
+  expect(ids).toContain(s.state.events.at(-1)!.id)
+})

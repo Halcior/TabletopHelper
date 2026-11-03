@@ -314,3 +314,26 @@ for (const count of [2, 4]) test(`${count === 4 ? 'Doubles' : 'Duel'}: PostgreSQ
     await backend.close()
   }
 })
+
+test('completed battle Chronicle opens the requested historical map event', async ({ page }) => {
+ await page.goto('/')
+ const expected = await page.evaluate(async () => {
+  const { testCauldronGame } = await import('/src/rulesets/cauldronFFA3/cauldronTestUtils.ts')
+  const { dispatchBattleEvent, completeBattle } = await import('/src/domain/battle/engine.ts')
+  const { unitMapChangeInput } = await import('/src/domain/battlefield/unitTracking.ts')
+  const { buildBattlefieldReplay } = await import('/src/domain/battlefield/replay.ts')
+  const { saveBattle } = await import('/src/persistence/database.ts')
+  let s = dispatchBattleEvent(testCauldronGame(), { type: 'UNIT_TRACKING_CHANGED', payload: { enabled: true } })
+  s = dispatchBattleEvent(s, unitMapChangeInput(s.state, 'p-a', 'infantry', 'battlefield', { x: .2, y: .3 }))
+  s = dispatchBattleEvent(s, unitMapChangeInput(s.state, 'p-a', 'infantry', 'battlefield', { x: .7, y: .8 }))
+  const id = s.state.events.at(-1)!.id
+  s = completeBattle(s); await saveBattle(s)
+  return { gameId: s.setup.gameId, eventId: id, frame: buildBattlefieldReplay(s).find(frame => frame.eventId === id)!.index }
+ })
+ await page.goto(`/battle/${expected.gameId}`)
+ await page.getByRole('button', { name: 'View battle log', exact: true }).click()
+ await page.getByRole('button', { name: 'Full History', exact: true }).click()
+ await page.locator('.chronicle-entry').filter({ has: page.getByText(expected.eventId, { exact: true }) }).getByRole('button', { name: 'Show on Tactical Map', exact: true }).click()
+ await expect(page.getByLabel('Replay event', { exact: true })).toHaveValue(String(expected.frame))
+ await expect(token(page)).toHaveAttribute('data-board-x', '0.7')
+})

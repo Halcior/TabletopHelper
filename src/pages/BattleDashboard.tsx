@@ -350,7 +350,7 @@ export default function BattleDashboard() {
         <button className="terminal-report-toggle" onClick={() => setTerminalReportOpen((current) => !current)}>{terminalReportOpen ? tr('Hide Battle Report') : tr('View Battle Report')}</button>
         {terminalReportOpen && <BattleReport session={session} />}
         <button className="terminal-report-toggle" onClick={() => setTerminalBoardOpen((current) => !current)}>{terminalBoardOpen ? tr('Hide battlefield replay') : tr('View battlefield replay')}</button>
-        {terminalBoardOpen && <ObjectivesPanel session={session} dispatch={dispatch} />}
+        {terminalBoardOpen && <ObjectivesPanel session={session} dispatch={dispatch} replayRequest={replayRequest} replayEventId={replayEventId} />}
         {terminalLogOpen && <div className="battle-terminal-log"><BattleLog session={session} onShowMap={showMapEvent} /></div>}
       </main> : <>
         <Scoreboard
