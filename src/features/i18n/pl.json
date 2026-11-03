@@ -2030,5 +2030,12 @@
   "Survival": "Przeżywalność",
   "Deaths": "Zniszczenia",
   "Direct recorded engagements": "Zapisane bezpośrednie starcia",
-  "eliminations": "eliminacji"
+  "eliminations": "eliminacji",
+  "Archive sync conflict": "Konflikt synchronizacji archiwum",
+  "Local identities": "Lokalni uczestnicy",
+  "Cloud identities": "Uczestnicy w chmurze",
+  "Withdrawn": "Wycofana",
+  "Use cloud version": "Użyj wersji z chmury",
+  "Keep local version for next sync": "Zachowaj lokalną wersję do synchronizacji",
+  "Some archive records need attention. Sync again or resolve the saved cloud conflict; other battles were synchronized.": "Część zapisów wymaga uwagi. Ponów synchronizację lub rozstrzygnij zapisany konflikt; pozostałe bitwy zostały zsynchronizowane."
 }

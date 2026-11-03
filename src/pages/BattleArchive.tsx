@@ -4,7 +4,7 @@ import { Link, useParams } from 'react-router-dom'
 import { t as tr } from '../features/i18n/locale'
 import { useRosterScope } from '../features/armyLibrary/scope'
 import { archiveFacts, aggregateUnits, playerResults, playerStatistics, rivalryResults, setParticipant, type ArchiveRecord, type BattleFormat } from '../features/battleLegacy/archive'
-import { importDeviceArchive, listArchive, saveArchiveMetadata, syncArchive } from '../features/battleLegacy/repository'
+import { importDeviceArchive, listArchive, resolveArchiveConflict, saveArchiveMetadata, syncArchive } from '../features/battleLegacy/repository'
 import { BattleReport } from '../components/battle/BattleReport'
 import { BattleLog } from '../components/battle/BattleLog'
 import { BattlefieldBoard } from '../components/battle/BattlefieldBoard'
@@ -49,6 +49,7 @@ export default function BattleArchive() {
   return <main className="page-shell legacy-page">
     <header className="panel legacy-hero"><span className="eyebrow">Battle Legacy</span><h1>{tr('Battle Archive')}</h1><p>{tr('Recorded battles. Lasting rivalries.')}</p><div className="legacy-actions">{account && <button disabled={busy} onClick={() => void act(() => importDeviceArchive(owner))}>{tr('Import device archive into this account')}</button>}{account && <button disabled={busy} onClick={() => void act(() => syncArchive(owner))}>{tr('Sync private archive')}</button>}</div><small>{tr('Private to this account; guests keep their archive on this device. Sync is explicit.')}</small></header>
     {error && <p role="alert">{tr(error)}</p>}
+    {records.filter(record => record.cloudConflict).map(record => <section className="panel" key={record.id}><h2>{tr('Archive sync conflict')}</h2><p>{record.session.setup.players.map(p => p.name).join(' · ')}</p><p>{tr('Local identities')}: {Object.values(record.identities).map(i => i.label).join(' / ') || '—'} · {tr(record.withdrawn ? 'Withdrawn' : 'Completed')}</p><p>{tr('Cloud identities')}: {Object.values(record.cloudConflict!.record.identities).map(i => i.label).join(' / ') || '—'} · {tr(record.cloudConflict!.record.withdrawn ? 'Withdrawn' : 'Completed')}</p><div className="legacy-actions"><button disabled={busy} onClick={() => void act(() => resolveArchiveConflict(owner, record.id, 'cloud'))}>{tr('Use cloud version')}</button><button disabled={busy} onClick={() => void act(() => resolveArchiveConflict(owner, record.id, 'local'))}>{tr('Keep local version for next sync')}</button></div></section>)}
     {selected ? <>
       <Link to="/archive">← {tr('All battles')}</Link>
       <section className="panel"><h2>{tr('Participants')}</h2><p>{tr('Link identities explicitly to include a battle in statistics. Names alone never identify a person.')}</p>

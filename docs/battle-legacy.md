@@ -65,3 +65,5 @@ Physical playtest: confirm player identity assignments after a real online match
 B backend: additive migration applied after checking deployed history. RLS, owner predicates and anonymous denial verified on hosted Supabase; existing shared schema remains 12. Reopening a finished session withdraws its derived result without deleting its canonical history. Private sync propagates this withdrawal.
 
 Hosted migration history: archive `20261103104136_battle_archive_private`; grant hardening has its own follow-up migration. Hosted default anon privileges are explicitly revoked, in addition to owner-only RLS.
+
+B review fixes: atomic missing-only backfill cannot revive a withdrawn battle. Sync pulls first, tracks the last acknowledged mutation, refreshes clean records and retains both conflicting versions. Users can choose cloud/local; one conflict does not block other battles. Two transport tests cover a second device edit/withdrawal and both recovery choices.
