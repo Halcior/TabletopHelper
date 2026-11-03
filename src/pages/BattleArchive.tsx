@@ -4,7 +4,7 @@ import { Link, useParams } from 'react-router-dom'
 import { t as tr } from '../features/i18n/locale'
 import { useRosterScope } from '../features/armyLibrary/scope'
 import { archiveFacts, aggregateUnits, playerResults, playerStatistics, rivalryResults, setParticipant, type ArchiveRecord, type BattleFormat } from '../features/battleLegacy/archive'
-import { importDeviceArchive, listArchive, resolveArchiveConflict, saveArchiveMetadata, syncArchive } from '../features/battleLegacy/repository'
+import { importDeviceArchive, listArchive, prepareArchive, resolveArchiveConflict, saveArchiveMetadata, syncArchive } from '../features/battleLegacy/repository'
 import { BattleReport } from '../components/battle/BattleReport'
 import { BattleLog } from '../components/battle/BattleLog'
 import { BattlefieldBoard } from '../components/battle/BattlefieldBoard'
@@ -27,6 +27,7 @@ export default function BattleArchive() {
   const [view, setView] = useState<'report' | 'chronicle' | 'replay'>('report')
   useEffect(() => {
     setRecords([]); setError(''); setIdentity(self)
+    void prepareArchive(owner).catch(e => setError(errorText(e)))
     const sub = liveQuery(() => listArchive(owner)).subscribe({ next: setRecords, error: e => setError(errorText(e)) })
     return () => sub.unsubscribe()
   }, [owner])

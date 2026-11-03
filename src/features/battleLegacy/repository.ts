@@ -21,12 +21,15 @@ export async function archiveCompleted(input: BattleSession, ownerId: string) {
   if (existing && JSON.stringify(existing.session) === JSON.stringify(session)) return
   await database.battleArchive.put({ ...(existing ?? newArchive(session, ownerId)), withdrawn: false, session: structuredClone(session), mutationId: createPortableUuid() })
 }
-export async function listArchive(owner = legacyOwner()): Promise<ArchiveRecord[]> {
+export async function prepareArchive(owner = legacyOwner()): Promise<void> {
   // Legacy saves predate account scoping; they belong to the device guest archive.
   await database.transaction('rw', database.battles, database.battleArchive, async () => {
     const rows = await database.battles.where('status').equals('completed').toArray()
     for (const row of rows) if ((row.archiveOwner ?? 'guest') === owner && !await database.battleArchive.get([owner, row.id])) await archiveCompleted(row.session, owner)
   })
+  assertScope(owner)
+}
+export async function listArchive(owner = legacyOwner()): Promise<ArchiveRecord[]> {
   assertScope(owner)
   return (await database.battleArchive.where('ownerId').equals(owner).toArray()).filter(row => row.schemaVersion === 1 && (!row.withdrawn || row.cloudConflict)).sort((a, b) => archiveFacts(b).endedAt.localeCompare(archiveFacts(a).endedAt))
 }
@@ -65,7 +68,7 @@ function validCloud(row: ArchiveCloudRow, owner: string) {
 export async function syncArchive(owner: string, transport: ArchiveTransport = archiveTransport) {
   assertScope(owner)
   if (owner === 'guest') throw new Error('Sign in to sync your private archive.')
-  await listArchive(owner)
+  await prepareArchive(owner)
   const remote = await transport.list(owner)
   assertScope(owner)
   for (const row of remote) {
