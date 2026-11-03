@@ -1,4 +1,5 @@
 import { buildBattleChronicle } from '../../domain/battle/chronicle'
+import { quickCorrectionOutcomes } from '../../domain/battle/correctionGuard'
 import type { UnitDefinition } from '../../domain/army/types'
 import type { BattleSession } from '../../domain/battle/types'
 import { getUnitDefinition } from '../../domain/battle/missionActions'
@@ -62,7 +63,9 @@ export type OfficialKill = {
 
 /** Replay only model counts: partial kills count for model cards, the last model for unit cards. */
 export function officialKillLedger(session: BattleSession): OfficialKill[] {
+  const { revertedActionIds } = quickCorrectionOutcomes(session.state.events)
   return buildBattleChronicle(session).flatMap((entry): OfficialKill[] => {
+    if (revertedActionIds.has(entry.event.actionId)) return []
     const change = entry.unitChange
     if (!change || change.correction || change.modelsBefore <= change.modelsAfter) return []
     return [{ eventId: entry.id, killerPlayerId: change.attackerPlayerId, targetPlayerId: change.target.playerId,

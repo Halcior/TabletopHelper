@@ -1,3 +1,4 @@
+import { correctionGuardMatches } from './correctionGuard'
 import { totalCombatWounds } from './combatState'
 import { doublesScorekeeperId } from './doubles'
 import { visitBattleHistory } from './engine'
@@ -76,10 +77,12 @@ export function buildBattleChronicle(session: BattleSession): ChronicleEntry[] {
   let pending: ChronicleEntry
   let objectiveBefore: string | null | undefined
   let scoreBefore = 0
+  let skippedCorrection = false
   let scoreCategory: keyof GameState['players'][string]['score'] | undefined
 
   visitBattleHistory(session, {
     before(event, state) {
+      skippedCorrection = event.type === 'STATE_CORRECTED' && !correctionGuardMatches(state, event)
       pending = {
         id: event.id, event, round: state.round, phase: state.phase, turnPlayerId: state.activePlayerId,
         playerIds: event.actorPlayerId ? [event.actorPlayerId] : [], category: 'other', highlight: false,
@@ -237,6 +240,13 @@ export function buildBattleChronicle(session: BattleSession): ChronicleEntry[] {
         }
       }
       pending.playerIds = [...new Set(pending.playerIds)]
+      if (skippedCorrection) {
+        pending.description = 'Quick correction skipped: synchronized history changed. Original action retained; review an explicit correction.'
+        pending.category = 'other'
+        pending.highlight = false
+        pending.unitChange = undefined
+        pending.scoreDelta = undefined
+      }
       entries.push(pending)
     },
   })

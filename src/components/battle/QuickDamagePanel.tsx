@@ -7,6 +7,7 @@ import { useBattleStore } from '../../stores/battleStore'
 import { CommandDialog } from '../ui/CommandDialog'
 import { CombatControls } from './CombatControls'
 import { CombatSourcePicker } from './CombatSourcePicker'
+import { QuickUndoAction } from './QuickUndoAction'
 import './battleExperience.css'
 
 type Selection = { playerId: string; unitId: string; source: CombatAttribution }
@@ -41,6 +42,7 @@ export function QuickDamagePanel({ session, dispatch, shared = false, viewerId, 
     try { sessionStorage.setItem(key, JSON.stringify(selection)) } catch { /* optional UI preference */ }
   }, [key, selection])
   const [notice, setNotice] = useState('')
+  const [recordedEventId, setRecordedEventId] = useState<string | null>(null)
   const error = useBattleStore(state => state.error)
   const [recentByPlayer] = useState(() => Object.fromEntries(session.setup.players.map(player => [player.id, selectRecentUnits(session, player.id, 3)])))
   const defaultId = shared ? viewerId : session.setup.players.find(player => player.id !== session.state.activePlayerId)?.id
@@ -68,6 +70,7 @@ export function QuickDamagePanel({ session, dispatch, shared = false, viewerId, 
     if (next?.setup.gameId !== session.setup.gameId || next.state.events.length <= session.state.events.length) return
     const after = next.state.players[targetId].units[unit.id]
     const recorded = next.state.events.slice(session.state.events.length).find(entry => entry.type === 'UNIT_COMBAT_RESOLVED')
+    setRecordedEventId(recorded?.id ?? null)
     const change = recorded && buildBattleChronicle(next).find(entry => entry.id === recorded.id)?.unitChange
     setNotice(`Recorded · ${unit.name} · ${before.modelsAlive} → ${after.modelsAlive} models${change?.effectiveWoundsLost ? ` · ${change.effectiveWoundsLost} effective Wounds lost` : ''}. ${after.destroyed ? 'Unit destroyed.' : 'Saved to Chronicle.'}`)
   }
@@ -81,6 +84,7 @@ export function QuickDamagePanel({ session, dispatch, shared = false, viewerId, 
       <CombatSourcePicker session={session} targetPlayerId={targetId} value={source} onChange={value => update({ source: value })} disabled={!canEdit} lockedAttackerPlayerId={lockedAttacker} />
       {unit && <CombatControls key={`${targetId}:${unit.id}`} unit={unit} state={session.state.players[targetId].units[unit.id]} playerId={targetId} source={source} dispatch={record} canEdit={canEdit} damageOnly compact quickBatch />}
       <div className="quick-damage__notice" role="status" aria-label="Quick damage confirmation">{notice || 'Select losses after saves and allocation. One press records one event.'}</div>
+      {notice && recordedEventId && <QuickUndoAction session={session} eventId={recordedEventId} />}
       {error && <p role="alert">{error}</p>}
     </section>
   </CommandDialog>

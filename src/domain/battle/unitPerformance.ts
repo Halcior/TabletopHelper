@@ -163,7 +163,7 @@ export function buildUnitPerformance(session: BattleSession, chronicle = buildBa
     }
 
     if (event.type === 'STATE_CORRECTED' && event.payload.correction.kind === 'SCORE'
-      && event.payload.correction.category === 'secondary' && entry.scoreDelta !== 0) {
+      && event.payload.correction.category === 'secondary' && typeof entry.scoreDelta === 'number' && entry.scoreDelta !== 0) {
       // A changed Secondary total makes earlier action attribution uncertain.
       // Other categories and later explicit awards retain their confirmed VP.
       for (const unit of units) if (unit.playerId === event.payload.correction.playerId) unit.missionVp = null

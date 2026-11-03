@@ -1,4 +1,5 @@
 import { totalScore } from '../../domain/battle/selectors'
+import { quickCorrectionOutcomes } from '../../domain/battle/correctionGuard'
 import type { BattleEvent, BattleSession } from '../../domain/battle/types'
 import { CAULDRON_SECONDARY_BY_ID } from './secondaryDefinitions'
 import type { SecondaryId } from './secondaryTypes'
@@ -66,6 +67,7 @@ function casualtyAttributionReset(event: BattleEvent): { playerId: string; unitI
 }
 
 export function buildCauldronTurnSummary(session: BattleSession, playerId: string): CauldronTurnSummary {
+  const { revertedActionIds, skippedEventIds } = quickCorrectionOutcomes(session.state.events)
   const events = currentTurnEvents(session, playerId)
   let primaryGained = 0
   let secondaryGained = 0
@@ -78,6 +80,7 @@ export function buildCauldronTurnSummary(session: BattleSession, playerId: strin
   }>()
 
   for (const event of events) {
+    if (skippedEventIds.has(event.id) || revertedActionIds.has(event.actionId)) continue
     if (event.type === 'SCORE_ADJUSTED' && event.payload.playerId === playerId) {
       pointsGained += event.payload.delta
       if (event.payload.category === 'primary') primaryGained += event.payload.delta

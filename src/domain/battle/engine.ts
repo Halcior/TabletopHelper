@@ -13,6 +13,7 @@ import {
 import { resolveObjectiveController } from './objectives'
 import { doublesObjectiveController, doublesScorekeeperId, validateDoublesSetup } from './doubles'
 import { combatAttributionError } from './combatAttribution'
+import { correctionGuardMatches } from './correctionGuard'
 import { defaultBattlefieldGeometry, validateBattlefieldGeometry } from '../battlefield/layouts'
 import {
   BATTLE_PHASES,
@@ -242,6 +243,7 @@ function applyEvent(state: GameState, event: BattleEvent, setup: BattleSetup): v
       return
     }
     case 'STATE_CORRECTED': {
+      if (!correctionGuardMatches(state, event)) return
       const reason = event.payload.reason.trim()
       if (!reason) throw new Error('A correction requires a reason.')
       const correction = event.payload.correction
@@ -538,12 +540,15 @@ export function visitBattleHistory(session: BattleSession, observer: {
 }): void {
   const state = baseState(session.setup)
   const seen = new Set<string>()
+  const history: BattleEvent[] = []
+  state.events = history
   for (const event of session.state.events) {
     if (seen.has(event.id)) continue
     seen.add(event.id)
     observer.before?.(event, state)
     applyEvent(state, event, session.setup)
     observer.after?.(event, state)
+    history.push(event)
   }
 }
 

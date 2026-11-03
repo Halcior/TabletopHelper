@@ -1,6 +1,6 @@
 import { setupBattlefield, chooseCauldronPreset } from './helpers'
 import { expect, test, type Page } from '@playwright/test'
-import { dismissSecondaryReveal, importTestArmy, phone, scoreCard } from './helpers'
+import { dismissSecondaryReveal, importTestArmy, phone, scoreCard, selectPanel } from './helpers'
 import { MockSupabase } from './mockSupabase'
 import fs from 'node:fs/promises'
 
@@ -95,6 +95,25 @@ test('three phones start, synchronize and recover one idempotent offline action'
     expect(backend.storedEvents('CP_GAINED', 'player-b')).toHaveLength(1)
     await expect(bravo.page.getByText('This phone is offline')).toBeHidden()
 
+    // Host corrections append a guarded inverse and survive acknowledgement loss.
+    // The original CP event remains present exactly once.
+    await selectPanel(alpha.page, 'log')
+    await alpha.page.getByRole('button', { name: 'Full History', exact: true }).click()
+    await expect(bravo.page.getByRole('button', { name: 'Undo last action', exact: true })).toHaveCount(0)
+    backend.failNextEventInsertAfterCommitForPlayerId = 'player-a'
+    await alpha.page.getByRole('button', { name: 'Undo last action', exact: true }).click()
+    for (const member of [alpha.page, bravo.page, charlie.page]) {
+      await expect(scoreCard(member, 'Player II').locator('.score-card__numbers strong').nth(1)).toHaveText('2')
+      await expect(scoreCard(member, 'Player I').locator('.score-card__numbers strong').nth(1)).toHaveText('3')
+    }
+    await expect.poll(() => backend.storedEvents('STATE_CORRECTED').length).toBe(1)
+    const correction = backend.storedEvents('STATE_CORRECTED')[0]
+    await expect.poll(() => backend.attemptsFor(correction.event_id)).toBeGreaterThanOrEqual(2)
+    expect(backend.storedEvents('CP_GAINED', 'player-b')).toHaveLength(1)
+    expect(backend.storedEvents('STATE_CORRECTED')).toHaveLength(1)
+    await selectPanel(alpha.page, 'overview')
+
+
     const target = await alpha.page.evaluate(async () => {
       const { useBattleStore } = await import('/src/stores/battleStore.ts')
       const session = useBattleStore.getState().session!
@@ -158,6 +177,20 @@ test('three phones start, synchronize and recover one idempotent offline action'
     }
     expect(backend.storedEvents('UNIT_COMBAT_RESOLVED', 'player-b')).toHaveLength(2)
     expect(new Set(backend.storedEvents('UNIT_COMBAT_RESOLVED', 'player-b').map((event) => event.event_id)).size).toBe(2)
+    // The confirmation may only undo the combat event it describes, even when
+    // another commander's update becomes the latest event while the dialog is open.
+    await alpha.page.getByRole('button', { name: 'Damage', exact: true }).click()
+    const damage = alpha.page.getByRole('dialog', { name: 'Quick damage', exact: true })
+    await damage.getByLabel('Receiving army', { exact: true }).selectOption('player-b')
+    await damage.getByLabel('Receiving unit', { exact: true }).selectOption(target.id)
+    await damage.getByRole('button', { name: '−1 Model', exact: true }).click()
+    await expect(damage.getByRole('button', { name: 'Undo last action', exact: true })).toBeVisible()
+    await charlie.page.getByRole('button', { name: 'Gain 1 CP for Player III', exact: true }).click()
+    await expect(scoreCard(alpha.page, 'Player III').locator('.score-card__numbers strong').nth(1)).toHaveText('3')
+    await expect(damage.getByRole('button', { name: 'Undo last action', exact: true })).toHaveCount(0)
+    await expect(damage.getByLabel('Quick damage confirmation')).toContainText('Recorded')
+    await damage.getByRole('button', { name: 'Close Quick damage' }).click()
+
     const rejected = await charlie.page.evaluate(async (unitId) => {
       const { useBattleStore } = await import('/src/stores/battleStore.ts')
       const before = useBattleStore.getState().session!.state.events.length
