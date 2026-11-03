@@ -2049,5 +2049,6 @@
   "Withdrawn": "Wycofana",
   "Use cloud version": "Użyj wersji z chmury",
   "Keep local version for next sync": "Zachowaj lokalną wersję do synchronizacji",
-  "Some archive records need attention. Sync again or resolve the saved cloud conflict; other battles were synchronized.": "Część zapisów wymaga uwagi. Ponów synchronizację lub rozstrzygnij zapisany konflikt; pozostałe bitwy zostały zsynchronizowane."
+  "Some archive records need attention. Sync again or resolve the saved cloud conflict; other battles were synchronized.": "Część zapisów wymaga uwagi. Ponów synchronizację lub rozstrzygnij zapisany konflikt; pozostałe bitwy zostały zsynchronizowane.",
+  "The room was created. Review and save the recorded Battle Clock settings before marking Ready.": "Pokój został utworzony. Sprawdź i zapisz ustawienia Battle Clock przed oznaczeniem gotowości."
 }

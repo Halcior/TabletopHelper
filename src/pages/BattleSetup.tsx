@@ -1,3 +1,4 @@
+import { configureRematchClock } from '../features/battleLegacy/onlineRematch'
 import { createCauldronGame } from '../rulesets/cauldronFFA3/session'
 import { rematchPreset, rosterDifference, type RematchPreset } from '../features/battleLegacy/rematch'
 import { database } from '../persistence/storage'
@@ -159,7 +160,7 @@ export default function BattleSetup() {
       setPreset(next); setPresetName(next.name); setMode(next.input.mode ?? 'duel'); setClock(next.clock); setGuidance(next.input.guidanceLevel)
       setPlayers([...next.input.players, ...DEFAULT_PLAYERS.slice(next.input.players.length).map((player, i) => ({ ...player, id: `rematch-extra-${i}` }))])
       setObjectiveLayout(next.input.objectiveLayout ?? 'classic-6'); setPrimaryDeck(next.input.primaryDeck ?? 'cauldron'); setSecondaryDeck(next.input.secondaryDeck ?? 'cauldron')
-      setOfficialStrategy(next.input.officialSecondaryStrategy ?? 'tactical'); setDuelStrategies(next.input.officialSecondaryStrategies ?? {}); setFixedSelections(next.input.fixedSecondarySelections ?? {})
+      setOfficialStrategy(next.input.officialSecondaryStrategy ?? 'tactical'); setDuelStrategies(Object.fromEntries([...next.input.players.map(p => [p.id, next.input.officialSecondaryStrategies?.[p.id] ?? next.input.officialSecondaryStrategy ?? 'tactical']), ...DEFAULT_PLAYERS.slice(next.input.players.length).map((_, i) => [`rematch-extra-${i}`, 'tactical'])])); setFixedSelections(Object.fromEntries([...next.input.players.map(p => [p.id, next.input.fixedSecondarySelections?.[p.id] ?? ['OFFICIAL_A_GRIEVOUS_BLOW', 'OFFICIAL_ENGAGE_ON_ALL_FRONTS']]), ...DEFAULT_PLAYERS.slice(next.input.players.length).map((_, i) => [`rematch-extra-${i}`, ['OFFICIAL_A_GRIEVOUS_BLOW', 'OFFICIAL_ENGAGE_ON_ALL_FRONTS']])]))
       setOfficialLayout(next.input.officialLayout ?? 1); setAttackerHomeZone(next.input.battlefieldAttackerHomeZone ?? 'A')
       setPlayMode(next.online ? 'shared' : 'local')
       if (next.input.doubles) {
@@ -278,7 +279,7 @@ export default function BattleSetup() {
     const name = presetName
     if (!name?.trim()) return
     try {
-      const session = createCauldronGame({ players: activePlayers, armies: armies.filter(army => activePlayers.some(p => p.armyId === army.id)), guidanceLevel: guidance, mode, doubles: doubles ? getDoublesSetup() : undefined, objectiveLayout, primaryDeck, secondaryDeck, officialSecondaryStrategy: officialStrategy, officialSecondaryStrategies: duelStrategies, fixedSecondarySelections: fixedSelections, officialLayout, battlefieldAttackerHomeZone: attackerHomeZone, ffaCpPolicy: preset && mode === preset.input.mode ? preset.input.ffaCpPolicy : undefined })
+      const session = createCauldronGame({ players: activePlayers, armies: armies.filter(army => activePlayers.some(p => p.armyId === army.id)), guidanceLevel: guidance, mode, doubles: doubles ? getDoublesSetup() : undefined, objectiveLayout, primaryDeck, secondaryDeck, officialSecondaryStrategy: officialStrategy, officialSecondaryStrategies: duelStrategies, fixedSecondarySelections: fixedSelections, officialLayout, battlefieldAttackerHomeZone: attackerHomeZone, officialPrimaryBalance: preset && primaryDeck === preset.input.primaryDeck ? preset.input.officialPrimaryBalance : undefined, ffaCpPolicy: preset && mode === preset.input.mode ? preset.input.ffaCpPolicy : undefined })
       session.setup.battleClock = clock
       if (reuseGeometry && presetCompatible && preset) { session.state.battlefield = preset.geometry; session.setup.battlefieldSourceId = preset.sourceId }
       const saved = rematchPreset(session, legacyOwner())
@@ -346,8 +347,11 @@ export default function BattleSetup() {
       )
       if (sharedMode) {
         const membership = await hostCurrentBattle(hostPlayerId, true)
-        if (preset && clock.preset !== 'off') await useSharedSessionStore.getState().clockCommand({ type: 'configure', config: clock })
-        navigate(`/shared?room=${membership.roomCode}`)
+        let clockReview = false
+        if (preset && clock.preset !== 'off') {
+          try { await configureRematchClock(membership, clock) } catch { clockReview = true }
+        }
+        navigate(`/shared?room=${membership.roomCode}${clockReview ? '&clockReview=1' : ''}`)
       } else {
         navigate(`/battle/${battleId}`)
       }
@@ -482,7 +486,7 @@ export default function BattleSetup() {
             {playMode === 'shared' ? <p className="context-note">{tr("This commander will select their own army after joining the lobby.")}</p> : <label>{tr("Saved army")}<select id={`commander-${index}-army`} aria-describedby={invalidFieldId === `commander-${index}-army` ? 'setup-error' : undefined} aria-invalid={invalidFieldId === `commander-${index}-army`} value={player.armyId} onChange={(event) => updatePlayer(index, 'armyId', event.target.value)}>
               {armies.map((army) => <option key={army.id} value={army.id}>{army.faction} · {army.totalPoints} {tr(" pts · ")}{army.name} · {rosterRows.find(r => r.id === army.id)?.status ?? tr('local')}{army.library?.variantOf ? tr(' · Variant') : ''}</option>)}
             </select></label>}
-            {playMode === 'local' && player.armyId && <Link className="button button--small" target="_blank" rel="noopener noreferrer" to={`/army/${encodeURIComponent(player.armyId)}/edit`}>{tr("Edit roster ↗")}</Link>}
+            {playMode === 'local' && player.armyId && rosterRows.some(row => row.id === player.armyId) && <Link className="button button--small" target="_blank" rel="noopener noreferrer" to={`/army/${encodeURIComponent(player.armyId)}/edit`}>{tr("Edit roster ↗")}</Link>}
             {!doubles && <div className="setup-pair">
               <label>{tr("Deployment zone")}<select id={`commander-${index}-zone`} aria-describedby={invalidFieldId === `commander-${index}-zone` ? 'setup-error' : undefined} aria-invalid={invalidFieldId === `commander-${index}-zone`} value={player.deploymentZone} onChange={(event) => updatePlayer(index, 'deploymentZone', event.target.value as DeploymentZone)}>
                 {(duel ? ['A', 'B'] : ['A', 'B', 'C']).map((zone) => <option key={zone}>{zone}</option>)}

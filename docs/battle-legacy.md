@@ -90,3 +90,11 @@ Validation: two domain rematch tests plus a browser flow using deleted roster
 snapshots, reviewing commanders, starting a new session and checking zero VP,
 restored models, a new ID and exact preservation of the source save. TypeScript,
 production build, existing rules/clock tests and PostgreSQL suite pass.
+
+C review fixes: online rematches await the first connected clock snapshot before
+configuring it. Failure still navigates to the created room with a visible clock
+review notice. All restored player IDs have valid default Fixed pairs and strategy
+settings. Named presets retain the recorded FFA Primary balance (including legacy
+absence meaning original). Snapshot-only rosters do not show broken library edit
+links. Two connection lifecycle tests and two browser regressions (Tactical →
+Fixed/preset balance; delayed initial PostgreSQL clock poll) pass.
