@@ -1,3 +1,4 @@
+import { t as tr } from '../../features/i18n/locale'
 import { useState } from 'react'
 import type { BattleEventInput, BattleSession, CombatAttribution } from '../../domain/battle/types'
 import { doublesScorekeeperId, onSameDoublesForce } from '../../domain/battle/doubles'
@@ -60,18 +61,18 @@ export function QuickDamagePanel({ session, dispatch, shared = false, viewerId, 
     const change = recorded && buildBattleChronicle(next).find(entry => entry.id === recorded.id)?.unitChange
     setNotice(`Recorded · ${unit.name} · ${before.modelsAlive} → ${after.modelsAlive} models${change?.effectiveWoundsLost ? ` · ${change.effectiveWoundsLost} effective Wounds lost` : ''}. ${after.destroyed ? 'Unit destroyed.' : 'Saved to Chronicle.'}`)
   }
-  return <CommandDialog label="Quick damage" onClose={onClose}>
+  return <CommandDialog label={tr("Quick damage")} onClose={onClose}>
     <section className="quick-damage panel">
-      <div className="section-heading"><div><span className="eyebrow">Combat Logging</span><h2>Quick damage</h2></div><button type="button" aria-label="Close Quick damage" onClick={onClose}>Close</button></div>
-      <label><span>Receiving army</span><select aria-label="Receiving army" value={targetId} onChange={event => { update({ playerId: event.target.value, unitId: '', source: {} }); setNotice('') }}>{session.setup.players.map(player => <option key={player.id} value={player.id}>{player.name} · {player.faction}</option>)}</select></label>
-      {recent.length > 0 && <div className="quick-damage__recent" aria-label="Recently damaged units">{recent.map(entry => <button key={entry.unitId} type="button" onClick={() => update({ unitId: entry.unitId })}>{units.find(candidate => candidate.id === entry.unitId)?.name ?? entry.unitId}</button>)}</div>}
-      <label><span>Receiving unit</span><select aria-label="Receiving unit" value={unit?.id ?? ''} onChange={event => { update({ unitId: event.target.value }); setNotice('') }}>{units.map(entry => <option key={entry.id} value={entry.id}>{entry.name}{entry.leaderOfUnitId ? ' · Leader' : ''}{session.state.players[targetId].units[entry.id]?.destroyed ? ' · destroyed' : ''}</option>)}</select></label>
-      {!canEdit && <p className="shared-readonly-note">Read only · you can record your own army’s losses, or enemy losses inflicted by your army during your force’s turn.</p>}
+      <div className="section-heading"><div><span className="eyebrow">{tr("Combat Logging")}</span><h2>{tr("Quick damage")}</h2></div><button type="button" aria-label={tr("Close Quick damage")} onClick={onClose}>{tr("Close")}</button></div>
+      <label><span>{tr("Receiving army")}</span><select aria-label={tr("Receiving army")} value={targetId} onChange={event => { update({ playerId: event.target.value, unitId: '', source: {} }); setNotice('') }}>{session.setup.players.map(player => <option key={player.id} value={player.id}>{player.name} · {player.faction}</option>)}</select></label>
+      {recent.length > 0 && <div className="quick-damage__recent" aria-label={tr("Recently damaged units")}>{recent.map(entry => <button key={entry.unitId} type="button" onClick={() => update({ unitId: entry.unitId })}>{units.find(candidate => candidate.id === entry.unitId)?.name ?? entry.unitId}</button>)}</div>}
+      <label><span>{tr("Receiving unit")}</span><select aria-label={tr("Receiving unit")} value={unit?.id ?? ''} onChange={event => { update({ unitId: event.target.value }); setNotice('') }}>{units.map(entry => <option key={entry.id} value={entry.id}>{entry.name}{entry.leaderOfUnitId ? tr(' · Leader') : ''}{session.state.players[targetId].units[entry.id]?.destroyed ? tr(' · destroyed') : ''}</option>)}</select></label>
+      {!canEdit && <p className="shared-readonly-note">{tr("Read only · you can record your own army’s losses, or enemy losses inflicted by your army during your force’s turn.")}</p>}
       <CombatSourcePicker session={session} targetPlayerId={targetId} value={source} onChange={value => update({ source: value })} disabled={!canEdit} lockedAttackerPlayerId={lockedAttacker} />
       {unit && <CombatControls key={`${targetId}:${unit.id}`} unit={unit} state={session.state.players[targetId].units[unit.id]} playerId={targetId} source={source} dispatch={record} canEdit={canEdit} damageOnly compact quickBatch />}
-      <div className="quick-damage__notice" role="status" aria-label="Quick damage confirmation">{notice || 'Select losses after saves and allocation. One press records one event.'}</div>
+      <div className="quick-damage__notice" role="status" aria-label={tr("Quick damage confirmation")}>{notice || tr('Select losses after saves and allocation. One press records one event.')}</div>
       {notice && <QuickUndoAction session={session} eventId={session.state.events.at(-1)?.id ?? ''} />}
-      {error && <p role="alert">{error}</p>}
+      {error && <p role="alert">{tr(error)}</p>}
     </section>
   </CommandDialog>
 }

@@ -1,3 +1,4 @@
+import { t as tr } from '../../features/i18n/locale'
 import { useState } from 'react'
 import { AppIcon } from '../AppIcon'
 import type { BattleSession } from '../../domain/battle/types'
@@ -50,13 +51,13 @@ function DuelEndTurnReview({ session, onCompleteMissionAction, onFinish, onCance
   const canFinish = Boolean(ownCommit && otherCommit && !pendingSecondaries.length && !activeActions.length)
 
   return <main className="battle-content secondary-turn-review">
-    <div className="round-review__intro"><span className="eyebrow">{session.state.players[playerId].name}</span><h1>End Turn · Chapter Approved</h1><p>Resolve actions, review Primary at this turn end, then both players check their eligible Secondary cards. If the opponent has Punishment, they also review its turn-end condition.</p></div>
-    {activeActions.length > 0 && <section className="panel turn-review-section"><h2>Complete Mission Actions</h2>{activeActions.map((action) => <div key={action.id} className="review-check-row"><label><input type="checkbox" checked={missionPositions[action.id] ?? false} onChange={(event) => setMissionPositions((current) => ({ ...current, [action.id]: event.target.checked }))} /> {action.name} · final position confirmed</label><button type="button" onClick={() => onCompleteMissionAction(action.id, missionPositions[action.id] ?? false)}>Resolve</button></div>)}</section>}
+    <div className="round-review__intro"><span className="eyebrow">{session.state.players[playerId].name}</span><h1>{tr("End Turn · Chapter Approved")}</h1><p>{tr("Resolve actions, review Primary at this turn end, then both players check their eligible Secondary cards. If the opponent has Punishment, they also review its turn-end condition.")}</p></div>
+    {activeActions.length > 0 && <section className="panel turn-review-section"><h2>{tr("Complete Mission Actions")}</h2>{activeActions.map((action) => <div key={action.id} className="review-check-row"><label><input type="checkbox" checked={missionPositions[action.id] ?? false} onChange={(event) => setMissionPositions((current) => ({ ...current, [action.id]: event.target.checked }))} /> {action.name} {tr(" · final position confirmed")}</label><button type="button" onClick={() => onCompleteMissionAction(action.id, missionPositions[action.id] ?? false)}>{tr("Resolve")}</button></div>)}</section>}
     <DuelPrimaryPanel session={session} playerId={playerId} window="turn" editable />
-    {opponentHasEither && (sharedBattle ? <section className="panel turn-review-section"><strong>{session.state.players[otherId].name} · Punishment</strong><p>The other commander must review their Primary on their own device before this turn can end.</p></section> : <DuelPrimaryPanel session={session} playerId={otherId} window="turn" editable />)}
+    {opponentHasEither && (sharedBattle ? <section className="panel turn-review-section"><strong>{session.state.players[otherId].name} {tr(" · Punishment")}</strong><p>{tr("The other commander must review their Primary on their own device before this turn can end.")}</p></section> : <DuelPrimaryPanel session={session} playerId={otherId} window="turn" editable />)}
     {(sharedBattle ? [playerId] : session.state.turnOrder).map((id) => <OfficialSecondaryPanel key={id} session={session} playerId={id} editable />)}
-    {pendingSecondaries.length > 0 && <p className="context-note">Secondary review pending: {pendingSecondaries.map((id) => session.state.players[id].name).join(', ')}.</p>}
-    <div className="review-actions"><button type="button" onClick={onCancel}>Back to turn</button><button className="button--gold" type="button" disabled={!canFinish} onClick={onFinish}>{last ? 'Continue to Battle Round review' : `End turn → ${next.name}`}</button></div>
+    {pendingSecondaries.length > 0 && <p className="context-note">{tr("Secondary review pending: ")}{pendingSecondaries.map((id) => session.state.players[id].name).join(', ')}.</p>}
+    <div className="review-actions"><button type="button" onClick={onCancel}>{tr("Back to turn")}</button><button className="button--gold" type="button" disabled={!canFinish} onClick={onFinish}>{last ? tr('Continue to Battle Round review') : tr(`End turn → ${next.name}`, "End turn → {0}")}</button></div>
   </main>
 }
 
@@ -144,144 +145,144 @@ function CauldronEndTurnReview({
   }
 
   return <main className="battle-content secondary-turn-review">
-    <div className="round-review__intro"><span className="eyebrow">{player.name}</span><h1>End Turn Review</h1><p>{official ? 'Confirm Chapter Approved scoring with each eligible commander, then resolve your Primary and advance.' : 'Resolve Mission Actions, Secondary scoring and your own Primary before advancing to the next player.'}</p></div>
+    <div className="round-review__intro"><span className="eyebrow">{player.name}</span><h1>{tr("End Turn Review")}</h1><p>{official ? tr('Confirm Chapter Approved scoring with each eligible commander, then resolve your Primary and advance.') : tr('Resolve Mission Actions, Secondary scoring and your own Primary before advancing to the next player.')}</p></div>
 
     {official && (sharedBattle ? [playerId] : session.state.turnOrder).filter(ownerId => getSecondaryState(session)[ownerId]?.active.length || pendingOfficial.includes(ownerId)).map((ownerId) => <OfficialSecondaryPanel key={ownerId} session={session} playerId={ownerId} editable />)}
-    {official && pendingOfficial.length > 0 && <section className="panel turn-review-section"><strong>Secondary review pending</strong><p>{pendingOfficial.map((id) => session.state.players[id]?.name ?? id).join(', ')} must score eligible cards or mark this turn reviewed. Each commander can use their Cards panel on their phone.</p></section>}
+    {official && pendingOfficial.length > 0 && <section className="panel turn-review-section"><strong>{tr("Secondary review pending")}</strong><p>{pendingOfficial.map((id) => session.state.players[id]?.name ?? id).join(', ')} {tr(" must score eligible cards or mark this turn reviewed. Each commander can use their Cards panel on their phone.")}</p></section>}
 
     {!evaluated && <>
       {activeActions.length > 0 && <section className="panel turn-review-section">
-        <div className="section-heading"><div><span className="eyebrow">Mission Actions</span><h2>Confirm final position</h2></div></div>
+        <div className="section-heading"><div><span className="eyebrow">{tr("Mission Actions")}</span><h2>{tr("Confirm final position")}</h2></div></div>
         {activeActions.map((action) => <label className="review-check-row" key={action.id}>
           <input type="checkbox" checked={missionPositions[action.id] ?? false} onChange={(event) => setMissionPositions((current) => ({ ...current, [action.id]: event.target.checked }))} />
-          <span><strong>{action.name}</strong><small>Unit remains eligible and in the required position.</small></span>
+          <span><strong>{action.name}</strong><small>{tr("Unit remains eligible and in the required position.")}</small></span>
         </label>)}
       </section>}
 
       {!official && activeIds.has('DOMINACJA_CENTRUM') && <section className="panel turn-review-section">
-        <div className="section-heading"><div><span className="eyebrow">Dominacja Centrum</span><h2>Centre OC</h2></div></div>
-        {session.state.turnOrder.map((id) => <div className="centre-oc-row" key={id}><span>{session.state.players[id].name}</span><div className="stepper"><button onClick={() => adjustCentreOc(id, -1)}>−</button><strong>{confirmations.centreOcByPlayer?.[id] ?? 0} OC</strong><button onClick={() => adjustCentreOc(id, 1)}>+</button></div></div>)}
+        <div className="section-heading"><div><span className="eyebrow">{tr("Dominacja Centrum")}</span><h2>{tr("Centre OC")}</h2></div></div>
+        {session.state.turnOrder.map((id) => <div className="centre-oc-row" key={id}><span>{session.state.players[id].name}</span><div className="stepper"><button onClick={() => adjustCentreOc(id, -1)}>−</button><strong>{confirmations.centreOcByPlayer?.[id] ?? 0} {tr(" OC")}</strong><button onClick={() => adjustCentreOc(id, 1)}>+</button></div></div>)}
       </section>}
 
       {!official && <section className="panel turn-review-section">
-        <div className="section-heading"><div><span className="eyebrow">Secondary physical conditions</span><h2>Quick confirmation</h2></div></div>
+        <div className="section-heading"><div><span className="eyebrow">{tr("Secondary physical conditions")}</span><h2>{tr("Quick confirmation")}</h2></div></div>
         {activeIds.has('ZA_LINIAMI_WROGA') && <div className="centre-oc-row">
-          <span><strong>Za Liniami Wroga</strong><small>Units wholly inside the current Rival deployment zone.</small></span>
+          <span><strong>{tr("Za Liniami Wroga")}</strong><small>{tr("Units wholly inside the current Rival deployment zone.")}</small></span>
           <div className="stepper"><button onClick={() => adjustBehindEnemyLines(-1)}>−</button><strong>{confirmations.behindEnemyLinesUnitCount ?? 0}</strong><button onClick={() => adjustBehindEnemyLines(1)}>+</button></div>
         </div>}
         {activeIds.has('SZEROKI_FRONT') && <>
-          <ConfirmationRow label="OC>0 units are in at least four battlefield sectors." checked={confirmations.wideFrontFourSectors ?? false} onChange={(value) => setConfirmation('wideFrontFourSectors', value)} />
-          <ConfirmationRow label="At least three qualifying units are outside your deployment zone." checked={confirmations.wideFrontThreeOutsideDeployment ?? false} onChange={(value) => setConfirmation('wideFrontThreeOutsideDeployment', value)} />
+          <ConfirmationRow label={tr("OC>0 units are in at least four battlefield sectors.")} checked={confirmations.wideFrontFourSectors ?? false} onChange={(value) => setConfirmation('wideFrontFourSectors', value)} />
+          <ConfirmationRow label={tr("At least three qualifying units are outside your deployment zone.")} checked={confirmations.wideFrontThreeOutsideDeployment ?? false} onChange={(value) => setConfirmation('wideFrontThreeOutsideDeployment', value)} />
         </>}
-        {activeIds.has('UTRZYMAJ_BAZE') && <ConfirmationRow label="No enemy unit is inside your deployment zone." checked={confirmations.noEnemyInOwnDeployment ?? false} onChange={(value) => setConfirmation('noEnemyInOwnDeployment', value)} />}
+        {activeIds.has('UTRZYMAJ_BAZE') && <ConfirmationRow label={tr("No enemy unit is inside your deployment zone.")} checked={confirmations.noEnemyInOwnDeployment ?? false} onChange={(value) => setConfirmation('noEnemyInOwnDeployment', value)} />}
         {activeIds.has('ODCIECIE_ODWROTU') && <>
-          <ConfirmationRow label="You control a qualifying neutral objective closest to the Rival deployment zone." checked={confirmations.controlsClosestNeutralObjective ?? false} onChange={(value) => setConfirmation('controlsClosestNeutralObjective', value)} />
-          <ConfirmationRow label="An OC>0 unit is within 9″ of the Rival deployment zone." checked={confirmations.unitNearRivalDeployment ?? false} onChange={(value) => setConfirmation('unitNearRivalDeployment', value)} />
+          <ConfirmationRow label={tr("You control a qualifying neutral objective closest to the Rival deployment zone.")} checked={confirmations.controlsClosestNeutralObjective ?? false} onChange={(value) => setConfirmation('controlsClosestNeutralObjective', value)} />
+          <ConfirmationRow label={tr("An OC>0 unit is within 9″ of the Rival deployment zone.")} checked={confirmations.unitNearRivalDeployment ?? false} onChange={(value) => setConfirmation('unitNearRivalDeployment', value)} />
         </>}
-        {!['DOMINACJA_CENTRUM', 'ZA_LINIAMI_WROGA', 'SZEROKI_FRONT', 'UTRZYMAJ_BAZE', 'ODCIECIE_ODWROTU'].some((id) => activeIds.has(id as SecondaryId)) && <p className="context-note">No additional Secondary physical-state confirmation is required.</p>}
+        {!['DOMINACJA_CENTRUM', 'ZA_LINIAMI_WROGA', 'SZEROKI_FRONT', 'UTRZYMAJ_BAZE', 'ODCIECIE_ODWROTU'].some((id) => activeIds.has(id as SecondaryId)) && <p className="context-note">{tr("No additional Secondary physical-state confirmation is required.")}</p>}
       </section>}
 
       {!officialPrimary && (planId === 'ZWIAD_OPERACYJNY' || planId === 'TWIERDZA') && session.state.round >= 2 && <section className="panel turn-review-section">
-        <div className="section-heading"><div><span className="eyebrow">Operational Plan</span><h2>{primaryPreview.planEvaluation.name}</h2></div><strong>up to +5 VP</strong></div>
+        <div className="section-heading"><div><span className="eyebrow">{tr("Operational Plan")}</span><h2>{primaryPreview.planEvaluation.name}</h2></div><strong>{tr("up to +5 VP")}</strong></div>
         {planId === 'ZWIAD_OPERACYJNY' && <>
-          <ConfirmationRow label="Non-AIRCRAFT OC>0 units are in at least four different sectors; each unit counts once." checked={confirmations.zwiadHasFourSectors ?? false} onChange={(value) => setConfirmation('zwiadHasFourSectors', value)} />
-          <ConfirmationRow label="At least two of those qualifying units are outside your deployment zone." checked={confirmations.zwiadHasTwoOutsideDeployment ?? false} onChange={(value) => setConfirmation('zwiadHasTwoOutsideDeployment', value)} />
+          <ConfirmationRow label={tr("Non-AIRCRAFT OC>0 units are in at least four different sectors; each unit counts once.")} checked={confirmations.zwiadHasFourSectors ?? false} onChange={(value) => setConfirmation('zwiadHasFourSectors', value)} />
+          <ConfirmationRow label={tr("At least two of those qualifying units are outside your deployment zone.")} checked={confirmations.zwiadHasTwoOutsideDeployment ?? false} onChange={(value) => setConfirmation('zwiadHasTwoOutsideDeployment', value)} />
         </>}
-        {planId === 'TWIERDZA' && <ConfirmationRow label="No enemy OC>0 unit is in range of your HOME or within 6″ of the marked neutral objective. Battle-shocked units do not block this." checked={confirmations.twierdzaNoEnemyAtObjectives ?? false} onChange={(value) => setConfirmation('twierdzaNoEnemyAtObjectives', value)} />}
+        {planId === 'TWIERDZA' && <ConfirmationRow label={tr("No enemy OC>0 unit is in range of your HOME or within 6″ of the marked neutral objective. Battle-shocked units do not block this.")} checked={confirmations.twierdzaNoEnemyAtObjectives ?? false} onChange={(value) => setConfirmation('twierdzaNoEnemyAtObjectives', value)} />}
       </section>}
 
       <section className="panel turn-review-section">
-        <div className="section-heading"><div><span className="eyebrow">{officialPrimary ? '11th edition Primary · FFA' : 'Primary · Balance patch 2.1.2'}</span><h2>{primaryPreview.official?.missionName ?? 'Score at the end of your turn'}</h2></div><strong>{primaryPreview.roundPrimary} VP</strong></div>
+        <div className="section-heading"><div><span className="eyebrow">{officialPrimary ? tr('11th edition Primary · FFA') : tr('Primary · Balance patch 2.1.2')}</span><h2>{primaryPreview.official?.missionName ?? tr('Score at the end of your turn')}</h2></div><strong>{primaryPreview.roundPrimary} {tr(" VP")}</strong></div>
         {officialPrimary && <>
           <CurrentRivalPanel session={session} playerId={playerId} />
-          <p className="context-note">Command checks use control recorded when you left Command; in round 5 they use end-of-turn control. Opponent and enemy conditions use your Current Rival for this Battle Round. The score is saved now, once per condition.</p>
+          <p className="context-note">{tr("Command checks use control recorded when you left Command; in round 5 they use end-of-turn control. Opponent and enemy conditions use your Current Rival for this Battle Round. The score is saved now, once per condition.")}</p>
           <OfficialPrimaryInputs session={session} playerId={playerId} value={confirmations.officialPrimary ?? {}} onChange={(value) => setConfirmations((current) => ({ ...current, officialPrimary: value }))} />
         </>}
         {(primaryPreview.official?.conditions ?? [primaryPreview.neutralObjective, primaryPreview.twoObjectives, primaryPreview.operationalPlan]).map((condition) => <div className="primary-condition" key={condition.label}>
           <span className={condition.completed ? 'condition-mark complete' : 'condition-mark'}>{condition.completed ? '✓' : '×'}</span>
-          <span>{condition.label}</span><strong>+{condition.vp}</strong>
+          <span>{tr(condition.label)}</span><strong>+{condition.vp}</strong>
         </div>)}
-        {primaryPreview.capped && <p className="context-note">The total is limited to 15 VP this round and 45 VP in this battle.</p>}
-        {planId === 'WYNISZCZENIE' && <p className="context-note">Wyniszczenie is intentionally not included here. It is checked after every player finishes the Battle Round.</p>}
+        {primaryPreview.capped && <p className="context-note">{tr("The total is limited to 15 VP this round and 45 VP in this battle.")}</p>}
+        {planId === 'WYNISZCZENIE' && <p className="context-note">{tr("Wyniszczenie is intentionally not included here. It is checked after every player finishes the Battle Round.")}</p>}
       </section>
 
-      <div className="review-actions"><button onClick={onCancel}>Back to turn</button><button className="button--gold" disabled={confirmations.officialPrimary?.actions?.some((action) => !action.unitName.trim())} onClick={evaluate}>{official ? 'Apply Primary scoring' : 'Apply scoring'}</button></div>
+      <div className="review-actions"><button onClick={onCancel}>{tr("Back to turn")}</button><button className="button--gold" disabled={confirmations.officialPrimary?.actions?.some((action) => !action.unitName.trim())} onClick={evaluate}>{official ? tr('Apply Primary scoring') : tr('Apply scoring')}</button></div>
     </>}
 
     {evaluated && <>
-      <section className={`panel turn-handoff-summary turn-handoff-summary--player-${activePlayerIndex}`} aria-label="Turn summary">
+      <section className={`panel turn-handoff-summary turn-handoff-summary--player-${activePlayerIndex}`} aria-label={tr("Turn summary")}>
         <div className="turn-handoff-summary__heading">
           <div className="turn-handoff-summary__identity">
             <span className="turn-handoff-summary__marker" aria-hidden="true">{player.name.trim().charAt(0).toUpperCase()}</span>
-            <div><span className="eyebrow">Turn complete</span><h2>{player.name} · Round {session.state.round}</h2><p>Everything recorded this turn is collected here before control passes on.</p></div>
+            <div><span className="eyebrow">{tr("Turn complete")}</span><h2>{player.name} {tr(" · Round ")}{session.state.round}</h2><p>{tr("Everything recorded this turn is collected here before control passes on.")}</p></div>
           </div>
-          <div className="turn-handoff-summary__score"><span>{turnSummary.scoreBefore} VP</span><b>→</b><strong>{turnSummary.scoreAfter} VP</strong><small>+{turnSummary.pointsGained} this turn</small></div>
+          <div className="turn-handoff-summary__score"><span>{turnSummary.scoreBefore} {tr(" VP")}</span><b>→</b><strong>{turnSummary.scoreAfter} {tr(" VP")}</strong><small>+{turnSummary.pointsGained} {tr(" this turn")}</small></div>
         </div>
         <div className="turn-handoff-summary__stats">
-          <div><span>Primary</span><strong>+{turnSummary.primaryGained} VP</strong><small>{officialPrimary ? primaryPreview.official?.missionName : primaryCommit?.review.operationalPlan.completed ? 'Operational Plan scored' : 'End-turn scoring'}</small></div>
-          <div><span>Secondary</span><strong>+{turnSummary.secondaryGained} VP</strong><small>{turnSummary.completedSecondaries.length} completed</small></div>
-          <div><span>Enemy units destroyed</span><strong>{turnSummary.kills.length}</strong><small>Kills credited to {player.name}</small></div>
+          <div><span>{tr("Primary")}</span><strong>+{turnSummary.primaryGained} {tr(" VP")}</strong><small>{officialPrimary ? primaryPreview.official?.missionName : primaryCommit?.review.operationalPlan.completed ? tr('Operational Plan scored') : tr('End-turn scoring')}</small></div>
+          <div><span>{tr("Secondary")}</span><strong>+{turnSummary.secondaryGained} {tr(" VP")}</strong><small>{turnSummary.completedSecondaries.length} {tr(" completed")}</small></div>
+          <div><span>{tr("Enemy units destroyed")}</span><strong>{turnSummary.kills.length}</strong><small>{tr("Kills credited to ")}{player.name}</small></div>
         </div>
         {(turnSummary.completedSecondaries.length > 0 || turnSummary.kills.length > 0) && <details className="turn-handoff-summary__details">
-          <summary><span>Recorded this turn</span><strong>{turnSummary.completedSecondaries.length} missions · {turnSummary.kills.length} destroyed</strong></summary>
+          <summary><span>{tr("Recorded this turn")}</span><strong>{turnSummary.completedSecondaries.length} {tr(" missions · ")}{turnSummary.kills.length} {tr(" destroyed")}</strong></summary>
           {turnSummary.completedSecondaries.length > 0 && <div className="turn-handoff-summary__list">
-            <span className="eyebrow">Completed Secondaries</span>
-            {turnSummary.completedSecondaries.map((entry, index) => <div className="turn-handoff-summary__row" key={`${entry.cardId}-${index}`}><span>✓ {entry.name}</span><strong>+{entry.pointsAwarded} VP</strong></div>)}
+            <span className="eyebrow">{tr("Completed Secondaries")}</span>
+            {turnSummary.completedSecondaries.map((entry, index) => <div className="turn-handoff-summary__row" key={`${entry.cardId}-${index}`}><span>✓ {entry.name}</span><strong>+{entry.pointsAwarded} {tr(" VP")}</strong></div>)}
           </div>}
           {turnSummary.kills.length > 0 && <div className="turn-handoff-summary__list">
-            <span className="eyebrow">Destroyed this turn</span>
-            {turnSummary.kills.map((kill) => <div className="turn-handoff-summary__row" key={`${kill.victimPlayerId}-${kill.unitId}`}><span>{kill.unitName}<small>{kill.victimPlayerName}</small></span><strong>Destroyed</strong></div>)}
+            <span className="eyebrow">{tr("Destroyed this turn")}</span>
+            {turnSummary.kills.map((kill) => <div className="turn-handoff-summary__row" key={`${kill.victimPlayerId}-${kill.unitId}`}><span>{kill.unitName}<small>{kill.victimPlayerName}</small></span><strong>{tr("Destroyed")}</strong></div>)}
           </div>}
         </details>}
       </section>
 
       <details className="panel turn-review-details">
         <summary>
-          <span><span className="eyebrow">Optional details</span><strong>Scoring and Mission Action audit</strong></span>
-          <small>Primary +{turnSummary.primaryGained} · Secondary +{turnSummary.secondaryGained}</small>
+          <span><span className="eyebrow">{tr("Optional details")}</span><strong>{tr("Scoring and Mission Action audit")}</strong></span>
+          <small>{tr("Primary +")}{turnSummary.primaryGained} {tr(" · Secondary +")}{turnSummary.secondaryGained}</small>
         </summary>
         <div className="turn-review-details__body">
           <section className="turn-review-details__group">
-            <div className="section-heading"><div><span className="eyebrow">Resolved</span><h2>Primary</h2></div></div>
-            <div className="review-result review-result--completed"><span>✓</span><div><strong>End-turn Primary committed</strong><small>Round {session.state.round} · this score will not be recalculated after later players move.</small></div><strong>+{primaryCommit?.pointsAwarded ?? primaryPreview.roundPrimary} VP</strong></div>
-            {planId === 'WYNISZCZENIE' && <p className="context-note">Wyniszczenie remains pending until the end of the Battle Round.</p>}
+            <div className="section-heading"><div><span className="eyebrow">{tr("Resolved")}</span><h2>{tr("Primary")}</h2></div></div>
+            <div className="review-result review-result--completed"><span>✓</span><div><strong>{tr("End-turn Primary committed")}</strong><small>{tr("Round ")}{session.state.round} {tr(" · this score will not be recalculated after later players move.")}</small></div><strong>+{primaryCommit?.pointsAwarded ?? primaryPreview.roundPrimary} {tr(" VP")}</strong></div>
+            {planId === 'WYNISZCZENIE' && <p className="context-note">{tr("Wyniszczenie remains pending until the end of the Battle Round.")}</p>}
           </section>
           <section className="turn-review-details__group">
-            <div className="section-heading"><div><span className="eyebrow">Resolved</span><h2>Mission Actions</h2></div></div>
+            <div className="section-heading"><div><span className="eyebrow">{tr("Resolved")}</span><h2>{tr("Mission Actions")}</h2></div></div>
             {review.missionActions.length === 0
-              ? <p className="context-note">No Mission Actions this turn.</p>
+              ? <p className="context-note">{tr("No Mission Actions this turn.")}</p>
               : review.missionActions.map((action) => <div className={`review-result review-result--${action.status.toLowerCase()}`} key={`${action.name}-${action.unitName}`}><span>{action.status === 'COMPLETED' ? '✓' : action.status === 'FAILED' ? '✕' : '○'}</span><div><strong>{action.name}</strong><small>{action.unitName} · {action.detail}</small></div></div>)}
           </section>
           <section className="turn-review-details__group">
-            <div className="section-heading"><div><span className="eyebrow">Secondary</span><h2>{review.roundSecondaryVp} / {review.roundCap} VP this round</h2></div><strong>{review.gameSecondaryVp} / {review.gameCap}</strong></div>
-            {turnSummary.completedSecondaries.map((entry, index) => <div className="review-result review-result--completed" key={`${entry.cardId}-${index}`}><span>✓</span><div><strong>{entry.name}</strong><small>Completed this turn</small></div><strong>+{entry.pointsAwarded} VP</strong></div>)}
-            {turnSummary.completedSecondaries.length === 0 && <p className="context-note">No Secondary was completed this turn.</p>}
+            <div className="section-heading"><div><span className="eyebrow">{tr("Secondary")}</span><h2>{review.roundSecondaryVp} / {review.roundCap} {tr(" VP this round")}</h2></div><strong>{review.gameSecondaryVp} / {review.gameCap}</strong></div>
+            {turnSummary.completedSecondaries.map((entry, index) => <div className="review-result review-result--completed" key={`${entry.cardId}-${index}`}><span>✓</span><div><strong>{entry.name}</strong><small>{tr("Completed this turn")}</small></div><strong>+{entry.pointsAwarded} {tr(" VP")}</strong></div>)}
+            {turnSummary.completedSecondaries.length === 0 && <p className="context-note">{tr("No Secondary was completed this turn.")}</p>}
           </section>
         </div>
       </details>
       {!official && review.incompleteCards.length > 0 && <section className="panel turn-review-section turn-review-carryover">
-        <div className="section-heading"><div><span className="eyebrow">Incomplete cards</span><h2>Choose what carries over</h2></div></div>
+        <div className="section-heading"><div><span className="eyebrow">{tr("Incomplete cards")}</span><h2>{tr("Choose what carries over")}</h2></div></div>
         {review.incompleteCards.map((card) => {
             const discarding = discardIds.includes(card.cardId)
             return <div className={`discard-choice${discarding ? ' discard-choice--discarding' : ''}`} key={card.cardId}>
-              <div><strong>{card.name}</strong><small>{discarding ? 'Will be discarded at the end of this review.' : 'Will remain active for your next turn.'}</small></div>
+              <div><strong>{card.name}</strong><small>{discarding ? tr('Will be discarded at the end of this review.') : tr('Will remain active for your next turn.')}</small></div>
               <button
                 aria-pressed={discarding}
                 className={discarding ? 'button--danger' : ''}
                 onClick={() => toggleDiscard(card.cardId)}
-              >{discarding ? 'Keep card' : 'Discard card'}</button>
+              >{discarding ? tr('Keep card') : tr('Discard card')}</button>
             </div>
           })}
       </section>}
       <div className={`turn-handoff-next turn-handoff-next--player-${nextPlayerIndex}`}>
         <span className="turn-handoff-next__icon"><AppIcon name={lastTurnOfRound ? 'objectives' : 'next'} /></span>
-        <span><span className="eyebrow">Next command</span><strong>{lastTurnOfRound ? `Finish Round ${session.state.round}` : `${nextPlayer?.name ?? 'Next player'} · Command phase`}</strong><small>{lastTurnOfRound ? 'Resolve deferred end-of-round effects before the next Battle Round.' : 'The next commander will immediately see their newly drawn Secondary cards.'}</small></span>
+        <span><span className="eyebrow">{tr("Next command")}</span><strong>{lastTurnOfRound ? tr(`Finish Round ${session.state.round}`, "Finish Round {0}") : tr(`${nextPlayer?.name ?? 'Next player'} · Command phase`, "{0} · Command phase")}</strong><small>{lastTurnOfRound ? tr('Resolve deferred end-of-round effects before the next Battle Round.') : tr('The next commander will immediately see their newly drawn Secondary cards.')}</small></span>
       </div>
-      <div className="review-actions review-actions--final"><button className="button--gold" disabled={pendingOfficial.length > 0} onClick={finish}><span>{pendingOfficial.length ? 'Wait for Secondary review' : finishLabel}</span><AppIcon name="next" /></button></div>
+      <div className="review-actions review-actions--final"><button className="button--gold" disabled={pendingOfficial.length > 0} onClick={finish}><span>{pendingOfficial.length ? tr('Wait for Secondary review') : finishLabel}</span><AppIcon name="next" /></button></div>
     </>}
   </main>
 }
 
 function ConfirmationRow({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void }) {
-  return <label className="review-check-row"><input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} /><span>{label}</span></label>
+  return <label className="review-check-row"><input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} /><span>{tr(label)}</span></label>
 }

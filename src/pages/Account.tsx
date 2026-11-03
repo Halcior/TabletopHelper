@@ -1,3 +1,5 @@
+import { t as tr } from '../features/i18n/locale'
+import { LanguageSettings } from '../features/i18n/LanguageSettings'
 import { ProfilePanel } from '../features/social/ProfilePanel'
 import { useEffect, useState } from 'react'
 import { liveQuery } from 'dexie'
@@ -80,42 +82,41 @@ export default function Account() {
   }
   return (
     <div className="page-shell narrow-page account-page">
-      <Link to="/armies">← My Armies</Link>
+      <Link to="/armies">{tr("← My Armies")}</Link>
       <section className="page-intro">
-        <span className="eyebrow">Optional cloud sync</span>
-        <h1>My Account</h1>
+        <span className="eyebrow">{tr("Optional cloud sync")}</span>
+        <h1>{tr("My Account")}</h1>
         <p>
-          Use TabletopHelper as a guest, or sign in to sync your private army
-          lists across devices.
-        </p>
+          {tr(" Use TabletopHelper as a guest, or sign in to sync your private army lists across devices. ")}</p>
       </section>
+      <section className="panel account-panel"><LanguageSettings /></section>
       {(error || authError) && (
         <p role="alert" className="alert alert--danger">
-          {error || authError}
+          {tr(error) || tr(authError)}
         </p>
       )}
       {message && (
         <p role="status" className="alert">
-          {message}
+          {tr(message)}
         </p>
       )}
       {!ready ? (
-        <p role="status">Restoring session…</p>
+        <p role="status">{tr("Restoring session…")}</p>
       ) : user ? (
         <>
           <ProfilePanel key={user.id} owner={user.id} />
           <section className="panel account-panel">
-            <h2>{user.email ?? 'Signed in'}</h2>
+            <h2>{user.email ?? tr('Signed in')}</h2>
             <p>
-              Private library ·{' '}
+              {tr(" Private library ·")}{' '}
               {sync.owner === user.id && sync.busy
-                ? 'Syncing…'
+                ? tr('Syncing…')
                 : sync.owner === user.id && sync.error
-                  ? 'Pending / error — your local edits are safe'
-                  : 'Ready'}
+                  ? tr('Pending / error — your local edits are safe')
+                  : tr('Ready')}
             </p>
             {sync.owner === user.id && sync.error && (
-              <p role="alert">{sync.error}</p>
+              <p role="alert">{tr(sync.error)}</p>
             )}
             <div className="roster-actions">
               <button
@@ -123,11 +124,9 @@ export default function Account() {
                 disabled={busy || sync.busy}
                 onClick={() => void syncArmies(user.id)}
               >
-                Sync now
-              </button>
+                {tr(" Sync now ")}</button>
               <Link className="button" to="/armies">
-                Open My Armies
-              </Link>
+                {tr(" Open My Armies ")}</Link>
               <button
                 className="button"
                 disabled={busy}
@@ -143,22 +142,18 @@ export default function Account() {
                   })
                 }
               >
-                Sign out
-              </button>
+                {tr(" Sign out ")}</button>
             </div>
           </section>
           {local.length > 0 && (
             <section
               className="panel account-panel"
-              aria-label="Import local rosters"
+              aria-label={tr("Import local rosters")}
             >
               <h2>
-                Found {local.length} local armies. Import them to your account?
-              </h2>
+                {tr(" Found ")}{local.length} {tr(" local armies. Import them to your account? ")}</h2>
               <p>
-                A JSON backup will download before import. Your local originals
-                are kept. Names are never used to merge lists.
-              </p>
+                {tr(" A JSON backup will download before import. Your local originals are kept. Names are never used to merge lists. ")}</p>
               <div className="roster-actions">
                 <button
                   className="button button--gold"
@@ -167,28 +162,24 @@ export default function Account() {
                     void act(() => migrate(local.map((r) => r.id)))
                   }
                 >
-                  Import all
-                </button>
+                  {tr(" Import all ")}</button>
                 <button
                   className="button"
                   onClick={() => setChoosing((c) => !c)}
                 >
-                  Choose armies
-                </button>
+                  {tr(" Choose armies ")}</button>
                 <button
                   className="button"
                   disabled={busy}
                   onClick={() => void act(() => postpone('local'))}
                 >
-                  Keep local only
-                </button>
+                  {tr(" Keep local only ")}</button>
                 <button
                   className="button"
                   disabled={busy}
                   onClick={() => void act(() => postpone('later'))}
                 >
-                  Not now
-                </button>
+                  {tr(" Not now ")}</button>
               </div>
               {choosing && (
                 <div className="account-migration-list">
@@ -205,16 +196,14 @@ export default function Account() {
                           )
                         }
                       />
-                      {row.army.name} · {row.army.totalPoints} pts
-                    </label>
+                      {row.army.name} · {row.army.totalPoints} {tr(" pts ")}</label>
                   ))}
                   <button
                     className="button"
                     disabled={busy || !selected.length}
                     onClick={() => void act(() => migrate(selected))}
                   >
-                    Import selected
-                  </button>
+                    {tr(" Import selected ")}</button>
                 </div>
               )}
             </section>
@@ -222,16 +211,12 @@ export default function Account() {
         </>
       ) : (
         <section className="panel account-panel">
-          <h2>Guest on this device</h2>
+          <h2>{tr("Guest on this device")}</h2>
           <p>
-            Import, edit and play without an account. Guest lists are stored on
-            this device and are not synced.
-          </p>
+            {tr(" Import, edit and play without an account. Guest lists are stored on this device and are not synced. ")}</p>
           {!accountClient ? (
             <p>
-              Cloud accounts are not configured for this installation. The local
-              library is ready to use.
-            </p>
+              {tr(" Cloud accounts are not configured for this installation. The local library is ready to use. ")}</p>
           ) : (
             <>
               <form
@@ -250,8 +235,7 @@ export default function Account() {
                 }}
               >
                 <label>
-                  Email
-                  <input
+                  {tr(" Email ")}<input
                     type="email"
                     autoComplete="email"
                     required
@@ -260,11 +244,10 @@ export default function Account() {
                   />
                 </label>
                 <button className="button button--gold" disabled={busy}>
-                  Send sign-in link
-                </button>
+                  {tr(" Send sign-in link ")}</button>
               </form>
               <details>
-                <summary>Enter email code</summary>
+                <summary>{tr("Enter email code")}</summary>
                 <form
                   onSubmit={(e) => {
                     e.preventDefault()
@@ -279,8 +262,7 @@ export default function Account() {
                   }}
                 >
                   <label>
-                    Email code
-                    <input
+                    {tr(" Email code ")}<input
                       inputMode="numeric"
                       autoComplete="one-time-code"
                       required
@@ -289,8 +271,7 @@ export default function Account() {
                     />
                   </label>
                   <button className="button" disabled={busy || !email}>
-                    Verify code
-                  </button>
+                    {tr(" Verify code ")}</button>
                 </form>
               </details>
               {import.meta.env.VITE_GOOGLE_AUTH_ENABLED === 'true' && (
@@ -308,25 +289,23 @@ export default function Account() {
                     })
                   }
                 >
-                  Continue with Google
-                </button>
+                  {tr(" Continue with Google ")}</button>
               )}
             </>
           )}
           <Link className="button" to="/armies">
-            Continue as guest
-          </Link>
+            {tr(" Continue as guest ")}</Link>
         </section>
       )}
       {user && <section className="panel">
-        <h2>Cloud media</h2>
-        <p>Custom army banners and unit portraits are stored privately in Supabase Storage. Friends can see them only for armies you share with them.</p>
+        <h2>{tr("Cloud media")}</h2>
+        <p>{tr("Custom army banners and unit portraits are stored privately in Supabase Storage. Friends can see them only for armies you share with them.")}</p>
         <button type="button" disabled={busy} onClick={() => void act(async () => {
           const result = await syncLocalCloudMedia()
           setMessage(`Cloud photos synchronized: ${result.uploaded} checked, ${result.failed} failed. Images already stored in the cloud are not overwritten.`)
-        })}>Sync my existing photos</button>
+        })}>{tr("Sync my existing photos")}</button>
       </section>}
-      <p className="context-note">Images still have an offline copy on this device. Cloud media is not included in JSON exports. Friends only see photos belonging to shared armies.</p>
+      <p className="context-note">{tr("Images still have an offline copy on this device. Cloud media is not included in JSON exports. Friends only see photos belonging to shared armies.")}</p>
     </div>
   )
 }

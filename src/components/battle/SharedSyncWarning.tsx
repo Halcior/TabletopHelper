@@ -1,3 +1,4 @@
+import { t as tr } from '../../features/i18n/locale'
 import { useEffect, useMemo, useState } from 'react'
 import { participantIsOnline } from '../../multiplayer/presence'
 import { useSharedSessionStore } from '../../multiplayer/sharedSessionStore'
@@ -56,7 +57,7 @@ export function SharedSyncWarning({ battleId }: { battleId: string }) {
         : 'Wait before making the first shared change.'
 
   return <div className={`shared-sync-warning ${ownConnectionLost ? 'shared-sync-warning--danger' : 'shared-sync-warning--warning'}`} role="alert" aria-live="assertive">
-    <div><strong>{title}</strong><span>{detail}</span>{error && ownConnectionLost && <small>{error}</small>}</div>
-    <button onClick={() => void forceSync()}>Retry now</button>
+    <div><strong>{tr(title)}</strong><span>{detail}</span>{error && ownConnectionLost && <small>{tr(error)}</small>}</div>
+    <button onClick={() => void forceSync()}>{tr("Retry now")}</button>
   </div>
 }

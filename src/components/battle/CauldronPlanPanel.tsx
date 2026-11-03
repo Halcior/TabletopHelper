@@ -1,3 +1,4 @@
+import { t as tr } from '../../features/i18n/locale'
 import { useEffect, useState } from 'react'
 import type { BattleSession } from '../../domain/battle/types'
 import {
@@ -51,48 +52,48 @@ export function CauldronPlanPanel({
   return (
     <section className="panel plan-panel">
       <div className="section-heading">
-        <div><span className="eyebrow">Operational Plan · Rival {session.state.players[rivalId].name}</span><h2>{evaluation.name}</h2></div>
+        <div><span className="eyebrow">{tr("Operational Plan · Rival ")}{session.state.players[rivalId].name}</span><h2>{evaluation.name}</h2></div>
         <span className={`plan-status plan-status--${evaluation.status.toLowerCase()}`}>{evaluation.status.replace('_', ' ')}</span>
       </div>
-      <p>{evaluation.description}</p>
+      <p>{tr(evaluation.description)}</p>
       {evaluation.progress && <div className="plan-progress">
         <div><strong>{number.format(evaluation.progress.current)}</strong><span>/ {number.format(evaluation.progress.target)} {evaluation.progress.unit}</span></div>
         <progress max={evaluation.progress.target} value={Math.min(evaluation.progress.current, evaluation.progress.target)} />
         <small>{evaluation.status === 'COMPLETED'
-          ? 'Target reached'
-          : `${number.format(Math.max(0, evaluation.progress.target - evaluation.progress.current))} ${evaluation.progress.unit} needed`}</small>
+          ? tr('Target reached')
+          : tr(`${number.format(Math.max(0, evaluation.progress.target - evaluation.progress.current))} ${evaluation.progress.unit} needed`, "{0} {1} needed")}</small>
       </div>}
-      <p className="plan-reason">{evaluation.reason}</p>
+      <p className="plan-reason">{tr(evaluation.reason)}</p>
 
       {needsMarkedObjective && session.state.phase === 'COMMAND' && !target && <div className="plan-change">
-        <strong>Mark this turn&apos;s objective</strong>
+        <strong>{tr("Mark this turn&apos;s objective")}</strong>
         {targetOptions.length > 0 ? <div className="plan-change__controls">
-          <select aria-label="Operational Plan objective" value={selectedObjectiveId} onChange={(event) => setSelectedObjectiveId(event.target.value)}>
+          <select aria-label={tr("Operational Plan objective")} value={selectedObjectiveId} onChange={(event) => setSelectedObjectiveId(event.target.value)}>
             {targetOptions.map((option) => <option key={option.objectiveId} value={option.objectiveId}>{option.name}</option>)}
           </select>
-          <button className="button--gold" disabled={!selectedObjectiveId} onClick={markObjective}>Mark objective</button>
-        </div> : <p className="plan-change-unavailable">No valid objective can be marked from the Turn Start state.</p>}
-        {fallbackChoice && <small>The Rival controlled no objective at Turn Start. Select the neutral objective physically closest to their deployment zone.</small>}
-        {rivalHomeFallback && <small>The Rival controlled no objective and you controlled every neutral objective at Turn Start, so their HOME is the required target.</small>}
+          <button className="button--gold" disabled={!selectedObjectiveId} onClick={markObjective}>{tr("Mark objective")}</button>
+        </div> : <p className="plan-change-unavailable">{tr("No valid objective can be marked from the Turn Start state.")}</p>}
+        {fallbackChoice && <small>{tr("The Rival controlled no objective at Turn Start. Select the neutral objective physically closest to their deployment zone.")}</small>}
+        {rivalHomeFallback && <small>{tr("The Rival controlled no objective and you controlled every neutral objective at Turn Start, so their HOME is the required target.")}</small>}
       </div>}
-      {target && <p className="spent-note">Marked this turn: {session.state.objectives[target.objectiveId]?.name ?? target.objectiveId}.</p>}
+      {target && <p className="spent-note">{tr("Marked this turn: ")}{session.state.objectives[target.objectiveId]?.name ?? target.objectiveId}.</p>}
 
       {!state.changed && session.state.phase === 'COMMAND' && (availability.available
         ? <details className="plan-change">
-          <summary>Change plan <span>Free · once per battle</span></summary>
+          <summary>{tr("Change plan ")}<span>{tr("Free · once per battle")}</span></summary>
           <div className="plan-change__controls">
-            <select aria-label="New Operational Plan" value={selectedPlan} onChange={(event) => setSelectedPlan(event.target.value as OperationalPlanId)}>
+            <select aria-label={tr("New Operational Plan")} value={selectedPlan} onChange={(event) => setSelectedPlan(event.target.value as OperationalPlanId)}>
               {OPERATIONAL_PLAN_IDS.map((planId) => <option key={planId} value={planId}>{OPERATIONAL_PLAN_DEFINITIONS[planId].name}</option>)}
             </select>
             <button
               disabled={selectedPlan === state.planId}
               onClick={() => onChangePlan(playerId, selectedPlan)}
-            >Confirm free change</button>
+            >{tr("Confirm free change")}</button>
           </div>
-          <small>{availability.reason}</small>
+          <small>{tr(availability.reason)}</small>
         </details>
-        : <p className="plan-change-unavailable">Plan change unavailable · {availability.reason}</p>)}
-      {state.changed && <p className="spent-note">Plan change used in Round {state.changedRound}.</p>}
+        : <p className="plan-change-unavailable">{tr("Plan change unavailable · ")}{tr(availability.reason)}</p>)}
+      {state.changed && <p className="spent-note">{tr("Plan change used in Round ")}{state.changedRound}.</p>}
     </section>
   )
 }

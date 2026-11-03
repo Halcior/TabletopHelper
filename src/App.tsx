@@ -1,3 +1,5 @@
+import { t as tr } from './features/i18n/locale'
+import { useLocale } from './features/i18n/locale'
 import { useAccount, startAccount } from './features/account/store'
 import { LocalImportNotice } from './features/account/LocalImportNotice'
 import { useVisualPreferences } from './features/factionVisuals/preferences'
@@ -20,6 +22,8 @@ const Home = lazy(() => import('./pages/Home'))
 const SharedSessions = lazy(() => import('./pages/SharedSessions'))
 
 export default function App() {
+  const locale = useLocale(state => state.locale)
+  useEffect(() => { document.documentElement.lang = locale }, [locale])
   useEffect(startAccount, [])
   const account = useAccount(s => s.user)
   const appearance = useVisualPreferences(s => s.preferences.appearance)
@@ -30,13 +34,13 @@ export default function App() {
       <AppBackground />
       {!inBattle && (
         <header className="app-header">
-          <Link className="brand" to="/" aria-label="TabletopHelper home"><span className="brand-mark"><AppIcon name="mark" /></span><span>Tabletop<strong>Helper</strong></span></Link>
-          <nav aria-label="Main navigation">
-            <NavLink to="/" end><AppIcon name="home" /><span>Home</span></NavLink>
-            <NavLink to="/shared"><AppIcon name="shared" /><span>Shared</span></NavLink>
-            <NavLink to="/armies"><AppIcon name="army" /><span>Armies</span></NavLink>
-            <NavLink to="/friends"><AppIcon name="shared" /><span>Friends</span></NavLink>
-            <NavLink to="/account" title={account?.email ?? 'Optional account'}><AppIcon name="account" /><span>{account ? 'Account' : 'Sign in'}</span></NavLink>
+          <Link className="brand" to="/" aria-label={tr("TabletopHelper home")}><span className="brand-mark"><AppIcon name="mark" /></span><span>Tabletop<strong>Helper</strong></span></Link>
+          <nav aria-label={tr("Main navigation")}>
+            <NavLink to="/" end><AppIcon name="home" /><span>{tr("Home")}</span></NavLink>
+            <NavLink to="/shared"><AppIcon name="shared" /><span>{tr("Shared")}</span></NavLink>
+            <NavLink to="/armies"><AppIcon name="army" /><span>{tr("Armies")}</span></NavLink>
+            <NavLink to="/friends"><AppIcon name="shared" /><span>{tr("Friends")}</span></NavLink>
+            <NavLink to="/account" title={account?.email ?? tr('Optional account')}><AppIcon name="account" /><span>{account ? tr('Account') : tr('Sign in')}</span></NavLink>
           </nav>
         </header>
       )}

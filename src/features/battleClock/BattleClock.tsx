@@ -1,3 +1,5 @@
+import { t as tr } from '../i18n/locale'
+import { useLocale } from '../i18n/locale'
 import { useEffect, useRef, useState } from 'react'
 import type { BattleSession } from '../../domain/battle/types'
 import { CommandDialog } from '../../components/ui/CommandDialog'
@@ -80,28 +82,28 @@ export function BattleClock({ session }: { session: BattleSession }) {
   const active = rows.find(row => row.id === clock?.activeBudgetId)
   function closeHelp() { remember(HELP_KEY, true); setHelp(false) }
   const warningText = { normal:'', quarter:c.warning15, five:c.warning5, one:c.warning1, expired:c.expired }
-  return <aside className={`battle-clock${collapsed ? ' is-collapsed' : ''}`} aria-label="Battle Clock" lang="pl" data-testid="battle-clock">
-    <header className="battle-clock__heading"><div><span className="eyebrow">{c.title} · {c.round} {clock?.round ?? session.state.round}</span><small>{clock?.endedAt ? c.finished : clock?.running ? c.running : c.paused}</small></div>
+  return <aside className={`battle-clock${collapsed ? ' is-collapsed' : ''}`} aria-label={tr("Battle Clock")} lang={useLocale.getState().locale} data-testid="battle-clock">
+    <header className="battle-clock__heading"><div><span className="eyebrow">{tr(c.title)} · {c.round} {clock?.round ?? session.state.round}</span><small>{clock?.endedAt ? c.finished : clock?.running ? c.running : c.paused}</small></div>
       {collapsed && active && <strong className={`battle-clock__mini clock-warning--${clockWarning(active.remainingMs)}`}>{active.name} <time>{formatClock(active.remainingMs)}</time></strong>}
       <button type="button" aria-expanded={!collapsed} aria-label={collapsed ? c.expand : c.collapse} onClick={() => { remember(COLLAPSE_KEY, !collapsed); setCollapsed(!collapsed) }}>{collapsed ? '＋' : '−'}</button>
     </header>
     {!clock ? <p role="status">{c.syncing}</p> : <>
       {!collapsed && <div className="battle-clock__budgets">{rows.map(row => <div key={row.id} data-budget-id={row.id} className={`battle-clock__budget clock-warning--${clockWarning(row.remainingMs)}${row.id === clock.activeBudgetId ? ' is-active' : ''}`} aria-current={row.id === clock.activeBudgetId ? 'true' : undefined}>
-        <span>{row.name}</span><time>{formatClock(row.remainingMs)}</time><small>{row.overtimeMs > 0 ? `+${formatClock(row.overtimeMs)} · ${c.expired}` : warningText[clockWarning(row.remainingMs)] || (row.id === clock.activeBudgetId ? clock.running ? c.running : c.paused : c.left)}</small>
+        <span>{row.name}</span><time>{formatClock(row.remainingMs)}</time><small>{row.overtimeMs > 0 ? tr(`+${formatClock(row.overtimeMs)} · ${c.expired}`, "+{0} · {1}") : warningText[clockWarning(row.remainingMs)] || (row.id === clock.activeBudgetId ? clock.running ? c.running : c.paused : c.left)}</small>
       </div>)}</div>}
       <div className="battle-clock__controls">
         {targets.length > 1 && <label className="battle-clock__target">{c.target}<select id="battle-clock-recipient" value={targets.some(b => b.id === targetId) ? targetId : ''} disabled={!canControl} onChange={e => setTargetId(e.target.value)}><option value="">—</option>{targets.map(b => <option value={b.id} key={b.id}>{b.name}</option>)}</select></label>}
-        <button type="button" className="button button--gold battle-clock__pass" disabled={!canControl} onClick={pass} title={`${c.passTip} ${c.shortcut}`}>{c.pass}{targets.length === 1 ? ` → ${targets[0].name}` : ''}</button>
+        <button type="button" className="button button--gold battle-clock__pass" disabled={!canControl} onClick={pass} title={tr(`${c.passTip} ${c.shortcut}`, "{0} {1}")}>{c.pass}{targets.length === 1 ? tr(` → ${targets[0].name}`, " → {0}") : ''}</button>
         <button type="button" disabled={!canControl} onClick={() => void send({ type:clock.running ? 'pause' : 'resume' })} title={c.pauseTip}>{clock.running ? c.pause : clock.startedAt === null ? c.start : c.resume}</button>
         <button type="button" onClick={() => setHelp(true)} aria-label={c.help} title={c.help}>?</button>
       </div>
       {stale && <p className="context-note" role="status">{c.offline}</p>}
-      {error && <p className="alert alert--danger" role="status">{error}</p>}
+      {error && <p className="alert alert--danger" role="status">{tr(error)}</p>}
       {!collapsed && <>
         {clock.config.preset === 'competitive' && rows.some(row => row.remainingMs <= 0) && <p className="clock-expiry" role="status">{c.competitiveExpiry}</p>}
         <details><summary>{c.statistics}</summary><ClockStatistics statistics={rows} /></details>
       </>}
     </>}
-    {help && <CommandDialog label={c.help} onClose={closeHelp}><div className="battle-clock__help"><span className="eyebrow">{c.title} · Hybrid Clock</span><h2>{c.help}</h2><p>{c.initial}</p><ul>{[c.autoTip,c.passTip,c.saves,c.overwatch,c.fight,c.expiry].map(text => <li key={text}>{text}</li>)}</ul><button className="button button--gold" onClick={closeHelp}>{c.close}</button></div></CommandDialog>}
+    {help && <CommandDialog label={c.help} onClose={closeHelp}><div className="battle-clock__help"><span className="eyebrow">{tr(c.title)} {tr(" · Hybrid Clock")}</span><h2>{c.help}</h2><p>{c.initial}</p><ul>{[c.autoTip,c.passTip,c.saves,c.overwatch,c.fight,c.expiry].map(text => <li key={text}>{text}</li>)}</ul><button className="button button--gold" onClick={closeHelp}>{c.close}</button></div></CommandDialog>}
   </aside>
 }

@@ -1,3 +1,4 @@
+import { t as tr } from '../../features/i18n/locale'
 import { Link } from 'react-router-dom'
 import { ArmyBanner, UnitPortrait } from '../../features/factionVisuals/components'
 import { VisualPreferences } from '../../features/factionVisuals/VisualPreferences'
@@ -50,10 +51,10 @@ function Weapons({ title, weapons }: { title: string; weapons: WeaponProfile[] }
   if (weapons.length === 0) return null
   return (
     <section className="reference-section">
-      <h4>{title}</h4>
+      <h4>{tr(title)}</h4>
       <div className="weapon-table-wrap">
         <table className="weapon-table">
-          <thead><tr><th>Weapon</th><th>Range</th><th>A</th><th>Skill</th><th>S</th><th>AP</th><th>D</th></tr></thead>
+          <thead><tr><th>{tr("Weapon")}</th><th>{tr("Range")}</th><th>A</th><th>{tr("Skill")}</th><th>S</th><th>{tr("AP")}</th><th>D</th></tr></thead>
           <tbody>{weapons.map((weapon) => (
             <tr key={`${weapon.type}-${weapon.name}-${weapon.range}-${weapon.attacks}`}>
               <td>{weapon.name}{weapon.keywords.length > 0 && <small>{weapon.keywords.join(', ')}</small>}</td>
@@ -92,36 +93,36 @@ function UnitReference({
     : null
   return (
     <div className="unit-reference">
-      {stats && <section className="reference-section"><h4>Statline</h4><div className="stat-grid">
+      {stats && <section className="reference-section"><h4>{tr("Statline")}</h4><div className="stat-grid">
         {[
           ['M', stats.movement], ['T', stats.toughness], ['SV', stats.save], ['W', stats.wounds],
           ['LD', stats.leadership], ['OC', stats.objectiveControl], ['INV', stats.invulnerableSave],
-        ].map(([label, value]) => <div key={label}><span>{label}</span><strong>{value ?? '—'}</strong></div>)}
+        ].map(([label, value]) => <div key={label}><span>{tr(label)}</span><strong>{value ?? '—'}</strong></div>)}
       </div></section>}
-      {unit.modelGroups.length > 0 && <section className="reference-section"><h4>Model groups</h4><ul className="plain-list">
+      {unit.modelGroups.length > 0 && <section className="reference-section"><h4>{tr("Model groups")}</h4><ul className="plain-list">
         {unit.modelGroups.map((group) => <li key={group.name}><strong>{group.startingCount}× {group.name}</strong>{group.equipment.length > 0 && <span>{group.equipment.join(', ')}</span>}</li>)}
       </ul></section>}
-      <Weapons title="Ranged weapons" weapons={unit.rangedWeapons} />
-      <Weapons title="Melee weapons" weapons={unit.meleeWeapons} />
-      {unit.abilities.length > 0 && <details className="reference-details"><summary>Abilities</summary><ul className="ability-list">
+      <Weapons title={tr("Ranged weapons")} weapons={unit.rangedWeapons} />
+      <Weapons title={tr("Melee weapons")} weapons={unit.meleeWeapons} />
+      {unit.abilities.length > 0 && <details className="reference-details"><summary>{tr("Abilities")}</summary><ul className="ability-list">
         {unit.abilities.map((ability) => {
           const used = state.oncePerBattleAbilities[ability.name] ?? false
           return <li key={`${ability.name}-${ability.description ?? ''}`}>
-            <div><strong>{ability.name}</strong>{ability.description && <p>{ability.description}</p>}</div>
+            <div><strong>{ability.name}</strong>{ability.description && <p>{tr(ability.description)}</p>}</div>
             <button disabled={!canEdit} className={used ? 'button button--danger button--small' : 'button button--small'} onClick={() => dispatch({
               type: 'ABILITY_USED', payload: { playerId: ownerId, unitId: unit.id, abilityName: ability.name, used: !used },
-            })}>{used ? 'Used · restore' : 'Mark used'}</button>
+            })}>{used ? tr('Used · restore') : tr('Mark used')}</button>
           </li>
         })}
       </ul></details>}
-      {unit.enhancements.length > 0 && <section className="reference-section"><h4>Enhancements</h4><ul className="plain-list">
-        {unit.enhancements.map((enhancement) => <li key={enhancement.name}><strong>{enhancement.name} · {enhancement.points} pts</strong>{enhancement.description && <span>{enhancement.description}</span>}</li>)}
+      {unit.enhancements.length > 0 && <section className="reference-section"><h4>{tr("Enhancements")}</h4><ul className="plain-list">
+        {unit.enhancements.map((enhancement) => <li key={enhancement.name}><strong>{enhancement.name} · {enhancement.points} {tr(" pts")}</strong>{enhancement.description && <span>{tr(enhancement.description)}</span>}</li>)}
       </ul></section>}
-      {unit.wargear.length > 0 && <section className="reference-section"><h4>Wargear</h4><p>
+      {unit.wargear.length > 0 && <section className="reference-section"><h4>{tr("Wargear")}</h4><p>
         {unit.wargear.map((item) => `${item.name}${item.points ? ` (+${item.points} pts)` : ''}`).join(' · ')}
       </p></section>}
-      {(leaders.length > 0 || bodyguard) && <section className="reference-section"><h4>Leader / bodyguard</h4>
-        {leaders.length > 0 && <p>Led by: {leaders.join(', ')}</p>}{bodyguard && <p>Leads: {bodyguard}</p>}
+      {(leaders.length > 0 || bodyguard) && <section className="reference-section"><h4>{tr("Leader / bodyguard")}</h4>
+        {leaders.length > 0 && <p>{tr("Led by: ")}{leaders.join(', ')}</p>}{bodyguard && <p>{tr("Leads: ")}{bodyguard}</p>}
       </section>}
     </div>
   )
@@ -160,32 +161,32 @@ function UnitCard({
   return (
     <article style={themeStyle(theme)} id={`unit-card-${ownerId}-${unit.id}`} className={`unit-card${state.destroyed ? ' is-destroyed' : ''}${canEdit ? '' : ' unit-card--readonly'}`}>
       <div className="unit-card__header">
-        <div className="unit-card__identity"><UnitPortrait army={army} unit={unit} /><div><h3>{unit.name}</h3><p>{unitRole(unit)} · {unit.points} pts{unit.isWarlord ? ' · Warlord' : ''}</p></div></div>
-        <span className={`unit-state${state.destroyed ? ' unit-state--destroyed' : ''}`}>{state.destroyed ? 'Destroyed' : 'Alive'}</span>
-        {state.battleShocked && <span className="status-badge status-badge--danger">Battle-shocked</span>}
+        <div className="unit-card__identity"><UnitPortrait army={army} unit={unit} /><div><h3>{unit.name}</h3><p>{unitRole(unit)} · {unit.points} {tr(" pts")}{unit.isWarlord ? tr(' · Warlord') : ''}</p></div></div>
+        <span className={`unit-state${state.destroyed ? ' unit-state--destroyed' : ''}`}>{state.destroyed ? tr('Destroyed') : tr('Alive')}</span>
+        {state.battleShocked && <span className="status-badge status-badge--danger">{tr("Battle-shocked")}</span>}
       </div>
-      {missionActionName && <div className="unit-mission-action"><span>Mission Action</span><strong>{missionActionName}</strong><small>Cannot Shoot or declare a charge this turn.</small></div>}
-      {!canEdit && <p className="shared-readonly-note">Read only on this device · {ownerName} records this unit's state.</p>}
+      {missionActionName && <div className="unit-mission-action"><span>{tr("Mission Action")}</span><strong>{missionActionName}</strong><small>{tr("Cannot Shoot or declare a charge this turn.")}</small></div>}
+      {!canEdit && <p className="shared-readonly-note">{tr("Read only on this device · ")}{ownerName} {tr(" records this unit's state.")}</p>}
       <CombatControls unit={unit} state={state} playerId={ownerId} source={combatSource} dispatch={dispatch} canEdit={canEdit} />
       <div className="unit-battleshock-actions">
-        <span>Battle-shock test</span>
+        <span>{tr("Battle-shock test")}</span>
         <div>
-          <button disabled={!canEdit || state.destroyed} title={readOnlyTitle} onClick={() => recordBattleShock(true)}>Passed</button>
-          <button className="danger-action" disabled={!canEdit || state.destroyed} title={readOnlyTitle} onClick={() => recordBattleShock(false)}>Failed</button>
+          <button disabled={!canEdit || state.destroyed} title={readOnlyTitle} onClick={() => recordBattleShock(true)}>{tr("Passed")}</button>
+          <button className="danger-action" disabled={!canEdit || state.destroyed} title={readOnlyTitle} onClick={() => recordBattleShock(false)}>{tr("Failed")}</button>
           {state.battleShocked && <button disabled={!canEdit} title={readOnlyTitle} onClick={() => dispatch({
             type: 'UNIT_BATTLESHOCK_CHANGED',
             payload: { playerId: ownerId, unitId: unit.id, battleShocked: false },
-          })}>Clear state</button>}
+          })}>{tr("Clear state")}</button>}
         </div>
-        <details className="unit-timing-help"><summary>Test timing</summary><small>Pass/Fail records an exact test timing. Clear state only removes the status.</small></details>
+        <details className="unit-timing-help"><summary>{tr("Test timing")}</summary><small>{tr("Pass/Fail records an exact test timing. Clear state only removes the status.")}</small></details>
       </div>
-      <details className="unit-details"><summary>Details & quick reference</summary>
+      <details className="unit-details"><summary>{tr("Details & quick reference")}</summary>
         <UnitReference unit={unit} state={state} army={army} ownerId={ownerId} dispatch={dispatch} canEdit={canEdit} />
       </details>
-      {performance && <details className="unit-performance-inline"><summary>Battle performance · {performance.kills} kills · {Math.round(performance.enemyPointsDestroyed)} pts</summary>
-        <p>Effective damage: {performance.damageDealt ?? 'Unknown'} W · received: {performance.damageReceived ?? 'Unknown'} W (partial). Healed: {performance.woundsHealed} W · restored: {performance.modelsRestored} models.</p>
-        <p>{performance.modelsDestroyed} enemy models · {performance.combatRoi === null ? '—' : `${Math.round(performance.combatRoi)}%`} Combat ROI · {performance.completedMissionActions} completed actions</p>
-        <small>Net model value; equal points per starting model. Full comparison is in Battle Report.</small>
+      {performance && <details className="unit-performance-inline"><summary>{tr("Battle performance · ")}{performance.kills} {tr(" kills · ")}{Math.round(performance.enemyPointsDestroyed)} {tr(" pts")}</summary>
+        <p>{tr("Effective damage: ")}{performance.damageDealt ?? tr('Unknown')} {tr(" W · received: ")}{performance.damageReceived ?? tr('Unknown')} {tr(" W (partial). Healed: ")}{performance.woundsHealed} {tr(" W · restored: ")}{performance.modelsRestored} {tr(" models.")}</p>
+        <p>{performance.modelsDestroyed} {tr(" enemy models · ")}{performance.combatRoi === null ? '—' : tr(`${Math.round(performance.combatRoi)}%`, "{0}%")} {tr(" Combat ROI · ")}{performance.completedMissionActions} {tr(" completed actions")}</p>
+        <small>{tr("Net model value; equal points per starting model. Full comparison is in Battle Report.")}</small>
       </details>}
     </article>
   )
@@ -261,7 +262,7 @@ export function ArmyTracker({
       : activeHasArmy ? session.state.activePlayerId : armyPlayers[0]?.player.id ?? ''
   const [selectedPlayerId, setSelectedPlayerId] = useState(defaultPlayerId)
   useEffect(() => setSelectedPlayerId(defaultPlayerId), [defaultPlayerId])
-  if (armyPlayers.length === 0) return <section className="empty-state"><h2>No army roster attached</h2></section>
+  if (armyPlayers.length === 0) return <section className="empty-state"><h2>{tr("No army roster attached")}</h2></section>
   const selected = armyPlayers.find(({ player }) => player.id === selectedPlayerId) ?? armyPlayers[0]
   const sourceKey = `${session.setup.gameId}:${session.state.activePlayerId}:${selected.player.id}`
   const source = sources[sourceKey] ?? { destroyedByPlayerId: session.state.activePlayerId === selected.player.id ? null : session.state.activePlayerId }
@@ -292,40 +293,40 @@ export function ArmyTracker({
   }
 
   return <div className="army-trackers">
-    <nav className="army-player-tabs" aria-label="Choose player army">
+    <nav className="army-player-tabs" aria-label={tr("Choose player army")}>
       {armyPlayers.map(({ player, army }) => <button
         className={player.id === selected.player.id ? 'selected' : ''}
         aria-pressed={player.id === selected.player.id}
         key={player.id}
         onClick={() => setSelectedPlayerId(player.id)}
-      ><span>{player.name}{sharedMode && player.id === viewerPlayerId ? ' · You' : ''}</span><small>{player.id === session.state.activePlayerId
-        ? 'Active player'
-        : player.id === rivalPlayerId ? 'Rival' : 'Opponent'} · {army.faction}</small></button>)}
+      ><span>{player.name}{sharedMode && player.id === viewerPlayerId ? tr(' · You') : ''}</span><small>{player.id === session.state.activePlayerId
+        ? tr('Active player')
+        : player.id === rivalPlayerId ? tr('Rival') : tr('Opponent')} · {army.faction}</small></button>)}
     </nav>
     <section key={selected.player.id} className="army-tracker-section">
       <ArmyBanner army={selected.army} label={selected.player.name} />
       <VisualPreferences army={selected.army} />
-      <Link className="army-appearance-link no-print" to={`/army/${encodeURIComponent(selected.army.id)}/appearance?battleId=${encodeURIComponent(session.setup.gameId)}`}>Appearance & photos</Link>
+      <Link className="army-appearance-link no-print" to={`/army/${encodeURIComponent(selected.army.id)}/appearance?battleId=${encodeURIComponent(session.setup.gameId)}`}>{tr("Appearance & photos")}</Link>
       <div className="army-heading">
-        <div><span className="eyebrow">{selected.player.name} · Zone {selected.player.deploymentZone ?? '—'}</span><h2>{selected.army.faction}</h2></div>
-        <strong>{selected.army.totalPoints} pts</strong>
+        <div><span className="eyebrow">{selected.player.name} {tr(" · Zone ")}{selected.player.deploymentZone ?? '—'}</span><h2>{selected.army.faction}</h2></div>
+        <strong>{selected.army.totalPoints} {tr(" pts")}</strong>
       </div>
-      {sharedMode && !canEditSelectedArmy && <div className="shared-army-readonly"><strong>Opponent army · read only</strong><span>{selected.player.name} records casualties, wounds, battle-shock and abilities on their device.</span></div>}
+      {sharedMode && !canEditSelectedArmy && <div className="shared-army-readonly"><strong>{tr("Opponent army · read only")}</strong><span>{selected.player.name} {tr(" records casualties, wounds, battle-shock and abilities on their device.")}</span></div>}
       <CombatSourcePicker session={session} targetPlayerId={selected.player.id} value={combatSource} disabled={!canEditSelectedArmy} onChange={(value) => {
         setSources((current) => ({ ...current, [sourceKey]: value }))
         if (value.destroyedByPlayerId && value.attackerUnitId !== undefined) setLastUnits((current) => ({ ...current, [value.destroyedByPlayerId!]: value.attackerUnitId ?? null }))
       }} />
       {filterRivalTargets && secondaryTargetFilter && <div className="army-target-filter" role="status">
-        <span><strong>Targets for {CAULDRON_SECONDARY_BY_ID[secondaryTargetFilter].name}</strong><small>{visibleUnits.length} eligible Rival unit{visibleUnits.length === 1 ? '' : 's'} remaining.</small></span>
-        <button onClick={onClearSecondaryTargetFilter}>Show all units</button>
+        <span><strong>{tr("Targets for ")}{CAULDRON_SECONDARY_BY_ID[secondaryTargetFilter].name}</strong><small>{visibleUnits.length} {tr(" eligible Rival unit")}{visibleUnits.length === 1 ? '' : 's'} {tr(" remaining.")}</small></span>
+        <button onClick={onClearSecondaryTargetFilter}>{tr("Show all units")}</button>
       </div>}
-      {quickUnits.length > 0 && <section className="recent-units" aria-label="Quick unit access">
+      {quickUnits.length > 0 && <section className="recent-units" aria-label={tr("Quick unit access")}>
         <div className="recent-units__heading">
-          <div><span className="eyebrow">Quick access</span><h3>Units</h3></div>
-          <small>Shortcuts stay fixed while you record damage.</small>
-          <button type="button" className="button button--small" aria-label={`Refresh quick access for ${selected.player.name}`} onClick={() => setQuickAccessByPlayer((current) => ({
+          <div><span className="eyebrow">{tr("Quick access")}</span><h3>{tr("Units")}</h3></div>
+          <small>{tr("Shortcuts stay fixed while you record damage.")}</small>
+          <button type="button" className="button button--small" aria-label={tr(`Refresh quick access for ${selected.player.name}`, "Refresh quick access for {0}")} onClick={() => setQuickAccessByPlayer((current) => ({
             ...current, [selected.player.id]: quickAccessUnitIds(session, selected.player.id),
-          }))}>Refresh</button>
+          }))}>{tr("Refresh")}</button>
         </div>
         <div className="recent-unit-list">{quickUnits.map((unit) => <QuickUnitControl
           key={unit.id}
@@ -351,7 +352,7 @@ export function ArmyTracker({
         dispatch={dispatch}
         canEdit={canEditSelectedArmy}
       />)}</div>
-      {filterRivalTargets && visibleUnits.length === 0 && <p className="context-note">No eligible Rival targets remain.</p>}
+      {filterRivalTargets && visibleUnits.length === 0 && <p className="context-note">{tr("No eligible Rival targets remain.")}</p>}
     </section>
   </div>
 }

@@ -1,3 +1,4 @@
+import { t as tr } from '../../features/i18n/locale'
 import { useState } from 'react'
 import type { BattleSession } from '../../domain/battle/types'
 import { planQuickUndo } from '../../domain/battle/quickCorrections'
@@ -20,7 +21,7 @@ export function QuickUndoAction({ session, eventId }: { session: BattleSession; 
     setFeedback(useBattleStore.getState().error ?? 'Correction recorded. Original events remain in Chronicle.')
   }
   return <div className="quick-undo-action">
-    <button type="button" title={plan.safe ? 'Append a guarded correction; keep history.' : plan.reason} onClick={plan.safe ? apply : () => setManual(true)}>{plan.safe ? 'Undo last action' : 'Correct battle state'}</button>
+    <button type="button" title={plan.safe ? tr('Append a guarded correction; keep history.') : tr(plan.reason)} onClick={plan.safe ? apply : () => setManual(true)}>{plan.safe ? tr('Undo last action') : tr('Correct battle state')}</button>
     {feedback && <small role="status">{feedback}</small>}
     {manual && <BattleCorrectionDialog session={session} onApply={useBattleStore.getState().applyCorrection} onClose={() => setManual(false)} />}
   </div>

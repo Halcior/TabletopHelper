@@ -1,3 +1,4 @@
+import { t as tr } from '../../features/i18n/locale'
 import type { BattleSession } from '../../domain/battle/types'
 import { getActiveSecondaryViews } from '../../rulesets/cauldronFFA3/secondary'
 import { OFFICIAL_SECONDARY_BY_ID } from '../../rulesets/cauldronFFA3/officialSecondaryDefinitions'
@@ -24,14 +25,14 @@ export function BattleFocus({ session, playerId, onDamage, onObjectives, onCards
     const definition = OFFICIAL_SECONDARY_BY_ID[card.cardId as OfficialSecondaryId]
     return !definition || (phase === 'FIGHT' ? definition.category === 'ELIMINATION' : definition.category !== 'ELIMINATION')
   }) : []
-  return <section className="panel battle-focus" aria-label="Battle Focus">
-    <div className="section-heading"><div><span className="eyebrow">Battle Focus · {session.state.players[playerId]?.name}</span><h2>{phase.replace('_', ' ').toLowerCase()} phase</h2></div></div>
+  return <section className="panel battle-focus" aria-label={tr("Battle Focus")}>
+    <div className="section-heading"><div><span className="eyebrow">{tr("Battle Focus · ")}{session.state.players[playerId]?.name}</span><h2>{phase.replace('_', ' ').toLowerCase()} {tr(" phase")}</h2></div></div>
     <p className="context-note">{PHASE_COPY[phase]}</p>
     <div className="battle-focus__actions">
-      <button type="button" className={phase === 'SHOOTING' || phase === 'FIGHT' ? 'button--gold' : ''} onClick={onDamage}>Quick damage</button>
-      <button type="button" onClick={onObjectives}>{phase === 'MOVEMENT' ? 'Map & objectives' : 'Objectives'}</button>
-      <button type="button" onClick={onCards}>Mission cards</button>
-      {phase === 'END_TURN' && onReview && <button type="button" onClick={onReview}>Review scoring</button>}
+      <button type="button" className={phase === 'SHOOTING' || phase === 'FIGHT' ? 'button--gold' : ''} onClick={onDamage}>{tr("Quick damage")}</button>
+      <button type="button" onClick={onObjectives}>{phase === 'MOVEMENT' ? tr('Map & objectives') : tr('Objectives')}</button>
+      <button type="button" onClick={onCards}>{tr("Mission cards")}</button>
+      {phase === 'END_TURN' && onReview && <button type="button" onClick={onReview}>{tr("Review scoring")}</button>}
     </div>
     {cards.length > 0 && <div className="battle-focus__missions">{cards.map(card => <article key={card.cardId}><strong>{card.name}</strong><SecondaryScope session={session} playerId={playerId} cardId={card.cardId} /><p>{secondaryScope(session, playerId, card.cardId) ? FFA_SCORING_BRIEF[card.cardId as OfficialSecondaryId] : card.objective}</p></article>)}</div>}
   </section>

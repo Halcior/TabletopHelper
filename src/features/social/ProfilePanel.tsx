@@ -1,3 +1,4 @@
+import { t as tr } from '../i18n/locale'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useRosterLibrary } from '../armyLibrary/repository'
@@ -25,11 +26,11 @@ export function ProfilePanel({ owner }: { owner: string }) {
     [message, setMessage] = useState('')
   return (
     <section className="panel account-panel">
-      <h2>Player Profile</h2>
+      <h2>{tr("Player Profile")}</h2>
       {profile.loading && !profile.data && (
-        <p role="status">Loading profile…</p>
+        <p role="status">{tr("Loading profile…")}</p>
       )}
-      {profile.error && <p role="alert">{profile.error}</p>}
+      {profile.error && <p role="alert">{tr(profile.error)}</p>}
       {profile.data && (
         <>
           <div className="commander-identity">
@@ -48,22 +49,20 @@ export function ProfilePanel({ owner }: { owner: string }) {
                   .catch((e) => setMessage(errorText(e)))
               }
             >
-              Copy friend code
-            </button>
+              {tr(" Copy friend code ")}</button>
             <button
               onClick={() => {
                 setName(profile.data!.display_name)
                 setAvatar(profile.data!.avatar)
               }}
             >
-              Change name / initials
-            </button>
+              {tr(" Change name / initials ")}</button>
             <Link className="button" to="/friends">
-              Friends ·{' '}
+              {tr(" Friends ·")}{' '}
               {friends.data?.filter((f) => f.status === 'accepted').length ??
                 '—'}
             </Link>
-            <span>{rows.length} saved armies</span>
+            <span>{rows.length} {tr(" saved armies")}</span>
           </div>
           {name !== null && (
             <form
@@ -81,8 +80,7 @@ export function ProfilePanel({ owner }: { owner: string }) {
               }}
             >
               <label>
-                Display name
-                <input
+                {tr(" Display name ")}<input
                   required
                   maxLength={60}
                   value={name}
@@ -90,24 +88,22 @@ export function ProfilePanel({ owner }: { owner: string }) {
                 />
               </label>
               <label>
-                Avatar initials
-                <input
+                {tr(" Avatar initials ")}<input
                   maxLength={4}
                   value={avatar}
                   onChange={(e) => setAvatar(e.target.value)}
                 />
               </label>
               <div className="roster-actions">
-                <button disabled={busy || !name.trim()}>Save profile</button>
+                <button disabled={busy || !name.trim()}>{tr("Save profile")}</button>
                 <button type="button" onClick={() => setName(null)}>
-                  Cancel
-                </button>
+                  {tr(" Cancel ")}</button>
               </div>
             </form>
           )}
         </>
       )}
-      {message && <p role="status">{message}</p>}
+      {message && <p role="status">{tr(message)}</p>}
     </section>
   )
 }

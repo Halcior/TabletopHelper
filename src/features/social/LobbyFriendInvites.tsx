@@ -1,3 +1,4 @@
+import { t as tr } from '../i18n/locale'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAccount } from '../account/store'
@@ -11,7 +12,7 @@ export function LobbyFriendInvites({
   membership: SharedMembership
 }) {
   const user = useAccount((s) => s.user)
-  if (!user) return <Link to="/account">Sign in to invite friends</Link>
+  if (!user) return <Link to="/account">{tr("Sign in to invite friends")}</Link>
   return <Invites key={user.id} owner={user.id} membership={membership} />
 }
 function Invites({
@@ -27,11 +28,10 @@ function Invites({
     [message, setMessage] = useState('')
   return (
     <section className="lobby-roster-picker">
-      <h3>Invite a friend</h3>
+      <h3>{tr("Invite a friend")}</h3>
       <label>
-        Friend
-        <select value={selected} onChange={(e) => setSelected(e.target.value)}>
-          <option value="">Choose a commander…</option>
+        {tr(" Friend ")}<select value={selected} onChange={(e) => setSelected(e.target.value)}>
+          <option value="">{tr("Choose a commander…")}</option>
           {friends.data
             ?.filter((f) => f.status === 'accepted')
             .map((f) => (
@@ -57,12 +57,11 @@ function Invites({
             .finally(() => setBusy(false))
         }}
       >
-        Invite to Game
-      </button>
+        {tr(" Invite to Game ")}</button>
       {(message || friends.error) && (
-        <p role="status">{message || friends.error}</p>
+        <p role="status">{tr(message) || tr(friends.error)}</p>
       )}
-      <Link to="/friends">Manage friends & invitations</Link>
+      <Link to="/friends">{tr("Manage friends & invitations")}</Link>
     </section>
   )
 }

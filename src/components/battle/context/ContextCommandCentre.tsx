@@ -1,3 +1,4 @@
+import { t as tr } from '../../../features/i18n/locale'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { StartMissionActionInput } from '../../../domain/battle/missionActions'
 import type { BattleEventInput, BattleSession } from '../../../domain/battle/types'
@@ -208,16 +209,16 @@ export function ContextCommandCentre({
   return <section className={`context-centre context-centre--${context.guidanceLevel}${visibleSections.length === 0 ? " context-centre--idle" : ""}`}>
 
     <div className="context-centre__heading">
-      <div><span className="eyebrow">What matters now</span><h2>{phaseLabel(context.phase)} priorities</h2></div>
+      <div><span className="eyebrow">{tr("What matters now")}</span><h2>{phaseLabel(context.phase)} {tr(" priorities")}</h2></div>
       {sharedMode && !viewerControlsTurn
-        ? <span className="context-clear">Watching {session.state.players[playerId]?.name ?? 'active player'}</span>
+        ? <span className="context-clear">{tr("Watching ")}{session.state.players[playerId]?.name ?? tr('active player')}</span>
         : blockerCount > 0
-          ? <span className="context-blocker-count">{blockerCount} to resolve</span>
-          : <span className="context-clear">Safe to advance</span>}
+          ? <span className="context-blocker-count">{blockerCount} {tr(" to resolve")}</span>
+          : <span className="context-clear">{tr("Safe to advance")}</span>}
     </div>
 
     {visibleSections.map((section) => <section className={`context-section context-section--${section.id}`} key={section.id}>
-      <h3 className={visibleSections.length === 1 ? 'sr-only' : undefined}>{section.title}</h3>
+      <h3 className={visibleSections.length === 1 ? 'sr-only' : undefined}>{tr(section.title)}</h3>
       <div className="context-item-list">{section.items.map((item) => {
         return <article
           className={`context-item context-item--${item.severity.toLowerCase()} context-item--${item.status.toLowerCase()}`}
@@ -226,9 +227,9 @@ export function ContextCommandCentre({
           tabIndex={-1}
         >
           <div className="context-item__top"><span>{sourceLabel(item)}</span><strong>{statusLabel(item)}</strong></div>
-          <h4>{item.title}</h4>
+          <h4>{tr(item.title)}</h4>
           <p>{item.shortDescription}</p>
-          {item.details && item.details.length > 0 && (['BLOCKING', 'REQUIRED'].includes(item.status) ? <ul>{item.details.map((detail) => <li key={detail}>{detail.replace('confirm timing', 'timing unverified')}</li>)}</ul> : <details className="context-item__more"><summary>Timing & details</summary><ul>{item.details.map((detail) => <li key={detail}>{detail.replace('confirm timing', 'timing unverified')}</li>)}</ul></details>)}
+          {item.details && item.details.length > 0 && (['BLOCKING', 'REQUIRED'].includes(item.status) ? <ul>{item.details.map((detail) => <li key={detail}>{detail.replace('confirm timing', 'timing unverified')}</li>)}</ul> : <details className="context-item__more"><summary>{tr("Timing & details")}</summary><ul>{item.details.map((detail) => <li key={detail}>{detail.replace('confirm timing', 'timing unverified')}</li>)}</ul></details>)}
           {item.actions.length > 0 && <div className="context-item__actions">{item.actions.map((itemAction) => {
             const allowed = viewerCanUseAction(itemAction)
             const priorityOwner = itemAction.type === 'SELECT_PRIORITY_TARGET' && priorityNeedsAlpha
@@ -237,16 +238,16 @@ export function ContextCommandCentre({
             return <button
               className={item.status === 'BLOCKING' && itemAction.type !== 'DISMISS' ? 'button--gold' : ''}
               disabled={!allowed}
-              title={!allowed ? `This action belongs to ${priorityOwner} or another responding player.` : undefined}
+              title={!allowed ? tr(`This action belongs to ${priorityOwner} or another responding player.`, "This action belongs to {0} or another responding player.") : undefined}
               key={itemAction.id}
               onClick={() => handleAction(item, itemAction)}
-            >{itemAction.type === 'SELECT_PRIORITY_TARGET' && !allowed ? `Waiting for ${priorityOwner}` : itemAction.label}</button>
+            >{itemAction.type === 'SELECT_PRIORITY_TARGET' && !allowed ? tr(`Waiting for ${priorityOwner}`, "Waiting for {0}") : tr(itemAction.label)}</button>
           })}</div>}
         </article>
       })}</div>
     </section>)}
 
-    {visibleSections.length === 0 && <p className="context-empty">Nothing requires attention in this phase.</p>}
+    {visibleSections.length === 0 && <p className="context-empty">{tr("Nothing requires attention in this phase.")}</p>}
     <LatestBattleUpdateCard session={session} />
 
     {(hiddenItemCount > 0 || expanded) && <button
@@ -254,7 +255,7 @@ export function ContextCommandCentre({
       type="button"
       aria-expanded={expanded}
       onClick={() => setExpanded((current) => !current)}
-    >{expanded ? 'Show only priorities' : `Show ${hiddenItemCount} more reminder${hiddenItemCount === 1 ? '' : 's'}`}</button>}
+    >{expanded ? tr('Show only priorities') : tr(`Show ${hiddenItemCount} more reminder${hiddenItemCount === 1 ? '' : 's'}`, "Show {0} more reminder{1}")}</button>}
 
     {panel?.type === 'army' && <ArmyQuickPanel
       session={session}
@@ -275,21 +276,21 @@ export function ContextCommandCentre({
       onStart={(input) => { onStartMissionAction(input); setPanel(null) }}
       onClose={() => setPanel(null)}
     /></aside></div>}
-    {panel?.type === 'mulligan' && <ContextOverlay title="Select a card to replace" eyebrow="Free mulligan" onClose={() => setPanel(null)}>
-      <div className="context-choice-list">{secondary?.active.map((card) => <button key={card.cardId} onClick={() => { onMulligan(playerId, card.cardId); setPanel(null) }}>{CAULDRON_SECONDARY_BY_ID[card.cardId].name}<span>{CAULDRON_SECONDARY_BY_ID[card.cardId].vp} VP</span></button>)}</div>
+    {panel?.type === 'mulligan' && <ContextOverlay title={tr("Select a card to replace")} eyebrow="Free mulligan" onClose={() => setPanel(null)}>
+      <div className="context-choice-list">{secondary?.active.map((card) => <button key={card.cardId} onClick={() => { onMulligan(playerId, card.cardId); setPanel(null) }}>{CAULDRON_SECONDARY_BY_ID[card.cardId].name}<span>{CAULDRON_SECONDARY_BY_ID[card.cardId].vp} {tr(" VP")}</span></button>)}</div>
     </ContextOverlay>}
-    {panel?.type === 'elimination' && <ContextOverlay title="Choose one Secondary" eyebrow="One kill · one card" onClose={() => setPanel(null)}>
-      {pendingChoice ? <><p>{pendingChoice.destroyedUnitName} can complete multiple cards.</p><div className="context-choice-list">{pendingChoice.options.map((option) => <button className="button--gold" key={option.cardId} onClick={() => { onResolveEliminationChoice(playerId, option.cardId); setPanel(null) }}>{option.name}<span>{option.vp} VP</span></button>)}</div></> : <p className="context-note">The decision is no longer pending.</p>}
+    {panel?.type === 'elimination' && <ContextOverlay title={tr("Choose one Secondary")} eyebrow="One kill · one card" onClose={() => setPanel(null)}>
+      {pendingChoice ? <><p>{pendingChoice.destroyedUnitName} {tr(" can complete multiple cards.")}</p><div className="context-choice-list">{pendingChoice.options.map((option) => <button className="button--gold" key={option.cardId} onClick={() => { onResolveEliminationChoice(playerId, option.cardId); setPanel(null) }}>{option.name}<span>{option.vp} {tr(" VP")}</span></button>)}</div></> : <p className="context-note">{tr("The decision is no longer pending.")}</p>}
     </ContextOverlay>}
     {panel?.type === 'priority' && <ContextOverlay
-      title="Cel Priorytetowy"
+      title={tr("Cel Priorytetowy")}
       eyebrow={priorityNeedsAlpha ? 'Rival chooses Alpha' : priorityNeedsGamma ? 'Choose Gamma' : 'Targets locked'}
       onClose={() => setPanel(null)}
     >
-      {!priorityCard ? <p className="context-note">Cel Priorytetowy is no longer active.</p>
+      {!priorityCard ? <p className="context-note">{tr("Cel Priorytetowy is no longer active.")}</p>
         : priorityNeedsAlpha ? <>
-          <p><strong>{session.state.players[rivalPlayerId]?.name ?? 'The marked Rival'}</strong> selects {requiredAlphaCount} Alpha target{requiredAlphaCount === 1 ? '' : 's'} from their living units.</p>
-          {sharedMode && viewerPlayerId !== rivalPlayerId && <p className="context-note">Waiting for the marked Rival to nominate Alpha targets on their device.</p>}
+          <p><strong>{session.state.players[rivalPlayerId]?.name ?? tr('The marked Rival')}</strong> {tr(" selects ")}{requiredAlphaCount} {tr(" Alpha target")}{requiredAlphaCount === 1 ? '' : 's'} {tr(" from their living units.")}</p>
+          {sharedMode && viewerPlayerId !== rivalPlayerId && <p className="context-note">{tr("Waiting for the marked Rival to nominate Alpha targets on their device.")}</p>}
           <div className="priority-target-list">{priorityCandidates.map((candidate) => <label key={candidate.unitId}>
             <input
               type="checkbox"
@@ -297,28 +298,28 @@ export function ContextCommandCentre({
               checked={candidateIds.includes(candidate.unitId)}
               onChange={() => toggleCandidate(candidate.unitId)}
             />
-            <span><strong>{candidate.name}</strong><small>{candidate.points} pts</small></span>
+            <span><strong>{candidate.name}</strong><small>{candidate.points} {tr(" pts")}</small></span>
           </label>)}</div>
           <button
             className="button--gold button--wide"
             disabled={candidateIds.length !== requiredAlphaCount || (sharedMode && viewerPlayerId !== rivalPlayerId)}
             onClick={() => onSelectPriorityCandidates(playerId, candidateIds)}
-          >Confirm {requiredAlphaCount} Alpha target{requiredAlphaCount === 1 ? '' : 's'}</button>
+          >{tr("Confirm ")}{requiredAlphaCount} {tr(" Alpha target")}{requiredAlphaCount === 1 ? '' : 's'}</button>
         </> : priorityNeedsGamma ? <>
-          <p>Now <strong>{session.state.players[playerId]?.name ?? 'the active player'}</strong> selects one different living unit as Gamma.</p>
-          {sharedMode && viewerPlayerId !== playerId && <p className="context-note">Waiting for the active player to choose Gamma on their device.</p>}
+          <p>{tr("Now ")}<strong>{session.state.players[playerId]?.name ?? tr('the active player')}</strong> {tr(" selects one different living unit as Gamma.")}</p>
+          {sharedMode && viewerPlayerId !== playerId && <p className="context-note">{tr("Waiting for the active player to choose Gamma on their device.")}</p>}
           <div className="context-choice-list">{gammaCandidates.map((candidate) => <button
             disabled={sharedMode && viewerPlayerId !== playerId}
             key={candidate.unitId}
             onClick={() => { onChoosePriorityTarget(playerId, candidate.unitId); setPanel(null) }}
-          >{candidate.name}<span>{candidate.points} pts</span></button>)}</div>
-        </> : prioritySelectionResolved ? <p className="context-note">Alpha targets are locked{priorityTargetId ? ' and Gamma is selected' : '; no separate Gamma target is available'}. Score this card at the end of the current turn.</p>
-          : <p className="context-note">Target selection is already resolved.</p>}
+          >{candidate.name}<span>{candidate.points} {tr(" pts")}</span></button>)}</div>
+        </> : prioritySelectionResolved ? <p className="context-note">{tr("Alpha targets are locked")}{priorityTargetId ? tr(' and Gamma is selected') : tr('; no separate Gamma target is available')}{tr(". Score this card at the end of the current turn.")}</p>
+          : <p className="context-note">{tr("Target selection is already resolved.")}</p>}
     </ContextOverlay>}
-    {panel?.type === 'plan' && <ContextOverlay title="Operational Plan" eyebrow="Command option" onClose={() => setPanel(null)}><CauldronPlanPanel session={session} onChangePlan={(ownerId, planId) => { onChangePlan(ownerId, planId); setPanel(null) }} /></ContextOverlay>}
+    {panel?.type === 'plan' && <ContextOverlay title={tr("Operational Plan")} eyebrow="Command option" onClose={() => setPanel(null)}><CauldronPlanPanel session={session} onChangePlan={(ownerId, planId) => { onChangePlan(ownerId, planId); setPanel(null) }} /></ContextOverlay>}
   </section>
 }
 
 function ContextOverlay({ title, eyebrow, onClose, children }: { title: string; eyebrow: string; onClose: () => void; children: ReactNode }) {
-  return <div className="quick-panel-layer" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) onClose() }}><aside className="quick-panel" role="dialog" aria-modal="true"><div className="quick-panel__heading"><div><span className="eyebrow">{eyebrow}</span><h2>{title}</h2></div><button onClick={onClose}>Close</button></div>{children}</aside></div>
+  return <div className="quick-panel-layer" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) onClose() }}><aside className="quick-panel" role="dialog" aria-modal="true"><div className="quick-panel__heading"><div><span className="eyebrow">{eyebrow}</span><h2>{tr(title)}</h2></div><button onClick={onClose}>{tr("Close")}</button></div>{children}</aside></div>
 }

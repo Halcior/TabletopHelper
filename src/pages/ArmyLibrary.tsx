@@ -1,3 +1,4 @@
+import { t as tr } from '../features/i18n/locale'
 import { useRemote } from '../features/social/hooks'
 import { social } from '../features/social/api'
 import { VisibilityControl, type VisibilityMap } from '../features/social/VisibilityControl'
@@ -59,18 +60,17 @@ export default function ArmyLibrary() {
     <div className="page-shell roster-library-page">
       <section className="page-intro roster-heading">
         <div>
-          <span className="eyebrow">Army Library 2.0</span>
-          <h1>My Armies</h1>
+          <span className="eyebrow">{tr("Army Library 2.0")}</span>
+          <h1>{tr("My Armies")}</h1>
           <p>
             {owner
-              ? 'Your lists, available offline and across your devices. Share selected rosters with friends.'
-              : 'Your lists on this device. Sign in for optional cloud sync.'}
+              ? tr('Your lists, available offline and across your devices. Share selected rosters with friends.')
+              : tr('Your lists on this device. Sign in for optional cloud sync.')}
           </p>
         </div>
         <div className="roster-actions">
           <Link className="button button--gold" to="/army-import">
-            Import army
-          </Link>
+            {tr(" Import army ")}</Link>
           <button
             className="button"
             disabled={!rows.length}
@@ -81,10 +81,9 @@ export default function ArmyLibrary() {
               )
             }
           >
-            Backup library
-          </button>
+            {tr(" Backup library ")}</button>
           <Link className="button" to="/account">
-            {owner ? 'My account' : 'Sign in'}
+            {owner ? tr('My account') : tr('Sign in')}
           </Link>
         </div>
       </section>
@@ -92,12 +91,12 @@ export default function ArmyLibrary() {
         <div className="roster-sync-bar" role="status">
           <span>
             {sync.owner === owner && sync.busy
-              ? 'Syncing…'
+              ? tr('Syncing…')
               : sync.owner === owner && sync.error
-                ? 'Sync needs attention — edits are saved on this device.'
-                : 'Private cloud library'}
+                ? tr('Sync needs attention — edits are saved on this device.')
+                : tr('Private cloud library')}
             {sync.owner === owner && sync.lastSync
-              ? ` · Last sync ${new Date(sync.lastSync).toLocaleTimeString()}`
+              ? tr(` · Last sync ${new Date(sync.lastSync).toLocaleTimeString()}`, " · Last sync {0}")
               : ''}
           </span>
           <button
@@ -105,56 +104,49 @@ export default function ArmyLibrary() {
             disabled={busy || sync.busy}
             onClick={() => void syncArmies()}
           >
-            Sync now
-          </button>
+            {tr(" Sync now ")}</button>
         </div>
       )}
       {(error || message || (owner && sync.owner === owner && sync.error)) && (
         <p className="alert alert--warning" role="alert">
-          {error || message || sync.error}
+          {tr(error) || tr(message) || tr(sync.error)}
         </p>
       )}
-      {owner && sharing.error && <p role="alert" className="alert">Sharing unavailable: {sharing.error}</p>}
+      {owner && sharing.error && <p role="alert" className="alert">{tr("Sharing unavailable: ")}{tr(sharing.error)}</p>}
       <div className="roster-filters">
         <label>
-          Search rosters
-          <input
+          {tr(" Search rosters ")}<input
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Name or faction"
+            placeholder={tr("Name or faction")}
           />
         </label>
         <label>
-          Faction
-          <select value={faction} onChange={(e) => setFaction(e.target.value)}>
-            <option value="">All factions</option>
+          {tr(" Faction ")}<select value={faction} onChange={(e) => setFaction(e.target.value)}>
+            <option value="">{tr("All factions")}</option>
             {[...new Set(rows.map((r) => r.army.faction))].sort().map((f) => (
               <option key={f}>{f}</option>
             ))}
           </select>
         </label>
         <label>
-          Sort by
-          <select value={sort} onChange={(e) => setSort(e.target.value)}>
-            <option value="recent">Last edited</option>
-            <option value="points">Points (highest first)</option>
-            <option value="name">Name</option>
+          {tr(" Sort by ")}<select value={sort} onChange={(e) => setSort(e.target.value)}>
+            <option value="recent">{tr("Last edited")}</option>
+            <option value="points">{tr("Points (highest first)")}</option>
+            <option value="name">{tr("Name")}</option>
           </select>
         </label>
       </div>
       {loading ? (
-        <p role="status">Loading rosters…</p>
+        <p role="status">{tr("Loading rosters…")}</p>
       ) : !filtered.length ? (
         <section className="empty-state">
-          <h2>{rows.length ? 'No matching rosters' : 'Build your library'}</h2>
+          <h2>{rows.length ? tr('No matching rosters') : tr('Build your library')}</h2>
           <p>
-            Import a New Recruit roster or a TabletopHelper backup to get
-            started.
-          </p>
+            {tr(" Import a New Recruit roster or a TabletopHelper backup to get started. ")}</p>
           <Link className="button" to="/army-import">
-            Import army
-          </Link>
+            {tr(" Import army ")}</Link>
         </section>
       ) : (
         <div className="army-library roster-card-grid">
@@ -166,77 +158,70 @@ export default function ArmyLibrary() {
                 <p>{row.army.faction}</p>
                 <p>
                   {row.army.detachments.map((d) => d.name).join(' · ') ||
-                    'No detachment data'}
+                    tr('No detachment data')}
                 </p>
               </div>
               <div className="roster-card-facts">
                 <strong>
                   {row.army.totalPoints}
-                  {row.army.pointsLimit ? ` / ${row.army.pointsLimit}` : ''} pts
-                </strong>
-                <span>{row.army.units.length} units</span>
+                  {row.army.pointsLimit ? tr(` / ${row.army.pointsLimit}`, " / {0}") : ''} {tr(" pts ")}</strong>
+                <span>{row.army.units.length} {tr(" units")}</span>
                 <span className={`roster-status roster-status--${row.status}`}>
-                  {row.status ?? 'local'}
+                  {row.status ?? tr('local')}
                 </span>
               </div>
               <small>
                 {row.army.library?.source === 'homebrew'
-                  ? 'Homebrew'
+                  ? tr('Homebrew')
                   : row.army.library?.source === 'local-edit'
-                    ? 'Local edit'
-                    : 'New Recruit'}{' '}
-                · {row.army.library?.variantOf ? 'Variant · ' : ''}Edited{' '}
+                    ? tr('Local edit')
+                    : tr('New Recruit')}{' '}
+                · {row.army.library?.variantOf ? tr('Variant · ') : ''}{tr("Edited")}{' '}
                 {new Date(row.savedAt).toLocaleDateString()}
               </small>
               {row.conflictNote && (
                 <p className="alert alert--warning">{row.conflictNote}</p>
               )}
-              {row.error && <p className="alert alert--warning">{row.error}</p>}
+              {row.error && <p className="alert alert--warning">{tr(row.error)}</p>}
               <div className="roster-actions">
                 <Link
                   className="button button--small"
                   to={`/army/${encodeURIComponent(row.id)}`}
                 >
-                  Open / View
-                </Link>
+                  {tr(" Open / View ")}</Link>
                 <Link
                   className="button button--small"
                   to={`/army/${encodeURIComponent(row.id)}/edit`}
                 >
-                  Edit
-                </Link>
+                  {tr(" Edit ")}</Link>
                 <button
                   className="button button--small"
                   disabled={busy}
                   onClick={() => void act(() => duplicateRoster(row.army))}
                 >
-                  Duplicate
-                </button>
+                  {tr(" Duplicate ")}</button>
                 <Link
                   className="button button--small button--gold"
                   to={`/battle/setup?armyId=${encodeURIComponent(row.id)}`}
                 >
-                  Use in Battle
-                </Link>
+                  {tr(" Use in Battle ")}</Link>
                 <DeleteRosterButton key={`${owner}:${row.id}`} army={row.army} owner={owner} disabled={busy} />
               </div>
               {owner && <VisibilityControl key={`${owner}:${row.id}`} owner={owner} armyId={row.id} visibility={sharing.data} refresh={sharing.refresh} />}
-              {!owner && <span>Visibility: Private · local only</span>}
+              {!owner && <span>{tr("Visibility: Private · local only")}</span>}
               <details>
-                <summary>More actions</summary>
+                <summary>{tr("More actions")}</summary>
                 <div className="roster-actions">
                   <Link
                     className="button button--small"
                     to={`/army/${encodeURIComponent(row.id)}/edit#roster-name`}
                   >
-                    Rename
-                  </Link>
+                    {tr(" Rename ")}</Link>
                   <Link
                     className="button button--small"
                     to={`/army/${encodeURIComponent(row.id)}/appearance`}
                   >
-                    Appearance & photos
-                  </Link>
+                    {tr(" Appearance & photos ")}</Link>
                   <button
                     className="button button--small"
                     onClick={() =>
@@ -246,8 +231,7 @@ export default function ArmyLibrary() {
                       )
                     }
                   >
-                    Export
-                  </button>
+                    {tr(" Export ")}</button>
                 </div>
               </details>
             </article>

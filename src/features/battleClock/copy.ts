@@ -1,3 +1,4 @@
+import { useLocale } from '../i18n/locale'
 // The application currently has no global i18n service. Keep all clock copy in
 // keyed dictionaries so a future app locale can select it without changing UI.
 const pl = {
@@ -32,4 +33,4 @@ const en: ClockCopy = {
   expired:'Time limit reached',competitiveExpiry:'Competitive time limit reached. Follow your event rules; actions remain available.',warning15:'15 minutes or less remaining',warning5:'5 minutes or less remaining',warning1:'1 minute or less remaining',offline:'Sync is not confirmed. Displayed time is an estimate; the server clock continues. Controls return after reconnecting.',conflict:'Another device changed the clock. The latest state is loaded; choose again if a handoff is still needed.',syncing:'Connecting clock…',error:'Clock synchronization failed.',live:'Live figures; the final time is saved when the battle ends.',shortcut:'Space: pass time. In FFA select a recipient first.',loading:'Loading…',
 }
 export const clockTranslations = { pl, en }
-export const clockCopy = (locale: keyof typeof clockTranslations = 'pl'): ClockCopy => clockTranslations[locale]
+export const clockCopy = (locale: keyof typeof clockTranslations = useLocale.getState().locale): ClockCopy => clockTranslations[locale]

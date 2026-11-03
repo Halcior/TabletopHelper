@@ -1,3 +1,4 @@
+import { t as tr } from '../../features/i18n/locale'
 import { useEffect, useRef, useState } from 'react'
 import type { BattleSession } from '../../domain/battle/types'
 import { getCurrentRivalPlayerId } from '../../rulesets/cauldronFFA3/rivalRotation'
@@ -38,8 +39,8 @@ export function RivalRotationNotice({ session, playerId }: { session: BattleSess
     return () => window.clearTimeout(timer)
   }, [notice])
   if (!notice || notice.gameId !== session.setup.gameId || notice.playerId !== playerId || notice.round !== session.state.round) return null
-  return <aside className="rival-rotation" role="status" aria-label="Rival rotation">
-    <span className="eyebrow">Rival rotation — Round {notice.round}</span>
-    <p>Your Current Rival is now {rivalIdentity(session, notice.rivalId)}. Previously drawn Secondary cards retain their assigned targets.</p>
+  return <aside className="rival-rotation" role="status" aria-label={tr("Rival rotation")}>
+    <span className="eyebrow">{tr("Rival rotation — Round ")}{notice.round}</span>
+    <p>{tr("Your Current Rival is now ")}{rivalIdentity(session, notice.rivalId)}{tr(". Previously drawn Secondary cards retain their assigned targets.")}</p>
   </aside>
 }

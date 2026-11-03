@@ -1,3 +1,4 @@
+import { t as tr } from '../i18n/locale'
 import { useState } from 'react'
 import { CommandDialog } from '../../components/ui/CommandDialog'
 import type { Army } from '../../domain/army/types'
@@ -38,17 +39,16 @@ export function DeleteRosterButton({ army, owner, disabled = false }: {
       disabled={disabled || busy}
       onClick={() => { setError(''); setConfirming(true) }}
     >
-      Delete army
-    </button>
-    {confirming && <CommandDialog label={`Delete army: ${army.name}`} onClose={close}>
+      {tr(" Delete army ")}</button>
+    {confirming && <CommandDialog label={tr(`Delete army: ${army.name}`, "Delete army: {0}")} onClose={close}>
       <div className="panel battle-confirmation roster-delete-confirmation">
-        <h2>Delete “{army.name}”?</h2>
-        <p>This removes the roster from your library. Existing battles and their photos are kept.</p>
-        {error && <p className="alert alert--danger" role="alert">{error}</p>}
+        <h2>{tr("Delete “")}{army.name}”?</h2>
+        <p>{tr("This removes the roster from your library. Existing battles and their photos are kept.")}</p>
+        {error && <p className="alert alert--danger" role="alert">{tr(error)}</p>}
         <div className="roster-actions">
-          <button type="button" className="button" disabled={busy} onClick={close}>Cancel</button>
+          <button type="button" className="button" disabled={busy} onClick={close}>{tr("Cancel")}</button>
           <button type="button" className="button button--danger" disabled={busy} onClick={() => void remove()}>
-            {busy ? 'Deleting…' : 'Confirm delete'}
+            {busy ? tr('Deleting…') : tr('Confirm delete')}
           </button>
         </div>
       </div>

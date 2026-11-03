@@ -1,3 +1,4 @@
+import { t as tr } from '../features/i18n/locale'
 import { useState, type ChangeEvent } from 'react'
 import { Link } from 'react-router-dom'
 import type { Army } from '../domain/army/types'
@@ -64,34 +65,34 @@ export default function ArmyImport() {
   return (
     <div className="page-shell narrow-page">
       <section className="page-intro">
-        <span className="eyebrow">Army Library</span>
-        <h1>Import New Recruit</h1>
-        <Link to="/armies">My Armies →</Link>
-        <p>Choose a New Recruit JSON export and review your roster before saving. Import as many armies as you need without leaving this page, then set up your battle.</p>
+        <span className="eyebrow">{tr("Army Library")}</span>
+        <h1>{tr("Import New Recruit")}</h1>
+        <Link to="/armies">{tr("My Armies →")}</Link>
+        <p>{tr("Choose a New Recruit JSON export and review your roster before saving. Import as many armies as you need without leaving this page, then set up your battle.")}</p>
       </section>
 
       <label className="file-drop">
-        <span>{savedThisVisit.length > 0 ? 'Choose another New Recruit JSON' : 'Choose New Recruit JSON'}</span>
-        <small>New Recruit or TabletopHelper JSON. Photos stay on this device.</small>
+        <span>{savedThisVisit.length > 0 ? tr('Choose another New Recruit JSON') : tr('Choose New Recruit JSON')}</span>
+        <small>{tr("New Recruit or TabletopHelper JSON. Photos stay on this device.")}</small>
         <input type="file" accept=".json,application/json" onChange={(event) => void handleFile(event)} disabled={saving} />
       </label>
-      {error && <div className="alert alert--danger" role="alert">{error}</div>}
+      {error && <div className="alert alert--danger" role="alert">{tr(error)}</div>}
 
       {lastSaved && !preview && (
-        <section className="panel import-saved" role="status" aria-label="Army saved">
+        <section className="panel import-saved" role="status" aria-label={tr("Army saved")}>
           <div>
-            <span className="eyebrow">Saved to Army Library</span>
+            <span className="eyebrow">{tr("Saved to Army Library")}</span>
             <h2>{lastSaved.name}</h2>
-            <p>{lastSaved.faction} · {lastSaved.totalPoints} pts. Choose another JSON above or create a battle with your saved rosters.</p>
+            <p>{lastSaved.faction} · {lastSaved.totalPoints} {tr(" pts. Choose another JSON above or create a battle with your saved rosters.")}</p>
           </div>
           <div className="import-saved__actions">
-            <Link className="button button--gold" to="/battle/setup">Create battle</Link>
-            <Link className="button" to="/armies">View Army Library</Link>
+            <Link className="button button--gold" to="/battle/setup">{tr("Create battle")}</Link>
+            <Link className="button" to="/armies">{tr("View Army Library")}</Link>
           </div>
         </section>
       )}
 
-      {backup.length > 0 && <section className="panel" aria-label="Restore library backup"><h2>TabletopHelper backup · {backup.length} rosters</h2><p>Matching IDs and unchanged data are skipped; changed records are saved as independent variants.</p><button className="button button--gold" disabled={saving} onClick={() => {
+      {backup.length > 0 && <section className="panel" aria-label={tr("Restore library backup")}><h2>{tr("TabletopHelper backup · ")}{backup.length} {tr(" rosters")}</h2><p>{tr("Matching IDs and unchanged data are skipped; changed records are saved as independent variants.")}</p><button className="button button--gold" disabled={saving} onClick={() => {
         setSaving(true); setError(null)
         const capturedOwner = owner
         void (async () => {
@@ -101,44 +102,44 @@ export default function ArmyImport() {
             setSavedThisVisit(current => [...restored, ...current.filter(row => !restored.some(army => army.id === row.id))]); setBackup([]); setLastSaved(restored.at(-1) ?? null); void syncArmies()
           } catch (reason) { setError(reason instanceof Error ? reason.message : String(reason)) } finally { setSaving(false) }
         })()
-      }}>Restore rosters</button></section>}
+      }}>{tr("Restore rosters")}</button></section>}
       {preview && (
         <section className="panel import-preview">
           <div className="import-preview__hero">
-            <div><span className="eyebrow">Imported roster</span><h2>{preview.army.faction}</h2><p>{preview.army.name}</p></div>
-            <div className="roster-totals"><strong>{preview.army.totalPoints}</strong><span>PTS</span><strong>{preview.army.units.length}</strong><span>UNITS</span></div>
+            <div><span className="eyebrow">{tr("Imported roster")}</span><h2>{preview.army.faction}</h2><p>{preview.army.name}</p></div>
+            <div className="roster-totals"><strong>{preview.army.totalPoints}</strong><span>{tr("PTS")}</span><strong>{preview.army.units.length}</strong><span>{tr("UNITS")}</span></div>
           </div>
           {preview.warnings.length > 0 && (
-            <div className="alert alert--warning"><strong>Import warnings</strong><ul>
-              {preview.warnings.map((warning) => <li key={`${warning.code}-${warning.selectionId ?? warning.message}`}>{warning.message}</li>)}
+            <div className="alert alert--warning"><strong>{tr("Import warnings")}</strong><ul>
+              {preview.warnings.map((warning) => <li key={`${warning.code}-${warning.selectionId ?? warning.message}`}>{tr(warning.message)}</li>)}
             </ul></div>
           )}
           <div className="preview-unit-list">
             {preview.army.units.map((unit) => (
               <article key={unit.id}>
-                <div><strong>{unit.name}</strong><span>{unit.startingModels} {unit.startingModels === 1 ? 'model' : 'models'}{unit.isWarlord ? ' · Warlord' : ''}</span>
-                  {unit.leaderOfUnitId && <span>Leads: {attachedUnitName(unit.leaderOfUnitId)}</span>}
-                  {unit.ledByUnitIds.length > 0 && <span>Led by: {unit.ledByUnitIds.map(attachedUnitName).join(', ')}</span>}
+                <div><strong>{unit.name}</strong><span>{unit.startingModels} {unit.startingModels === 1 ? tr('model') : tr('models')}{unit.isWarlord ? tr(' · Warlord') : ''}</span>
+                  {unit.leaderOfUnitId && <span>{tr("Leads: ")}{attachedUnitName(unit.leaderOfUnitId)}</span>}
+                  {unit.ledByUnitIds.length > 0 && <span>{tr("Led by: ")}{unit.ledByUnitIds.map(attachedUnitName).join(', ')}</span>}
                 </div>
-                <strong>{unit.points} pts</strong>
+                <strong>{unit.points} {tr(" pts")}</strong>
               </article>
             ))}
           </div>
-          <button className="button button--gold button--wide" disabled={saving} onClick={() => void acceptArmy()}>{saving ? 'Saving…' : 'Save army'}</button>
+          <button className="button button--gold button--wide" disabled={saving} onClick={() => void acceptArmy()}>{saving ? tr('Saving…') : tr('Save army')}</button>
         </section>
       )}
 
       {savedThisVisit.length > 0 && (
-        <section className="panel import-session-list" aria-label="Armies imported this visit">
+        <section className="panel import-session-list" aria-label={tr("Armies imported this visit")}>
           <div className="import-session-list__heading">
-            <div><span className="eyebrow">Army Library</span><h2>Imported this visit ({savedThisVisit.length})</h2></div>
-            <Link className="button button--small" to="/battle/setup">Create battle</Link>
+            <div><span className="eyebrow">{tr("Army Library")}</span><h2>{tr("Imported this visit (")}{savedThisVisit.length})</h2></div>
+            <Link className="button button--small" to="/battle/setup">{tr("Create battle")}</Link>
           </div>
           <ul className="import-session-list__items">
             {savedThisVisit.map((army) => (
               <li key={army.id}>
-                <div><strong>{army.name}</strong><span>{army.faction} · {army.totalPoints} pts · {army.units.length} units</span></div>
-                <Link className="button button--small" to={`/battle/setup?armyId=${encodeURIComponent(army.id)}`}>Use</Link>
+                <div><strong>{army.name}</strong><span>{army.faction} · {army.totalPoints} {tr(" pts · ")}{army.units.length} {tr(" units")}</span></div>
+                <Link className="button button--small" to={`/battle/setup?armyId=${encodeURIComponent(army.id)}`}>{tr("Use")}</Link>
               </li>
             ))}
           </ul>

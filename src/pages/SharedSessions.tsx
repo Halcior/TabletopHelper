@@ -1,3 +1,4 @@
+import { t as tr } from '../features/i18n/locale'
 import { LobbyClockSettings } from '../features/battleClock/LobbyClockSettings'
 import { social, errorText } from '../features/social/api'
 import { LobbyArmyPicker } from '../features/social/LobbyArmyPicker'
@@ -253,30 +254,30 @@ export default function SharedSessions() {
 
   if (!configured) return <div className="page-shell shared-session-page">
     <section className="hero-panel shared-session-hero">
-      <span className="eyebrow">Shared battle</span>
-      <h1>Shared play is unavailable</h1>
-      <p>This installation supports local play. You can still track a battle together on one device.</p>
-      <Link className="button button--gold" to="/battle/setup">Set up a local battle</Link>
+      <span className="eyebrow">{tr("Shared battle")}</span>
+      <h1>{tr("Shared play is unavailable")}</h1>
+      <p>{tr("This installation supports local play. You can still track a battle together on one device.")}</p>
+      <Link className="button button--gold" to="/battle/setup">{tr("Set up a local battle")}</Link>
     </section>
   </div>
 
   if (membership) return <div className="page-shell shared-session-page shared-lobby-page">
     <section className="panel shared-room-focus shared-lobby">
-      <div className="shared-room-focus__code"><span>{roomStartedAt ? 'Battle room' : 'Waiting room'}</span><strong>{membership.roomCode}</strong></div>
-      {lobbySession && <div className="shared-room-format"><RulesSourceBadge source={rulesForSession(lobbySession).source} /><span>{rulesForSession(lobbySession).title}</span></div>}
+      <div className="shared-room-focus__code"><span>{roomStartedAt ? tr('Battle room') : tr('Waiting room')}</span><strong>{membership.roomCode}</strong></div>
+      {lobbySession && <div className="shared-room-format"><RulesSourceBadge source={rulesForSession(lobbySession).source} /><span>{tr(rulesForSession(lobbySession).title)}</span></div>}
       <div className="shared-room-focus__status shared-lobby__counters">
-        <div><span>Sync</span><strong>{connectionStatus}</strong></div>
-        <div><span>Online</span><strong>{lobbySummary.onlineCount}/{seatTarget}</strong></div>
-        <div><span>Ready</span><strong>{lobbySummary.readyCount}/{seatTarget}</strong></div>
-        <div><span>Last</span><strong>{syncTime(lastSyncedAt)}</strong></div>
+        <div><span>{tr("Sync")}</span><strong>{connectionStatus}</strong></div>
+        <div><span>{tr("Online")}</span><strong>{lobbySummary.onlineCount}/{seatTarget}</strong></div>
+        <div><span>{tr("Ready")}</span><strong>{lobbySummary.readyCount}/{seatTarget}</strong></div>
+        <div><span>{tr("Last")}</span><strong>{syncTime(lastSyncedAt)}</strong></div>
       </div>
-      {secondaryConfig && <InfoDisclosure label="Room rules"><p className="context-note" aria-label="Secondary deck selected for this room">Secondary deck: {secondaryConfig.secondaryDeck === 'chapter-approved'
-        ? `Chapter Approved 2026–27 · ${secondaryConfig.primaryDeck === 'chapter-approved-duel' ? 'each player chooses Fixed or Tactical' : secondaryConfig.officialSecondaryStrategy === 'fixed' ? 'Fixed' : 'Tactical'}`
-        : 'Cauldron'}. {secondaryConfig.mode === 'ffa3' && secondaryConfig.secondaryDeck === 'chapter-approved' ? 'FFA cards retain their assigned Secondary Rival; enemy presence checks both opponents.' : ''}</p></InfoDisclosure>}
+      {secondaryConfig && <InfoDisclosure label={tr("Room rules")}><p className="context-note" aria-label={tr("Secondary deck selected for this room")}>{tr("Secondary deck: ")}{secondaryConfig.secondaryDeck === 'chapter-approved'
+        ? tr(`Chapter Approved 2026–27 · ${secondaryConfig.primaryDeck === 'chapter-approved-duel' ? 'each player chooses Fixed or Tactical' : secondaryConfig.officialSecondaryStrategy === 'fixed' ? 'Fixed' : 'Tactical'}`, "Chapter Approved 2026–27 · {0}")
+        : tr('Cauldron')}. {secondaryConfig.mode === 'ffa3' && secondaryConfig.secondaryDeck === 'chapter-approved' ? tr('FFA cards retain their assigned Secondary Rival; enemy presence checks both opponents.') : ''}</p></InfoDisclosure>}
 
       <div className="shared-lobby__content">
         {secondaryConfig?.mode === 'ffa3' && secondaryConfig.secondaryDeck === 'chapter-approved' && <RivalHelp />}
-        <div className="shared-lobby__seats" aria-label="Player seats">
+        <div className="shared-lobby__seats" aria-label={tr("Player seats")}>
           {lobbyPlayerIds.map((playerId, index) => {
             const player = lobbySession?.state.players[playerId]
             const occupant = participants.find((participant) => participant.playerId === playerId)
@@ -286,27 +287,27 @@ export default function SharedSessions() {
             return <article className={`shared-lobby-seat shared-lobby-seat--player-${index} is-${seatState}${mine ? ' is-mine' : ''}`} key={playerId}>
               <div className="shared-lobby-seat__marker"><span>{String(index + 1).padStart(2, '0')}</span></div>
               <div className="shared-lobby-seat__identity">
-                <span>Commander {index + 1}{occupant?.isHost ? ' · host' : ''}</span>
-                <strong>{inspection?.room.bringYourArmy && !roomStartedAt ? occupant?.displayName ?? `Player ${index + 1}` : player?.name ?? occupant?.displayName ?? `Player ${index + 1}`}</strong>
-                <small>{player?.faction ?? 'Commander'}{mine ? ' · this phone' : ''}</small>
-                {inspection?.room.bringYourArmy && <small>{inspection.rosters?.find(r => r.playerId === playerId && r.clientId === occupant?.clientId)?.army.name ?? 'Army not selected'}</small>}
-                {dispositionSeats.includes(playerId) && inspection?.room.bringYourArmy && <small>{occupant?.forceDisposition ? DISPOSITION_NAMES[occupant.forceDisposition as keyof typeof DISPOSITION_NAMES] : 'Force Disposition not selected'}</small>}
+                <span>{tr("Commander ")}{index + 1}{occupant?.isHost ? tr(' · host') : ''}</span>
+                <strong>{inspection?.room.bringYourArmy && !roomStartedAt ? occupant?.displayName ?? tr(`Player ${index + 1}`, "Player {0}") : player?.name ?? occupant?.displayName ?? tr(`Player ${index + 1}`, "Player {0}")}</strong>
+                <small>{player?.faction ?? tr('Commander')}{mine ? tr(' · this phone') : ''}</small>
+                {inspection?.room.bringYourArmy && <small>{inspection.rosters?.find(r => r.playerId === playerId && r.clientId === occupant?.clientId)?.army.name ?? tr('Army not selected')}</small>}
+                {dispositionSeats.includes(playerId) && inspection?.room.bringYourArmy && <small>{occupant?.forceDisposition ? DISPOSITION_NAMES[occupant.forceDisposition as keyof typeof DISPOSITION_NAMES] : tr('Force Disposition not selected')}</small>}
               </div>
               <div className="shared-lobby-seat__state">
-                {occupant?.isHost && <span className="shared-lobby-seat__host"><AppIcon name="host" /> Host</span>}
-                <span className={online ? 'is-online' : 'is-offline'}><i aria-hidden="true" />{online ? 'Online' : occupant ? 'Disconnected' : 'Empty seat'}</span>
-                <strong className={online && occupant?.isReady ? 'is-ready' : ''}>{online && occupant?.isReady ? <><AppIcon name="ready" /> Ready</> : 'Not ready'}</strong>
+                {occupant?.isHost && <span className="shared-lobby-seat__host"><AppIcon name="host" /> {tr(" Host")}</span>}
+                <span className={online ? 'is-online' : 'is-offline'}><i aria-hidden="true" />{online ? tr('Online') : occupant ? tr('Disconnected') : tr('Empty seat')}</span>
+                <strong className={online && occupant?.isReady ? 'is-ready' : ''}>{online && occupant?.isReady ? <><AppIcon name="ready" /> {tr(" Ready")}</> : tr('Not ready')}</strong>
               </div>
             </article>
           })}
         </div>
 
         <aside className="shared-lobby__invite">
-          <button className="shared-lobby__qr" type="button" aria-label="Enlarge QR invite" onClick={() => setQrExpanded(true)}><QRCodeSVG value={inviteUrl} size={164} marginSize={2} /></button>
-          <strong><AppIcon name="qr" /> Scan to join</strong>
-          <span>The room code is already included.</span>
-          {localOnlyInvite && <small>Open the lobby using the PC's Wi-Fi IP address before scanning. A localhost link works only on this device.</small>}
-          <button onClick={() => void shareInvite()}>{inviteStatus === 'copied' ? 'Invite copied' : 'Share invite'}</button>
+          <button className="shared-lobby__qr" type="button" aria-label={tr("Enlarge QR invite")} onClick={() => setQrExpanded(true)}><QRCodeSVG value={inviteUrl} size={164} marginSize={2} /></button>
+          <strong><AppIcon name="qr" /> {tr(" Scan to join")}</strong>
+          <span>{tr("The room code is already included.")}</span>
+          {localOnlyInvite && <small>{tr("Open the lobby using the PC's Wi-Fi IP address before scanning. A localhost link works only on this device.")}</small>}
+          <button onClick={() => void shareInvite()}>{inviteStatus === 'copied' ? tr('Invite copied') : tr('Share invite')}</button>
         </aside>
       </div>
 
@@ -316,71 +317,71 @@ export default function SharedSessions() {
       <LobbyArmyPicker key={`${rosterOwner}:${membership.roomId}`} />
       {!roomStartedAt && membership.isHost && <LobbyFriendInvites membership={membership} />}
 
-      {qrExpanded && <CommandDialog label="QR room invite" onClose={() => setQrExpanded(false)}>
+      {qrExpanded && <CommandDialog label={tr("QR room invite")} onClose={() => setQrExpanded(false)}>
         <div className="shared-invite-overlay__panel" onClick={(event) => event.stopPropagation()}>
-          <button className="shared-invite-overlay__close" type="button" aria-label="Close QR invite" onClick={() => setQrExpanded(false)}>×</button>
-          <span className="eyebrow">Join battle room</span>
+          <button className="shared-invite-overlay__close" type="button" aria-label={tr("Close QR invite")} onClick={() => setQrExpanded(false)}>×</button>
+          <span className="eyebrow">{tr("Join battle room")}</span>
           <strong>{membership.roomCode}</strong>
           <div className="shared-invite-overlay__qr"><QRCodeSVG value={inviteUrl} size={280} marginSize={2} /></div>
-          <p>Scan with another commander's phone.</p>
-          <button className="button--gold" type="button" onClick={() => void shareInvite()}>{inviteStatus === 'copied' ? 'Invite copied' : 'Share invite'}</button>
+          <p>{tr("Scan with another commander's phone.")}</p>
+          <button className="button--gold" type="button" onClick={() => void shareInvite()}>{inviteStatus === 'copied' ? tr('Invite copied') : tr('Share invite')}</button>
         </div>
       </CommandDialog>}
 
-      {pendingEventCount > 0 && <div className="alert alert--warning shared-room-focus__queue">{pendingEventCount} local change{pendingEventCount === 1 ? '' : 's'} waiting to sync.</div>}
+      {pendingEventCount > 0 && <div className="alert alert--warning shared-room-focus__queue">{pendingEventCount} {tr(" local change")}{pendingEventCount === 1 ? '' : 's'} {tr(" waiting to sync.")}</div>}
       {backendCheckStatus === 'failed' && <div className="alert alert--danger shared-room-focus__queue">{backendCheckMessage}</div>}
-      {error && <div className="alert alert--danger shared-room-focus__queue">{error}</div>}
+      {error && <div className="alert alert--danger shared-room-focus__queue">{tr(error)}</div>}
 
       {!roomStartedAt && <div className="shared-lobby__ready-actions">
         <button className={currentParticipant?.isReady ? '' : 'button--gold'} disabled={working || !myRosterReady || !myDispositionReady || connectionStatus !== 'connected' || backendCheckStatus !== 'ready'} onClick={() => void toggleReady()}>
-          {currentParticipant?.isReady ? 'Cancel readiness' : 'I am ready'}
+          {currentParticipant?.isReady ? tr('Cancel readiness') : tr('I am ready')}
         </button>
         {membership.isHost
           ? <button className="button--gold" disabled={working || !canStart || backendCheckStatus !== 'ready'} onClick={() => void startBattle()}>
-              {working ? 'Starting…' : canStart ? 'Start battle' : `Waiting · ${lobbySummary.readyCount}/${seatTarget} ready`}
+              {working ? tr('Starting…') : canStart ? tr('Start battle') : tr(`Waiting · ${lobbySummary.readyCount}/${seatTarget} ready`, "Waiting · {0}/{1} ready")}
             </button>
-          : <div className="shared-lobby__waiting">{lobbySummary.allReady ? 'Everyone is ready. Waiting for the host.' : 'Mark ready and wait for all commanders.'}</div>}
+          : <div className="shared-lobby__waiting">{lobbySummary.allReady ? tr('Everyone is ready. Waiting for the host.') : tr('Mark ready and wait for all commanders.')}</div>}
       </div>}
 
       <div className="shared-room-focus__actions shared-lobby__utility-actions">
-        {roomStartedAt && <Link className="button button--gold" to={`/battle/${membership.battleId}`}>Open battle</Link>}
-        <button onClick={() => void forceSync()}>Sync now</button>
-        <button onClick={() => void leaveSharedRoom()}>Leave room</button>
+        {roomStartedAt && <Link className="button button--gold" to={`/battle/${membership.battleId}`}>{tr("Open battle")}</Link>}
+        <button onClick={() => void forceSync()}>{tr("Sync now")}</button>
+        <button onClick={() => void leaveSharedRoom()}>{tr("Leave room")}</button>
       </div>
     </section>
   </div>
 
   return <div className="page-shell shared-session-page">
     <section className="shared-session-intro">
-      <span className="eyebrow">Shared battle</span>
-      <h1>Host or join.</h1>
-      <p>Each commander uses one player seat. The current player controls phase progression.</p>
+      <span className="eyebrow">{tr("Shared battle")}</span>
+      <h1>{tr("Host or join.")}</h1>
+      <p>{tr("Each commander uses one player seat. The current player controls phase progression.")}</p>
     </section>
 
-    {(error || invitationError) && <div className="alert alert--danger" role="alert">{invitationError || error}</div>}
-    {invitationError && !rosterOwner && <Link className="button" to="/account">Sign in</Link>}
+    {(error || invitationError) && <div className="alert alert--danger" role="alert">{invitationError || tr(error)}</div>}
+    {invitationError && !rosterOwner && <Link className="button" to="/account">{tr("Sign in")}</Link>}
 
     <div className={`shared-backend-check shared-backend-check--${backendCheckStatus}`} role="status">
-      <div><span>Shared connection</span><strong>{backendCheckStatus === 'checking' ? 'Connecting…' : backendCheckStatus === 'ready' ? 'Ready' : backendCheckStatus === 'failed' ? 'Needs attention' : 'Waiting'}</strong></div>
+      <div><span>{tr("Shared connection")}</span><strong>{backendCheckStatus === 'checking' ? tr('Connecting…') : backendCheckStatus === 'ready' ? tr('Ready') : backendCheckStatus === 'failed' ? tr('Needs attention') : tr('Waiting')}</strong></div>
       {backendCheckStatus === 'failed' && <p>{backendCheckMessage}</p>}
-      {backendCheckStatus === 'failed' && <button disabled={working} onClick={() => void checkBackend(true)}>Test again</button>}
+      {backendCheckStatus === 'failed' && <button disabled={working} onClick={() => void checkBackend(true)}>{tr("Test again")}</button>}
     </div>
 
     <div className="shared-session-grid shared-session-grid--simple">
       <section className="panel shared-session-card shared-session-card--join">
-        <span className="eyebrow">Join</span>
-        <h2>{inspection ? 'Choose your commander' : 'Enter room code'}</h2>
+        <span className="eyebrow">{tr("Join")}</span>
+        <h2>{inspection ? tr('Choose your commander') : tr('Enter room code')}</h2>
         {!inspection && <div className="shared-code-entry">
           <input
-            aria-label="Shared room code"
+            aria-label={tr("Shared room code")}
             autoCapitalize="characters"
             autoComplete="off"
             maxLength={6}
-            placeholder="K7F4Q2"
+            placeholder={tr("K7F4Q2")}
             value={roomCode}
             onChange={(event) => setRoomCode(normalizeRoomCode(event.target.value))}
           />
-          <button className="button--gold" disabled={working || roomCode.length !== 6} onClick={findRoom}>{working ? 'Finding…' : 'Continue'}</button>
+          <button className="button--gold" disabled={working || roomCode.length !== 6} onClick={findRoom}>{working ? tr('Finding…') : tr('Continue')}</button>
         </div>}
         {inspection && <div className="shared-seat-picker">
           <RulesSourceBadge source={rulesForSession(inspection.room.sessionSnapshot).source} />
@@ -392,32 +393,31 @@ export default function SharedSessions() {
             return <label className={occupiedNow ? 'is-occupied' : ''} key={playerId}>
               <input type="radio" name="shared-seat" value={playerId} checked={joinPlayerId === playerId} disabled={occupiedNow} onChange={() => setJoinPlayerId(playerId)} />
               <span><strong>{player.name}</strong><small>{occupiedNow
-                ? `In use${reclaimSeconds > 0 ? ` · reclaim in ${reclaimSeconds}s if disconnected` : ''}`
+                ? tr(`In use${reclaimSeconds > 0 ? ` · reclaim in ${reclaimSeconds}s if disconnected` : ''}`, "In use{0}")
                 : occupant
-                  ? 'Available to reclaim'
-                  : player.faction ?? 'Available'}</small></span>
+                  ? tr('Available to reclaim')
+                  : player.faction ?? tr('Available')}</small></span>
             </label>
           })}
-          <button className="button button--gold button--wide" disabled={working || !joinPlayerId} onClick={join}>{working ? 'Joining…' : inspection.room.startedAt ? 'Join battle' : 'Join lobby'}</button>
-          <button onClick={() => { setRoomCode(''); navigate('/shared', { replace: true }) }}>Use another code</button>
+          <button className="button button--gold button--wide" disabled={working || !joinPlayerId} onClick={join}>{working ? tr('Joining…') : inspection.room.startedAt ? tr('Join battle') : tr('Join lobby')}</button>
+          <button onClick={() => { setRoomCode(''); navigate('/shared', { replace: true }) }}>{tr("Use another code")}</button>
         </div>}
       </section>
 
       <section className="panel shared-session-card shared-session-card--host">
-        <span className="eyebrow">Host</span>
-        <h2>Create an online lobby</h2>
-        <p>Choose the format and rules first. Each commander selects their own saved army inside the lobby.</p>
-        <Link className="button button--gold button--wide" to="/battle/setup?play=shared">Set up multiplayer</Link>
+        <span className="eyebrow">{tr("Host")}</span>
+        <h2>{tr("Create an online lobby")}</h2>
+        <p>{tr("Choose the format and rules first. Each commander selects their own saved army inside the lobby.")}</p>
+        <Link className="button button--gold button--wide" to="/battle/setup?play=shared">{tr("Set up multiplayer")}</Link>
         {latestBattle && <details className="setup-custom-settings">
-          <summary>Legacy: share an existing local battle</summary>
-          <p className="context-note">Use this only to continue a previously created battle with host-selected armies. For new games use multiplayer setup above.</p>
-          <div className="shared-host-summary"><strong>Round {latestBattle.state.round}</strong><span>{latestBattle.state.phase.replaceAll('_', ' ')}</span></div>
-          <label>You are
-            <select value={hostPlayerId} onChange={(event) => setHostPlayerId(event.target.value)}>
+          <summary>{tr("Legacy: share an existing local battle")}</summary>
+          <p className="context-note">{tr("Use this only to continue a previously created battle with host-selected armies. For new games use multiplayer setup above.")}</p>
+          <div className="shared-host-summary"><strong>{tr("Round ")}{latestBattle.state.round}</strong><span>{latestBattle.state.phase.replaceAll('_', ' ')}</span></div>
+          <label>{tr("You are ")}<select value={hostPlayerId} onChange={(event) => setHostPlayerId(event.target.value)}>
               {latestBattle.setup.players.map((player) => <option key={player.id} value={player.id}>{player.name}</option>)}
             </select>
           </label>
-          <button className="button button--wide" disabled={working || backendCheckStatus === 'checking'} onClick={host}>{working ? 'Creating…' : 'Share existing battle'}</button>
+          <button className="button button--wide" disabled={working || backendCheckStatus === 'checking'} onClick={host}>{working ? tr('Creating…') : tr('Share existing battle')}</button>
         </details>}
       </section>
     </div>

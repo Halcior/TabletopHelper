@@ -1,3 +1,4 @@
+import { t as tr } from '../../features/i18n/locale'
 import { selectRecentUnits } from '../../domain/battle/recentUnits'
 import { CombatControls } from './CombatControls'
 import { getSharedRuntimeMembership } from '../../multiplayer/sharedRuntime'
@@ -141,20 +142,20 @@ export function RivalDamagePanel({
   const latestActionId = session.state.events.at(-1)?.actionId
   const noticeUndoAvailable = Boolean(getSharedRuntimeMembership()?.battleId !== session.setup.gameId && notice?.resolved && notice.actionId && notice.actionId === latestActionId)
 
-  return <section className="rival-damage-panel" aria-label="Record damage to an opponent">
+  return <section className="rival-damage-panel" aria-label={tr("Record damage to an opponent")}>
     <div className="rival-damage-panel__heading">
       <div>
-        <span className="eyebrow">Your attacks</span>
-        <h2>Damage opponent</h2>
-        <small>Choose who you attacked. Losses are credited to {attacker.name} automatically.</small>
+        <span className="eyebrow">{tr("Your attacks")}</span>
+        <h2>{tr("Damage opponent")}</h2>
+        <small>{tr("Choose who you attacked. Losses are credited to ")}{attacker.name} {tr(" automatically.")}</small>
       </div>
       {victim && <strong>{victim.name}</strong>}
     </div>
 
-    <label className="rival-attacking-unit"><span>Attacking unit (optional)</span><select value={attackerUnitId ?? ''} onChange={(event) => setUnitChoices((current) => ({ ...current, [attackerPlayerId]: event.target.value }))}>
-      <option value="">Unknown unit · credit {attacker.name}</option>{attackingUnits.filter((unit) => !attacker.units[unit.id]?.destroyed).map((unit) => <option value={unit.id} key={`${victimPlayerId}:${unit.id}`}>{unit.name}</option>)}
+    <label className="rival-attacking-unit"><span>{tr("Attacking unit (optional)")}</span><select value={attackerUnitId ?? ''} onChange={(event) => setUnitChoices((current) => ({ ...current, [attackerPlayerId]: event.target.value }))}>
+      <option value="">{tr("Unknown unit · credit ")}{attacker.name}</option>{attackingUnits.filter((unit) => !attacker.units[unit.id]?.destroyed).map((unit) => <option value={unit.id} key={`${victimPlayerId}:${unit.id}`}>{unit.name}</option>)}
     </select></label>
-    {opponentIds.length > 1 && <div className="rival-damage-panel__targets" role="group" aria-label="Choose damaged opponent">
+    {opponentIds.length > 1 && <div className="rival-damage-panel__targets" role="group" aria-label={tr("Choose damaged opponent")}>
       {opponentIds.map((playerId) => {
         const player = session.state.players[playerId]
         const isRival = session.setup.doubles ? doublesScorekeeperId(session.setup, playerId) === currentRivalPlayerId : playerId === currentRivalPlayerId
@@ -166,23 +167,23 @@ export function RivalDamagePanel({
           onClick={() => setVictimPlayerId(playerId)}
         >
           <strong>{player.name}</strong>
-          <span>{isRival ? ffaRivals ? 'Current Rival · Primary' : 'Current Rival · scoring target' : 'Other opponent'}</span>
+          <span>{isRival ? ffaRivals ? tr('Current Rival · Primary') : tr('Current Rival · scoring target') : tr('Other opponent')}</span>
         </button>
       })}
     </div>}
 
     {victim && army ? <>
       <div className={`rival-damage-panel__scoring-note${victimIsRival ? ' is-rival' : ''}`}>
-        <strong>{victimIsRival ? 'Current Rival' : ffaRivals ? 'Other opponent' : 'Non-Rival target'}</strong>
-        <span>{ffaRivals ? 'Secondary kill scoring uses each card’s Target Rival, which can differ from Current Rival.' : victimIsRival
-          ? 'Kills can satisfy Rival-based Cauldron Secondary conditions.'
-          : 'You can attack and record losses normally, but Rival-only kill scoring does not count this opponent.'}</span>
+        <strong>{victimIsRival ? tr('Current Rival') : ffaRivals ? tr('Other opponent') : tr('Non-Rival target')}</strong>
+        <span>{ffaRivals ? tr('Secondary kill scoring uses each card’s Target Rival, which can differ from Current Rival.') : victimIsRival
+          ? tr('Kills can satisfy Rival-based Cauldron Secondary conditions.')
+          : tr('You can attack and record losses normally, but Rival-only kill scoring does not count this opponent.')}</span>
       </div>
 
-      <div className="combat-recent-targets" aria-label="Recent combat targets">{selectRecentUnits(session, victimPlayerId, 3).map(({ unitId }) => { const unit = army.units.find((item) => item.id === unitId); return unit && !victim.units[unitId]?.destroyed ? <button key={unitId} onClick={() => setQuery(unit.name)}>{unit.name}</button> : null })}</div>
+      <div className="combat-recent-targets" aria-label={tr("Recent combat targets")}>{selectRecentUnits(session, victimPlayerId, 3).map(({ unitId }) => { const unit = army.units.find((item) => item.id === unitId); return unit && !victim.units[unitId]?.destroyed ? <button key={unitId} onClick={() => setQuery(unit.name)}>{unit.name}</button> : null })}</div>
       <label className="rival-damage-panel__search">
-        <span>Find {victim.name} unit · {army.faction}</span>
-        <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search unit…" />
+        <span>{tr("Find ")}{victim.name} {tr(" unit · ")}{army.faction}</span>
+        <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={tr("Search unit…")} />
       </label>
       <div className="rival-damage-list">
         {units.map((unit) => {
@@ -199,21 +200,21 @@ export function RivalDamagePanel({
             <CombatControls unit={unit} state={state} playerId={victimPlayerId} source={{ destroyedByPlayerId: attackerPlayerId, attackerUnitId }} damageOnly compact dispatch={(event) => { beginNotice(unit.id, unit.name); dispatch(event) }} />
           </article>
         })}
-        {units.length === 0 && <p className="context-note">No matching active enemy units.</p>}
+        {units.length === 0 && <p className="context-note">{tr("No matching active enemy units.")}</p>}
       </div>
-    </> : <p className="context-note">This opponent has no army roster attached.</p>}
+    </> : <p className="context-note">{tr("This opponent has no army roster attached.")}</p>}
 
-    <p className="rival-damage-panel__note">Any opponent can be attacked in FFA. The Rival only determines which opponent counts for Rival-specific scoring. The army owner still controls healing, Battle-shock, abilities and corrections.</p>
+    <p className="rival-damage-panel__note">{tr("Any opponent can be attacked in FFA. The Rival only determines which opponent counts for Rival-specific scoring. The army owner still controls healing, Battle-shock, abilities and corrections.")}</p>
 
     {notice && <div className={`battle-action-toast${notice.unitDestroyed ? ' battle-action-toast--kill' : ''}`} role="status" aria-live="polite">
       <div className="battle-action-toast__body">
-        <strong>{notice.resolved ? 'Recorded' : 'Recording…'}</strong>
-        <span>{notice.title}</span>
-        {notice.unitDestroyed && <small>Unit destroyed · kill credited to {attacker.name}</small>}
-        {notice.secondaryResults?.map((result, index) => <small className="battle-action-toast__score" key={`${result.name}-${index}`}>✓ {result.name} completed · +{result.vp} VP</small>)}
-        {notice.secondaryChoiceRequired && <small className="battle-action-toast__score">Secondary scoring choice required.</small>}
+        <strong>{notice.resolved ? tr('Recorded') : tr('Recording…')}</strong>
+        <span>{tr(notice.title)}</span>
+        {notice.unitDestroyed && <small>{tr("Unit destroyed · kill credited to ")}{attacker.name}</small>}
+        {notice.secondaryResults?.map((result, index) => <small className="battle-action-toast__score" key={`${result.name}-${index}`}>✓ {result.name} {tr(" completed · +")}{result.vp} {tr(" VP")}</small>)}
+        {notice.secondaryChoiceRequired && <small className="battle-action-toast__score">{tr("Secondary scoring choice required.")}</small>}
       </div>
-      {noticeUndoAvailable && <button type="button" onClick={() => { undo(); setNotice(null) }}>Undo</button>}
+      {noticeUndoAvailable && <button type="button" onClick={() => { undo(); setNotice(null) }}>{tr("Undo")}</button>}
     </div>}
   </section>
 }

@@ -1,3 +1,4 @@
+import { t as tr } from '../i18n/locale'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { liveQuery } from 'dexie'
@@ -22,8 +23,8 @@ export function LocalImportNotice() {
   }, [owner])
   return owner && notice?.owner === owner && notice.count > 0 ? (
     <div className="local-import-notice">
-      <span>Found {notice.count} local armies.</span>
-      <Link to="/account">Import them to your account?</Link>
+      <span>{tr("Found ")}{notice.count} {tr(" local armies.")}</span>
+      <Link to="/account">{tr("Import them to your account?")}</Link>
     </div>
   ) : null
 }

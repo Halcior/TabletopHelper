@@ -1,3 +1,4 @@
+import { t as tr } from '../../features/i18n/locale'
 import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AppIcon } from '../AppIcon'
@@ -84,11 +85,11 @@ export function SecondaryDrawReveal({
     <div className="secondary-draw-reveal__scrim" />
     <section className="secondary-draw-reveal__dialog" role="dialog" aria-modal="true" aria-labelledby="secondary-reveal-title">
       <div className="secondary-draw-reveal__header">
-        <span className="secondary-draw-reveal__kicker">Command phase · new objectives</span>
-        <h2 id="secondary-reveal-title">{stage === 'replacement' ? 'Replacement Secondary drawn' : 'Your Secondary Missions'}</h2>
+        <span className="secondary-draw-reveal__kicker">{tr("Command phase · new objectives")}</span>
+        <h2 id="secondary-reveal-title">{stage === 'replacement' ? tr('Replacement Secondary drawn') : tr('Your Secondary Missions')}</h2>
         <p>{stage === 'replacement'
-          ? 'Your free mulligan has been used. Check the replacement before continuing.'
-          : `Round ${session.state.round} · these are the missions you are playing this turn.`}</p>
+          ? tr('Your free mulligan has been used. Check the replacement before continuing.')
+          : tr(`Round ${session.state.round} · these are the missions you are playing this turn.`, "Round {0} · these are the missions you are playing this turn.")}</p>
       </div>
 
       <div className="secondary-draw-reveal__cards">
@@ -102,38 +103,37 @@ export function SecondaryDrawReveal({
             style={{ animationDelay: `${Math.min(index, 2) * 110}ms` }}
           >
             <div className="secondary-draw-reveal__card-top">
-              <div><span className="secondary-draw-reveal__card-icon"><AppIcon name={visual.icon} /></span><span>{highlighted && stage === 'replacement' ? 'Replacement' : visual.label}</span></div>
-              <strong>{card.vp} VP</strong>
+              <div><span className="secondary-draw-reveal__card-icon"><AppIcon name={visual.icon} /></span><span>{highlighted && stage === 'replacement' ? tr('Replacement') : tr(visual.label)}</span></div>
+              <strong>{card.vp} {tr(" VP")}</strong>
             </div>
             <h3>{card.name}</h3>
             <SecondaryScope session={session} playerId={playerId} cardId={card.cardId} />
             <p>{scope ? FFA_SCORING_BRIEF[card.cardId as OfficialSecondaryId] : card.objective}</p>
-            {!scope && <small>{card.progress}</small>}
+            {!scope && <small>{tr(card.progress)}</small>}
             {stage === 'choose' && <button className="button button--danger" type="button" onClick={() => chooseMulligan(card.cardId)}>
-              Mulligan this card
-            </button>}
+              {tr(" Mulligan this card ")}</button>}
           </article>
         })}
       </div>
 
       {stage === 'summary' && <div className="secondary-draw-reveal__decision">
         <div>
-          <strong>{mulliganAvailable ? 'Free mulligan available' : 'No mulligan available'}</strong>
-          <span>{mulliganAvailable ? 'You may replace one of these cards now. The replacement is drawn immediately.' : 'Continue with the cards shown above.'}</span>
+          <strong>{mulliganAvailable ? tr('Free mulligan available') : tr('No mulligan available')}</strong>
+          <span>{mulliganAvailable ? tr('You may replace one of these cards now. The replacement is drawn immediately.') : tr('Continue with the cards shown above.')}</span>
         </div>
         <div className="secondary-draw-reveal__actions">
-          <button className="button button--gold" type="button" onClick={finish}>Keep cards</button>
-          {mulliganAvailable && <button className="button" type="button" onClick={() => setStage('choose')}>Use mulligan</button>}
+          <button className="button button--gold" type="button" onClick={finish}>{tr("Keep cards")}</button>
+          {mulliganAvailable && <button className="button" type="button" onClick={() => setStage('choose')}>{tr("Use mulligan")}</button>}
         </div>
       </div>}
 
       {stage === 'choose' && <div className="secondary-draw-reveal__footer">
-        <button className="button" type="button" onClick={() => setStage('summary')}>Back</button>
-        <span>Select exactly one card to replace.</span>
+        <button className="button" type="button" onClick={() => setStage('summary')}>{tr("Back")}</button>
+        <span>{tr("Select exactly one card to replace.")}</span>
       </div>}
 
       {stage === 'replacement' && <div className="secondary-draw-reveal__actions secondary-draw-reveal__actions--finish">
-        <button className="button button--gold" type="button" onClick={finish}>Start turn</button>
+        <button className="button button--gold" type="button" onClick={finish}>{tr("Start turn")}</button>
       </div>}
     </section>
   </div>, document.body)

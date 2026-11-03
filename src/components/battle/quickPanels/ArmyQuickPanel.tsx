@@ -1,3 +1,4 @@
+import { t as tr } from '../../../features/i18n/locale'
 import { CombatControls } from '../CombatControls'
 import { CombatSourcePicker } from '../CombatSourcePicker'
 import type { CombatAttribution } from '../../../domain/battle/types'
@@ -59,13 +60,13 @@ export function ArmyQuickPanel({
   return <div className="quick-panel-layer" role="presentation" onMouseDown={(event) => {
     if (event.currentTarget === event.target) onClose()
   }}>
-    <aside className="quick-panel quick-panel--army" role="dialog" aria-modal="true" aria-label="Army quick panel">
+    <aside className="quick-panel quick-panel--army" role="dialog" aria-modal="true" aria-label={tr("Army quick panel")}>
       <div className="quick-panel__heading">
-        <div><span className="eyebrow">Army quick panel</span><h2>{unitId ? units[0]?.unit.name ?? 'Unit unavailable' : `${units[0]?.playerName ?? 'Rival'} targets`}</h2></div>
-        <button onClick={onClose}>Close</button>
+        <div><span className="eyebrow">{tr("Army quick panel")}</span><h2>{unitId ? units[0]?.unit.name ?? tr('Unit unavailable') : tr(`${units[0]?.playerName ?? 'Rival'} targets`, "{0} targets")}</h2></div>
+        <button onClick={onClose}>{tr("Close")}</button>
       </div>
       {panelOwnerId && <CombatSourcePicker session={session} targetPlayerId={panelOwnerId} value={{ destroyedByPlayerId, ...source }} onChange={setSource} disabled={sharedMode && panelOwnerId !== viewerPlayerId} />}
-      {units.length === 0 && <p className="context-note">No relevant units are currently available.</p>}
+      {units.length === 0 && <p className="context-note">{tr("No relevant units are currently available.")}</p>}
       <div className="quick-unit-list">{units.map(({ playerId: ownerId, playerName, unit, state }) => {
         const canEdit = !sharedMode || ownerId === viewerPlayerId
         const readOnlyTitle = canEdit ? undefined : `${playerName} manages this unit state on their device.`
@@ -74,20 +75,20 @@ export function ArmyQuickPanel({
           payload: { playerId: ownerId, unitId: unit.id, passed },
         })
         return <article className={`quick-unit${state.destroyed ? ' is-destroyed' : ''}`} key={`${ownerId}-${unit.id}`}>
-          <div className="quick-unit__heading"><div><strong>{unit.name}</strong><small>{unit.points} pts · {[...unit.categories, ...unit.keywords].join(', ') || 'Unit'}</small></div>{state.battleShocked && <span className="status-badge status-badge--danger">Battle-shocked</span>}</div>
-          {!canEdit && <p className="shared-readonly-note">Read only · {playerName} owns this army state.</p>}
+          <div className="quick-unit__heading"><div><strong>{unit.name}</strong><small>{unit.points} {tr(" pts · ")}{[...unit.categories, ...unit.keywords].join(', ') || tr('Unit')}</small></div>{state.battleShocked && <span className="status-badge status-badge--danger">{tr("Battle-shocked")}</span>}</div>
+          {!canEdit && <p className="shared-readonly-note">{tr("Read only · ")}{playerName} {tr(" owns this army state.")}</p>}
           <CombatControls unit={unit} state={state} playerId={ownerId} source={{ destroyedByPlayerId, ...source }} dispatch={dispatch} canEdit={canEdit} compact />
           <div className="quick-unit__battleshock">
-            <span>Battle-shock</span>
+            <span>{tr("Battle-shock")}</span>
             <div>
-              <button disabled={!canEdit || state.destroyed} title={readOnlyTitle} onClick={() => recordBattleShock(true)}>Pass</button>
-              <button className="button--danger" disabled={!canEdit || state.destroyed} title={readOnlyTitle} onClick={() => recordBattleShock(false)}>Fail</button>
+              <button disabled={!canEdit || state.destroyed} title={readOnlyTitle} onClick={() => recordBattleShock(true)}>{tr("Pass")}</button>
+              <button className="button--danger" disabled={!canEdit || state.destroyed} title={readOnlyTitle} onClick={() => recordBattleShock(false)}>{tr("Fail")}</button>
               {state.battleShocked && <button disabled={!canEdit} title={readOnlyTitle} onClick={() => dispatch({
                 type: 'UNIT_BATTLESHOCK_CHANGED', payload: { playerId: ownerId, unitId: unit.id, battleShocked: false },
-              })}>Clear</button>}
+              })}>{tr("Clear")}</button>}
             </div>
           </div>
-          <button className="quick-unit__details" onClick={() => onDetails(ownerId, unit.id)}>Details</button>
+          <button className="quick-unit__details" onClick={() => onDetails(ownerId, unit.id)}>{tr("Details")}</button>
         </article>
       })}</div>
     </aside>
