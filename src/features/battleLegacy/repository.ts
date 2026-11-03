@@ -36,10 +36,12 @@ export async function listArchive(owner = legacyOwner()): Promise<ArchiveRecord[
 }
 export async function saveArchiveMetadata(record: ArchiveRecord) {
   assertScope(record.ownerId)
-  await database.transaction('rw', database.battleArchive, async () => {
+  return database.transaction('rw', database.battleArchive, async () => {
     const current = await database.battleArchive.get([record.ownerId, record.id])
     if (current && current.mutationId !== record.mutationId) throw new Error('Archive changed. Reload before editing.')
-    await database.battleArchive.put({ ...record, mutationId: createPortableUuid() })
+    const saved = { ...record, mutationId: createPortableUuid() }
+    await database.battleArchive.put(saved)
+    return saved
   })
 }
 export type ArchiveCloudRow = { record: ArchiveRecord; revision: number }

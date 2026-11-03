@@ -1,3 +1,4 @@
+import type { ChronicleDraft } from '../warChronicle/model'
 import { buildBattleReport } from '../../domain/battle/battleReport'
 import { rehydrateBattleSession } from '../../domain/battle/engine'
 import { doublesScorekeeperId } from '../../domain/battle/doubles'
@@ -7,6 +8,7 @@ import type { UnitPerformance } from '../../domain/battle/unitPerformance'
 export type BattleFormat = '1v1' | 'FFA' | '2v2'
 export type ArchiveRecord = {
   schemaVersion: 1
+  chronicleDraft?: ChronicleDraft
   withdrawn?: boolean
   online?: boolean
   syncedMutationId?: string

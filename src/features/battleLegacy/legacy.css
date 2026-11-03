@@ -37,3 +37,9 @@
 
 .legacy-page details > label { display:grid; gap:6px; margin:12px 0; }
 .campaign-chapter p { white-space:pre-wrap; }
+
+.war-chronicle > label { display:grid; gap:8px; margin:18px 0; }
+.war-chronicle .chronicle-editor { min-height:55vh; line-height:1.85; font-family:Georgia,serif; font-size:1.05rem; }
+.chronicle-ai-brief textarea { min-height:260px; font-family:monospace; font-size:.8rem; }
+.war-chronicle details { border-top:1px solid #2d414c; padding:16px 0; }
+.war-chronicle details > button { margin:5px; }

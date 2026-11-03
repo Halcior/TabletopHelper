@@ -1,3 +1,4 @@
+import { WarChronicle } from '../features/warChronicle/WarChronicle'
 import { activeCampaignBattles, type Campaign } from '../features/campaigns/model'
 import { cloudCampaigns } from '../features/campaigns/repository'
 import { useRemote } from '../features/social/hooks'
@@ -32,7 +33,8 @@ export default function BattleArchive() {
   const [format, setFormat] = useState<BattleFormat>('1v1')
   const [identity, setIdentity] = useState(self)
   const [opponent, setOpponent] = useState('')
-  const [view, setView] = useState<'report' | 'chronicle' | 'replay'>('report')
+  const [view, setView] = useState<'report' | 'chronicle' | 'replay' | 'war'>('report')
+  const [mapRequest, setMapRequest] = useState({ eventId: '', request: 0 })
   useEffect(() => {
     setRecords([]); setError(''); setIdentity(self)
     void prepareArchive(owner).catch(e => setError(errorText(e)))
@@ -71,10 +73,11 @@ export default function BattleArchive() {
         {selected.session.setup.players.map(player => <div key={player.id} className="legacy-participant"><strong>{player.name}</strong><select aria-label={`${tr('Identity')} · ${player.name}`} value={selected.identities[player.id]?.id ?? ''} disabled={busy} onChange={event => void act(() => saveArchiveMetadata(setParticipant(selected, player.id, event.target.value, identities.get(event.target.value) ?? event.target.value)))}><option value="">{tr('Unlinked')}</option>{[...identities].map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select><form onSubmit={event => { event.preventDefault(); const input = new FormData(event.currentTarget).get('label')?.toString().trim() ?? ''; if (input) void act(() => saveArchiveMetadata(setParticipant(selected, player.id, `local:${input.toLocaleLowerCase()}`, input))) }}><input name="label" maxLength={100} aria-label={`${tr('Local identity')} · ${player.name}`} placeholder={tr('Local identity')} /><button disabled={busy}>{tr('Link')}</button></form></div>)}
       </section>
       {!archiveFacts(selected).reliable && <p className="context-note">{tr('Incomplete historical data. This battle is excluded from statistics.')}</p>}
-      <nav className="legacy-actions" aria-label={tr('Archived battle view')}>{(['report', 'chronicle', 'replay'] as const).map(value => <button key={value} aria-pressed={view === value} onClick={() => setView(value)}>{tr(value === 'report' ? 'Battle Report' : value === 'chronicle' ? 'Chronicle' : 'Tactical Replay')}</button>)}</nav>
+      <nav className="legacy-actions" aria-label={tr('Archived battle view')}>{(['report', 'chronicle', 'replay', 'war'] as const).map(value => <button key={value} aria-pressed={view === value} onClick={() => setView(value)}>{tr(value === 'report' ? 'Battle Report' : value === 'chronicle' ? 'Chronicle' : value === 'war' ? 'War Chronicle 2.0' : 'Tactical Replay')}</button>)}</nav>
+      {view === 'war' && <WarChronicle key={selected.id} record={selected} campaigns={campaigns} />}
       {view === 'report' && <BattleReport session={archiveFacts(selected).session} />}
-      {view === 'chronicle' && <BattleLog session={archiveFacts(selected).session} onShowMap={() => setView('replay')} />}
-      {view === 'replay' && <BattlefieldBoard key={selected.id} session={archiveFacts(selected).session} dispatch={() => {}} tactical />}
+      {view === 'chronicle' && <BattleLog session={archiveFacts(selected).session} onShowMap={eventId => { setMapRequest(current => ({ eventId, request: current.request + 1 })); setView('replay') }} />}
+      {view === 'replay' && <BattlefieldBoard key={selected.id} session={archiveFacts(selected).session} dispatch={() => {}} tactical replayRequest={mapRequest.request} replayEventId={mapRequest.eventId} />}
     </> : archiveId ? <p role="status">{tr('Battle not found in this account archive.')}</p> : <>
       <nav className="legacy-actions" aria-label={tr('Archive navigation')}>{(['archive', 'statistics', 'rivalries'] as const).map(value => <button key={value} aria-pressed={section === value} onClick={() => setSection(value)}>{tr(value === 'archive' ? 'Battles' : value === 'statistics' ? 'Player Statistics' : 'Rivalries — Head to Head')}</button>)}</nav>
       {section === 'archive' && presets.length > 0 && <section className="panel"><h2>{tr('Battle presets')}</h2>{presets.map(preset => <p key={preset.id}><Link className="button" to={`/battle/setup?preset=${preset.id}`}>{preset.name}</Link></p>)}</section>}
