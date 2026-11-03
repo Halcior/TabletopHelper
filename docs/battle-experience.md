@@ -20,3 +20,5 @@ Changed areas: BattleFocus, QuickDamagePanel, battleExperience.css; optional bat
 Validation: TypeScript, 653 Vitest tests, production build, 18 targeted browser scenarios: FFA at 375/1440px, Duel, mixed-profile casualties and attribution, Quick damage, two/three/four-context multiplayer, clocks, reconnect and card choices. Screenshots inspected. Browser contexts emulate phones; physical playtest remains necessary for tap reach, grouping flow and elapsed interaction time.
 
 The subsequent stages remain separate: guarded compensating corrections in Stage B; read-only Table Mode and presentation-only PL/EN preferences in Stage C. None of these stages automatically merges main or PR #39.
+
+Stage A follow-up: Quick damage resolves and saves the initial receiving army and unit with its draft, so a local turn change cannot reinterpret an omitted player ID. The existing combat E2E now uses the untouched default, changes the active player, reopens and reloads, and checks the same target and attribution. The footprint refresh test waits for the existing IndexedDB write before reloading, removing a save/navigation race in the test.
