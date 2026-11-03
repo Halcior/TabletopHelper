@@ -66,11 +66,12 @@ test('three Tactical phones keep Primary Rival scopes after turn handoffs, round
     for (const page of pages) await page.getByRole('button', { name: 'I am ready' }).click()
     await alpha.page.getByRole('button', { name: 'Start battle' }).click()
     for (const page of pages) await expect(page).toHaveURL(/\/battle\//)
-    const oddRivals = ['Player II · B-HOME', 'Player III · C-HOME', 'Player I · A-HOME']
+    const oddRivals = ['Player II', 'Player III', 'Player I']
     for (const [index, page] of pages.entries()) {
       await expect(page.locator('.ruleset-label').nth(1)).toHaveText('Chapter Approved · Tactical')
-      await expect(page.locator('.official-primary-panel').first()).toContainText(`Current Rival: ${oddRivals[index]}`)
-      await expect(page.locator('.official-primary-panel').first()).toContainText('Battle Round 1')
+      await expect(page.locator('.official-primary-panel .current-rival').first()).toContainText(`Adeptus Custodes — ${oddRivals[index]}`)
+      await expect(page.locator('.official-primary-panel .current-rival').first()).toContainText('Current Rival — Round 1')
+      await expect(page.getByRole('status', { name: 'Rival rotation' })).toBeHidden()
       expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
     }
 
@@ -79,16 +80,36 @@ test('three Tactical phones keep Primary Rival scopes after turn handoffs, round
     await endTacticalTurn(bravo.page, pages, 'Player II')
     for (const page of pages) await expect(scoreCard(page, 'Player II').locator('.score-card__numbers strong').first()).toHaveText('3')
     await endTacticalTurn(charlie.page, pages, 'Player III', true)
-    const evenRivals = ['Player III · C-HOME', 'Player I · A-HOME', 'Player II · B-HOME']
+    const evenRivals = ['Player III', 'Player I', 'Player II']
     for (const [index, page] of pages.entries()) {
-      await expect(page.locator('.official-primary-panel').first()).toContainText(`Current Rival: ${evenRivals[index]}`)
-      await expect(page.locator('.official-primary-panel').first()).toContainText('Battle Round 2')
+      await expect(page.locator('.official-primary-panel .current-rival').first()).toContainText(`Adeptus Custodes — ${evenRivals[index]}`)
+      await expect(page.locator('.official-primary-panel .current-rival').first()).toContainText('Current Rival — Round 2')
+      await expect(page.getByRole('status', { name: 'Rival rotation' })).toContainText(`Adeptus Custodes — ${evenRivals[index]}`)
     }
     await bravo.page.reload()
     await expect(bravo.page.getByRole('navigation', { name: 'Battle panels' })).toBeVisible()
-    await expect(bravo.page.locator('.official-primary-panel').first()).toContainText('Current Rival: Player I · A-HOME')
+    await expect(bravo.page.locator('.official-primary-panel .current-rival').first()).toContainText('Adeptus Custodes — Player I')
+    await expect(bravo.page.getByRole('status', { name: 'Rival rotation' })).toBeHidden()
     await expect(scoreCard(bravo.page, 'Player II').locator('.score-card__numbers strong').first()).toHaveText('3')
     await endTacticalTurn(alpha.page, pages, 'Player I')
+    // Cards received over the shared event stream must display their own saved
+    // scope, including timing-only rivals, rather than the active player's rival.
+    const expectedScopes = await bravo.page.evaluate(async () => {
+      const storePath = '/src/stores/battleStore.ts'
+      const secondaryPath = '/src/rulesets/cauldronFFA3/secondary.ts'
+      const definitionPath = '/src/rulesets/cauldronFFA3/officialSecondaryDefinitions.ts'
+      const { useBattleStore } = await import(storePath)
+      const { getSecondaryState } = await import(secondaryPath)
+      const { OFFICIAL_SECONDARY_BY_ID } = await import(definitionPath)
+      const session = useBattleStore.getState().session
+      return getSecondaryState(session)['player-b'].active.map((card: { cardId: string; secondaryRivalPlayerId?: string }) => {
+        const definition = OFFICIAL_SECONDARY_BY_ID[card.cardId]
+        return definition.enemyScope === 'rival'
+          ? `Target Rival: Adeptus Custodes — ${session.state.players[card.secondaryRivalPlayerId!].name}`
+          : definition.enemyScope === 'all-enemies' ? 'ALL ENEMIES' : 'BATTLEFIELD OBJECTIVE'
+      })
+    })
+    await expect(bravo.page.locator('.official-secondary-panel').first().locator('.secondary-scope__label')).toHaveText(expectedScopes)
     await endTacticalTurn(bravo.page, pages, 'Player II')
     for (const page of pages) await expect(scoreCard(page, 'Player II').locator('.score-card__numbers strong').first()).toHaveText('10')
     if (process.env.CAPTURE_UI === '1') await bravo.page.screenshot({ path: 'test-results/visual-ffa-current-rival.png', fullPage: true })

@@ -11,7 +11,8 @@ on:
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    # Playwright 1.55 supports Ubuntu 24.04; runner upgrades are explicit.
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - name: Checkout
@@ -63,3 +64,4 @@ jobs:
 
       - name: Production build and offline roster verification
         run: npm run test:e2e:offline
+

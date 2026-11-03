@@ -1,5 +1,8 @@
 import { totalScore } from '../../domain/battle/selectors'
 import type { BattleSession } from '../../domain/battle/types'
+import { SecondaryScope } from './RivalClarity'
+import { FFA_SCORING_BRIEF, secondaryScope } from './rivalPresentation'
+import type { OfficialSecondaryId } from '../../rulesets/cauldronFFA3/secondaryTypes'
 import { selectActiveMissionActions } from '../../domain/context/selectors'
 import { CAULDRON_RULESET_ID, getCauldronConfig, getCurrentRivalPlayerId } from '../../rulesets/cauldronFFA3'
 import { evaluateOperationalPlan } from '../../rulesets/cauldronFFA3/operationalPlans'
@@ -104,10 +107,13 @@ export function SharedPlayerPerspective({
         ? <div className="shared-secondary-focus__empty"><strong>None active</strong><span>Cards refill at the next Command phase.</span></div>
         : <div className="shared-secondary-focus__list">{activeSecondaries.map((card) => {
           const visual = getSecondaryPresentation(card)
+          const ownerId = doublesScorekeeperId(session.setup, viewerPlayerId)
+          const scope = secondaryScope(session, ownerId, card.cardId)
           return <article className={`shared-secondary-card shared-secondary-card--${card.status.toLowerCase()} shared-secondary-card--${visual.kind}`} key={card.cardId}>
             <div className="shared-secondary-card__top"><div className="shared-secondary-card__identity"><span className="shared-secondary-card__icon"><AppIcon name={visual.icon} /></span><span><small>{visual.label} · {secondaryStatus(card.status)}</small><strong>{card.name}</strong></span></div><b>{card.vp} VP</b></div>
-            <p>{card.objective}</p>
-            <div className="shared-secondary-card__progress"><span>Progress</span><strong>{card.progress}</strong></div>
+            <SecondaryScope session={session} playerId={ownerId} cardId={card.cardId} />
+            <p>{scope ? FFA_SCORING_BRIEF[card.cardId as OfficialSecondaryId] : card.objective}</p>
+            {!scope && <div className="shared-secondary-card__progress"><span>Progress</span><strong>{card.progress}</strong></div>}
           </article>
         })}</div>}
     </section>}

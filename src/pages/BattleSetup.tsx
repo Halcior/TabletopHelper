@@ -36,6 +36,7 @@ import {
 import { useSharedSessionStore } from '../multiplayer/sharedSessionStore'
 import { useBattleStore } from '../stores/battleStore'
 import { InfoDisclosure } from '../components/ui/InfoDisclosure'
+import { RivalHelp } from '../components/battle/RivalClarity'
 import { RulesSourceBadge } from '../components/ui/RulesSourceBadge'
 import { FormatGlyph } from '../components/ui/FormatGlyph'
 import { describeRules, recommendedRules } from '../rulesets/rulesSource'
@@ -363,6 +364,7 @@ export default function BattleSetup() {
         </details>}
         <div className="panel setup-primary-picker">
           <h3>{primaryDeck === 'cauldron' ? 'Cauldron missions' : 'Mission format'}</h3>
+          {mode === 'ffa3' && secondaryDeck === 'chapter-approved' && <RivalHelp />}
           {mode === 'ffa3' && <p className="context-note" role="note"><strong>Balanced CP (FFA):</strong> Every commander automatically receives +2 CP when each Battle Round starts. From Round 3, players tied for the lowest VP get +1 Underdog CP (no bonus if all scores are tied). No extra Core CP in individual Command phases. Manual +CP/−CP stays available for abilities and corrections.</p>}
           {primaryDeck === 'chapter-approved-ffa' && <InfoDisclosure label="How this Primary works"><p className="context-note">Balanced FFA adaptation of five 11th edition mirror cards, with adjusted VP values. Each player freely selects a Primary below for the whole battle; it is not automatically assigned by Detachment. Primary uses your Current Rival for that Battle Round, including HOME, territory, comparisons and destroyed units. Secondary cards keep the Rival assigned when drawn. Rounds 1/3/5: A → B → C → A. Rounds 2/4: A → C → B → A. Primary scores up to 15 VP per round and 45 VP per battle. Operational Plans do not score.</p></InfoDisclosure>}
           {primaryDeck === 'chapter-approved-duel' && <InfoDisclosure label="How this Primary works"><p className="context-note">Official {doubles ? 'Doubles matrix: each force chooses one Force Disposition available to either army' : '1v1 matrix: each player chooses a Force Disposition available to their Detachment'}. Their row against the opponent’s choice determines their own Primary. Use one of three terrain layouts for that pairing. The physical battlefield decides control, actions and markers; confirm each condition at the correct scoring window. 45 Primary + 45 Secondary + 10 Battle Ready VP.</p></InfoDisclosure>}

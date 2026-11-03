@@ -4,6 +4,7 @@ import {
 } from '../../rulesets/cauldronFFA3/officialPrimary'
 import { usesBalancedFfaPrimary } from '../../rulesets/cauldronFFA3/officialPrimaryBalance'
 import { InfoDisclosure } from '../ui/InfoDisclosure'
+import { CurrentRivalPanel } from './RivalClarity'
 
 export function OfficialPrimaryPanel({ session, playerId }: { session: BattleSession; playerId: string }) {
   const definition = getOfficialPrimaryMission(session, playerId)
@@ -12,10 +13,10 @@ export function OfficialPrimaryPanel({ session, playerId }: { session: BattleSes
   const rival = getOfficialPrimaryRival(session, playerId)
   return <section className="panel official-primary-panel" aria-label={`${session.state.players[playerId]?.name} Primary mission`}>
     <div className="section-heading"><div><span className="eyebrow">11th edition Primary · {balanced ? 'Balanced FFA' : 'FFA adaptation'}</span><h2>{definition.name}</h2></div><strong>{session.state.players[playerId]?.score.primary ?? 0} / 45 VP</strong></div>
-    <p className="primary-rival">Current Rival: <strong>{rival.name}</strong> · {rival.homeObjectiveId}</p>
+    <CurrentRivalPanel session={session} playerId={playerId} />
     <InfoDisclosure label="Primary conditions & scoring">
     {balanced && <p className="context-note">FFA-adjusted VP values. Follow the scoring below for this battle; your selected mission keeps its conditions and timing.</p>}
-    <p className="context-note">Battle Round {session.state.round}. Primary opponent/enemy references use this Rival for enemy HOME, territory, comparisons and destroyed units. Secondary cards retain their own assigned Rival.</p>
+    <p className="context-note">Battle Round {session.state.round}. Primary opponent/enemy references use {rival.homeObjectiveId} and this Rival’s territory, comparisons and destroyed units.</p>
     <ul>{definition.rules.map((rule) => <li key={rule}>{rule}</li>)}</ul>
     <a href={definition.url} target="_blank" rel="noreferrer">Read original card ↗</a>
     </InfoDisclosure>

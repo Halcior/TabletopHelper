@@ -7,6 +7,9 @@ import { getActiveSecondaryViews, getSecondaryState, isMulliganAvailable } from 
 import type { SecondaryId } from '../../rulesets/cauldronFFA3/secondaryTypes'
 import { useSharedSessionStore } from '../../multiplayer/sharedSessionStore'
 import { getSecondaryPresentation } from './secondaryPresentation'
+import { SecondaryScope } from './RivalClarity'
+import { FFA_SCORING_BRIEF, secondaryScope } from './rivalPresentation'
+import type { OfficialSecondaryId } from '../../rulesets/cauldronFFA3/secondaryTypes'
 
 function revealStorageKey(session: BattleSession, playerId: string, turnNumber: number): string {
   return `secondary-reveal:${session.setup.gameId}:${playerId}:${turnNumber}`
@@ -92,6 +95,7 @@ export function SecondaryDrawReveal({
         {views.map((card, index) => {
           const highlighted = stage === 'replacement' ? replacementIds.has(card.cardId) : newCardIds.has(card.cardId)
           const visual = getSecondaryPresentation(card)
+          const scope = secondaryScope(session, playerId, card.cardId)
           return <article
             className={`secondary-draw-reveal__card secondary-draw-reveal__card--${visual.kind}${highlighted ? ' secondary-draw-reveal__card--new' : ''}`}
             key={card.cardId}
@@ -102,8 +106,9 @@ export function SecondaryDrawReveal({
               <strong>{card.vp} VP</strong>
             </div>
             <h3>{card.name}</h3>
-            <p>{card.objective}</p>
-            <small>{card.progress}</small>
+            <SecondaryScope session={session} playerId={playerId} cardId={card.cardId} />
+            <p>{scope ? FFA_SCORING_BRIEF[card.cardId as OfficialSecondaryId] : card.objective}</p>
+            {!scope && <small>{card.progress}</small>}
             {stage === 'choose' && <button className="button button--danger" type="button" onClick={() => chooseMulligan(card.cardId)}>
               Mulligan this card
             </button>}

@@ -23,6 +23,7 @@ import { Scoreboard } from '../components/battle/Scoreboard'
 import { SecondaryEndTurnReview } from '../components/battle/SecondaryEndTurnReview'
 import { SecondaryDetailPanel } from '../components/battle/SecondaryPanel'
 import { OfficialSecondaryPanel } from '../components/battle/OfficialSecondaryPanel'
+import { RivalRotationNotice } from '../components/battle/RivalRotationNotice'
 import { OfficialPrimaryPanel } from '../components/battle/OfficialPrimaryPanel'
 import { DuelPrimaryPanel } from '../components/battle/DuelPrimaryPanel'
 import { SharedPlayerPerspective } from '../components/battle/SharedPlayerPerspective'
@@ -289,7 +290,7 @@ export default function BattleDashboard() {
           <h1 aria-label={headerTitle}><span className="hud-round">Round {session.state.round} / {session.state.maxRounds} · </span>{headerTitle}</h1>
           {battleActive && <div className="battle-turn__mobile-meta" aria-label={`Active commander ${active.name}${rival ? `, Rival ${rival.name}` : ''}`}>
             <strong>Active: {active.name}</strong>
-            {rival && <span>Rival: {rival.name}</span>}
+            {rival && <span>{cauldron && session.setup.players.length === 3 ? 'Primary Rival' : 'Rival'}: {rival.name}</span>}
           </div>}
         </div>
         <div className="battle-context">
@@ -350,6 +351,7 @@ export default function BattleDashboard() {
         />
         <BattleClock session={session} />
         <PhaseStepper phase={session.state.phase} />
+        {officialSecondary && session.setup.players.length === 3 && <RivalRotationNotice session={session} playerId={primaryViewerId} />}
         {sharedBattle && <SharedSyncWarning battleId={session.setup.gameId} />}
         {sharedBattle && <div className={`shared-flow-notice${canControlTurn ? ' shared-flow-notice--active' : ''}`}>{canControlTurn ? `Your turn · ${viewer?.name ?? active.name}` : `Waiting for ${sharedPermissions.waitingForPlayerName ?? active.name} · playing as ${viewer?.name ?? 'player'}`}</div>}
         {currentWindow && <section className="panel legacy-reaction-recovery"><p>This saved battle has an unfinished legacy reaction pause.</p><button disabled={!canCloseLegacyPause} onClick={() => cancelReactionWindow(currentWindow.id)}>Close legacy pause</button></section>}
