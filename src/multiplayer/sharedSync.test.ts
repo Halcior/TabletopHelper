@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { dispatchBattleEvent } from '../domain/battle/engine'
 import { testCauldronGame } from '../rulesets/cauldronFFA3/cauldronTestUtils'
-import { findRetryableLocalEvents, mergeCanonicalEnvelopes } from './sharedSync'
+import { attributeLocalSharedEvents, findRetryableLocalEvents, mergeCanonicalEnvelopes } from './sharedSync'
 
 describe('shared sync helpers', () => {
   it('recovers persisted local events created after the room snapshot', () => {
@@ -16,6 +16,15 @@ describe('shared sync helpers', () => {
     expect(retryable[0]).toMatchObject({ type: 'CP_GAINED', payload: { playerId: 'p-a', amount: 1 } })
   })
 
+  it('never republishes another commander’s canonical events under the restoring seat', () => {
+    const base = testCauldronGame()
+    let session = dispatchBattleEvent(base, { type: 'UNIT_TRACKING_CHANGED', payload: { enabled: true } }, { actorPlayerId: 'p-a' })
+    session = dispatchBattleEvent(session, { type: 'UNIT_MAP_CHANGED', payload: { playerId: 'p-b', unitId: 'infantry', status: 'battlefield', position: { x: .2, y: .3 }, expectedRevision: null } }, { actorPlayerId: 'p-b' })
+    session = dispatchBattleEvent(session, { type: 'CP_GAINED', payload: { playerId: 'p-b', amount: 1 } })
+    const retry = findRetryableLocalEvents(base, session, 'p-b')
+    expect(retry.map(event => event.type)).toEqual(['UNIT_MAP_CHANGED', 'CP_GAINED'])
+  })
+
   it('does not retry events from another battle', () => {
     const snapshot = testCauldronGame()
     const local = {
@@ -23,6 +32,17 @@ describe('shared sync helpers', () => {
       setup: { ...snapshot.setup, gameId: 'different-battle' },
     }
     expect(findRetryableLocalEvents(snapshot, local)).toEqual([])
+  })
+
+  it('retains locally submitted captain-attributed actions without reattributing remote history', () => {
+    const snapshot = testCauldronGame()
+    const before = dispatchBattleEvent(snapshot, { type: 'CP_GAINED', payload: { playerId: 'p-a', amount: 1 } }, { actorPlayerId: 'p-a' })
+    const after = dispatchBattleEvent(before, { type: 'PHASE_CHANGED', payload: { phase: 'MOVEMENT' } }, { actorPlayerId: 'p-a' })
+    const saved = attributeLocalSharedEvents(before, after, 'p-b')
+    expect(saved.state.events.at(-1)?.actorPlayerId).toBe('p-b')
+    expect(saved.state.events.slice(0, -1)).toEqual(before.state.events)
+    expect(after.state.events.at(-1)?.actorPlayerId).toBe('p-a')
+    expect(findRetryableLocalEvents(snapshot, JSON.parse(JSON.stringify(saved)), 'p-b').map(event => event.type)).toEqual(['PHASE_CHANGED'])
   })
 
   it('deduplicates canonical polling results by sequence and keeps order', () => {

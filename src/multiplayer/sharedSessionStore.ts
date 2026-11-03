@@ -328,7 +328,7 @@ function startSyncLoop(inspection: SharedRoomInspection, membership: SharedMembe
     useBattleStore.setState({ session, error: null })
     if (!inspection.room.bringYourArmy || inspection.room.startedAt) void saveBattle(session)
   } else {
-    for (const event of findRetryableLocalEvents(inspection.room.sessionSnapshot, localSession)) {
+    for (const event of findRetryableLocalEvents(inspection.room.sessionSnapshot, localSession, membership.playerId)) {
       pendingLocalEvents.set(event.id, event)
     }
     updatePendingCount()
@@ -526,9 +526,14 @@ export const useSharedSessionStore = create<SharedSessionStore>((set, get) => ({
   async restoreForBattle(battleId) {
     const savedMembership = readMembership()
     if (!savedMembership || savedMembership.battleId !== battleId || !sharedSessionTransport.configured) return false
+    // Joining already starts a loop before its first poll marks it connected.
+    // Restarting that same loop here would invalidate in-flight Ready commands.
     if (
-      get().connectionStatus === 'connected'
+      (get().connectionStatus === 'connected' || pollTimer !== null)
       && get().membership?.battleId === battleId
+      && get().membership?.roomId === savedMembership.roomId
+      && get().membership?.clientId === savedMembership.clientId
+      && get().membership?.playerId === savedMembership.playerId
       && get().inspection?.room.id === savedMembership.roomId
     ) return true
     setSharedRuntimeMembership(savedMembership)

@@ -1,0 +1,68 @@
+/* Unit tracking shares the existing board. Tokens are 24px; hit targets are 44px. */
+.tactical-workspace { min-width: 0; display: grid; gap: 12px; }
+.tactical-toolbar, .tactical-unit-actions, .tactical-filters, .battlefield-replay__transport { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.tactical-toolbar { justify-content: space-between; }
+.tactical-toolbar small, .tactical-tray-unit small { display: block; color: var(--muted); font-size: .72rem; }
+.tactical-filters { font-size: .8rem; }
+.tactical-filters label { display: flex; align-items: center; gap: 8px; }
+.tactical-filters select { max-width: 150px; }
+.tactical-filters input[type=checkbox] { width: 18px; height: 18px; }
+.tactical-filters details { max-width: 100%; }
+.tactical-hint { margin: 0; color: var(--muted); font-size: .75rem; line-height: 1.5; }
+.tactical-unit-layer { position: absolute; inset: 0; pointer-events: none; z-index: 4; }
+.unit-map-token { position: absolute; display: grid; place-items: center; width: 44px; height: 44px; min-height: 44px; padding: 0; transform: translate(-50%, -50%); background: transparent; border: 0; border-radius: 50%; pointer-events: auto; user-select: none; -webkit-user-select: none; transition: left .18s ease, top .18s ease; }
+.unit-map-token:hover { background: transparent; }
+.unit-map-token__icon { width: 24px; height: 24px; display: grid; place-items: center; border: 2px solid var(--unit-color); border-radius: 7px; background: #171e27; color: #f4f3ed; font-size: 9px; font-weight: 800; box-shadow: 0 2px 5px #000a; }
+.unit-map-token__models { position: absolute; left: 29px; top: 25px; min-width: 12px; height: 13px; padding: 0 2px; border-radius: 3px; background: #171e27; color: #e5e8ec; font-size: 8px; line-height: 13px; }
+.unit-map-token.is-selected .unit-map-token__icon, .unit-map-token:focus-visible .unit-map-token__icon { outline: 2px solid var(--gold); outline-offset: 3px; }
+.unit-map-token.is-combat .unit-map-token__icon { box-shadow: 0 0 14px #f1b965; }
+.unit-map-token.is-shocked .unit-map-token__icon { border-style: dashed; }
+.unit-map-token__label { position: absolute; top: 42px; max-width: 95px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 9px; background: #10161fdf; padding: 2px 4px; pointer-events: none; }
+.tactical-placement { position: absolute; inset: 0; width: 100%; height: 100%; background: #c6a7650b; border: 1px dashed var(--gold); padding: 0; pointer-events: auto; cursor: crosshair; }
+.tactical-placement:hover { background: #c6a76513; }
+.unit-map-preview { position: absolute; width: 24px; height: 24px; transform: translate(-50%, -50%); color: var(--gold); opacity: .8; pointer-events: none; }
+.tactical-combat-overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9; overflow: visible; }
+.tactical-combat-overlay line { stroke: #f7bd67; stroke-width: 2px; stroke-dasharray: 7 5; vector-effect: non-scaling-stroke; }
+.tactical-combat-overlay circle { fill: none; stroke-width: 2px; vector-effect: non-scaling-stroke; }
+.combat-attacker { stroke: #f7bd67; }
+.combat-target { stroke: #ef7871; }
+.combat-elimination { stroke: #f05252; fill: #f0525255 !important; }
+.tactical-tray { border: 1px solid var(--border, #3c424c); border-radius: 10px; padding: 10px; }
+.tactical-tray summary { cursor: pointer; font-size: .85rem; }
+.tactical-tray summary span { color: var(--muted); font-size: .72rem; margin-left: 8px; }
+.tactical-tray__list { max-height: 240px; overflow: auto; overscroll-behavior: contain; display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; padding-top: 12px; }
+.tactical-tray-unit { width: 100%; display: flex; text-align: left; align-items: center; gap: 10px; min-height: 48px; margin: 4px 0; padding: 5px 8px; font-size: .8rem; }
+.tactical-tray-unit > span:last-child { min-width: 0; overflow-wrap: anywhere; }
+.tactical-tray-unit.is-selected { border-color: var(--gold); }
+.tactical-tray-unit__sigil { display: grid; place-items: center; width: 24px; height: 24px; flex-shrink: 0; border: 2px solid var(--unit-color); border-radius: 6px; font-size: 9px; }
+.tactical-unit-details { padding: 12px; display: grid; gap: 10px; overflow-wrap: anywhere; }
+.tactical-unit-details button { min-height: 44px; font-size: .8rem; }
+.tactical-coordinate-inputs { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; padding-top: 10px; }
+.tactical-coordinate-inputs label { display: grid; gap: 4px; font-size: .8rem; }
+.tactical-coordinate-inputs input { width: 100px; }
+.battlefield-replay__transport { margin: 10px 0; }
+.battlefield-replay__transport button { min-height: 44px; font-size: .78rem; }
+.battlefield-replay__transport label { display: flex; align-items: center; gap: 8px; font-size: .78rem; }
+.battlefield-replay details select { max-width: 100%; width: 100%; }
+.chronicle-spatial { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0; }
+.chronicle-spatial small { color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { .unit-map-token { transition: none; } }
+@media (max-width: 480px) { .tactical-tray__list { grid-template-columns: 1fr; max-height: 210px; } .tactical-unit-actions { display: grid; grid-template-columns: 1fr 1fr; } .tactical-toolbar strong { font-size: .85rem; } }
+
+/* Objectives retain priority over unit hit targets and movement previews. */
+.battlefield-canvas .objective-node { z-index: 6; }
+
+/* Preserve marker geometry against global button hover/active styles. */
+.unit-map-token, .unit-map-token:hover, .unit-map-token:active { transform: translate(-50%, -50%); background: transparent; border: 0; padding: 0; }
+.tactical-placement, .tactical-placement:hover, .tactical-placement:active { transform: none; background: #c6a7650b; }
+:root { --player-3: #92c7a0; }
+
+.unit-map-cluster, .unit-map-cluster:hover, .unit-map-cluster:active { position: absolute; transform: translate(-50%, -50%); width: 44px; height: 44px; padding: 0; border: 0; background: transparent; pointer-events: auto; }
+.unit-map-cluster span { display: grid; place-items: center; width: 26px; height: 26px; margin: auto; border: 2px solid var(--gold); border-radius: 50%; background: #182329; color: var(--text); font-size: 11px; }
+.tactical-cluster-list { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px; }
+.tactical-cluster-list { max-height: 280px; overflow-y: auto; overscroll-behavior: contain; }
+.tactical-cluster-list .tactical-toolbar { width: 100%; }
+.tactical-cluster-list > button { font-size: .78rem; min-height: 44px; }
+.tactical-position-guides { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.tactical-position-guides line { stroke: var(--gold); stroke-width: 1; stroke-dasharray: 2 4; opacity: .55; }
+.tactical-position-guides circle { fill: var(--gold); }

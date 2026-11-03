@@ -1,3 +1,5 @@
+import { battleHighlights } from '../../domain/battlefield/highlights'
+import { TacticalUnits } from './TacticalUnits'
 import { t as tr } from '../../features/i18n/locale'
 import { BattlefieldMapSvg, DEFAULT_TERRAIN_LAYERS, TerrainLayerControls, TerrainLegend } from './BattlefieldMapSvg'
 import { PlayerFactionMarks } from '../../features/factionVisuals/components'
@@ -29,6 +31,8 @@ export function BattlefieldBoard({
   liveObjectiveIds = [],
   onOpenList,
   replayRequest = 0,
+  replayEventId,
+  tactical = false,
   onEditingChange,
   active = true,
   readOnly = false,
@@ -38,6 +42,8 @@ export function BattlefieldBoard({
   liveObjectiveIds?: string[]
   onOpenList?: (objectiveId: string) => void
   replayRequest?: number
+  replayEventId?: string | null
+  tactical?: boolean
   onEditingChange?: (editing: boolean) => void
   active?: boolean
   readOnly?: boolean
@@ -54,6 +60,9 @@ export function BattlefieldBoard({
   const [draft, setDraft] = useState<BattlefieldGeometry | null>(null)
   const [error, setError] = useState('')
   const [replay, setReplay] = useState(!readOnly && session.state.status !== 'active')
+  const [playing, setPlaying] = useState(false)
+  const [speed, setSpeed] = useState(1)
+  const [highlightsOnly, setHighlightsOnly] = useState(false)
   const [replayIndex, setReplayIndex] = useState<number | null>(null)
   const canvas = useRef<HTMLDivElement>(null)
   const dragging = useRef<string | null>(null)
@@ -62,7 +71,7 @@ export function BattlefieldBoard({
   useEffect(() => {
     if (replayRequest === lastReplayRequest.current) return
     lastReplayRequest.current = replayRequest
-    if (!draft) { setReplay(true); setReplayIndex(null); setSelectedId(null) }
+    if (!draft) { setReplay(true); setReplayIndex(null); setSelectedId(null); setPlaying(false) }
   }, [replayRequest, draft])
   useEffect(() => { onEditingChange?.(Boolean(draft)) }, [Boolean(draft), onEditingChange])
   useEffect(() => { if (!active) setSelectedId(null) }, [active])
@@ -73,7 +82,20 @@ export function BattlefieldBoard({
     return () => observer.disconnect()
   }, [])
   const frames = useMemo(() => buildBattlefieldReplay(session), [session])
+  const highlightFrames = useMemo(() => battleHighlights(session, frames), [session, frames])
+  const playbackFrames = highlightsOnly ? highlightFrames : frames
   const entries = useMemo(() => buildBattleChronicle(session), [session])
+  useEffect(() => {
+    if (!replayEventId || !replayRequest || draft) return
+    const index = frames.findIndex(step => step.eventId === replayEventId)
+    if (index >= 0) { setReplay(true); setReplayIndex(index); setPlaying(false) }
+  }, [replayRequest, replayEventId])
+  useEffect(() => {
+    if (!playing || !replay || !active) return
+    const timer = window.setInterval(() => setReplayIndex(current => playbackFrames.find(step => step.index > (current ?? -1))?.index ?? frames.length - 1), 1100 / speed)
+    return () => window.clearInterval(timer)
+  }, [playing, replay, active, speed, frames.length, playbackFrames])
+  useEffect(() => { if (playing && replayIndex === frames.length - 1) setPlaying(false) }, [playing, replayIndex, frames.length])
   const frame =
     frames[Math.min(replayIndex ?? frames.length - 1, frames.length - 1)]
   const liveGeometry =
@@ -221,6 +243,7 @@ export function BattlefieldBoard({
             onClick={() => {
               if (readOnly) return
               setSelectedId(null)
+              setPlaying(false)
               setReplay((current) => !current)
               setReplayIndex(null)
             }}
@@ -307,6 +330,12 @@ export function BattlefieldBoard({
               {tr(" Event ")}{frame?.index ?? 0} / {frames.length - 1}
             </span>
           </div>
+          <div className="battlefield-replay__transport"><button disabled={!highlightFrames.length} aria-pressed={highlightsOnly} onClick={() => { setHighlightsOnly(value => !value); setReplayIndex(highlightsOnly ? 0 : highlightFrames[0]?.index ?? 0); setPlaying(true) }}>{tr('Watch Battle Highlights')}</button>
+            <button disabled={(frame?.index ?? 0) <= 0} onClick={() => { setPlaying(false); setReplayIndex([...playbackFrames].reverse().find(step => step.index < (frame?.index ?? 0))?.index ?? 0) }}>{tr('Previous Event')}</button>
+            <button aria-pressed={playing} onClick={() => { if (!playing && (frame?.index ?? 0) === frames.length - 1) setReplayIndex(highlightsOnly ? highlightFrames[0]?.index ?? 0 : 0); setPlaying(value => !value) }}>{tr(playing ? 'Pause' : 'Play')}</button>
+            <button disabled={(frame?.index ?? 0) >= frames.length - 1} onClick={() => { setPlaying(false); setReplayIndex(playbackFrames.find(step => step.index > (frame?.index ?? 0))?.index ?? frames.length - 1) }}>{tr('Next Event')}</button>
+            <label>{tr('Playback speed')}<select aria-label={tr('Playback speed')} value={speed} onChange={event => setSpeed(Number(event.target.value))}><option value={1}>1×</option><option value={2}>2×</option><option value={4}>4×</option></select></label>
+          </div>
           <label>
             <span>{tr("Replay event")}</span>
             <input
@@ -316,6 +345,7 @@ export function BattlefieldBoard({
               step={1}
               value={frame?.index ?? 0}
               onChange={(event) => {
+                setPlaying(false)
                 setReplayIndex(Number(event.target.value))
                 setSelectedId(null)
               }}
@@ -338,7 +368,7 @@ export function BattlefieldBoard({
                   aria-pressed={frame?.round === round}
                   onClick={() => {
               if (readOnly) return
-                    setReplayIndex(steps.at(-1)!.index)
+                    setPlaying(false); setReplayIndex(steps[0].index)
                     setSelectedId(null)
                   }}
                 >
@@ -347,7 +377,7 @@ export function BattlefieldBoard({
               )
             })}
           </div>
-          <p>{tr(frame?.description)}</p>
+          <p>{tr(frame?.description)}</p><label>{tr('Turn')}<select aria-label={tr('Replay turn')} value={`${frame?.round}:${frame?.activePlayerId}`} onChange={event => { const step = frames.find(step => `${step.round}:${step.activePlayerId}` === event.target.value); if (step) { setPlaying(false); setReplayIndex(step.index) } }}>{frames.filter((step, i) => i === 0 || step.round !== frames[i - 1].round || step.activePlayerId !== frames[i - 1].activePlayerId).map(step => <option key={step.index} value={`${step.round}:${step.activePlayerId}`}>R{step.round} · {session.state.players[step.activePlayerId]?.name}</option>)}</select></label><details><summary>{tr('Choose recorded event')}</summary><select aria-label={tr('Recorded event')} value={frame?.index ?? 0} onChange={event => { setPlaying(false); setReplayIndex(Number(event.target.value)) }}>{frames.map(step => <option key={step.eventId ?? 'initial'} value={step.index}>R{step.round} · {step.phase} · {tr(step.description)}</option>)}</select></details>
           <div className="battlefield-replay__scores">
             {session.setup.players.filter((player) => !session.setup.doubles || session.state.turnOrder.includes(player.id)).map((player) => (
               <span key={player.id}>
@@ -612,6 +642,7 @@ export function BattlefieldBoard({
           {labelLayout.labels.map((label) => <span key={label.id} className={`objective-label objective-label--player-${playerIndex(controllers[label.id])}`} title={tr(`${label.id} · ${controllerName(label.id)}`, "{0} · {1}")} style={{ left: label.x, top: label.y, width: label.width, height: label.height }}><strong>{label.id.replaceAll('-', ' ')}</strong>{controllers[label.id] && <small>{controllerName(label.id)}</small>}</span>)}
         </div>
       </div>
+      {!readOnly && (tactical || replay && Boolean(frame?.unitTracking)) && !draft && <TacticalUnits session={session} dispatch={dispatch} canvas={canvas.current} geometry={geometry} rotated={rotated} canvasSize={canvasSize} frame={frame} replay={replay} membership={membership} active={active} />}
       {legendIds.length > 0 && <div className="battlefield-label-overflow" aria-label={tr("Objectives with labels below the board")}>{legendIds.map((id) => <button key={id} disabled={readOnly || Boolean(draft)} onClick={() => { if (!readOnly) setSelectedId(id) }}>{id}{controllers[id] ? tr(` · ${controllerName(id)}`, " · {0}") : ''}</button>)}</div>}
       {presentation.unplacedIds.length > 0 && (
         <section className="panel battlefield-unplaced">

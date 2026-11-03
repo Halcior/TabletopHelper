@@ -11,6 +11,8 @@ function unitName(setup: BattleSetup, playerId: string, unitId: string): string 
 
 export function describeBattleEvent(event: BattleEvent, setup: BattleSetup): string {
   switch (event.type) {
+    case 'UNIT_TRACKING_CHANGED': return `Unit Tracking ${event.payload.enabled ? 'enabled' : 'disabled'}`
+    case 'UNIT_MAP_CHANGED': return `${unitName(setup, event.payload.playerId, event.payload.unitId)} · ${event.payload.status === 'battlefield' ? 'position recorded' : event.payload.status === 'reserves' ? 'returned to Reserves' : 'set as Unplaced'}`
     case 'GAME_STARTED': return 'Battle started'
     case 'BATTLEFIELD_LAYOUT_CHANGED': return `Battlefield layout saved · ${event.payload.geometry.widthCm} × ${event.payload.geometry.heightCm} cm`
     case 'GAME_ENDED': return 'Battle ended'
