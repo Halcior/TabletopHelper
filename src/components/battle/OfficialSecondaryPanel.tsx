@@ -110,7 +110,7 @@ function OfficialSecondaryForm({ session, playerId, editable }: OfficialSecondar
         return <Fragment key={cardId}>
           {group && (index === 0 || reviewGroup(cards[index - 1].cardId as OfficialSecondaryId) !== group) && <h3 className="secondary-review-group">{tr(group)}</h3>}
           <article data-review-group={group} className={`secondary-card secondary-card--official${required ? ' secondary-card--input_required' : ''}`}>
-          <div className="secondary-card__heading"><div className="secondary-card__identity"><div><span>{fixed ? tr('Fixed') : tr('Tactical')}{!ffa && tr(` · ${definition.scoreAt === 'either' ? 'either turn' : definition.scoreAt === 'own' ? 'your turn' : 'Rival turn'}`, " · {0}")}</span><h3>{definition.name}</h3></div></div><div className="secondary-card__vp"><strong>{fixed ? '20' : '5'}</strong><span>{tr("max VP")}</span></div></div>
+          <div className="secondary-card__heading"><div className="secondary-card__identity"><div><span>{fixed ? tr('Fixed') : tr('Tactical')}{!ffa && tr(` · ${tr(definition.scoreAt === 'either' ? 'either turn' : definition.scoreAt === 'own' ? 'your turn' : 'Rival turn')}`, " · {0}")}</span><h3>{definition.name}</h3></div></div><div className="secondary-card__vp"><strong>{fixed ? '20' : '5'}</strong><span>{tr("max VP")}</span></div></div>
           <span className={`mission-status${required ? ' mission-status--required' : ''}${status === 'Ready to Score' ? ' mission-status--ready' : ''}`}>{tr(status)}</span>
           {ffa && <SecondaryScope session={session} playerId={playerId} cardId={cardId} />}
           <p className="secondary-card__objective secondary-card__brief">{tr(firstSentence)}</p>

@@ -622,7 +622,7 @@
   "Map layers": "Warstwy mapy",
   "Mark objective": "Oznacz znacznik",
   "Mark ready and wait for all commanders.": "Potwierdź gotowość i zaczekaj na wszystkich dowódców.",
-  "Mark this turn&apos;s objective": "Oznacz znacznik tej tury",
+  "Mark this turn's objective": "Oznacz znacznik tej tury",
   "Mark used": "Oznacz jako użyte",
   "Marked this turn:": "Oznaczono w tej turze:",
   "Match this assignment to the Attacker/Defender roll. Rotation changes only your view.": "Dopasuj przypisanie do rzutu Atakujący/Obrońca. Obrót zmienia tylko widok.",
@@ -694,7 +694,7 @@
   "No detachment data": "Brak danych Detachmentu",
   "No eligible Rival targets remain.": "Brak dozwolonych celów rywala.",
   "No eligible controlled objectives. Update control on the Objectives tab if needed.": "Brak kontrolowanych znaczników spełniających warunki. W razie potrzeby zaktualizuj kontrolę w zakładce Znaczniki.",
-  "No eligible units are available. Units need OC&gt;0, must be on the battlefield, and cannot be Battle-shocked, AIRCRAFT, or FORTIFICATION.": "Brak dostępnych jednostek spełniających warunki. Jednostki muszą mieć OC>0, znajdować się na polu bitwy i nie mogą być pod wpływem Battle-shock ani mieć AIRCRAFT lub FORTIFICATION.",
+  "No eligible units are available. Units need OC>0, must be on the battlefield, and cannot be Battle-shocked, AIRCRAFT, or FORTIFICATION.": "Brak dostępnych jednostek spełniających warunki. Jednostki muszą mieć OC>0, znajdować się na polu bitwy i nie mogą być pod wpływem Battle-shock ani mieć AIRCRAFT lub FORTIFICATION.",
   "No enemy OC>0 unit is in range of your HOME or within 6″ of the marked neutral objective. Battle-shocked units do not block this.": "Żadna jednostka wroga o OC>0 nie jest w zasięgu twojego HOME ani do 6″ od oznaczonego neutralnego znacznika. Jednostki pod wpływem Battle-shock nie blokują warunku.",
   "No enemy unit is inside your deployment zone.": "Żadna jednostka wroga nie znajduje się w twojej strefie rozstawienia.",
   "No matching active enemy units.": "Brak pasujących aktywnych jednostek wroga.",
@@ -1357,7 +1357,7 @@
   "unknown": "nieznane",
   "up to +5 VP": "do +5 VP",
   "waiting to sync.": "oczekuje na synchronizację.",
-  "was already resolved in this player&apos;s own end-turn review.": "zostało już rozliczone podczas własnego przeglądu końca tury tego gracza.",
+  "was already resolved in this player's own end-turn review.": "zostało już rozliczone podczas własnego przeglądu końca tury tego gracza.",
   "{0} Primary mission": "Misja Primary gracza {0}",
   "{0} enemy points destroyed": "Zniszczone punkty wroga: {0}",
   "{0} finishes on top.": "{0} zwycięża.",
@@ -1930,5 +1930,9 @@
   "triangulation": "triangulacja",
   "end of turn": "koniec tury",
   "end of Command phase": "koniec fazy dowodzenia",
-  "end of battle": "koniec bitwy"
+  "end of battle": "koniec bitwy",
+  "Maneuver": "Manewr",
+  "Elimination": "Zniszczenia",
+  "Position": "Pozycja",
+  "Defender": "Obrońca"
 }

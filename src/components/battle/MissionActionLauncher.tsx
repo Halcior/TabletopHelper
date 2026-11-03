@@ -60,7 +60,7 @@ export function MissionActionLauncher({ session, secondaryId, missionActionType,
       {session.state.phase !== 'MOVEMENT'
         ? <p className="context-note">{tr("Mission Actions start at the end of your Movement phase.")}</p>
         : units.length === 0
-          ? <p className="context-note">{tr("No eligible units are available. Units need OC&gt;0, must be on the battlefield, and cannot be Battle-shocked, AIRCRAFT, or FORTIFICATION.")}</p>
+          ? <p className="context-note">{tr("No eligible units are available. Units need OC>0, must be on the battlefield, and cannot be Battle-shocked, AIRCRAFT, or FORTIFICATION.")}</p>
           : <>
             <label>{tr("Acting unit")}<select value={unitId} onChange={(event) => setUnitId(event.target.value)}>
               {units.map((unit) => <option key={unit.unitId} value={unit.unitId}>{unit.unitName}</option>)}

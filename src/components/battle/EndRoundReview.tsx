@@ -59,7 +59,7 @@ export function EndRoundReview({
             <p>{tr(evaluation?.reason)}</p>
             {evaluation?.progress && <div className="review-plan-progress"><strong>{evaluation.progress.current}</strong><span> / {evaluation.progress.target} {evaluation.progress.unit}</span></div>}
             <div className="primary-condition"><span className={pending ? 'condition-mark complete' : 'condition-mark'}>{pending ? '✓' : '×'}</span><span>{tr("Deferred Plan VP")}</span><strong>+{pending ? 5 : 0}</strong></div>
-          </div> : <p className="context-note">{getOperationalPlanState(session, playerId).planId.replaceAll('_', ' ')} {tr(" was already resolved in this player&apos;s own end-turn review.")}</p>}
+          </div> : <p className="context-note">{getOperationalPlanState(session, playerId).planId.replaceAll('_', ' ')} {tr(" was already resolved in this player's own end-turn review.")}</p>}
         </section>
       })}</div>
       <div className="review-actions">

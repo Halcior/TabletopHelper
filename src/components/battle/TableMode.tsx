@@ -18,7 +18,7 @@ export function publicTableEvents(session: BattleSession) {
   return buildBattleChronicle(session).filter(entry => entry.highlight
     && ['kills', 'combat', 'objectives', 'flow'].includes(entry.category)
     && entry.event.type !== 'STATE_CORRECTED')
-    .slice(-6).reverse().map(entry => ({ id: entry.id, round: entry.round, description: chronicleCopy(entry) }))
+    .slice(-6).reverse().map(entry => ({ id: entry.id, round: entry.round, description: chronicleCopy(entry, session.state.players) }))
 }
 
 export function TableMode({ session, onClose }: { session: BattleSession; onClose: () => void }) {

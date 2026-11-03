@@ -66,7 +66,7 @@ export function CauldronPlanPanel({
       <p className="plan-reason">{tr(evaluation.reason)}</p>
 
       {needsMarkedObjective && session.state.phase === 'COMMAND' && !target && <div className="plan-change">
-        <strong>{tr("Mark this turn&apos;s objective")}</strong>
+        <strong>{tr("Mark this turn's objective")}</strong>
         {targetOptions.length > 0 ? <div className="plan-change__controls">
           <select aria-label={tr("Operational Plan objective")} value={selectedObjectiveId} onChange={(event) => setSelectedObjectiveId(event.target.value)}>
             {targetOptions.map((option) => <option key={option.objectiveId} value={option.objectiveId}>{option.name}</option>)}
