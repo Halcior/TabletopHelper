@@ -1,3 +1,4 @@
+import { t as tr } from '../../features/i18n/locale'
 import { totalScore } from '../../domain/battle/selectors'
 import type { BattleSession } from '../../domain/battle/types'
 import { SecondaryScope } from './RivalClarity'
@@ -83,37 +84,37 @@ export function SharedPlayerPerspective({
 
   return <section className={`panel shared-perspective${ownTurn ? ' shared-perspective--active' : currentRival ? ' shared-perspective--rival' : ''}`}>
     <div className="shared-perspective__heading">
-      <div><span className="eyebrow">You</span><h3>{viewer.name}</h3><small>{session.setup.doubles ? `${doublesForceForPlayer(session.setup, viewerPlayerId)?.name ?? 'Team'} · ${viewer.faction ?? 'Army'}` : viewer.faction ?? 'Army'}</small></div>
-      <span className="shared-perspective__role">{role}</span>
+      <div><span className="eyebrow">{tr("You")}</span><h3>{viewer.name}</h3><small>{session.setup.doubles ? tr(`${doublesForceForPlayer(session.setup, viewerPlayerId)?.name ?? 'Team'} · ${viewer.faction ?? 'Army'}`, "{0} · {1}") : viewer.faction ?? tr('Army')}</small></div>
+      <span className="shared-perspective__role">{tr(role)}</span>
     </div>
 
     {urgentTitle && <div className="shared-perspective__alert"><strong>{urgentTitle}</strong><span>{urgentCopy}</span></div>}
 
     <div className="shared-perspective__numbers">
-      <div><strong>{totalScore(teamScore ?? viewer)}</strong><span>VP</span></div>
-      <div><strong>{teamScore?.cp ?? viewer.cp}</strong><span>CP</span></div>
-      <div><strong>{viewerRivalId ? doublesForceForPlayer(session.setup, viewerRivalId)?.name ?? viewerRival?.name : '—'}</strong><span>{session.setup.doubles ? 'Enemy force' : 'Rival'}</span></div>
+      <div><strong>{totalScore(teamScore ?? viewer)}</strong><span>{tr("VP")}</span></div>
+      <div><strong>{teamScore?.cp ?? viewer.cp}</strong><span>{tr("CP")}</span></div>
+      <div><strong>{viewerRivalId ? doublesForceForPlayer(session.setup, viewerRivalId)?.name ?? viewerRival?.name : '—'}</strong><span>{session.setup.doubles ? tr('Enemy force') : tr('Rival')}</span></div>
     </div>
 
-    {plan && <div className="player-focus-line"><span>Plan</span><strong>{plan.name} · {planProgress}</strong></div>}
-    {missionActions.length > 0 && <div className="player-focus-line"><span>Action</span><strong>{missionActions.map((item) => item.name).join(' · ')}</strong></div>}
+    {plan && <div className="player-focus-line"><span>{tr("Plan")}</span><strong>{plan.name} · {planProgress}</strong></div>}
+    {missionActions.length > 0 && <div className="player-focus-line"><span>{tr("Action")}</span><strong>{missionActions.map((item) => item.name).join(' · ')}</strong></div>}
 
-    {showCards && <section className={`shared-secondary-focus${ownTurn ? ' shared-secondary-focus--active' : ''}`} aria-label="My active Secondary missions">
+    {showCards && <section className={`shared-secondary-focus${ownTurn ? ' shared-secondary-focus--active' : ''}`} aria-label={tr("My active Secondary missions")}>
       <div className="shared-secondary-focus__heading">
-        <div><span className="eyebrow">{ownTurn ? 'Your current turn' : 'Your missions'}</span><h3>Secondary Missions</h3></div>
-        <button type="button" onClick={onOpenCards}>Details</button>
+        <div><span className="eyebrow">{ownTurn ? tr('Your current turn') : tr('Your missions')}</span><h3>{tr("Secondary Missions")}</h3></div>
+        <button type="button" onClick={onOpenCards}>{tr("Details")}</button>
       </div>
       {activeSecondaries.length === 0
-        ? <div className="shared-secondary-focus__empty"><strong>None active</strong><span>Cards refill at the next Command phase.</span></div>
+        ? <div className="shared-secondary-focus__empty"><strong>{tr("None active")}</strong><span>{tr("Cards refill at the next Command phase.")}</span></div>
         : <div className="shared-secondary-focus__list">{activeSecondaries.map((card) => {
           const visual = getSecondaryPresentation(card)
           const ownerId = doublesScorekeeperId(session.setup, viewerPlayerId)
           const scope = secondaryScope(session, ownerId, card.cardId)
           return <article className={`shared-secondary-card shared-secondary-card--${card.status.toLowerCase()} shared-secondary-card--${visual.kind}`} key={card.cardId}>
-            <div className="shared-secondary-card__top"><div className="shared-secondary-card__identity"><span className="shared-secondary-card__icon"><AppIcon name={visual.icon} /></span><span><small>{visual.label} · {secondaryStatus(card.status)}</small><strong>{card.name}</strong></span></div><b>{card.vp} VP</b></div>
+            <div className="shared-secondary-card__top"><div className="shared-secondary-card__identity"><span className="shared-secondary-card__icon"><AppIcon name={visual.icon} /></span><span><small>{tr(visual.label)} · {tr(secondaryStatus(card.status))}</small><strong>{card.name}</strong></span></div><b>{card.vp} {tr(" VP")}</b></div>
             <SecondaryScope session={session} playerId={ownerId} cardId={card.cardId} />
-            <p>{scope ? FFA_SCORING_BRIEF[card.cardId as OfficialSecondaryId] : card.objective}</p>
-            {!scope && <div className="shared-secondary-card__progress"><span>Progress</span><strong>{card.progress}</strong></div>}
+            <p>{tr(scope ? FFA_SCORING_BRIEF[card.cardId as OfficialSecondaryId] : card.objective)}</p>
+            {!scope && <div className="shared-secondary-card__progress"><span>{tr("Progress")}</span><strong>{tr(card.progress)}</strong></div>}
           </article>
         })}</div>}
     </section>}
@@ -126,9 +127,9 @@ export function SharedPlayerPerspective({
     />}
 
     <div className="shared-perspective__actions">
-      <button onClick={onOpenArmy}>Army</button>
-      {showCards && <button onClick={onOpenCards}>Secondaries</button>}
-      {onOpenObjectives && <button onClick={onOpenObjectives}>Objectives</button>}
+      <button onClick={onOpenArmy}>{tr("Army")}</button>
+      {showCards && <button onClick={onOpenCards}>{tr("Secondaries")}</button>}
+      {onOpenObjectives && <button onClick={onOpenObjectives}>{tr("Objectives")}</button>}
     </div>
   </section>
 }

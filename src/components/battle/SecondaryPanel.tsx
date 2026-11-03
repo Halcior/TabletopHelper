@@ -1,3 +1,4 @@
+import { t as tr } from '../../features/i18n/locale'
 import { useState } from 'react'
 import { AppIcon } from '../AppIcon'
 import type { StartMissionActionInput } from '../../domain/battle/missionActions'
@@ -95,13 +96,13 @@ export function SecondaryPanel({
     <section className="panel secondary-panel">
       <SecondaryDrawReveal session={session} playerId={playerId} onMulligan={onMulligan} />
       <div className="section-heading secondary-heading">
-        <div><span className="eyebrow">Current objectives</span><h2>Secondary Missions</h2></div>
-        <div className="secondary-score"><strong>{getRoundSecondaryVp(session, playerId)} / {getSecondaryRoundCap(session)}</strong><span>round</span><small>{getGameSecondaryVp(session, playerId)} / 45 game</small></div>
+        <div><span className="eyebrow">{tr("Current objectives")}</span><h2>{tr("Secondary Missions")}</h2></div>
+        <div className="secondary-score"><strong>{getRoundSecondaryVp(session, playerId)} / {getSecondaryRoundCap(session)}</strong><span>{tr("round")}</span><small>{getGameSecondaryVp(session, playerId)} {tr(" / 45 game")}</small></div>
       </div>
-      {recentScore?.round === session.state.round && <div className="secondary-feedback" role="status">✓ {recentScore.cardName} completed · +{recentScore.pointsAwarded} VP</div>}
+      {recentScore?.round === session.state.round && <div className="secondary-feedback" role="status">✓ {recentScore.cardName} {tr(" completed · +")}{recentScore.pointsAwarded} {tr(" VP")}</div>}
       {pendingChoice && <div className="secondary-decision" role="alert">
-        <div><span className="eyebrow">Decision required</span><strong>This kill can complete multiple Secondaries</strong><p>Destroyed: {pendingChoice.destroyedUnitName}. Choose one card.</p></div>
-        <div>{pendingChoice.options.map((option) => <button className="button--gold" key={option.cardId} onClick={() => onResolveEliminationChoice(playerId, option.cardId)}>{option.name}<span>{option.vp} VP</span></button>)}</div>
+        <div><span className="eyebrow">{tr("Decision required")}</span><strong>{tr("This kill can complete multiple Secondaries")}</strong><p>{tr("Destroyed: ")}{pendingChoice.destroyedUnitName}{tr(". Choose one card.")}</p></div>
+        <div>{pendingChoice.options.map((option) => <button className="button--gold" key={option.cardId} onClick={() => onResolveEliminationChoice(playerId, option.cardId)}>{option.name}<span>{option.vp} {tr(" VP")}</span></button>)}</div>
       </div>}
       <div className="secondary-card-grid">
         {cards.map((card) => {
@@ -110,34 +111,34 @@ export function SecondaryPanel({
             <div className="secondary-card__heading">
               <div className="secondary-card__identity">
                 <span className="secondary-card__icon"><AppIcon name={visual.icon} /></span>
-                <div><span>{visual.label} · {statusLabel(card.status)}</span><h3>{card.name}</h3></div>
+                <div><span>{tr(visual.label)} · {tr(statusLabel(card.status))}</span><h3>{card.name}</h3></div>
               </div>
-              <div className="secondary-card__vp"><strong>{card.vp}</strong><span>VP</span></div>
+              <div className="secondary-card__vp"><strong>{card.vp}</strong><span>{tr("VP")}</span></div>
             </div>
-            <p className="secondary-card__objective">{card.objective}</p>
-            <p className="secondary-card__progress"><i aria-hidden="true" />{card.progress}</p>
+            <p className="secondary-card__objective">{tr(card.objective)}</p>
+            <p className="secondary-card__progress"><i aria-hidden="true" />{tr(card.progress)}</p>
             {card.action && <button
               className={card.status === 'DECISION_REQUIRED' ? 'button--danger' : ''}
               disabled={card.action === 'CHECK_CONDITION' && session.state.phase !== 'END_TURN'}
               onClick={() => runAction(card)}
             >{card.action === 'CHECK_CONDITION' && session.state.phase !== 'END_TURN'
-                ? 'Check at End Turn'
+                ? tr('Check at End Turn')
                 : card.action === 'OPEN_RIVAL_ARMY' && ['ZNISZCZ_KOLOSA', 'ELIMINACJA_DOWODCY'].includes(card.cardId)
-                  ? 'Show Rival targets'
+                  ? tr('Show Rival targets')
                   : ACTION_LABELS[card.action]}</button>}
           </article>
         })}
       </div>
-      {cards.length === 0 && <p className="context-note">No active Secondary cards. Cards refill automatically at the start of your next Command phase.</p>}
+      {cards.length === 0 && <p className="context-note">{tr("No active Secondary cards. Cards refill automatically at the start of your next Command phase.")}</p>}
 
       {mulliganAvailable && <div className="secondary-mulligan">
         {!mulliganOpen
-          ? <><span><strong>Free mulligan available</strong><small>Once during this turn.</small></span><button onClick={() => setMulliganOpen(true)}>Mulligan</button></>
-          : <><span><strong>Select a card to replace</strong><small>The replacement is drawn immediately.</small></span><div>{cards.map((card) => <button key={card.cardId} onClick={() => { onMulligan(playerId, card.cardId); setMulliganOpen(false) }}>{card.name}</button>)}</div></>}
+          ? <><span><strong>{tr("Free mulligan available")}</strong><small>{tr("Once during this turn.")}</small></span><button onClick={() => setMulliganOpen(true)}>{tr("Mulligan")}</button></>
+          : <><span><strong>{tr("Select a card to replace")}</strong><small>{tr("The replacement is drawn immediately.")}</small></span><div>{cards.map((card) => <button key={card.cardId} onClick={() => { onMulligan(playerId, card.cardId); setMulliganOpen(false) }}>{card.name}</button>)}</div></>}
       </div>}
 
       {quickObjectivesFor && <div className="secondary-context-panel">
-        <div className="context-panel-heading"><strong>Quick objective control</strong><button onClick={() => setQuickObjectivesFor(null)}>Close</button></div>
+        <div className="context-panel-heading"><strong>{tr("Quick objective control")}</strong><button onClick={() => setQuickObjectivesFor(null)}>{tr("Close")}</button></div>
         <QuickObjectiveControls session={session} dispatch={dispatch} />
       </div>}
 
@@ -149,17 +150,17 @@ export function SecondaryPanel({
       />}
 
       {targetFlowOpen && priorityCard && !chosenTarget && <div className="secondary-context-panel priority-target-flow">
-        <div className="context-panel-heading"><strong>Priority Target</strong><button onClick={() => setTargetFlowOpen(false)}>Close</button></div>
+        <div className="context-panel-heading"><strong>{tr("Priority Target")}</strong><button onClick={() => setTargetFlowOpen(false)}>{tr("Close")}</button></div>
         {selectedCandidates.length !== 2 ? <>
-          <p>Select two Rival units worth at least 10% of their starting army.</p>
+          <p>{tr("Select two Rival units worth at least 10% of their starting army.")}</p>
           <div className="priority-target-list">{candidates.map((candidate) => <label key={candidate.unitId}>
             <input type="checkbox" checked={candidateIds.includes(candidate.unitId)} onChange={() => toggleCandidate(candidate.unitId)} />
-            <span><strong>{candidate.name}</strong><small>{candidate.points} pts</small></span>
+            <span><strong>{candidate.name}</strong><small>{candidate.points} {tr(" pts")}</small></span>
           </label>)}</div>
-          <button className="button--gold button--wide" disabled={candidateIds.length !== 2} onClick={() => onSelectPriorityCandidates(playerId, candidateIds)}>Confirm two targets</button>
+          <button className="button--gold button--wide" disabled={candidateIds.length !== 2} onClick={() => onSelectPriorityCandidates(playerId, candidateIds)}>{tr("Confirm two targets")}</button>
         </> : <>
-          <p>The current Rival chooses one target.</p>
-          <div className="priority-rival-choice">{candidates.filter((candidate) => selectedCandidates.includes(candidate.unitId)).map((candidate) => <button key={candidate.unitId} onClick={() => { onChoosePriorityTarget(playerId, candidate.unitId); setTargetFlowOpen(false) }}>{candidate.name}<span>{candidate.points} pts</span></button>)}</div>
+          <p>{tr("The current Rival chooses one target.")}</p>
+          <div className="priority-rival-choice">{candidates.filter((candidate) => selectedCandidates.includes(candidate.unitId)).map((candidate) => <button key={candidate.unitId} onClick={() => { onChoosePriorityTarget(playerId, candidate.unitId); setTargetFlowOpen(false) }}>{candidate.name}<span>{candidate.points} {tr(" pts")}</span></button>)}</div>
         </>}
       </div>}
     </section>
@@ -169,18 +170,18 @@ export function SecondaryPanel({
 export function SecondaryDetailPanel({ session, playerId = session.state.activePlayerId }: { session: BattleSession; playerId?: string }) {
   const state = getSecondaryState(session)[playerId]
   const player = session.state.players[playerId]
-  if (!state || !player) return <section className="panel secondary-detail-panel"><p className="context-note">Secondary data is unavailable for this player.</p></section>
+  if (!state || !player) return <section className="panel secondary-detail-panel"><p className="context-note">{tr("Secondary data is unavailable for this player.")}</p></section>
   return <section className="panel secondary-detail-panel">
-    <div className="section-heading"><div><span className="eyebrow">Deck & history</span><h2>{player.name} Secondaries</h2></div><div className="secondary-score"><strong>{getGameSecondaryVp(session, playerId)} / 45</strong><span>game VP</span></div></div>
+    <div className="section-heading"><div><span className="eyebrow">{tr("Deck & history")}</span><h2>{player.name} {tr(" Secondaries")}</h2></div><div className="secondary-score"><strong>{getGameSecondaryVp(session, playerId)} / 45</strong><span>{tr("game VP")}</span></div></div>
     <div className="secondary-deck-counts">
-      <div><strong>{state.active.length}</strong><span>Active</span></div>
-      <div><strong>{state.deck.length}</strong><span>Deck</span></div>
-      <div><strong>{state.completed.length}</strong><span>Completed</span></div>
-      <div><strong>{state.discarded.length}</strong><span>Discarded</span></div>
+      <div><strong>{state.active.length}</strong><span>{tr("Active")}</span></div>
+      <div><strong>{state.deck.length}</strong><span>{tr("Deck")}</span></div>
+      <div><strong>{state.completed.length}</strong><span>{tr("Completed")}</span></div>
+      <div><strong>{state.discarded.length}</strong><span>{tr("Discarded")}</span></div>
     </div>
-    <h3>Scoring history</h3>
+    <h3>{tr("Scoring history")}</h3>
     {state.scoreHistory.length === 0
-      ? <p className="context-note">No Secondary VP scored yet.</p>
-      : <ul className="secondary-history">{state.scoreHistory.map((entry, index) => <li key={`${entry.round}-${entry.cardId}-${index}`}><span>Round {entry.round} · {entry.cardName}</span><strong>+{entry.pointsAwarded} VP</strong></li>)}</ul>}
+      ? <p className="context-note">{tr("No Secondary VP scored yet.")}</p>
+      : <ul className="secondary-history">{state.scoreHistory.map((entry, index) => <li key={`${entry.round}-${entry.cardId}-${index}`}><span>{tr("Round ")}{entry.round} · {entry.cardName}</span><strong>+{entry.pointsAwarded} {tr(" VP")}</strong></li>)}</ul>}
   </section>
 }

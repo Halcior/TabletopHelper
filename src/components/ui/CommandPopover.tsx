@@ -1,3 +1,4 @@
+import { t as tr } from '../../features/i18n/locale'
 import { useEffect, useRef, type ReactNode, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
 
@@ -45,8 +46,10 @@ export function CommandPopover({ children, label, onClose, trigger, role = 'dial
 }) {
   const surface = useRef<HTMLDivElement>(null)
   useDismissableLayer(surface, onClose, trigger)
-  return createPortal(<div ref={surface} role={role} aria-label={label} tabIndex={-1} className={`command-popover ${className}`} onKeyDown={(event) => {
+  return createPortal(<div ref={surface} role={role} aria-label={tr(label)} tabIndex={-1} className={`command-popover ${className}`} onKeyDown={(event) => {
     if (role !== 'menu' || !['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return
+    // Native inputs keep their own arrow/Home/End behavior inside a menu.
+    if (event.target instanceof Element && event.target.closest('select, input, textarea, [contenteditable]')) return
     event.preventDefault()
     const items = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('[role="menuitem"]:not(:disabled)'))
     const index = items.indexOf(document.activeElement as HTMLElement)

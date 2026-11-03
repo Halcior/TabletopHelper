@@ -1,3 +1,4 @@
+import { t as tr } from '../i18n/locale'
 import { useState } from 'react'
 import { errorText, social } from './api'
 import { syncArmies } from '../armyLibrary/sync'
@@ -20,13 +21,13 @@ export function VisibilityControl({
   return (
     <div className="army-visibility">
       <span>
-        Visibility:{' '}
+        {tr(" Visibility:")}{' '}
         <strong>
           {visibility
             ? value === 'friends'
-              ? 'Friends'
-              : 'Private'
-            : 'Checking…'}
+              ? tr('Friends')
+              : tr('Private')
+            : tr('Checking…')}
         </strong>
       </span>
       <button
@@ -48,12 +49,12 @@ export function VisibilityControl({
         }}
       >
         {busy
-          ? 'Saving…'
+          ? tr('Saving…')
           : value === 'friends'
-            ? 'Make Private'
-            : 'Share with Friends'}
+            ? tr('Make Private')
+            : tr('Share with Friends')}
       </button>
-      {error && <p role="alert">{error}</p>}
+      {error && <p role="alert">{tr(error)}</p>}
     </div>
   )
 }

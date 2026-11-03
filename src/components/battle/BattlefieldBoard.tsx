@@ -1,3 +1,4 @@
+import { t as tr } from '../../features/i18n/locale'
 import { BattlefieldMapSvg, DEFAULT_TERRAIN_LAYERS, TerrainLayerControls, TerrainLegend } from './BattlefieldMapSvg'
 import { PlayerFactionMarks } from '../../features/factionVisuals/components'
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react'
@@ -30,6 +31,7 @@ export function BattlefieldBoard({
   replayRequest = 0,
   onEditingChange,
   active = true,
+  readOnly = false,
 }: {
   session: BattleSession
   dispatch: (event: BattleEventInput) => void
@@ -38,11 +40,12 @@ export function BattlefieldBoard({
   replayRequest?: number
   onEditingChange?: (editing: boolean) => void
   active?: boolean
+  readOnly?: boolean
 }) {
   const membership = useSharedSessionStore((state) => state.membership)
   const shared = membership?.battleId === session.setup.gameId
   const canEdit =
-    session.state.status === 'active' && (!shared || membership?.isHost)
+    !readOnly && session.state.status === 'active' && (!shared || membership?.isHost)
   const [rotated, setRotated] = useState(false)
   const [showFootprints, setShowFootprints] = useState(true)
   const [layers, setLayers] = useState(DEFAULT_TERRAIN_LAYERS)
@@ -50,7 +53,7 @@ export function BattlefieldBoard({
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [draft, setDraft] = useState<BattlefieldGeometry | null>(null)
   const [error, setError] = useState('')
-  const [replay, setReplay] = useState(session.state.status !== 'active')
+  const [replay, setReplay] = useState(!readOnly && session.state.status !== 'active')
   const [replayIndex, setReplayIndex] = useState<number | null>(null)
   const canvas = useRef<HTMLDivElement>(null)
   const dragging = useRef<string | null>(null)
@@ -173,7 +176,7 @@ export function BattlefieldBoard({
     )
   }
   function changeController(playerId: string | null) {
-    if (!selectedId || replay || draft || session.state.status !== 'active')
+    if (readOnly || !selectedId || replay || draft || session.state.status !== 'active')
       return
     dispatch({
       type: 'OBJECTIVE_CONTROL_CHANGED',
@@ -183,70 +186,68 @@ export function BattlefieldBoard({
   }
 
   return (
-    <section className="battlefield-board" aria-label="Interactive battlefield">
+    <section className="battlefield-board" aria-label={readOnly ? tr('Battlefield · read only') : tr('Interactive battlefield')}>
       <header className="battlefield-heading">
         <div>
           <span className="eyebrow">
-            {replay
-              ? 'Battle Replay · read only'
+            {readOnly ? tr('Battlefield · read only') : replay
+              ? tr('Battle Replay · read only')
               : presentation.official
-                ? 'Official source geometry'
-                : 'Editable table schematic'}
+                ? tr('Official source geometry')
+                : tr('Editable table schematic')}
           </span>
-          <h3>{presentation.title}</h3>
+          <h3>{tr(presentation.title)}</h3>
           <p>
             {Number(view.widthCm.toFixed(2))} ×{' '}
-            {Number(view.heightCm.toFixed(2))} cm
-            {presentation.official ? ' · 60″ × 44″' : ''}
+            {Number(view.heightCm.toFixed(2))} {tr(" cm ")}{presentation.official ? ' · 60″ × 44″' : ''}
           </p>
         </div>
-        <div className="battlefield-tools">
+        {!readOnly && <div className="battlefield-tools">
           <button
             aria-pressed={rotated}
             onClick={() => setRotated((current) => !current)}
           >
-            Rotate 180°
-          </button>
+            {tr(" Rotate 180° ")}</button>
           {!isOfficialBoard(session.setup) && <button type="button"
             aria-pressed={showFootprints}
             onClick={() => setShowFootprints((current) => !current)}
-            title="Visual terrain only — does not calculate official area or scoring"
+            title={tr("Visual terrain only — does not calculate official area or scoring")}
           >
-            {showFootprints ? 'Hide footprints' : 'Show footprints'}
+            {showFootprints ? tr('Hide footprints') : tr('Show footprints')}
           </button>}
           <button
             aria-pressed={replay}
             disabled={Boolean(draft)}
             onClick={() => {
+              if (readOnly) return
               setSelectedId(null)
               setReplay((current) => !current)
               setReplayIndex(null)
             }}
           >
-            {replay ? 'Return to live' : 'Replay'}
+            {replay ? tr('Return to live') : tr('Replay')}
           </button>
           {!isOfficialBoard(session.setup) && (
             <button
               disabled={!canEdit || replay || Boolean(draft)}
               onClick={beginEdit}
             >
-              Edit Layout
-            </button>
+              {tr(" Edit Layout ")}</button>
           )}
-        </div>
+        </div>}
       </header>
-      {presentation.official && (
-        <InfoDisclosure label="Source & Attacker / Defender" className="battlefield-source-disclosure"><div className="battlefield-source">
+      {!readOnly && presentation.official && (
+        <InfoDisclosure label={tr("Source & Attacker / Defender")} className="battlefield-source-disclosure"><div className="battlefield-source">
           <a
             href={`${presentation.sourceUrl}#page=${presentation.sourcePage}`}
             target="_blank"
             rel="noreferrer"
           >
-            Event Companion v{presentation.sourceVersion} · page{' '}
+            {tr(" Event Companion v")}{presentation.sourceVersion} {tr(" · page")}{' '}
             {presentation.sourcePage}
           </a>
           <label>
-            <span>Attacker HOME assignment</span>
+            <span>{tr("Attacker HOME assignment")}</span>
             <select
               disabled={!canEdit || replay}
               value={geometry.attackerHomeZone}
@@ -262,29 +263,25 @@ export function BattlefieldBoard({
                 })
               }
             >
-              <option value="A">A-HOME · Attacker / B-HOME · Defender</option>
-              <option value="B">B-HOME · Attacker / A-HOME · Defender</option>
+              <option value="A">{tr("A-HOME · Attacker / B-HOME · Defender")}</option>
+              <option value="B">{tr("B-HOME · Attacker / A-HOME · Defender")}</option>
             </select>
           </label>
           <small>
-            Match this assignment to the Attacker/Defender roll. Rotation
-            changes only your view.
-          </small>
+            {tr(" Match this assignment to the Attacker/Defender roll. Rotation changes only your view. ")}</small>
         </div></InfoDisclosure>
       )}
       {!isOfficialBoard(session.setup) && (
-        <InfoDisclosure label="Schematic deployment"><p className="battlefield-schematic-note">
-          Deployment shapes are schematic orientation aids. Use your agreed
-          physical deployment and Territory boundaries.
-        </p></InfoDisclosure>
+        <InfoDisclosure label={tr("Schematic deployment")}><p className="battlefield-schematic-note">
+          {tr(" Deployment shapes are schematic orientation aids. Use your agreed physical deployment and Territory boundaries. ")}</p></InfoDisclosure>
       )}
       {presentation.terrain && <>
         <TerrainLayerControls layers={layers} onChange={setLayers} />
         <TerrainLegend />
-        <p className="battlefield-footprint-note">Event Companion v{presentation.sourceVersion} · {session.setup.battlefieldSourceId} · page {presentation.sourcePage}. Diagram-derived geometry; nominal sizes exclude perimeter protrusions.</p>
+        <p className="battlefield-footprint-note">{tr("Event Companion v")}{presentation.sourceVersion} · {session.setup.battlefieldSourceId} {tr(" · page ")}{presentation.sourcePage}{tr(". Diagram-derived geometry; nominal sizes exclude perimeter protrusions.")}</p>
       </>}
-      {isOfficialBoard(session.setup) && !presentation.official && <p role="alert" className="battlefield-footprint-note">The source pinned to this session is unavailable. No replacement map is generated. Consult your saved table plan.</p>}
-      {presentation.official && !presentation.terrain && <p className="battlefield-footprint-note">Historical catalogue v1.0 retained. Terrain was not recorded for this battle. Open the layout gallery to inspect the current source without changing this session.</p>}
+      {isOfficialBoard(session.setup) && !presentation.official && <p role="alert" className="battlefield-footprint-note">{tr("The source pinned to this session is unavailable. No replacement map is generated. Consult your saved table plan.")}</p>}
+      {presentation.official && !presentation.terrain && <p className="battlefield-footprint-note">{tr("Historical catalogue v1.0 retained. Terrain was not recorded for this battle. Open the layout gallery to inspect the current source without changing this session.")}</p>}
       <div className="battlefield-player-legend">
         {session.setup.players.filter((player) => !session.setup.doubles || session.state.turnOrder.includes(player.id)).map((player) => (
           <span
@@ -293,25 +290,25 @@ export function BattlefieldBoard({
           >
             <i />
             <PlayerFactionMarks session={session} playerId={player.id} /> {player.deploymentZone} · {doublesForceForPlayer(session.setup, player.id)?.name ?? player.name}
-            {player.id === activeId ? ' · active' : ''}
+            {player.id === activeId ? tr(' · active') : ''}
           </span>
         ))}
       </div>
-      {replay && (
+      {!readOnly && replay && (
         <section
           className="panel battlefield-replay"
-          aria-label="Battle Replay controls"
+          aria-label={tr("Battle Replay controls")}
         >
           <div className="battlefield-replay__heading">
             <strong>
-              Round {frame?.round ?? 1} · {frame?.phase.replace('_', ' ')}
+              {tr(" Round ")}{frame?.round ?? 1} · {frame?.phase.replace('_', ' ')}
             </strong>
             <span>
-              Event {frame?.index ?? 0} / {frames.length - 1}
+              {tr(" Event ")}{frame?.index ?? 0} / {frames.length - 1}
             </span>
           </div>
           <label>
-            <span>Replay event</span>
+            <span>{tr("Replay event")}</span>
             <input
               type="range"
               min={0}
@@ -327,7 +324,7 @@ export function BattlefieldBoard({
           <div
             className="battlefield-replay__rounds"
             role="group"
-            aria-label="Jump to round"
+            aria-label={tr("Jump to round")}
           >
             {Array.from(
               { length: session.setup.maxRounds },
@@ -340,6 +337,7 @@ export function BattlefieldBoard({
                   disabled={steps.length === 0}
                   aria-pressed={frame?.round === round}
                   onClick={() => {
+              if (readOnly) return
                     setReplayIndex(steps.at(-1)!.index)
                     setSelectedId(null)
                   }}
@@ -349,12 +347,12 @@ export function BattlefieldBoard({
               )
             })}
           </div>
-          <p>{frame?.description}</p>
+          <p>{tr(frame?.description)}</p>
           <div className="battlefield-replay__scores">
             {session.setup.players.filter((player) => !session.setup.doubles || session.state.turnOrder.includes(player.id)).map((player) => (
               <span key={player.id}>
                 {doublesForceForPlayer(session.setup, player.id)?.name ?? player.name}{' '}
-                <strong>{frame?.scores[player.id] ?? 0} VP</strong>
+                <strong>{frame?.scores[player.id] ?? 0} {tr(" VP")}</strong>
               </span>
             ))}
           </div>
@@ -363,18 +361,14 @@ export function BattlefieldBoard({
       {draft && (
         <section
           className="panel battlefield-editor"
-          aria-label="FFA Layout Editor"
+          aria-label={tr("FFA Layout Editor")}
         >
-          <h4>Layout Editor</h4>
+          <h4>{tr("Layout Editor")}</h4>
           <p>
-            Drag objectives, or use arrow keys on a focused marker. Choose an objective
-            to edit its approximate terrain footprint. Host-saved geometry reaches other phones;
-            the footprint visibility toggle is local to this device.
-          </p>
+            {tr(" Drag objectives, or use arrow keys on a focused marker. Choose an objective to edit its approximate terrain footprint. Host-saved geometry reaches other phones; the footprint visibility toggle is local to this device. ")}</p>
           <div className="battlefield-editor__dimensions">
             <label>
-              Field width (cm)
-              <input
+              {tr(" Field width (cm) ")}<input
                 type="number"
                 min={60}
                 max={400}
@@ -389,8 +383,7 @@ export function BattlefieldBoard({
               />
             </label>
             <label>
-              Field height (cm)
-              <input
+              {tr(" Field height (cm) ")}<input
                 type="number"
                 min={60}
                 max={400}
@@ -415,8 +408,7 @@ export function BattlefieldBoard({
                 )
               }
             >
-              160 × 120 cm
-            </button>
+              {tr(" 160 × 120 cm ")}</button>
             <button
               onClick={() =>
                 setDraft((current) =>
@@ -426,34 +418,33 @@ export function BattlefieldBoard({
                 )
               }
             >
-              180 × 120 cm
-            </button>
+              {tr(" 180 × 120 cm ")}</button>
           </div>
-          <div className="battlefield-footprint-editor" aria-label="Objective terrain footprint editor">
-            <h5>Terrain footprint (visual only)</h5>
-            <p>Approximate physical terrain area surrounding an objective. These are not official GW measurements and do not calculate control, OC, LOS or VP.</p>
-            <label><span>Objective to configure</span>
-              <select aria-label="Footprint objective" value={editingFootprintId} disabled={draft.locked} onChange={(event) => setEditingFootprintId(event.target.value)}>
+          <div className="battlefield-footprint-editor" aria-label={tr("Objective terrain footprint editor")}>
+            <h5>{tr("Terrain footprint (visual only)")}</h5>
+            <p>{tr("Approximate physical terrain area surrounding an objective. These are not official GW measurements and do not calculate control, OC, LOS or VP.")}</p>
+            <label><span>{tr("Objective to configure")}</span>
+              <select aria-label={tr("Footprint objective")} value={editingFootprintId} disabled={draft.locked} onChange={(event) => setEditingFootprintId(event.target.value)}>
                 {session.setup.objectives.map((objective) => <option key={objective.id} value={objective.id}>{objective.name}</option>)}
               </select>
             </label>
-            <label><span>Footprint shape</span>
-              <select aria-label="Footprint shape" value={objectiveFootprint(draft, editingFootprintId).kind} disabled={draft.locked} onChange={(event) => updateFootprint({ kind: event.target.value as ObjectiveFootprint['kind'] })}>
-                <option value="chamfered">Ruins / clipped corners</option>
-                <option value="rectangle">Rectangular terrain</option>
+            <label><span>{tr("Footprint shape")}</span>
+              <select aria-label={tr("Footprint shape")} value={objectiveFootprint(draft, editingFootprintId).kind} disabled={draft.locked} onChange={(event) => updateFootprint({ kind: event.target.value as ObjectiveFootprint['kind'] })}>
+                <option value="chamfered">{tr("Ruins / clipped corners")}</option>
+                <option value="rectangle">{tr("Rectangular terrain")}</option>
               </select>
             </label>
             <div className="battlefield-footprint-editor__dimensions">
-              <label><span>Footprint width (cm)</span><input aria-label="Footprint width (cm)" type="number" min={6} max={60} step={1} disabled={draft.locked}
+              <label><span>{tr("Footprint width (cm)")}</span><input aria-label={tr("Footprint width (cm)")} type="number" min={6} max={60} step={1} disabled={draft.locked}
                 value={objectiveFootprint(draft, editingFootprintId).widthCm} onChange={(event) => updateFootprint({ widthCm: Number(event.target.value) })}/></label>
-              <label><span>Footprint height (cm)</span><input aria-label="Footprint height (cm)" type="number" min={6} max={60} step={1} disabled={draft.locked}
+              <label><span>{tr("Footprint height (cm)")}</span><input aria-label={tr("Footprint height (cm)")} type="number" min={6} max={60} step={1} disabled={draft.locked}
                 value={objectiveFootprint(draft, editingFootprintId).heightCm} onChange={(event) => updateFootprint({ heightCm: Number(event.target.value) })}/></label>
-              <label><span>Rotation (degrees)</span><input aria-label="Footprint rotation" type="number" min={0} max={359} step={5} disabled={draft.locked}
+              <label><span>{tr("Rotation (degrees)")}</span><input aria-label={tr("Footprint rotation")} type="number" min={0} max={359} step={5} disabled={draft.locked}
                 value={objectiveFootprint(draft, editingFootprintId).rotation} onChange={(event) => updateFootprint({ rotation: Number(event.target.value) })}/></label>
             </div>
-            <div className="battlefield-editor__presets" role="group" aria-label="Footprint size presets">
+            <div className="battlefield-editor__presets" role="group" aria-label={tr("Footprint size presets")}>
               {([[20, 12], [30, 20], [40, 24]] as const).map(([widthCm, heightCm]) =>
-                <button type="button" key={widthCm} disabled={draft.locked} onClick={() => updateFootprint({ widthCm, heightCm })}>{widthCm} × {heightCm} cm</button>)}
+                <button type="button" key={widthCm} disabled={draft.locked} onClick={() => updateFootprint({ widthCm, heightCm })}>{widthCm} × {heightCm} {tr(" cm")}</button>)}
             </div>
           </div>
           <label className="battlefield-editor__lock">
@@ -468,16 +459,16 @@ export function BattlefieldBoard({
                 )
               }
             />
-            Lock positions
-          </label>
+            {tr(" Lock positions ")}</label>
           {error && (
             <p className="alert alert--danger" role="alert">
-              {error}
+              {tr(error)}
             </p>
           )}
           <div className="battlefield-editor__actions">
             <button
               onClick={() => {
+              if (readOnly) return
                 setDraft({
                   ...defaultBattlefieldGeometry(session.setup),
                   locked: false,
@@ -485,12 +476,10 @@ export function BattlefieldBoard({
                 setError('')
               }}
             >
-              Reset default layout
-            </button>
-            <button onClick={() => setDraft(null)}>Cancel layout edits</button>
+              {tr(" Reset default layout ")}</button>
+            <button onClick={() => setDraft(null)}>{tr("Cancel layout edits")}</button>
             <button className="button--gold" onClick={saveLayout}>
-              Save Layout
-            </button>
+              {tr(" Save Layout ")}</button>
           </div>
         </section>
       )}
@@ -537,9 +526,10 @@ export function BattlefieldBoard({
                 data-board-x={savedPoint.x}
                 data-board-y={savedPoint.y}
                 style={{ left: `${point.x * 100}%`, top: `${point.y * 100}%` }}
-                aria-label={`Objective ${id} · ${controllerName(id)}${draft ? ' · drag to move' : ''}`}
+                aria-label={tr(`Objective ${id} · ${controllerName(id)}${draft ? ' · drag to move' : ''}`, "Objective {0} · {1}{2}")}
                 aria-pressed={selectedId === id}
                 onClick={() => {
+              if (readOnly) return
                   if (!draft) setSelectedId(id)
                   else if (!draft.locked) setEditingFootprintId(id)
                 }}
@@ -556,7 +546,7 @@ export function BattlefieldBoard({
                   if (dragging.current) {
                     dragging.current = null
                     event.currentTarget.releasePointerCapture(event.pointerId)
-                  } else if (!draft && event.pointerType === 'touch') {
+                  } else if (!readOnly && !draft && event.pointerType === 'touch') {
                     setSelectedId(id)
                   }
                 }}
@@ -619,27 +609,24 @@ export function BattlefieldBoard({
             const point = labelPoints.find((point) => point.id === label.id)!
             return <line key={label.id} x1={point.x * canvasSize.width} y1={point.y * canvasSize.height} x2={label.x + label.width / 2} y2={label.y + label.height / 2} />
           })}</svg>
-          {labelLayout.labels.map((label) => <span key={label.id} className={`objective-label objective-label--player-${playerIndex(controllers[label.id])}`} title={`${label.id} · ${controllerName(label.id)}`} style={{ left: label.x, top: label.y, width: label.width, height: label.height }}><strong>{label.id.replaceAll('-', ' ')}</strong>{controllers[label.id] && <small>{controllerName(label.id)}</small>}</span>)}
+          {labelLayout.labels.map((label) => <span key={label.id} className={`objective-label objective-label--player-${playerIndex(controllers[label.id])}`} title={tr(`${label.id} · ${controllerName(label.id)}`, "{0} · {1}")} style={{ left: label.x, top: label.y, width: label.width, height: label.height }}><strong>{label.id.replaceAll('-', ' ')}</strong>{controllers[label.id] && <small>{controllerName(label.id)}</small>}</span>)}
         </div>
       </div>
-      {legendIds.length > 0 && <div className="battlefield-label-overflow" aria-label="Objectives with labels below the board">{legendIds.map((id) => <button key={id} disabled={Boolean(draft)} onClick={() => setSelectedId(id)}>{id}{controllers[id] ? ` · ${controllerName(id)}` : ''}</button>)}</div>}
+      {legendIds.length > 0 && <div className="battlefield-label-overflow" aria-label={tr("Objectives with labels below the board")}>{legendIds.map((id) => <button key={id} disabled={readOnly || Boolean(draft)} onClick={() => { if (!readOnly) setSelectedId(id) }}>{id}{controllers[id] ? tr(` · ${controllerName(id)}`, " · {0}") : ''}</button>)}</div>}
       {presentation.unplacedIds.length > 0 && (
         <section className="panel battlefield-unplaced">
-          <h4>Saved objectives without a source position</h4>
+          <h4>{tr("Saved objectives without a source position")}</h4>
           <p>
-            This official diagram has{' '}
-            {Object.values(geometry.positions).filter(Boolean).length} physical
-            objectives. The saved battle has {session.setup.objectives.length}{' '}
-            IDs. These retained IDs have no counterpart in this layout and are
-            shown here without invented coordinates.
-          </p>
+            {tr(" This official diagram has")}{' '}
+            {Object.values(geometry.positions).filter(Boolean).length} {tr(" physical objectives. The saved battle has ")}{session.setup.objectives.length}{' '}
+            {tr(" IDs. These retained IDs have no counterpart in this layout and are shown here without invented coordinates. ")}</p>
           <div>
             {presentation.unplacedIds.map((id) => (
               <button
                 key={id}
                 data-objective-id={id}
                 data-controller-id={controllers[id] ?? 'none'}
-                onClick={() => setSelectedId(id)}
+                onClick={() => { if (!readOnly) setSelectedId(id) }}
               >
                 {id} · {controllerName(id)}
               </button>
@@ -647,59 +634,54 @@ export function BattlefieldBoard({
           </div>
         </section>
       )}
-      {!isOfficialBoard(session.setup) && showFootprints && <p className="battlefield-footprint-note">Dashed terrain footprints are schematic visual guides. Objective marker centres and saved control remain independent of terrain areas. Confirm all physical distances and rules at the table.</p>}
-      <InfoDisclosure label="The physical table decides"><p className="battlefield-table-note">
-        The physical table decides LOS, distances, Territory and eligibility.
-        Marker positions do not determine OC or score VP.
-      </p></InfoDisclosure>
-      {highlights.length > 0 && (
+      {!isOfficialBoard(session.setup) && showFootprints && <p className="battlefield-footprint-note">{tr("Dashed terrain footprints are schematic visual guides. Objective marker centres and saved control remain independent of terrain areas. Confirm all physical distances and rules at the table.")}</p>}
+      <InfoDisclosure label={tr("The physical table decides")}><p className="battlefield-table-note">
+        {tr(" The physical table decides LOS, distances, Territory and eligibility. Marker positions do not determine OC or score VP. ")}</p></InfoDisclosure>
+      {!readOnly && highlights.length > 0 && (
         <details className="panel battlefield-round-highlights">
-          <summary>Round {highlightRound} · recorded highlights</summary>
+          <summary>{tr("Round ")}{highlightRound} {tr(" · recorded highlights")}</summary>
           <ul>
             {highlights.map((entry) => (
-              <li key={entry.id}>{entry.description}</li>
+              <li key={entry.id}>{tr(entry.description)}</li>
             ))}
           </ul>
         </details>
       )}
-      {!canEdit && shared && !replay && (
+      {!readOnly && !canEdit && shared && !replay && (
         <p className="context-note">
-          Only the room host can edit geometry. Every commander keeps the
-          existing objective-control permissions.
-        </p>
+          {tr(" Only the room host can edit geometry. Every commander keeps the existing objective-control permissions. ")}</p>
       )}
-      {selected && active && <CommandPopover label={`Objective controls for ${selected.id}`} onClose={() => setSelectedId(null)} className="objective-control-popover">
+      {!readOnly && selected && active && <CommandPopover label={tr(`Objective controls for ${selected.id}`, "Objective controls for {0}")} onClose={() => setSelectedId(null)} className="objective-control-popover">
           <section
             className="panel battlefield-objective-sheet"
-            aria-label={`Objective controls for ${selected.id}`}
+            aria-label={tr(`Objective controls for ${selected.id}`, "Objective controls for {0}")}
           >
             <div className="battlefield-objective-sheet__heading">
               <span className="objective-control-sigil" aria-hidden="true"><AppIcon name="target" /></span>
               <div>
                 <span className="eyebrow">
                   {replay
-                    ? 'Historical control · read only'
-                    : 'Objective control'}
+                    ? tr('Historical control · read only')
+                    : tr('Objective control')}
                 </span>
                 <h4>{selected.name}</h4>
                 <small>{controllerName(selected.id)}</small>
               </div>
               <button
-                aria-label="Close objective controls"
+                aria-label={tr("Close objective controls")}
                 onClick={() => setSelectedId(null)}
               >
                 ×
               </button>
             </div>
-            <div className="objective-control-meta"><RulesSourceBadge source={rulesForSession(session).source} /><span>{selected.type.toLowerCase().replaceAll('_', ' ')} objective · {replay ? 'Recorded control' : 'Live control'}</span></div>
+            <div className="objective-control-meta"><RulesSourceBadge source={rulesForSession(session).source} /><span>{selected.type.toLowerCase().replaceAll('_', ' ')} {tr(" objective · ")}{replay ? tr('Recorded control') : tr('Live control')}</span></div>
             <div className="battlefield-objective-sheet__choices">
               <button
                 disabled={replay || session.state.status !== 'active'}
                 aria-pressed={!controllers[selected.id]}
                 onClick={() => changeController(null)}
               >
-                None / Uncontrolled
-              </button>
+                {tr(" None / Uncontrolled ")}</button>
               {session.setup.players.filter((player) => !session.setup.doubles || session.state.turnOrder.includes(player.id)).map((player) => (
                 <button
                   disabled={replay || session.state.status !== 'active'}
@@ -716,12 +698,12 @@ export function BattlefieldBoard({
               <button
                 className="battlefield-open-oc"
                 onClick={() => {
+              if (readOnly) return
                   onOpenList(selected.id)
                   setSelectedId(null)
                 }}
               >
-                Open OC Mode
-              </button>
+                {tr(" Open OC Mode ")}</button>
             )}
           </section>
         </CommandPopover>}

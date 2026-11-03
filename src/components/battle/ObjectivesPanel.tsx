@@ -1,3 +1,4 @@
+import { t as tr } from '../../features/i18n/locale'
 import type { BattleEventInput, BattleSession } from '../../domain/battle/types'
 import { useEffect, useState } from 'react'
 import { BattlefieldBoard } from './BattlefieldBoard'
@@ -18,7 +19,7 @@ export function ObjectivesPanel(props: ObjectivesPanelProps) {
   const [focusObjectiveId, setFocusObjectiveId] = useState<string | null>(null)
   useEffect(() => { if (props.replayRequest) setMode('board') }, [props.replayRequest])
   return <div className="objectives-workspace">
-    <nav className="objectives-view-switch" aria-label="Objective view"><button aria-pressed={mode === 'board'} onClick={() => setMode('board')}>Board</button><button aria-pressed={mode === 'list'} onClick={() => setMode('list')}>List</button></nav>
+    <nav className="objectives-view-switch" aria-label={tr("Objective view")}><button aria-pressed={mode === 'board'} onClick={() => setMode('board')}>{tr("Board")}</button><button aria-pressed={mode === 'list'} onClick={() => setMode('list')}>{tr("List")}</button></nav>
     <div hidden={mode !== 'board'} className="objective-view"><BattlefieldBoard {...props} active={props.active !== false && mode === 'board'} onOpenList={(id) => { setFocusObjectiveId(id); setMode('list') }} /></div>
     {mode === 'list' && <ObjectivesList {...props} focusObjectiveId={focusObjectiveId} />}
   </div>
@@ -31,8 +32,8 @@ function ObjectivesList({ session, dispatch, liveObjectiveIds = [], focusObjecti
     .sort((left, right) => Number(left.type === 'home') - Number(right.type === 'home'))
   return (
     <div className="objectives-panel">
-      <div className="objective-page-heading"><div><span className="eyebrow">Battlefield</span><h2>Objective control</h2></div><p>Tap a player to change control. Use OC mode only when needed.</p></div>
-      <section className="objective-grid" aria-label="Objectives">
+      <div className="objective-page-heading"><div><span className="eyebrow">{tr("Battlefield")}</span><h2>{tr("Objective control")}</h2></div><p>{tr("Tap a player to change control. Use OC mode only when needed.")}</p></div>
+      <section className="objective-grid" aria-label={tr("Objectives")}>
       {objectives.map((objective) => {
         const controller = objective.controllerPlayerId
           ? doublesForceForPlayer(session.setup, objective.controllerPlayerId)?.name ?? session.state.players[objective.controllerPlayerId]?.name
@@ -43,7 +44,7 @@ function ObjectivesList({ session, dispatch, liveObjectiveIds = [], focusObjecti
               <div><span className="eyebrow">{objective.type}</span><h3>{objective.name}</h3></div>
               <strong>{controller}</strong>
             </div>
-            <div className="control-choices" role="group" aria-label={`Quick control for ${objective.name}`}>
+            <div className="control-choices" role="group" aria-label={tr(`Quick control for ${objective.name}`, "Quick control for {0}")}>
               <button
                 disabled={session.state.status !== 'active'}
                 className={objective.controllerPlayerId === null ? 'selected' : ''}
@@ -51,7 +52,7 @@ function ObjectivesList({ session, dispatch, liveObjectiveIds = [], focusObjecti
                 onClick={() => dispatch({
                   type: 'OBJECTIVE_CONTROL_CHANGED', payload: { objectiveId: objective.id, controllerPlayerId: null },
                 })}
-              >None</button>
+              >{tr("None")}</button>
               {players.map((player) => (
                 <button
                   disabled={session.state.status !== 'active'}
@@ -66,19 +67,19 @@ function ObjectivesList({ session, dispatch, liveObjectiveIds = [], focusObjecti
               ))}
             </div>
             <details className="oc-mode" open={focusObjectiveId === objective.id ? true : undefined}>
-              <summary>OC mode</summary>
+              <summary>{tr("OC mode")}</summary>
               {ocPlayers.map((player) => {
                 const oc = objective.playerOC[player.id] ?? 0
                 return (
                   <div className="oc-row" key={player.id}>
                     <span>{player.name}</span>
                     <div className="stepper">
-                      <button disabled={session.state.status !== 'active'} aria-label={`Reduce ${player.name} OC`} onClick={() => dispatch({
+                      <button disabled={session.state.status !== 'active'} aria-label={tr(`Reduce ${player.name} OC`, "Reduce {0} OC")} onClick={() => dispatch({
                         type: 'OBJECTIVE_OC_CHANGED',
                         payload: { objectiveId: objective.id, playerId: player.id, oc: Math.max(0, oc - 1) },
                       })}>−</button>
-                      <strong>{oc} OC</strong>
-                      <button disabled={session.state.status !== 'active'} aria-label={`Increase ${player.name} OC`} onClick={() => dispatch({
+                      <strong>{oc} {tr(" OC")}</strong>
+                      <button disabled={session.state.status !== 'active'} aria-label={tr(`Increase ${player.name} OC`, "Increase {0} OC")} onClick={() => dispatch({
                         type: 'OBJECTIVE_OC_CHANGED',
                         payload: { objectiveId: objective.id, playerId: player.id, oc: oc + 1 },
                       })}>+</button>

@@ -1,3 +1,5 @@
+import { t as tr } from '../../features/i18n/locale'
+import { LanguageSettings } from '../../features/i18n/LanguageSettings'
 import { useRef, useState } from 'react'
 import { CommandPopover } from '../ui/CommandPopover'
 import { CommandDialog } from '../ui/CommandDialog'
@@ -13,6 +15,7 @@ type BattleMenuProps = {
   endBlockedReason?: string
   canUndoAction?: boolean
   canRedoAction?: boolean
+  onOpenTableMode?: () => void
   onOpenLog: () => void
   onOpenReport?: () => void
   onExportReport: () => void
@@ -30,6 +33,7 @@ export function BattleMenu({
   endBlockedReason,
   canUndoAction = false,
   canRedoAction = false,
+  onOpenTableMode,
   onOpenLog,
   onOpenReport,
   onExportReport,
@@ -60,48 +64,50 @@ export function BattleMenu({
       <button
         type="button"
         className="battle-menu__trigger"
-        aria-label="Open battle menu"
+        aria-label={tr("Open battle menu")}
         aria-expanded={open}
         onClick={() => setOpen((current) => !current)}
       >•••</button>
-      {open && <CommandPopover label="Battle menu" role="menu" trigger={menuRef} onClose={() => setOpen(false)} className="battle-menu-command">
-        <strong>Battle</strong>
-        <button type="button" role="menuitem" onClick={() => { setOpen(false); onOpenLog() }}>View battle log</button>
-        {onOpenReport && <button type="button" role="menuitem" onClick={() => { setOpen(false); onOpenReport() }}>View Battle Report</button>}
-        <button type="button" role="menuitem" disabled={!canUndoAction} onClick={() => { setOpen(false); onUndo?.() }}>Undo last action</button>
-        <button type="button" role="menuitem" disabled={!canRedoAction} onClick={() => { setOpen(false); onRedo?.() }}>Redo action</button>
-        <button type="button" role="menuitem" onClick={() => { setOpen(false); onExportReport() }}>Export diagnostic report</button>
-        <button type="button" role="menuitem" disabled={!canManageBattle} onClick={() => { setOpen(false); setCorrectionOpen(true) }}>Correct battle state</button>
-        {!canManageBattle && <small className="battle-menu__hint">Only the shared-session host can record corrections.</small>}
-        <button type="button" role="menuitem" disabled={!canEndBattle || !canManageBattle} onClick={requestEndBattle}>End battle</button>
-        {!canManageBattle && <small className="battle-menu__hint">Only the shared-session host can end or abandon the battle.</small>}
-        {canManageBattle && !canEndBattle && endBlockedReason && <small className="battle-menu__hint">{endBlockedReason}</small>}
-        <button type="button" role="menuitem" className="danger-action" disabled={!canManageBattle} onClick={requestAbandonBattle}>Abandon battle</button>
-        <small className="battle-menu__hint">Build {import.meta.env.VITE_BUILD_SHA}</small>
+      {open && <CommandPopover label={tr("Battle menu")} role="menu" trigger={menuRef} onClose={() => setOpen(false)} className="battle-menu-command">
+        <strong>{tr("Battle")}</strong>
+        <LanguageSettings />
+        {onOpenTableMode && <button type="button" role="menuitem" onClick={() => { setOpen(false); onOpenTableMode() }}>{tr("Table Mode")}</button>}
+        <button type="button" role="menuitem" onClick={() => { setOpen(false); onOpenLog() }}>{tr("View battle log")}</button>
+        {onOpenReport && <button type="button" role="menuitem" onClick={() => { setOpen(false); onOpenReport() }}>{tr("View Battle Report")}</button>}
+        <button type="button" role="menuitem" disabled={!canUndoAction} onClick={() => { setOpen(false); onUndo?.() }}>{tr("Undo last action")}</button>
+        <button type="button" role="menuitem" disabled={!canRedoAction} onClick={() => { setOpen(false); onRedo?.() }}>{tr("Redo action")}</button>
+        <button type="button" role="menuitem" onClick={() => { setOpen(false); onExportReport() }}>{tr("Export diagnostic report")}</button>
+        <button type="button" role="menuitem" disabled={!canManageBattle} onClick={() => { setOpen(false); setCorrectionOpen(true) }}>{tr("Correct battle state")}</button>
+        {!canManageBattle && <small className="battle-menu__hint">{tr("Only the shared-session host can record corrections.")}</small>}
+        <button type="button" role="menuitem" disabled={!canEndBattle || !canManageBattle} onClick={requestEndBattle}>{tr("End battle")}</button>
+        {!canManageBattle && <small className="battle-menu__hint">{tr("Only the shared-session host can end or abandon the battle.")}</small>}
+        {canManageBattle && !canEndBattle && endBlockedReason && <small className="battle-menu__hint">{tr(endBlockedReason)}</small>}
+        <button type="button" role="menuitem" className="danger-action" disabled={!canManageBattle} onClick={requestAbandonBattle}>{tr("Abandon battle")}</button>
+        <small className="battle-menu__hint">{tr("Build ")}{import.meta.env.VITE_BUILD_SHA}</small>
       </CommandPopover>}
     </div>
 
     {correctionOpen && <BattleCorrectionDialog session={session} onApply={onApplyCorrection} onClose={() => setCorrectionOpen(false)} />}
 
-    {confirmation && <CommandDialog label={confirmation === 'end' ? 'End battle?' : 'Abandon this battle?'} onClose={() => setConfirmation(null)}>
+    {confirmation && <CommandDialog label={confirmation === 'end' ? tr('End battle?') : tr('Abandon this battle?')} onClose={() => setConfirmation(null)}>
       <section
         className="panel battle-confirmation"
       >
         {confirmation === 'end' ? <>
-          <span className="eyebrow">Finish session</span>
-          <h2 id="battle-confirmation-title">End battle?</h2>
-          <p>This finishes the current game and preserves final VP, scoring, army state and the battle log.</p>
+          <span className="eyebrow">{tr("Finish session")}</span>
+          <h2 id="battle-confirmation-title">{tr("End battle?")}</h2>
+          <p>{tr("This finishes the current game and preserves final VP, scoring, army state and the battle log.")}</p>
           <div className="battle-confirmation__actions">
-            <button type="button" onClick={() => setConfirmation(null)}>Cancel</button>
-            <button type="button" className="button--gold" onClick={() => { setConfirmation(null); onEndBattle() }}>End battle</button>
+            <button type="button" onClick={() => setConfirmation(null)}>{tr("Cancel")}</button>
+            <button type="button" className="button--gold" onClick={() => { setConfirmation(null); onEndBattle() }}>{tr("End battle")}</button>
           </div>
         </> : <>
-          <span className="eyebrow">Leave session</span>
-          <h2 id="battle-confirmation-title">Abandon this battle?</h2>
-          <p>The session will be marked as abandoned and will no longer appear as an active battle to resume. Its progress is retained rather than silently deleted.</p>
+          <span className="eyebrow">{tr("Leave session")}</span>
+          <h2 id="battle-confirmation-title">{tr("Abandon this battle?")}</h2>
+          <p>{tr("The session will be marked as abandoned and will no longer appear as an active battle to resume. Its progress is retained rather than silently deleted.")}</p>
           <div className="battle-confirmation__actions">
-            <button type="button" onClick={() => setConfirmation(null)}>Keep playing</button>
-            <button type="button" className="button--danger" onClick={() => { setConfirmation(null); onAbandonBattle() }}>Abandon battle</button>
+            <button type="button" onClick={() => setConfirmation(null)}>{tr("Keep playing")}</button>
+            <button type="button" className="button--danger" onClick={() => { setConfirmation(null); onAbandonBattle() }}>{tr("Abandon battle")}</button>
           </div>
         </>}
       </section>

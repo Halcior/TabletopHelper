@@ -1,3 +1,4 @@
+import { t as tr } from '../../features/i18n/locale'
 import { useState } from 'react'
 import type { BattleSession } from '../../domain/battle/types'
 import { CAULDRON_RULESET_ID } from '../../rulesets/cauldronFFA3'
@@ -27,10 +28,10 @@ export function BattleQuickStatus({
       />}
       <section className="panel quick-status-panel">
         <div className="section-heading">
-          <div><span className="eyebrow">Board</span><h2>Objectives</h2></div>
+          <div><span className="eyebrow">{tr("Board")}</span><h2>{tr("Objectives")}</h2></div>
           <div className="quick-status-actions">
-            <button className={quickEditOpen ? 'button button--small selected' : 'button button--small'} aria-expanded={quickEditOpen} onClick={() => setQuickEditOpen((open) => !open)}>{quickEditOpen ? 'Done' : 'Edit'}</button>
-            <button className="button button--small" onClick={onOpenObjectives}>Details</button>
+            <button className={quickEditOpen ? 'button button--small selected' : 'button button--small'} aria-expanded={quickEditOpen} onClick={() => setQuickEditOpen((open) => !open)}>{quickEditOpen ? tr('Done') : tr('Edit')}</button>
+            <button className="button button--small" onClick={onOpenObjectives}>{tr("Details")}</button>
           </div>
         </div>
         {quickEditOpen
@@ -38,8 +39,8 @@ export function BattleQuickStatus({
           : <ul className="quick-objective-list">
             {objectives.map((objective) => {
               const controller = objective.controllerPlayerId
-                ? session.state.players[objective.controllerPlayerId]?.name ?? 'Unknown'
-                : 'Uncontrolled'
+                ? session.state.players[objective.controllerPlayerId]?.name ?? tr('Unknown')
+                : tr('Uncontrolled')
               const controllerIndex = objective.controllerPlayerId
                 ? session.state.turnOrder.indexOf(objective.controllerPlayerId)
                 : -1

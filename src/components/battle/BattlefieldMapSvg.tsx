@@ -1,3 +1,4 @@
+import { t as tr } from '../../features/i18n/locale'
 import { useId } from 'react'
 import { battlefieldView } from '../../domain/battlefield/layouts'
 import type { BoardPresentation, TerrainLayers } from '../../domain/battlefield/types'
@@ -9,7 +10,7 @@ export const DEFAULT_TERRAIN_LAYERS: TerrainLayers = {
 export function TerrainLayerControls({ layers, onChange }: {
   layers: TerrainLayers; onChange: (layers: TerrainLayers) => void
 }) {
-  return <fieldset className="terrain-layer-controls"><legend>Map layers</legend>
+  return <fieldset className="terrain-layer-controls"><legend>{tr("Map layers")}</legend>
     {(['footprints', 'features', 'objectives', 'deployment', 'territory', 'labels'] as const).map(key =>
       <label key={key}><input type="checkbox" checked={layers[key]} onChange={e => onChange({ ...layers, [key]: e.target.checked })} />
         {{ footprints: 'Footprints', features: 'Terrain features', objectives: 'Objectives', deployment: 'Deployment zones', territory: 'Territory boundaries', labels: 'Area labels' }[key]}
@@ -29,7 +30,7 @@ export function BattlefieldMapSvg({ presentation, widthCm, heightCm, rotated, la
   const gridId = useId().replaceAll(':', '')
   const view = battlefieldView(widthCm, heightCm, rotated)
   const upright = view.rotationDeg ? ` rotate(${-view.rotationDeg})` : ''
-  return <svg className="battlefield-map-svg" viewBox={`0 0 ${view.widthCm} ${view.heightCm}`} aria-label="Technical battlefield plan" role="img">
+  return <svg className="battlefield-map-svg" viewBox={`0 0 ${view.widthCm} ${view.heightCm}`} aria-label={tr("Technical battlefield plan")} role="img">
     <defs><pattern id={gridId} width={12.7} height={12.7} patternUnits="userSpaceOnUse">
       <path d="M 12.7 0 L 0 0 L 0 12.7" fill="none" stroke="currentColor" strokeWidth=".12" />
     </pattern></defs>
@@ -48,7 +49,7 @@ export function BattlefieldMapSvg({ presentation, widthCm, heightCm, rotated, la
         transform={`translate(${area.position.x} ${area.position.y}) rotate(${area.rotationDeg})`}>
         <polygon className={`official-terrain-area official-terrain-area--${area.terrainFeatureClass ?? 'unclassified'}`}
           points={area.polygonPoints.map(p => `${p.x},${p.y}`).join(' ')} vectorEffect="non-scaling-stroke">
-          <title>{`${area.id} · ${area.widthCm.toFixed(1)} × ${area.heightCm.toFixed(1)} cm outline · ${area.rotationDeg}°`}</title>
+          <title>{tr(`${area.id} · ${area.widthCm.toFixed(1)} × ${area.heightCm.toFixed(1)} cm outline · ${area.rotationDeg}°`, "{0} · {1} × {2} cm outline · {3}°")}</title>
         </polygon>
       </g>)}
       {layers.features && presentation.terrain?.terrainFeatures?.map(feature => <g key={feature.id}
@@ -56,7 +57,7 @@ export function BattlefieldMapSvg({ presentation, widthCm, heightCm, rotated, la
         transform={`translate(${feature.position.x} ${feature.position.y})${upright}`}>
         <rect x={-2.5} y={-1.9} width={5} height={3.8} rx=".6" />
         <text textAnchor="middle" dominantBaseline="central">{feature.class === 'dense' ? 'D' : 'L'}</text>
-        <title>{`${feature.class} terrain feature · area ${feature.terrainAreaId}. Classification cue; see source for physical model arrangement.`}</title>
+        <title>{tr(`${feature.class} terrain feature · area ${feature.terrainAreaId}. Classification cue; see source for physical model arrangement.`, "{0} terrain feature · area {1}. Classification cue; see source for physical model arrangement.")}</title>
       </g>)}
       {layers.labels && presentation.terrain?.terrainAreas?.map(area => <text key={area.id} className="terrain-area-label"
         textAnchor="middle" transform={`translate(${area.position.x} ${area.position.y})${upright}`} y={-2.6}>{area.id}</text>)}
@@ -69,10 +70,10 @@ export function BattlefieldMapSvg({ presentation, widthCm, heightCm, rotated, la
 }
 
 export function TerrainLegend() {
-  return <div className="terrain-legend" aria-label="Terrain legend">
-    <span><i className="terrain-key terrain-key--dense" />Dense feature (D)</span>
-    <span><i className="terrain-key terrain-key--unclassified" />Unclassified features</span>
-    <span>Grid: 5″ / 12.7 cm</span>
-    <span>Area IDs A1–E2 are plan references. Badges show verified feature classes only; unlabelled features need source verification.</span>
+  return <div className="terrain-legend" aria-label={tr("Terrain legend")}>
+    <span><i className="terrain-key terrain-key--dense" />{tr("Dense feature (D)")}</span>
+    <span><i className="terrain-key terrain-key--unclassified" />{tr("Unclassified features")}</span>
+    <span>{tr("Grid: 5″ / 12.7 cm")}</span>
+    <span>{tr("Area IDs A1–E2 are plan references. Badges show verified feature classes only; unlabelled features need source verification.")}</span>
   </div>
 }

@@ -1,3 +1,4 @@
+import { t as tr } from '../i18n/locale'
 import { useEffect, useMemo, useState } from 'react'
 import { sharedSessionTransport } from '../../multiplayer/supabaseRestTransport'
 import { useSharedSessionStore } from '../../multiplayer/sharedSessionStore'
@@ -65,25 +66,25 @@ export function LobbyHostSettings() {
     } finally {setBusy(false)}
   }
 
-  return <section className="panel lobby-host-settings" aria-label="Host lobby settings">
-    <h2>Host · turn order and teams</h2>
-    <p className="context-note">Only the room host can change these settings. Save before everyone marks Ready; changing settings clears all Ready confirmations.</p>
+  return <section className="panel lobby-host-settings" aria-label={tr("Host lobby settings")}>
+    <h2>{tr("Host · turn order and teams")}</h2>
+    <p className="context-note">{tr("Only the room host can change these settings. Save before everyone marks Ready; changing settings clears all Ready confirmations.")}</p>
     <div className="shared-host-turn-order">
-      <h3>Turn order</h3>
+      <h3>{tr("Turn order")}</h3>
       {activeOrder.map((id,index)=><div key={id} className="row">
         <strong>{index+1}. {doubles ? (captains[0]===id ? doubles.forces[0].name : doubles.forces[1].name) : label(id)}</strong>
-        <button type="button" disabled={busy||index===0} onClick={()=>move(id,-1)} aria-label={`Move ${label(id)} earlier`}>↑</button>
-        <button type="button" disabled={busy||index===activeOrder.length-1} onClick={()=>move(id,1)} aria-label={`Move ${label(id)} later`}>↓</button>
+        <button type="button" disabled={busy||index===0} onClick={()=>move(id,-1)} aria-label={tr(`Move ${label(id)} earlier`, "Move {0} earlier")}>↑</button>
+        <button type="button" disabled={busy||index===activeOrder.length-1} onClick={()=>move(id,1)} aria-label={tr(`Move ${label(id)} later`, "Move {0} later")}>↓</button>
       </div>)}
     </div>
-    {doubles && <label>Team Alpha · choose partner for {label(captains[0])}
+    {doubles && <label>{tr("Team Alpha · choose partner for ")}{label(captains[0])}
       <select value={partner} onChange={e=>{setPartner(e.target.value);setSaved(false)}} disabled={busy}>
         {nonCaptains.map(id=><option key={id} value={id}>{label(id)}</option>)}
       </select>
-      <small>Team Bravo: {label(captains[1])} + {label(nonCaptains.find(id=>id!==partner)??'')}</small>
+      <small>{tr("Team Bravo: ")}{label(captains[1])} + {label(nonCaptains.find(id=>id!==partner)??'')}</small>
     </label>}
-    <button type="button" className="button button--gold" disabled={busy || (doubles&&!partner)} onClick={()=>void save()}>{busy?'Saving…':'Save host settings'}</button>
-    {saved && <p role="status">Room turn order and teams saved.</p>}
-    {error && <p className="alert alert--danger" role="alert">{error}</p>}
+    <button type="button" className="button button--gold" disabled={busy || (doubles&&!partner)} onClick={()=>void save()}>{busy?tr('Saving…'):tr('Save host settings')}</button>
+    {saved && <p role="status">{tr("Room turn order and teams saved.")}</p>}
+    {error && <p className="alert alert--danger" role="alert">{tr(error)}</p>}
   </section>
 }

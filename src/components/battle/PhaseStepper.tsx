@@ -1,3 +1,4 @@
+import { t as tr } from '../../features/i18n/locale'
 import { BATTLE_PHASES, type BattlePhase } from '../../domain/battle/types'
 
 const PHASE_LABELS: Record<BattlePhase, string> = {
@@ -17,13 +18,13 @@ export function humanizePhase(phase: BattlePhase): string {
 export function PhaseStepper({ phase }: { phase: BattlePhase }) {
   const currentIndex = BATTLE_PHASES.indexOf(phase)
   return (
-    <nav className="phase-stepper" aria-label="Turn phase progress">
+    <nav className="phase-stepper" aria-label={tr("Turn phase progress")}>
       <ol>
         {BATTLE_PHASES.map((item, index) => {
           const state = index < currentIndex ? 'completed' : index === currentIndex ? 'current' : 'upcoming'
-          return <li className={`phase-step phase-step--${state}`} data-short-label={COMPACT_LABELS[item]} aria-label={`${PHASE_LABELS[item]} · ${state}`} aria-current={state === 'current' ? 'step' : undefined} key={item}>
+          return <li className={`phase-step phase-step--${state}`} data-short-label={tr(COMPACT_LABELS[item])} aria-label={tr(`${tr(PHASE_LABELS[item])} · ${state}`, "{0} · {1}")} aria-current={state === 'current' ? 'step' : undefined} key={item}>
             <span aria-hidden="true">{state === 'completed' ? '✓' : index + 1}</span>
-            <strong>{PHASE_LABELS[item]}</strong>
+            <strong>{tr(PHASE_LABELS[item])}</strong>
           </li>
         })}
       </ol>

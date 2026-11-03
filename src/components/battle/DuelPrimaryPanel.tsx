@@ -1,3 +1,4 @@
+import { t as tr } from '../../features/i18n/locale'
 import { useState } from 'react'
 import type { BattleSession } from '../../domain/battle/types'
 import {
@@ -59,31 +60,30 @@ function DuelPrimaryForm({ session, playerId, window, editable }: DuelPrimaryPan
   }
 
   return <section className="panel turn-review-section duel-primary-panel">
-    <div className="section-heading"><div><span className="eyebrow">11th edition Primary · {disposition ? DISPOSITION_NAMES[disposition] : ''}</span><h2>{session.state.players[playerId]?.name}: {mission.name}</h2></div><strong>{session.state.players[playerId]?.score.primary ?? 0} / 45 VP</strong></div>
-    <InfoDisclosure label="Primary card & pairing layout">
-    <p className="context-note">Your card from the Force Disposition matrix. Read the <a href={mission.url} target="_blank" rel="noreferrer">full Primary card</a> for exact wording. {disposition && opponentDisposition && <>Open <a href={`https://gdmissions.app/11th/layouts/${disposition}/${opponentDisposition}`} target="_blank" rel="noreferrer">the pairing layouts</a> and select {['A (1)', 'B (2)', 'C (3)'][(config.officialLayout ?? 1) - 1]} to match your setup. </>}The physical layout sets objectives and terrain. Each scoring window is locked after confirmation.</p>
+    <div className="section-heading"><div><span className="eyebrow">{tr("11th edition Primary · ")}{disposition ? DISPOSITION_NAMES[disposition] : ''}</span><h2>{session.state.players[playerId]?.name}: {mission.name}</h2></div><strong>{session.state.players[playerId]?.score.primary ?? 0} {tr(" / 45 VP")}</strong></div>
+    <InfoDisclosure label={tr("Primary card & pairing layout")}>
+    <p className="context-note">{tr("Your card from the Force Disposition matrix. Read the ")}<a href={mission.url} target="_blank" rel="noreferrer">{tr("full Primary card")}</a> {tr(" for exact wording. ")}{disposition && opponentDisposition && <>{tr("Open ")}<a href={`https://gdmissions.app/11th/layouts/${disposition}/${opponentDisposition}`} target="_blank" rel="noreferrer">{tr("the pairing layouts")}</a> {tr(" and select ")}{['A (1)', 'B (2)', 'C (3)'][(config.officialLayout ?? 1) - 1]} {tr(" to match your setup. ")}</>}{tr("The physical layout sets objectives and terrain. Each scoring window is locked after confirmation.")}</p>
     </InfoDisclosure>
-    {mission.rule && <p><strong>Special rule:</strong> {mission.rule}</p>}
-    {mission.action && <p><strong>Objective Action:</strong> {mission.action}</p>}
+    {mission.rule && <p><strong>{tr("Special rule:")}</strong> {tr(mission.rule)}</p>}
+    {mission.action && <p><strong>{tr("Objective Action:")}</strong> {tr(mission.action)}</p>}
     {window ? <>
-      <h3>{WINDOW_LABEL[window]} · Battle Round {session.state.round}</h3>
-      {session.state.round === 5 && window === 'turn' && <p className="context-note">In round 5, conditions normally scored at the end of Command score at the end of your turn instead.</p>}
-      {conditions.length === 0 && <p>No Primary conditions score in this window. Confirm it to close the turn.</p>}
+      <h3>{tr(WINDOW_LABEL[window])} {tr(" · Battle Round ")}{session.state.round}</h3>
+      {session.state.round === 5 && window === 'turn' && <p className="context-note">{tr("In round 5, conditions normally scored at the end of Command score at the end of your turn instead.")}</p>}
+      {conditions.length === 0 && <p>{tr("No Primary conditions score in this window. Confirm it to close the turn.")}</p>}
       {conditions.map((condition) => <div className="centre-oc-row duel-primary-condition" key={condition.id}>
-        <span><strong>{condition.vp} VP{condition.count ? ' each' : ''}</strong><small>{condition.label}</small>{condition.group && <small>Choose one alternative · {condition.group}</small>}</span>
-        {reviewed ? <strong>{(reviewed.selections[condition.id] ?? 0) * condition.vp} VP</strong> : condition.count ? <label>Count
-          <input type="number" min={0} max={20} step={1} value={selections[condition.id] ?? 0} disabled={!editable} onChange={(event) => change(condition, Number(event.target.value))} />
-        </label> : <label className="review-check-row"><input type="checkbox" checked={!!selections[condition.id]} disabled={!editable} onChange={(event) => change(condition, event.target.checked ? 1 : 0)} /><span>Met</span></label>}
+        <span><strong>{condition.vp} {tr(" VP")}{condition.count ? tr(' each') : ''}</strong><small>{tr(condition.label)}</small>{condition.group && <small>{tr("Choose one alternative · ")}{tr(condition.group)}</small>}</span>
+        {reviewed ? <strong>{(reviewed.selections[condition.id] ?? 0) * condition.vp} {tr(" VP")}</strong> : condition.count ? <label>{tr("Count ")}<input type="number" min={0} max={20} step={1} value={selections[condition.id] ?? 0} disabled={!editable} onChange={(event) => change(condition, Number(event.target.value))} />
+        </label> : <label className="review-check-row"><input type="checkbox" checked={!!selections[condition.id]} disabled={!editable} onChange={(event) => change(condition, event.target.checked ? 1 : 0)} /><span>{tr("Met")}</span></label>}
       </div>)}
-      {reviewed ? <p className="secondary-feedback" role="status">✓ Reviewed · +{reviewed.pointsAwarded} VP.</p> : <>
-        <p className="context-note">Confirmed {preview.raw} VP → award {preview.awarded} VP after the 15 VP round and 45 VP battle limits. Current round: {preview.scoredInRound} VP.</p>
-        {error && <p className="alert alert--danger">{error}</p>}
-        {editable && <button className="button--gold" type="button" onClick={submit}>Confirm {WINDOW_LABEL[window].toLowerCase()} · +{preview.awarded} VP</button>}
+      {reviewed ? <p className="secondary-feedback" role="status">{tr("✓ Reviewed · +")}{reviewed.pointsAwarded} {tr(" VP.")}</p> : <>
+        <p className="context-note">{tr("Confirmed ")}{preview.raw} {tr(" VP → award ")}{preview.awarded} {tr(" VP after the 15 VP round and 45 VP battle limits. Current round: ")}{preview.scoredInRound} {tr(" VP.")}</p>
+        {error && <p className="alert alert--danger">{tr(error)}</p>}
+        {editable && <button className="button--gold" type="button" onClick={submit}>{tr("Confirm ")}{tr(WINDOW_LABEL[window].toLowerCase())} · +{preview.awarded} {tr(" VP")}</button>}
       </>}
-    </> : <details className="duel-primary-conditions"><summary>Conditions by scoring window</summary>
+    </> : <details className="duel-primary-conditions"><summary>{tr("Conditions by scoring window")}</summary>
       {(['command', 'turn', 'either', 'battle'] as const).map((timing) => {
         const checks = mission.conditions.filter((entry) => entry.window === timing)
-        return checks.length ? <div key={timing}><strong>{timing === 'command' ? 'Command phase (rounds 2–4; turn end in round 5)' : timing === 'battle' ? 'End of battle' : timing === 'either' ? 'End of either player’s turn' : 'End of your turn'}</strong><ul>{checks.map((entry) => <li key={entry.id}>{entry.vp} VP{entry.count ? ' each' : ''} · {entry.label}{entry.from || entry.through ? ` (rounds ${entry.from ?? 1}–${entry.through ?? 5})` : ''}</li>)}</ul></div> : null
+        return checks.length ? <div key={timing}><strong>{timing === 'command' ? tr('Command phase (rounds 2–4; turn end in round 5)') : timing === 'battle' ? tr('End of battle') : timing === 'either' ? tr('End of either player’s turn') : tr('End of your turn')}</strong><ul>{checks.map((entry) => <li key={entry.id}>{entry.vp} {tr(" VP")}{entry.count ? tr(' each') : ''} · {tr(entry.label)}{entry.from || entry.through ? tr(` (rounds ${entry.from ?? 1}–${entry.through ?? 5})`, " (rounds {0}–{1})") : ''}</li>)}</ul></div> : null
       })}
     </details>}
   </section>

@@ -1,3 +1,4 @@
+import { t as tr } from '../../features/i18n/locale'
 import type { BattleSession } from '../../domain/battle/types'
 import { getActiveSecondaryViews, getRoundSecondaryVp, getSecondaryRoundCap } from '../../rulesets/cauldronFFA3/secondary'
 import { AppIcon } from '../AppIcon'
@@ -29,31 +30,31 @@ export function TurnSecondaryFocus({
   if (!player) return null
   const cards = getActiveSecondaryViews(session, playerId)
 
-  return <section className="turn-secondary-focus" aria-label="Current turn Secondary missions">
+  return <section className="turn-secondary-focus" aria-label={tr("Current turn Secondary missions")}>
     <div className="turn-secondary-focus__heading">
       <div>
-        <span className="eyebrow">Your current turn</span>
-        <h2>Secondary Missions</h2>
+        <span className="eyebrow">{tr("Your current turn")}</span>
+        <h2>{tr("Secondary Missions")}</h2>
       </div>
-      <div className="turn-secondary-focus__score"><strong>{getRoundSecondaryVp(session, playerId)}/{getSecondaryRoundCap(session)}</strong><span>round VP</span></div>
+      <div className="turn-secondary-focus__score"><strong>{getRoundSecondaryVp(session, playerId)}/{getSecondaryRoundCap(session)}</strong><span>{tr("round VP")}</span></div>
     </div>
 
     {cards.length === 0
-      ? <div className="turn-secondary-focus__empty"><strong>No active Secondary</strong><span>Cards refill at the start of your next Command phase.</span></div>
+      ? <div className="turn-secondary-focus__empty"><strong>{tr("No active Secondary")}</strong><span>{tr("Cards refill at the start of your next Command phase.")}</span></div>
       : <div className="turn-secondary-focus__cards">{cards.map((card) => {
         const visual = getSecondaryPresentation(card)
         const scope = secondaryScope(session, playerId, card.cardId)
         return <article className={`turn-secondary-focus__card turn-secondary-focus__card--${card.status.toLowerCase()} turn-secondary-focus__card--${visual.kind}`} key={card.cardId}>
           <div className="turn-secondary-focus__card-top">
-            <div><span className="turn-secondary-focus__card-icon"><AppIcon name={visual.icon} /></span><span>{visual.label} · {statusCopy(card.status)}</span><h3>{card.name}</h3></div>
-            <strong>{card.vp} VP</strong>
+            <div><span className="turn-secondary-focus__card-icon"><AppIcon name={visual.icon} /></span><span>{tr(visual.label)} · {tr(statusCopy(card.status))}</span><h3>{card.name}</h3></div>
+            <strong>{card.vp} {tr(" VP")}</strong>
           </div>
           <SecondaryScope session={session} playerId={playerId} cardId={card.cardId} />
-          <p>{scope ? FFA_SCORING_BRIEF[card.cardId as OfficialSecondaryId] : card.objective}</p>
-          {!scope && <div className="turn-secondary-focus__progress"><span>Progress</span><strong>{card.progress}</strong></div>}
+          <p>{tr(scope ? FFA_SCORING_BRIEF[card.cardId as OfficialSecondaryId] : card.objective)}</p>
+          {!scope && <div className="turn-secondary-focus__progress"><span>{tr("Progress")}</span><strong>{tr(card.progress)}</strong></div>}
         </article>
       })}</div>}
 
-    <button className="turn-secondary-focus__open" type="button" onClick={onOpenCards}>Open Secondary details</button>
+    <button className="turn-secondary-focus__open" type="button" onClick={onOpenCards}>{tr("Open Secondary details")}</button>
   </section>
 }

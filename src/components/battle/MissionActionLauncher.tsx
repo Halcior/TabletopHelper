@@ -1,3 +1,4 @@
+import { t as tr } from '../../features/i18n/locale'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import {
   getEligibleMissionActionUnits,
@@ -53,29 +54,29 @@ export function MissionActionLauncher({ session, secondaryId, missionActionType,
   return (
     <form className="mission-action-launcher" onSubmit={submit}>
       <div className="section-heading">
-        <div><span className="eyebrow">Mission Action</span><h3>{sabotage ? 'Sabotage' : secureData ? 'Secure Data' : 'Scan Signal'}</h3></div>
-        <button type="button" onClick={onClose}>Close</button>
+        <div><span className="eyebrow">{tr("Mission Action")}</span><h3>{sabotage ? tr('Sabotage') : secureData ? tr('Secure Data') : tr('Scan Signal')}</h3></div>
+        <button type="button" onClick={onClose}>{tr("Close")}</button>
       </div>
       {session.state.phase !== 'MOVEMENT'
-        ? <p className="context-note">Mission Actions start at the end of your Movement phase.</p>
+        ? <p className="context-note">{tr("Mission Actions start at the end of your Movement phase.")}</p>
         : units.length === 0
-          ? <p className="context-note">No eligible units are available. Units need OC&gt;0, must be on the battlefield, and cannot be Battle-shocked, AIRCRAFT, or FORTIFICATION.</p>
+          ? <p className="context-note">{tr("No eligible units are available. Units need OC>0, must be on the battlefield, and cannot be Battle-shocked, AIRCRAFT, or FORTIFICATION.")}</p>
           : <>
-            <label>Acting unit<select value={unitId} onChange={(event) => setUnitId(event.target.value)}>
+            <label>{tr("Acting unit")}<select value={unitId} onChange={(event) => setUnitId(event.target.value)}>
               {units.map((unit) => <option key={unit.unitId} value={unit.unitId}>{unit.unitName}</option>)}
             </select></label>
-            {usesObjective && <label>Neutral objective<select value={objectiveId} onChange={(event) => setObjectiveId(event.target.value)}>
+            {usesObjective && <label>{tr("Neutral objective")}<select value={objectiveId} onChange={(event) => setObjectiveId(event.target.value)}>
               {neutralObjectives.map((objective) => <option key={objective.id} value={objective.id}>{objective.name}</option>)}
             </select></label>}
             {selected && <ul className="mission-known-checks">
-              {selected.knownChecks.map((check) => <li key={check.key}><span aria-hidden="true">✓</span>{check.label}</li>)}
+              {selected.knownChecks.map((check) => <li key={check.key}><span aria-hidden="true">✓</span>{tr(check.label)}</li>)}
             </ul>}
             <label className="mission-physical-confirmation">
               <input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} />
-              <span>The unit is eligible to shoot, did not Advance or Fall Back, is not in Engagement Range, and is in the required position.</span>
+              <span>{tr("The unit is eligible to shoot, did not Advance or Fall Back, is not in Engagement Range, and is in the required position.")}</span>
             </label>
-            {sabotage && neutralObjectives.length === 0 && <p className="context-note">No neutral objective qualifies because every neutral objective was controlled by you at the start of this turn.</p>}
-            <button className="button--gold button--wide" disabled={!selected || !confirmed || (usesObjective && !objectiveId)}>Start action</button>
+            {sabotage && neutralObjectives.length === 0 && <p className="context-note">{tr("No neutral objective qualifies because every neutral objective was controlled by you at the start of this turn.")}</p>}
+            <button className="button--gold button--wide" disabled={!selected || !confirmed || (usesObjective && !objectiveId)}>{tr("Start action")}</button>
           </>}
     </form>
   )

@@ -1,3 +1,4 @@
+import { t as tr } from '../i18n/locale'
 import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useRosterLibrary } from '../armyLibrary/repository'
@@ -26,25 +27,23 @@ export function LobbyArmyPicker() {
       r.playerId === membership.playerId && r.clientId === membership.clientId,
   )
   return (
-    <section className="panel lobby-roster-picker" aria-label="Your lobby army">
-      <h2>Your army</h2>
+    <section className="panel lobby-roster-picker" aria-label={tr("Your lobby army")}>
+      <h2>{tr("Your army")}</h2>
       <p>
         {current
-          ? `${current.army.name} · ${current.army.faction} · ${current.army.totalPoints} pts`
-          : 'Choose a roster from your own library before marking Ready.'}
+          ? tr(`${current.army.name} · ${current.army.faction} · ${current.army.totalPoints} pts`, "{0} · {1} · {2} pts")
+          : tr('Choose a roster from your own library before marking Ready.')}
       </p>
       <label>
-        Saved army
-        <select
+        {tr(" Saved army ")}<select
           value={selected}
           disabled={busy || loading}
           onChange={(e) => setSelected(e.target.value)}
         >
-          <option value="">Choose your army…</option>
+          <option value="">{tr("Choose your army…")}</option>
           {rows.map((r) => (
             <option key={r.id} value={r.id}>
-              {r.army.name} · {r.army.totalPoints} pts
-            </option>
+              {r.army.name} · {r.army.totalPoints} {tr(" pts ")}</option>
           ))}
         </select>
       </label>
@@ -97,21 +96,18 @@ export function LobbyArmyPicker() {
               })
           }}
         >
-          {busy ? 'Selecting…' : current ? 'Change Army' : 'Select army'}
+          {busy ? tr('Selecting…') : current ? tr('Change Army') : tr('Select army')}
         </button>
         <Link className="button" to="/army-import">
-          Import another army
-        </Link>
+          {tr(" Import another army ")}</Link>
       </div>
       {error && (
         <p role="alert" className="alert">
-          {error}
+          {tr(error)}
         </p>
       )}
       <p className="context-note">
-        Changing your selection cancels Ready. At Start the server freezes every
-        roster; later library edits and deletions do not change this battle.
-      </p>
+        {tr(" Changing your selection cancels Ready. At Start the server freezes every roster; later library edits and deletions do not change this battle. ")}</p>
     </section>
   )
 }

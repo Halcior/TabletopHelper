@@ -1,3 +1,4 @@
+import { t as tr } from '../../features/i18n/locale'
 import { combatProfiles, readCombatState } from '../../domain/battle/combatState'
 import type { CombatProfileState } from '../../domain/army/types'
 import { useState } from 'react'
@@ -69,45 +70,45 @@ export function BattleCorrectionDialog({ session, onApply, onClose }: BattleCorr
   const needsObjective = kind === 'OBJECTIVE_CONTROL' || kind === 'OBJECTIVE_OC'
   const needsNumber = kind !== 'UNIT_COMBAT' && kind !== 'UNIT_BATTLESHOCK' && kind !== 'OBJECTIVE_CONTROL'
 
-  return <CommandDialog label="Correct battle state" onClose={onClose}>
+  return <CommandDialog label={tr("Correct battle state")} onClose={onClose}>
     <section className="panel battle-confirmation correction-dialog">
-      <span className="eyebrow">Recorded administration</span>
-      <h2 id="correction-title">Correct battle state</h2>
-      <p>This records a new correction in the battle log. It does not delete or rewrite earlier actions.</p>
+      <span className="eyebrow">{tr("Recorded administration")}</span>
+      <h2 id="correction-title">{tr("Correct battle state")}</h2>
+      <p>{tr("This records a new correction in the battle log. It does not delete or rewrite earlier actions.")}</p>
       <form className="correction-form" onSubmit={submit}>
-        <label><span>What is wrong?</span><select value={kind} onChange={(event) => setKind(event.target.value as CorrectionKind)}>
-          {kinds.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+        <label><span>{tr("What is wrong?")}</span><select value={kind} onChange={(event) => setKind(event.target.value as CorrectionKind)}>
+          {kinds.map((option) => <option key={option.value} value={option.value}>{tr(option.label)}</option>)}
         </select></label>
-        {needsPlayer && <label><span>Commander</span><select value={playerId} onChange={(event) => { setPlayerId(event.target.value); setUnitId('') }}>
+        {needsPlayer && <label><span>{tr("Commander")}</span><select value={playerId} onChange={(event) => { setPlayerId(event.target.value); setUnitId('') }}>
           {session.state.turnOrder.map((id) => <option key={id} value={id}>{session.state.players[id].name}</option>)}
         </select></label>}
-        {needsUnit && <label><span>Unit</span><select value={selectedUnitId} onChange={(event) => setUnitId(event.target.value)}>
+        {needsUnit && <label><span>{tr("Unit")}</span><select value={selectedUnitId} onChange={(event) => setUnitId(event.target.value)}>
           {units.map((unit) => {
             const definition = player?.armyId ? session.setup.armies[player.armyId]?.units.find((item) => item.id === unit.unitId) : undefined
             return <option key={unit.unitId} value={unit.unitId}>{definition?.name ?? unit.unitId}</option>
           })}
         </select></label>}
-        {needsObjective && <label><span>Objective</span><select value={objectiveId} onChange={(event) => setObjectiveId(event.target.value)}>
+        {needsObjective && <label><span>{tr("Objective")}</span><select value={objectiveId} onChange={(event) => setObjectiveId(event.target.value)}>
           {Object.values(session.state.objectives).map((objective) => <option key={objective.id} value={objective.id}>{objective.name}</option>)}
         </select></label>}
-        {kind === 'SCORE' && <label><span>Score category</span><select value={category} onChange={(event) => setCategory(event.target.value as ScoreCategory)}>
-          <option value="primary">Primary</option><option value="secondary">Secondary</option><option value="plan">Operational Plan</option><option value="adjustment">Adjustment</option>
+        {kind === 'SCORE' && <label><span>{tr("Score category")}</span><select value={category} onChange={(event) => setCategory(event.target.value as ScoreCategory)}>
+          <option value="primary">{tr("Primary")}</option><option value="secondary">{tr("Secondary")}</option><option value="plan">{tr("Operational Plan")}</option><option value="adjustment">{tr("Adjustment")}</option>
         </select></label>}
-        {kind === 'OBJECTIVE_CONTROL' && <label><span>Controller</span><select value={controllerPlayerId ?? ''} onChange={(event) => setControllerPlayerId(event.target.value || null)}>
-          <option value="">Uncontrolled</option>
+        {kind === 'OBJECTIVE_CONTROL' && <label><span>{tr("Controller")}</span><select value={controllerPlayerId ?? ''} onChange={(event) => setControllerPlayerId(event.target.value || null)}>
+          <option value="">{tr("Uncontrolled")}</option>
           {session.state.turnOrder.map((id) => <option key={id} value={id}>{session.state.players[id].name}</option>)}
         </select></label>}
-        {kind === 'UNIT_BATTLESHOCK' && <label className="correction-check"><input type="checkbox" checked={battleShocked} onChange={(event) => setBattleShocked(event.target.checked)} /><span>Unit is Battle-shocked</span></label>}
+        {kind === 'UNIT_BATTLESHOCK' && <label className="correction-check"><input type="checkbox" checked={battleShocked} onChange={(event) => setBattleShocked(event.target.checked)} /><span>{tr("Unit is Battle-shocked")}</span></label>}
         {kind === 'UNIT_COMBAT' && profiles.map((profile) => <fieldset key={profile.id}><legend>{profile.name}</legend>
-          <label><span>Models alive</span><input type="number" min="0" max={profile.startingModels} value={profileValues[profile.id]?.modelsAlive ?? 0} onChange={(event) => updateProfile(profile.id, 'modelsAlive', Number(event.target.value))} /></label>
-          <label><span>Wounds per model</span><input type="number" min="1" max="10000" disabled={profile.woundsPerModel !== undefined} value={profileValues[profile.id]?.woundsPerModel ?? ''} onChange={(event) => updateProfile(profile.id, 'woundsPerModel', Number(event.target.value))} /></label>
-          <label><span>Current model Wounds</span><input type="number" min="0" max={profileValues[profile.id]?.woundsPerModel} value={profileValues[profile.id]?.currentModelWounds ?? ''} onChange={(event) => updateProfile(profile.id, 'currentModelWounds', Number(event.target.value))} /></label>
+          <label><span>{tr("Models alive")}</span><input type="number" min="0" max={profile.startingModels} value={profileValues[profile.id]?.modelsAlive ?? 0} onChange={(event) => updateProfile(profile.id, 'modelsAlive', Number(event.target.value))} /></label>
+          <label><span>{tr("Wounds per model")}</span><input type="number" min="1" max="10000" disabled={profile.woundsPerModel !== undefined} value={profileValues[profile.id]?.woundsPerModel ?? ''} onChange={(event) => updateProfile(profile.id, 'woundsPerModel', Number(event.target.value))} /></label>
+          <label><span>{tr("Current model Wounds")}</span><input type="number" min="0" max={profileValues[profile.id]?.woundsPerModel} value={profileValues[profile.id]?.currentModelWounds ?? ''} onChange={(event) => updateProfile(profile.id, 'currentModelWounds', Number(event.target.value))} /></label>
         </fieldset>)}
-        {needsNumber && <label><span>Correct value</span><input type="number" min="0" step="1" value={value} onChange={(event) => setValue(Number(event.target.value))} /></label>}
-        <label className="correction-reason"><span>Reason</span><input maxLength={160} placeholder="e.g. accidental double tap" required value={reason} onChange={(event) => setReason(event.target.value)} /></label>
+        {needsNumber && <label><span>{tr("Correct value")}</span><input type="number" min="0" step="1" value={value} onChange={(event) => setValue(Number(event.target.value))} /></label>}
+        <label className="correction-reason"><span>{tr("Reason")}</span><input maxLength={160} placeholder={tr("e.g. accidental double tap")} required value={reason} onChange={(event) => setReason(event.target.value)} /></label>
         <div className="battle-confirmation__actions">
-          <button type="button" onClick={onClose}>Cancel</button>
-          <button type="submit" className="button--gold" disabled={!reason.trim() || (needsUnit && !selectedUnitId) || (needsObjective && !objectiveId)}>Record correction</button>
+          <button type="button" onClick={onClose}>{tr("Cancel")}</button>
+          <button type="submit" className="button--gold" disabled={!reason.trim() || (needsUnit && !selectedUnitId) || (needsObjective && !objectiveId)}>{tr("Record correction")}</button>
         </div>
       </form>
     </section>

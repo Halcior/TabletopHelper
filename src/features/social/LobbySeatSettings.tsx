@@ -1,3 +1,4 @@
+import { t as tr } from '../i18n/locale'
 import { useEffect, useRef, useState } from 'react'
 import { useRosterScope } from '../armyLibrary/scope'
 import { getCauldronConfig, DISPOSITIONS, DISPOSITION_NAMES, DUEL_MISSIONS, DUEL_PRIMARY_MATRIX } from '../../rulesets/cauldronFFA3'
@@ -74,24 +75,23 @@ export function LobbySeatSettings() {
     ? DUEL_MISSIONS[DUEL_PRIMARY_MATRIX[remoteChoice as typeof DISPOSITIONS[number]][opposingChoice as typeof DISPOSITIONS[number]]]
     : undefined
 
-  return <section className="panel lobby-seat-settings" aria-label="Your player settings">
-    <h2>Your player profile and mission</h2>
-    <p>Playing as: <strong>{participant?.displayName ?? 'Loading profile…'}</strong>{owner ? ' · account profile' : ' · guest'}</p>
+  return <section className="panel lobby-seat-settings" aria-label={tr("Your player settings")}>
+    <h2>{tr("Your player profile and mission")}</h2>
+    <p>{tr("Playing as: ")}<strong>{participant?.displayName ?? tr('Loading profile…')}</strong>{owner ? tr(' · account profile') : tr(' · guest')}</p>
     {captainRequired && <>
-      <label>Force Disposition
-        <select value={choice} disabled={busy} onChange={event => setChoice(event.target.value)}>
-          <option value="">Choose your Force Disposition…</option>
+      <label>{tr("Force Disposition ")}<select value={choice} disabled={busy} onChange={event => setChoice(event.target.value)}>
+          <option value="">{tr("Choose your Force Disposition…")}</option>
           {DISPOSITIONS.map(id => <option key={id} value={id}>{DISPOSITION_NAMES[id]}</option>)}
         </select>
       </label>
       <button type="button" disabled={busy || !choice || choice === remoteChoice} onClick={() => void confirm()}>
-        {busy ? 'Saving…' : remoteChoice ? 'Change Force Disposition' : 'Confirm Force Disposition'}
+        {busy ? tr('Saving…') : remoteChoice ? tr('Change Force Disposition') : tr('Confirm Force Disposition')}
       </button>
-      <p className="context-note">This choice belongs to your seat. Changing it cancels Ready. The official Primary pairing is calculated after both forces confirm.</p>
-      {remoteChoice && <p>Selected: <strong>{DISPOSITION_NAMES[remoteChoice as typeof DISPOSITIONS[number]]}</strong></p>}
-      {mission && <p>Your Primary: <strong>{mission.name}</strong> · <a href={mission.url} target="_blank" rel="noreferrer">Full card</a></p>}
+      <p className="context-note">{tr("This choice belongs to your seat. Changing it cancels Ready. The official Primary pairing is calculated after both forces confirm.")}</p>
+      {remoteChoice && <p>{tr("Selected: ")}<strong>{DISPOSITION_NAMES[remoteChoice as typeof DISPOSITIONS[number]]}</strong></p>}
+      {mission && <p>{tr("Your Primary: ")}<strong>{mission.name}</strong> · <a href={mission.url} target="_blank" rel="noreferrer">{tr("Full card")}</a></p>}
     </>}
-    {official && room.sessionSnapshot.setup.doubles && !force && <p className="context-note">Your team captain chooses one shared Force Disposition for both teammates.</p>}
-    {error && <p className="alert alert--danger" role="alert">{error}</p>}
+    {official && room.sessionSnapshot.setup.doubles && !force && <p className="context-note">{tr("Your team captain chooses one shared Force Disposition for both teammates.")}</p>}
+    {error && <p className="alert alert--danger" role="alert">{tr(error)}</p>}
   </section>
 }

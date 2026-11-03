@@ -1,0 +1,2 @@
+.language-settings { display:flex; align-items:center; justify-content:space-between; gap:1rem; }
+.language-settings select { width:auto; min-width:110px; }

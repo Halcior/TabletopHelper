@@ -1,3 +1,4 @@
+import { t as tr } from '../features/i18n/locale'
 import { useRef, useState } from 'react'
 import { cloudMediaId } from '../features/armyLibrary/identity'
 import { duplicateRoster } from '../features/armyLibrary/repository'
@@ -25,11 +26,10 @@ export default function Friends() {
   if (!user)
     return (
       <div className="page-shell narrow-page">
-        <h1>Friends</h1>
-        <p>Sign in to add friends and share armies.</p>
+        <h1>{tr("Friends")}</h1>
+        <p>{tr("Sign in to add friends and share armies.")}</p>
         <Link className="button" to="/account">
-          Sign in
-        </Link>
+          {tr(" Sign in ")}</Link>
       </div>
     )
   return (
@@ -106,35 +106,34 @@ function SocialScreen({
     <div className="page-shell social-page">
       <section className="page-intro roster-heading">
         <div>
-          <span className="eyebrow">Commander network</span>
+          <span className="eyebrow">{tr("Commander network")}</span>
           <h1>
-            {friendId ? (friend?.display_name ?? 'Friend Profile') : 'Friends'}
+            {friendId ? (friend?.display_name ?? tr('Friend Profile')) : tr('Friends')}
           </h1>
-          <p>Share selected rosters. Bring your own army to the battle.</p>
+          <p>{tr("Share selected rosters. Bring your own army to the battle.")}</p>
         </div>
         <div className="roster-actions">
           <Link className="button" to={friendId ? '/friends' : '/account'}>
-            {friendId ? '← Friends' : 'My Profile'}
+            {friendId ? tr('← Friends') : tr('My Profile')}
           </Link>
           <button disabled={busy} onClick={() => void act(async () => {})}>
-            Refresh
-          </button>
+            {tr(" Refresh ")}</button>
         </div>
       </section>
       {(error || friends.error || invites.error) && (
         <p className="alert alert--danger" role="alert">
-          {error || friends.error || invites.error}
+          {tr(error) || tr(friends.error) || tr(invites.error)}
         </p>
       )}
       {message && (
         <p role="status" className="alert">
-          {message}
+          {tr(message)}
         </p>
       )}
       {friendId ? (
         <>
           {friends.loading && !friends.data && (
-            <p role="status">Loading friend…</p>
+            <p role="status">{tr("Loading friend…")}</p>
           )}
           {friend && (
             <section className="panel account-panel">
@@ -145,30 +144,27 @@ function SocialScreen({
                   <code className="friend-code">{friend.friend_code}</code>
                 </div>
               </div>
-              <p>Shared Armies · Read only</p>
+              <p>{tr("Shared Armies · Read only")}</p>
               <button
                 disabled={busy || !membership?.isHost || started !== null}
                 onClick={() => void invite(friend)}
               >
-                Invite to Game
-              </button>
+                {tr(" Invite to Game ")}</button>
               {!membership?.isHost && (
                 <Link to="/battle/setup">
-                  Create a lobby to invite this friend
-                </Link>
+                  {tr(" Create a lobby to invite this friend ")}</Link>
               )}
             </section>
           )}
           {armies.error && (
             <p role="alert" className="alert">
-              {armies.error}
+              {tr(armies.error)}
             </p>
           )}
-          {armies.loading && <p role="status">Checking shared army access…</p>}
+          {armies.loading && <p role="status">{tr("Checking shared army access…")}</p>}
           {!armies.loading && armies.data?.length === 0 && (
             <p className="empty-state">
-              No shared armies. Private lists are visible only to their owner.
-            </p>
+              {tr(" No shared armies. Private lists are visible only to their owner. ")}</p>
           )}
           {armies.data && (
             <SharedRosterList
@@ -181,7 +177,7 @@ function SocialScreen({
       ) : (
         <>
           <section className="panel account-panel">
-            <h2>Add Friend</h2>
+            <h2>{tr("Add Friend")}</h2>
             <form
               onSubmit={(e) => {
                 e.preventDefault()
@@ -196,8 +192,7 @@ function SocialScreen({
               }}
             >
               <label>
-                Friend code
-                <input
+                {tr(" Friend code ")}<input
                   required
                   autoComplete="off"
                   maxLength={36}
@@ -208,7 +203,7 @@ function SocialScreen({
                   }}
                 />
               </label>
-              <button disabled={busy || !code.trim()}>Find commander</button>
+              <button disabled={busy || !code.trim()}>{tr("Find commander")}</button>
             </form>
             {found && (
               <div className="social-card">
@@ -230,20 +225,20 @@ function SocialScreen({
                   }
                 >
                   {found.user_id === owner
-                    ? 'This is you'
+                    ? tr('This is you')
                     : relationship?.status === 'accepted'
-                      ? 'Friends'
+                      ? tr('Friends')
                       : relationship
                         ? relationship.incoming
-                          ? 'Invitation received'
-                          : 'Invitation sent'
-                        : 'Add Friend'}
+                          ? tr('Invitation received')
+                          : tr('Invitation sent')
+                        : tr('Add Friend')}
                 </button>
               </div>
             )}
           </section>
           {friends.loading && !friends.data && (
-            <p role="status">Loading commanders…</p>
+            <p role="status">{tr("Loading commanders…")}</p>
           )}
           {(['accepted', 'incoming', 'sent'] as const).map((section) => {
             const list =
@@ -257,17 +252,17 @@ function SocialScreen({
               <section className="social-section" key={section}>
                 <h2>
                   {section === 'accepted'
-                    ? 'My Friends'
+                    ? tr('My Friends')
                     : section === 'incoming'
-                      ? 'Incoming Requests'
-                      : 'Sent Requests'}{' '}
+                      ? tr('Incoming Requests')
+                      : tr('Sent Requests')}{' '}
                   · {list.length}
                 </h2>
                 {!list.length && (
                   <p className="empty-state">
                     {section === 'accepted'
-                      ? 'Add a commander using their friend code.'
-                      : 'No pending requests.'}
+                      ? tr('Add a commander using their friend code.')
+                      : tr('No pending requests.')}
                   </p>
                 )}
                 <div className="roster-card-grid">
@@ -282,28 +277,25 @@ function SocialScreen({
                       </div>
                       {section === 'accepted' ? (
                         <>
-                          <span>{f.army_count} shared armies</span>
+                          <span>{f.army_count} {tr(" shared armies")}</span>
                           <div className="roster-actions">
                             <Link
                               className="button"
                               to={`/friends/${f.user_id}`}
                             >
-                              View Armies
-                            </Link>
+                              {tr(" View Armies ")}</Link>
                             <button
                               disabled={
                                 busy || !membership?.isHost || started !== null
                               }
                               onClick={() => void invite(f)}
                             >
-                              Invite to Game
-                            </button>
+                              {tr(" Invite to Game ")}</button>
                           </div>
                           <details>
-                            <summary>More actions</summary>
+                            <summary>{tr("More actions")}</summary>
                             <button onClick={() => setRemove(f)}>
-                              Remove Friend
-                            </button>
+                              {tr(" Remove Friend ")}</button>
                           </details>
                         </>
                       ) : (
@@ -319,8 +311,7 @@ function SocialScreen({
                                 )
                               }
                             >
-                              Accept
-                            </button>
+                              {tr(" Accept ")}</button>
                           )}
                           <button
                             disabled={busy}
@@ -335,8 +326,8 @@ function SocialScreen({
                             }
                           >
                             {section === 'incoming'
-                              ? 'Decline'
-                              : 'Cancel request'}
+                              ? tr('Decline')
+                              : tr('Cancel request')}
                           </button>
                         </div>
                       )}
@@ -347,19 +338,19 @@ function SocialScreen({
             )
           })}
           <section className="social-section">
-            <h2>Game Invitations</h2>
+            <h2>{tr("Game Invitations")}</h2>
             {!invites.data?.length && (
-              <p className="empty-state">No active lobby invitations.</p>
+              <p className="empty-state">{tr("No active lobby invitations.")}</p>
             )}
             {invites.data?.map((i) => (
               <article className="panel social-card" key={i.id}>
                 <h3>
                   {i.sender_id === owner
-                    ? 'Invitation sent'
-                    : `${i.display_name} invited you`}
+                    ? tr('Invitation sent')
+                    : tr(`${i.display_name} invited you`, "{0} invited you")}
                 </h3>
                 <p>
-                  Lobby {i.room_code} · expires{' '}
+                  {tr(" Lobby ")}{i.room_code} {tr(" · expires")}{' '}
                   {new Date(i.expires_at).toLocaleTimeString()}
                 </p>
                 <div className="roster-actions">
@@ -368,8 +359,7 @@ function SocialScreen({
                       className="button button--gold"
                       to={`/shared?invite=${encodeURIComponent(i.id)}`}
                     >
-                      Join
-                    </Link>
+                      {tr(" Join ")}</Link>
                   )}
                   <button
                     disabled={busy}
@@ -386,8 +376,8 @@ function SocialScreen({
                     }
                   >
                     {i.recipient_id === owner
-                      ? 'Decline invitation'
-                      : 'Cancel invitation'}
+                      ? tr('Decline invitation')
+                      : tr('Cancel invitation')}
                   </button>
                 </div>
               </article>
@@ -397,18 +387,15 @@ function SocialScreen({
       )}
       {remove && (
         <CommandDialog
-          label={`Remove friend: ${remove.display_name}`}
+          label={tr(`Remove friend: ${remove.display_name}`, "Remove friend: {0}")}
           onClose={() => setRemove(null)}
         >
-          <h2>Remove {remove.display_name}?</h2>
+          <h2>{tr("Remove ")}{remove.display_name}?</h2>
           <p>
-            Both commanders lose access to shared lists. Started battles keep
-            their snapshots.
-          </p>
+            {tr(" Both commanders lose access to shared lists. Started battles keep their snapshots. ")}</p>
           <div className="roster-actions">
             <button autoFocus onClick={() => setRemove(null)}>
-              Cancel
-            </button>
+              {tr(" Cancel ")}</button>
             <button
               disabled={busy}
               onClick={() =>
@@ -418,8 +405,7 @@ function SocialScreen({
                 })
               }
             >
-              Confirm removal
-            </button>
+              {tr(" Confirm removal ")}</button>
           </div>
         </CommandDialog>
       )}
@@ -464,44 +450,42 @@ function SharedRosterList({
         <article className="panel library-card" key={army.id}>
           <ArmyBanner army={friendOwner?{...army,localMediaId:cloudMediaId(friendOwner,army.id)}:army} forceCustom />
           <h2>{army.name}</h2>
-          <p>{ownerName} · Read only</p>
+          <p>{ownerName} {tr(" · Read only")}</p>
           <div className="roster-actions">
             <button type="button" disabled={copying !== null} onClick={() => void copyFriendArmy(army)}>
-              {copying === army.id ? 'Copying…' : 'Copy to My Armies'}
+              {copying === army.id ? tr('Copying…') : tr('Copy to My Armies')}
             </button>
-            {copied[army.id] && <Link className="button" to={`/army/${encodeURIComponent(copied[army.id])}/edit`}>Open my copy</Link>}
+            {copied[army.id] && <Link className="button" to={`/army/${encodeURIComponent(copied[army.id])}/edit`}>{tr("Open my copy")}</Link>}
           </div>
-          {copied[army.id] && <p role="status">Copied to your library. The original roster remains unchanged.</p>}
+          {copied[army.id] && <p role="status">{tr("Copied to your library. The original roster remains unchanged.")}</p>}
           {copyError[army.id] && <p role="alert" className="alert alert--danger">{copyError[army.id]}</p>}
           <p>
-            {army.faction} · {army.totalPoints} pts · {army.units.length} units
-          </p>
+            {army.faction} · {army.totalPoints} {tr(" pts · ")}{army.units.length} {tr(" units ")}</p>
           <p>
             {army.detachments.map((d) => d.name).join(' · ') ||
-              'No detachment data'}
+              tr('No detachment data')}
           </p>
           <details>
-            <summary>View units</summary>
+            <summary>{tr("View units")}</summary>
             <div className="roster-unit-list">
               {army.units.map((u) => (
                 <section className="roster-unit" key={u.id}>
                   <UnitPortrait army={friendOwner ? {...army,localMediaId:cloudMediaId(friendOwner,army.id)} : army} unit={u} forceCustom />
                   <h3>
                     {u.name}
-                    {u.isWarlord ? ' · Warlord' : ''}
+                    {u.isWarlord ? tr(' · Warlord') : ''}
                   </h3>
                   <p>
-                    {u.startingModels} models · {u.points} pts
-                  </p>
+                    {u.startingModels} {tr(" models · ")}{u.points} {tr(" pts ")}</p>
                   {u.leaderOfUnitId && (
                     <p>
-                      Leads:{' '}
+                      {tr(" Leads:")}{' '}
                       {army.units.find((t) => t.id === u.leaderOfUnitId)?.name}
                     </p>
                   )}
                   {u.ledByUnitIds.length > 0 && (
                     <p>
-                      Leaders:{' '}
+                      {tr(" Leaders:")}{' '}
                       {u.ledByUnitIds
                         .map((id) => army.units.find((t) => t.id === id)?.name)
                         .filter(Boolean)
@@ -511,22 +495,20 @@ function SharedRosterList({
                   {u.modelGroups.map((g, i) => (
                     <p key={i}>
                       {g.startingCount} × {g.name}
-                      {g.equipment.length ? ` · ${g.equipment.join(', ')}` : ''}
+                      {g.equipment.length ? tr(` · ${g.equipment.join(', ')}`, " · {0}") : ''}
                     </p>
                   ))}
                   {u.enhancements.map((e, i) => (
                     <p key={i}>
-                      Enhancement: {e.name} · {e.points} pts
-                      {e.description ? ` · ${e.description}` : ''}
+                      {tr(" Enhancement: ")}{e.name} · {e.points} {tr(" pts ")}{e.description ? tr(` · ${e.description}`, " · {0}") : ''}
                     </p>
                   ))}
                   {u.wargear.map((w, i) => (
                     <p key={i}>
-                      {w.name} · {w.points} pts
-                    </p>
+                      {w.name} · {w.points} {tr(" pts ")}</p>
                   ))}
                   <details>
-                    <summary>Imported weapon profiles & abilities</summary>
+                    <summary>{tr("Imported weapon profiles & abilities")}</summary>
                     {[...u.rangedWeapons, ...u.meleeWeapons].map((w, i) => (
                       <p key={i}>
                         <strong>{w.name}</strong> ·{' '}
@@ -546,7 +528,7 @@ function SharedRosterList({
                     {u.abilities.map((a, i) => (
                       <p key={i}>
                         <strong>{a.name}</strong>
-                        {a.description ? ` · ${a.description}` : ''}
+                        {a.description ? tr(` · ${a.description}`, " · {0}") : ''}
                       </p>
                     ))}
                   </details>
@@ -554,9 +536,7 @@ function SharedRosterList({
               ))}
             </div>
             <p>
-              Only imported data is shown. Alternative loadouts and list
-              legality are not verified.
-            </p>
+              {tr(" Only imported data is shown. Alternative loadouts and list legality are not verified. ")}</p>
           </details>
         </article>
       ))}

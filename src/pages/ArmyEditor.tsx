@@ -1,3 +1,4 @@
+import { t as tr } from '../features/i18n/locale'
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { useBeforeUnload } from 'react-router-dom'
@@ -143,8 +144,8 @@ export default function ArmyEditor() {
   if (!draft || !loaded || loaded.owner !== owner)
     return (
       <div className="page-shell">
-        <Link to="/armies">← My Armies</Link>
-        <p role={error ? 'alert' : 'status'}>{error || 'Loading roster…'}</p>
+        <Link to="/armies">{tr("← My Armies")}</Link>
+        <p role={error ? 'alert' : 'status'}>{tr(error) || tr('Loading roster…')}</p>
       </div>
     )
   const total = draft.units.reduce((sum, u) => sum + u.points, 0)
@@ -159,11 +160,10 @@ export default function ArmyEditor() {
           if (!cancelNavigation()) e.preventDefault()
         }}
       >
-        ← My Armies
-      </Link>
+        {tr(" ← My Armies ")}</Link>
       <div className="page-intro">
         <span className="eyebrow">
-          {editing ? 'Army Editor' : 'Roster overview'}
+          {editing ? tr('Army Editor') : tr('Roster overview')}
         </span>
         <h1>{draft.name}</h1>
         <p>
@@ -172,11 +172,10 @@ export default function ArmyEditor() {
       </div>
       <ArmyBanner army={{ ...draft, totalPoints: total }} />
       <div className="roster-editor-toolbar">
-        <strong aria-label="Roster total points">
+        <strong aria-label={tr("Roster total points")}>
           {total}
-          {draft.pointsLimit ? ` / ${draft.pointsLimit}` : ''} pts ·{' '}
-          {draft.units.length} units
-        </strong>
+          {draft.pointsLimit ? tr(` / ${draft.pointsLimit}`, " / {0}") : ''} {tr(" pts ·")}{' '}
+          {draft.units.length} {tr(" units ")}</strong>
         <div className="roster-actions">
           {editing ? (
             <>
@@ -185,22 +184,19 @@ export default function ArmyEditor() {
                 disabled={busy || !dirty}
                 onClick={() => void save(false)}
               >
-                Save
-              </button>
+                {tr(" Save ")}</button>
               <button
                 className="button"
                 disabled={busy}
                 onClick={() => void save(true)}
               >
-                Save as copy
-              </button>
+                {tr(" Save as copy ")}</button>
               <button
                 className="button"
                 disabled={busy || !dirty}
                 onClick={discard}
               >
-                Discard changes
-              </button>
+                {tr(" Discard changes ")}</button>
             </>
           ) : (
             <>
@@ -208,21 +204,19 @@ export default function ArmyEditor() {
                 className="button"
                 to={`/army/${encodeURIComponent(draft.id)}/edit`}
               >
-                Edit roster
-              </Link>
+                {tr(" Edit roster ")}</Link>
               <Link
                 className="button button--gold"
                 to={`/battle/setup?armyId=${encodeURIComponent(draft.id)}`}
               >
-                Use in Battle
-              </Link>
+                {tr(" Use in Battle ")}</Link>
             </>
           )}
         </div>
       </div>
       {message && (
         <p role="status" className="alert">
-          {message}
+          {tr(message)}
           {message.startsWith('Saved new variant') && (
             <>
               {' '}
@@ -233,19 +227,18 @@ export default function ArmyEditor() {
                   if (!cancelNavigation()) e.preventDefault()
                 }}
               >
-                Open My Armies
-              </Link>
+                {tr(" Open My Armies ")}</Link>
             </>
           )}
         </p>
       )}
       {error && (
         <p role="alert" className="alert alert--danger">
-          {error}
+          {tr(error)}
         </p>
       )}
       <details className="roster-warning" open>
-        <summary>Roster checks</summary>
+        <summary>{tr("Roster checks")}</summary>
         <ul>
           {rosterWarnings({ ...draft, totalPoints: total }).map((w) => (
             <li key={w}>{w}</li>
@@ -255,8 +248,7 @@ export default function ArmyEditor() {
       {editing && (
         <section className="panel roster-fields">
           <label>
-            Roster name
-            <input
+            {tr(" Roster name ")}<input
               id="roster-name"
               maxLength={250}
               value={draft.name}
@@ -264,8 +256,7 @@ export default function ArmyEditor() {
             />
           </label>
           <label>
-            Points limit
-            <input
+            {tr(" Points limit ")}<input
               type="number"
               min="0"
               max="100000"
@@ -281,8 +272,7 @@ export default function ArmyEditor() {
             />
           </label>
           <label>
-            Data source
-            <select
+            {tr(" Data source ")}<select
               value={
                 draft.library?.source === 'homebrew' ? 'homebrew' : 'local-edit'
               }
@@ -299,19 +289,19 @@ export default function ArmyEditor() {
                 })
               }
             >
-              <option value="local-edit">Imported roster / local edit</option>
-              <option value="homebrew">Homebrew</option>
+              <option value="local-edit">{tr("Imported roster / local edit")}</option>
+              <option value="homebrew">{tr("Homebrew")}</option>
             </select>
           </label>
           {detachmentOptions.length > 0 ? (
             <div>
-              <strong>Detachments</strong>
+              <strong>{tr("Detachments")}</strong>
               {(draft.detachments.length
                 ? draft.detachments
                 : [{ id: '', name: 'Choose detachment' }]
               ).map((current, index) => (
                 <label key={index}>
-                  Detachment {index + 1}
+                  {tr(" Detachment ")}{index + 1}
                   <select
                     value={current.id}
                     onChange={(e) => {
@@ -329,7 +319,7 @@ export default function ArmyEditor() {
                       })
                     }}
                   >
-                    <option value={current.id}>{current.name} (current)</option>
+                    <option value={current.id}>{current.name} {tr(" (current)")}</option>
                     {detachmentOptions
                       .filter((d) => d.id !== current.id)
                       .map((d) => (
@@ -341,27 +331,22 @@ export default function ArmyEditor() {
                 </label>
               ))}
               <small>
-                Names from the bundled community dataset. Verify current
-                edition, unit restrictions and enhancements after changing.
-              </small>
+                {tr(" Names from the bundled community dataset. Verify current edition, unit restrictions and enhancements after changing. ")}</small>
             </div>
           ) : (
             <div>
-              <strong>Detachment</strong>
+              <strong>{tr("Detachment")}</strong>
               <p>
                 {draft.detachments.map((d) => d.name).join(' · ') ||
-                  'Not included in this import.'}
+                  tr('Not included in this import.')}
               </p>
               <small>
-                No matching detachment catalogue. Reimport an official change,
-                or label a manual change as Homebrew.
-              </small>
+                {tr(" No matching detachment catalogue. Reimport an official change, or label a manual change as Homebrew. ")}</small>
             </div>
           )}
           {draft.library?.source === 'homebrew' && (
             <label>
-              Homebrew detachment name
-              <input
+              {tr(" Homebrew detachment name ")}<input
                 value={draft.detachments[0]?.name ?? ''}
                 onChange={(e) =>
                   change({
@@ -376,7 +361,7 @@ export default function ArmyEditor() {
           )}
         </section>
       )}
-      <section className="roster-unit-list" aria-label="Roster units">
+      <section className="roster-unit-list" aria-label={tr("Roster units")}>
         {draft.units.map((u, index) => (
           <article className="panel roster-unit" key={u.id}>
             <div className="roster-unit-heading">
@@ -384,9 +369,8 @@ export default function ArmyEditor() {
               <div>
                 <h2>{u.name}</h2>
                 <p>
-                  {u.startingModels} models · {u.points} pts
-                  {u.editor?.customPoints ? ' · Custom points' : ''}
-                  {u.isWarlord ? ' · Warlord' : ''}
+                  {u.startingModels} {tr(" models · ")}{u.points} {tr(" pts ")}{u.editor?.customPoints ? tr(' · Custom points') : ''}
+                  {u.isWarlord ? tr(' · Warlord') : ''}
                 </p>
               </div>
             </div>
@@ -394,8 +378,7 @@ export default function ArmyEditor() {
               <>
                 <div className="roster-fields">
                   <label>
-                    Unit points (custom override)
-                    <input
+                    {tr(" Unit points (custom override) ")}<input
                       type="number"
                       min="0"
                       max="100000"
@@ -410,8 +393,7 @@ export default function ArmyEditor() {
                     />
                   </label>
                   <label>
-                    Leader → Bodyguard
-                    <select
+                    {tr(" Leader → Bodyguard ")}<select
                       value={u.leaderOfUnitId ?? ''}
                       onChange={(e) =>
                         updateUnit(u.id, (current) => ({
@@ -420,7 +402,7 @@ export default function ArmyEditor() {
                         }))
                       }
                     >
-                      <option value="">Unattached</option>
+                      <option value="">{tr("Unattached")}</option>
                       {draft.units
                         .filter(
                           (target) =>
@@ -430,14 +412,12 @@ export default function ArmyEditor() {
                         )
                         .map((target) => (
                           <option key={target.id} value={target.id}>
-                            {target.name} (verify eligibility)
-                          </option>
+                            {target.name} {tr(" (verify eligibility) ")}</option>
                         ))}
                     </select>
                   </label>
                   <label>
-                    Warlord
-                    <input
+                    {tr(" Warlord ")}<input
                       type="checkbox"
                       checked={u.isWarlord}
                       onChange={(e) =>
@@ -453,17 +433,14 @@ export default function ArmyEditor() {
                   </label>
                 </div>
                 <details>
-                  <summary>Edit model groups</summary>
+                  <summary>{tr("Edit model groups")}</summary>
                   <p className="context-note">
-                    Manual variant: points and equipment are not automatically
-                    adjusted. Verify the allowed unit size and cost.
-                  </p>
+                    {tr(" Manual variant: points and equipment are not automatically adjusted. Verify the allowed unit size and cost. ")}</p>
                   {u.modelGroups.length ? (
                     u.modelGroups.map((g, gi) => (
                       <label key={gi}>
-                        {g.name} — models
-                        <input
-                          aria-label={`${g.name} models`}
+                        {g.name} {tr(" — models ")}<input
+                          aria-label={tr(`${g.name} models`, "{0} models")}
                           type="number"
                           min="0"
                           max="1000"
@@ -498,9 +475,7 @@ export default function ArmyEditor() {
                     ))
                   ) : (
                     <p>
-                      No per-model profile data in this import; reimport to
-                      change model count.
-                    </p>
+                      {tr(" No per-model profile data in this import; reimport to change model count. ")}</p>
                   )}
                 </details>
                 <div className="roster-actions">
@@ -519,8 +494,7 @@ export default function ArmyEditor() {
                       })
                     }}
                   >
-                    Duplicate unit
-                  </button>
+                    {tr(" Duplicate unit ")}</button>
                   <button
                     className="button button--small"
                     onClick={() =>
@@ -541,22 +515,21 @@ export default function ArmyEditor() {
                       })
                     }
                   >
-                    Remove unit
-                  </button>
+                    {tr(" Remove unit ")}</button>
                 </div>
               </>
             )}
             {!editing && (
               <p>
                 {u.leaderOfUnitId
-                  ? `Leads: ${draft.units.find((target) => target.id === u.leaderOfUnitId)?.name}`
+                  ? tr(`Leads: ${draft.units.find((target) => target.id === u.leaderOfUnitId)?.name}`, "Leads: {0}")
                   : u.ledByUnitIds.length
-                    ? `Led by: ${u.ledByUnitIds.map((id) => draft.units.find((unit) => unit.id === id)?.name).join(', ')}`
-                    : 'Unattached'}
+                    ? tr(`Led by: ${u.ledByUnitIds.map((id) => draft.units.find((unit) => unit.id === id)?.name).join(', ')}`, "Led by: {0}")
+                    : tr('Unattached')}
               </p>
             )}
             <details>
-              <summary>Profiles, equipment & enhancements</summary>
+              <summary>{tr("Profiles, equipment & enhancements")}</summary>
               <p>
                 {u.modelGroups
                   .map((g) => `${g.name}: ${g.equipment.join(', ')}`)
@@ -570,21 +543,17 @@ export default function ArmyEditor() {
               {u.enhancements.map((enh, i) => (
                 <p key={i}>
                   <strong>
-                    {enh.name} · {enh.points} pts
-                  </strong>{' '}
-                  {enh.description}
+                    {enh.name} · {enh.points} {tr(" pts ")}</strong>{' '}
+                  {tr(enh.description)}
                 </p>
               ))}
               {u.abilities.map((a, i) => (
                 <p key={i}>
-                  <strong>{a.name}</strong> {a.description}
+                  <strong>{a.name}</strong> {tr(a.description)}
                 </p>
               ))}
               <small>
-                Only the selected loadout is available in this export.
-                Alternative profiles and upgrade prices are not known; reimport
-                a loadout change from New Recruit.
-              </small>
+                {tr(" Only the selected loadout is available in this export. Alternative profiles and upgrade prices are not known; reimport a loadout change from New Recruit. ")}</small>
             </details>
           </article>
         ))}
