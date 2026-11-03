@@ -1,3 +1,4 @@
+import type { Campaign } from '../features/campaigns/model'
 import type { RematchPreset } from '../features/battleLegacy/rematch'
 import type { ArchiveRecord } from '../features/battleLegacy/archive'
 import Dexie, { type EntityTable } from 'dexie'
@@ -45,6 +46,7 @@ class TabletopDatabase extends Dexie {
   battles!: EntityTable<StoredBattle, 'id'>
   battleArchive!: EntityTable<ArchiveRecord, 'id'>
   battlePresets!: EntityTable<RematchPreset, 'id'>
+  campaigns!: EntityTable<Campaign, 'id'>
   constructor() {
     super('tabletop-companion')
     this.version(1).stores({
@@ -56,6 +58,7 @@ class TabletopDatabase extends Dexie {
       battles: '&id, status, updatedAt',
       visualMedia: '&key, armyId, updatedAt',
     })
+    this.version(6).stores({ campaigns: '[ownerId+id], ownerId' })
     this.version(5).stores({ battlePresets: '[ownerId+id], ownerId' })
     this.version(4).stores({ battleArchive: '[ownerId+id], ownerId' })
     this.version(3).stores({

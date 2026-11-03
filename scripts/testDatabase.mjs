@@ -16,6 +16,7 @@ export async function createTestDatabase() {
     grant usage on schema storage to anon,authenticated; grant select,insert,update,delete on storage.objects to authenticated;`)
   for (const path of [
     'supabase/shared_sessions.sql',
+    'supabase/migrations/20261103105654_narrative_campaigns_private.sql',
     'supabase/migrations/20261103103209_battle_archive_private.sql',
     'supabase/migrations/20261103104214_restrict_archive_default_grants.sql',
     'supabase/migrations/20261013094351_battlefield_geometry_host_policy.sql',

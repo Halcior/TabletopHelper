@@ -8,6 +8,7 @@ import { Link, NavLink, Route, Routes, useLocation } from 'react-router-dom'
 import { AppIcon } from './components/AppIcon'
 import { AppBackground } from './components/AppBackground'
 
+const Campaigns = lazy(() => import('./pages/Campaigns'))
 const BattleArchive = lazy(() => import('./pages/BattleArchive'))
 const Friends = lazy(() => import('./pages/Friends'))
 const Account = lazy(() => import('./pages/Account'))
@@ -49,6 +50,7 @@ export default function App() {
       {!inBattle && <LocalImportNotice />}
       <Suspense fallback={<div className="page-shell"><div className="loading-state" role="status">Loading tabletop…</div></div>}>
         <Routes>
+          <Route path="/campaigns" element={<Campaigns key={account?.id ?? 'guest'} />} /><Route path="/campaigns/:campaignId" element={<Campaigns key={account?.id ?? 'guest'} />} />
           <Route path="/archive" element={<BattleArchive key={account?.id ?? 'guest'} />} /><Route path="/archive/:archiveId" element={<BattleArchive key={account?.id ?? 'guest'} />} />
           <Route path="/friends" element={<Friends key={account?.id ?? 'guest'} />} />
           <Route path="/friends/:friendId" element={<Friends key={account?.id ?? 'guest'} />} />

@@ -64,6 +64,8 @@ export class PostgresBackend {
           if (
             ![
               'battle_clock_action',
+              'save_battle_archive',
+              'save_narrative_campaign',
               'social_action',
               'stage_shared_roster',
               'set_shared_seat_settings',
@@ -89,6 +91,8 @@ export class PostgresBackend {
         if (
           ![
             'user_armies',
+            'battle_archive',
+            'narrative_campaigns',
             'shared_rooms',
             'shared_participants',
             'shared_events',
