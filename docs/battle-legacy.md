@@ -98,3 +98,48 @@ settings. Named presets retain the recorded FFA Primary balance (including legac
 absence meaning original). Snapshot-only rosters do not show broken library edit
 links. Two connection lifecycle tests and two browser regressions (Tactical →
 Fixed/preset balance; delayed initial PostgreSQL clock poll) pass.
+
+## D — narrative campaigns
+
+Campaigns support 2–6 explicit participants, 3–12 fictional locations, faction
+control, strategic values, links, optional progressive unlocks and points/territory
+victory targets. Rules are separately declared for 1v1/FFA/2v2. A unique winning
+side earns win points × location value per winner; tied leaders earn draw points
+without control transfer. Doubles winners form a coalition. VP is never mixed
+across formats. Campaign effects follow confirmation order and never alter battles.
+
+Only reliable archived results with every identity linked can be assigned. Each
+battle affects a campaign once. Revocation is another campaign event; projection
+recomputes control and points, preserving the timeline. Dependent results at a
+newly locked location are explicitly marked suppressed. Source event/identity
+signatures detect changed results without sharing the underlying private history.
+Manual fiction is clearly labelled separately from recorded battle facts.
+
+IndexedDB v6 stores host-owned campaigns. Explicit cloud sync supports revision
+conflicts and lost acknowledgements. Shared participant views are memory-only,
+refreshed through permission-checked reads and cleared offline. Hosts can link or
+revoke account access and sync that change. Only aggregate result facts and campaign
+text are shared; rosters, raw events, private notes and hidden cards are excluded.
+
+Migration `20261103105654_narrative_campaigns_private.sql` is deployed after a
+fresh history/schema check. Owner/member read policies, host-only writes and an
+access-membership derivation trigger are enabled; anonymous privileges revoked.
+Shared game schema remains 12; advisors have no new findings.
+
+Validation: full 711-unit suite plus the added unlock-dependency regression (712
+now), TypeScript, production build, PostgreSQL/RLS including member revocation and
+anonymous denial. Browser tests cover mobile creation, conquest, fiction, refresh,
+revocation; two account contexts verify actual PostgreSQL RPC, member read-only
+view, no persistent shared cache, and access removal. PL mobile/desktop screenshots
+reviewed; real group/phone playtest remains necessary.
+
+## Optional F — future league design
+
+A league should reference archive game IDs rather than clone session/results. Use
+private group membership, immutable season rules per format and a derived table
+of completed, non-withdrawn results. FFA placement points and Doubles team points
+must be explicitly configured before combining season standings. Awards should
+reference measured archive facts and preserve unknown data. This optional module
+is deferred until the main campaign flow has been tried during real games.
+
+Deployed migration identity map: archive `20261103104136`, archive grant hardening `20261103104248`, campaign `20261103133943`. These are the deployed equivalents of the repository migration files; do not reapply them under their local filenames.

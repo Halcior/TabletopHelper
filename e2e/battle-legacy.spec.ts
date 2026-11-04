@@ -66,6 +66,40 @@ test('rematch uses deleted roster snapshots, allows review and starts a fresh in
  expect(current.id).not.toBe(original.id); expect(current.vp).toBe(0); expect(current.alive).toBe(true); expect(current.original).toBe(original.serialized)
 })
 
+test('campaign assigns factual results once, retains fiction separately and rolls back a conquest', async ({ page }) => {
+ await page.setViewportSize({ width:390,height:844 }); await page.goto('/')
+ await page.evaluate(async () => {
+  const { testCauldronGame } = await import('/src/rulesets/cauldronFFA3/cauldronTestUtils.ts')
+  const { dispatchBattleEvent, completeBattle } = await import('/src/domain/battle/engine.ts')
+  const { saveBattle } = await import('/src/persistence/database.ts')
+  const { database } = await import('/src/persistence/storage.ts')
+  let s=dispatchBattleEvent(testCauldronGame(),{type:'SCORE_ADJUSTED',payload:{playerId:'p-a',category:'adjustment',delta:70}})
+  s=completeBattle(s);await saveBattle(s)
+  const r=(await database.battleArchive.get(['guest',s.setup.gameId]))!
+  r.identities={'p-a':{id:'local:self',label:'Me'},'p-b':{id:'local:enemy',label:'Enemy'},'p-c':{id:'local:third',label:'Third'}}
+  await database.battleArchive.put(r)
+ })
+ await page.goto('/campaigns');await page.getByRole('button',{name:'Create campaign',exact:true}).click()
+ await page.getByLabel('Campaign name',{exact:true}).fill('The Vespera War')
+ await page.getByRole('checkbox',{name:'Enemy',exact:true}).check();await page.getByRole('checkbox',{name:'Third',exact:true}).check()
+ await page.getByRole('button',{name:'Create private campaign',exact:true}).click()
+ await expect(page.getByRole('heading',{name:'The Vespera War',exact:true})).toBeVisible()
+ await page.getByRole('button',{name:'Vespera Prime',exact:true}).click()
+ await page.getByLabel('Archived battle',{exact:true}).selectOption('cauldron-test')
+ await page.getByRole('button',{name:'Confirm campaign result',exact:true}).click()
+ await expect(page.locator('.sector-location dd').first()).toHaveText('army-a faction')
+ await page.getByLabel('Chapter title',{exact:true}).fill('The Golden Intervention')
+ await page.getByLabel('Fictional narrative · separate from recorded battle facts',{exact:true}).fill('A fictional dawn over Vespera.')
+ await page.getByRole('button',{name:'Save chapter',exact:true}).click()
+ await expect(page.getByText('Fiction · manual chapter',{exact:false})).toBeVisible()
+ await page.reload();await expect(page.locator('.sector-location dd').first()).toHaveText('army-a faction')
+ expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth+1)).toBe(true)
+ await page.screenshot({path:'test-results/campaign-mobile.png',fullPage:true})
+ await page.getByRole('button',{name:'Withdraw campaign result',exact:true}).click()
+ await expect(page.locator('.sector-location dd').first()).toHaveText('Neutral')
+ await expect(page.getByText('The Golden Intervention',{exact:true})).toBeVisible()
+})
+
 test('reviewing Tactical as Fixed seeds every player pair and saving preserves original Primary balance', async ({ page }) => {
  await page.goto('/')
  const id=await page.evaluate(async()=>{
@@ -112,4 +146,50 @@ test('online rematch waits for its first server clock snapshot and reaches the c
   await expect(page.getByLabel('Clock mode')).toHaveValue('casual')
   expect(await page.evaluate(async()=> (await import('/src/multiplayer/sharedSessionStore.ts')).useSharedSessionStore.getState().clockSnapshot?.config.limitMs)).toBe(7200000)
  } finally {await context.close();await backend.close()}
+})
+
+test('private campaign sync grants a member read-only access and removes it after revocation',async({browser})=>{
+ const backend=new PostgresBackend();await backend.init()
+ const a=await browser.newContext(),b=await browser.newContext(),copy=await browser.newContext(),host=await a.newPage(),member=await b.newPage(),copyHost=await copy.newPage()
+ async function login(page: typeof host,email:string){
+  await page.goto('/account');await page.getByRole('textbox',{name:'Email',exact:true}).fill(email)
+  await page.getByRole('button',{name:'Send sign-in link'}).click();await page.getByText('Enter email code',{exact:true}).click()
+  await page.getByRole('textbox',{name:'Email code'}).fill('123456');await page.getByRole('button',{name:'Verify code'}).click()
+  await expect(page.getByRole('heading',{name:email,exact:true})).toBeVisible()
+ }
+ try {
+  await backend.attach(a);await backend.attach(b);await backend.attach(copy);await login(host,'a@example.test');await login(member,'b@example.test')
+  const id=await host.evaluate(async()=>{
+   const { createCampaign }=await import('/src/features/campaigns/model.ts')
+   const { saveCampaign }=await import('/src/features/campaigns/repository.ts')
+   const c=createCampaign({ownerId:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',name:'Private sector',description:'Members only',participants:[{id:'host',name:'Host',faction:'Custodes',profileId:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'},{id:'member',name:'Member',faction:'Necrons',profileId:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'}],locationCount:3,victory:{type:'points',target:10}})
+   await saveCampaign(c);return c.id
+  })
+  await host.goto(`/campaigns/${id}`);await host.getByRole('button',{name:'Sync private campaign',exact:true}).click()
+  await expect.poll(async()=>await host.evaluate(async()=> (await (await import('/src/persistence/storage.ts')).database.campaigns.toArray())[0].revision)).toBe(1)
+  await member.goto(`/campaigns/${id}`);await expect(member.getByRole('heading',{name:'Private sector',exact:true})).toBeVisible()
+  await expect(member.getByRole('heading',{name:'Assign an archived battle',exact:true})).toHaveCount(0)
+  expect(await member.evaluate(async()=> (await (await import('/src/persistence/storage.ts')).database.campaigns.toArray()).length)).toBe(0)
+  await login(copyHost,'a@example.test');await copyHost.goto(`/campaigns/${id}`)
+  await expect(copyHost.getByRole('heading',{name:'Private sector',exact:true})).toBeVisible()
+  expect(await copyHost.evaluate(async()=> (await (await import('/src/persistence/storage.ts')).database.campaigns.toArray()).length)).toBe(0)
+  await copyHost.getByRole('button',{name:'Sync private campaign',exact:true}).click()
+  await expect.poll(async()=>await copyHost.evaluate(async()=> (await (await import('/src/persistence/storage.ts')).database.campaigns.toArray()).length)).toBe(1)
+  await copy.setOffline(true);await expect(copyHost.getByRole('heading',{name:'Private sector',exact:true})).toBeVisible()
+  await host.getByText('Participant account access',{exact:true}).click()
+  await host.getByLabel('Account access · Member',{exact:true}).selectOption('')
+  await host.getByRole('button',{name:'Sync private campaign',exact:true}).click()
+  await expect.poll(async()=>await host.evaluate(async()=> (await (await import('/src/persistence/storage.ts')).database.campaigns.toArray())[0].revision)).toBe(2)
+  await member.getByRole('button',{name:'Refresh shared campaigns',exact:true}).click()
+  await expect(member.getByText('Campaign unavailable in this account or connection.',{exact:true})).toBeVisible()
+  await expect(member.getByRole('heading',{name:'Private sector',exact:true})).toHaveCount(0)
+  await host.evaluate(async()=> (await import('/src/features/i18n/locale.ts')).useLocale.getState().setLocale('pl'))
+  await host.setViewportSize({width:390,height:844})
+  await expect(host.getByRole('heading',{name:'Kampanie fabularne',exact:true})).toBeVisible()
+  expect(await host.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true)
+  await host.evaluate(()=>window.scrollTo(0,0))
+  await host.screenshot({path:'test-results/campaign-mobile.png',fullPage:true})
+  await host.setViewportSize({width:1440,height:1000})
+  await host.screenshot({path:'test-results/campaign-desktop.png',fullPage:true})
+ } finally {await a.close();await b.close();await copy.close();await backend.close()}
 })

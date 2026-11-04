@@ -73,7 +73,7 @@ export default function Home() {
 
   return (
     <div className="page-shell home-page home-page--focused">
-      <Link className="button" to="/archive">{tr("Battle Archive & Statistics")}</Link>
+      <div className="legacy-actions"><Link className="button" to="/archive">{tr("Battle Archive & Statistics")}</Link><Link className="button" to="/campaigns">{tr("Narrative Campaigns")}</Link></div>
       <section className="home-command-hub">
         <div className="home-command-hub__heading">
           <span className="eyebrow">{tr("TabletopHelper")}</span>

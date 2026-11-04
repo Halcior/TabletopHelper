@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { createTestDatabase } from './testDatabase.mjs'
 const db = await createTestDatabase()
 try {
+  await db.exec(readFileSync('supabase/tests/narrative_campaigns.sql','utf8'))
   await db.exec(readFileSync('supabase/tests/battle_archive.sql','utf8'))
   await db.exec(
     readFileSync('supabase/tests/friends_shared_armies.sql', 'utf8'),
