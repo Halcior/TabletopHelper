@@ -8,6 +8,7 @@ import { Link, NavLink, Route, Routes, useLocation } from 'react-router-dom'
 import { AppIcon } from './components/AppIcon'
 import { AppBackground } from './components/AppBackground'
 
+const BattleArchive = lazy(() => import('./pages/BattleArchive'))
 const Friends = lazy(() => import('./pages/Friends'))
 const Account = lazy(() => import('./pages/Account'))
 const ArmyLibrary = lazy(() => import('./pages/ArmyLibrary'))
@@ -39,6 +40,7 @@ export default function App() {
             <NavLink to="/" end><AppIcon name="home" /><span>{tr("Home")}</span></NavLink>
             <NavLink to="/shared"><AppIcon name="shared" /><span>{tr("Shared")}</span></NavLink>
             <NavLink to="/armies"><AppIcon name="army" /><span>{tr("Armies")}</span></NavLink>
+            <NavLink to="/archive"><AppIcon name="report" /><span>{tr("Archive")}</span></NavLink>
             <NavLink to="/friends"><AppIcon name="shared" /><span>{tr("Friends")}</span></NavLink>
             <NavLink to="/account" title={account?.email ?? tr('Optional account')}><AppIcon name="account" /><span>{account ? tr('Account') : tr('Sign in')}</span></NavLink>
           </nav>
@@ -47,6 +49,7 @@ export default function App() {
       {!inBattle && <LocalImportNotice />}
       <Suspense fallback={<div className="page-shell"><div className="loading-state" role="status">Loading tabletop…</div></div>}>
         <Routes>
+          <Route path="/archive" element={<BattleArchive key={account?.id ?? 'guest'} />} /><Route path="/archive/:archiveId" element={<BattleArchive key={account?.id ?? 'guest'} />} />
           <Route path="/friends" element={<Friends key={account?.id ?? 'guest'} />} />
           <Route path="/friends/:friendId" element={<Friends key={account?.id ?? 'guest'} />} />
           <Route path="/account" element={<Account key={account?.id ?? 'guest'} />} />

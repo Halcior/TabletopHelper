@@ -89,7 +89,7 @@ export default function Account() {
         <p>
           {tr(" Use TabletopHelper as a guest, or sign in to sync your private army lists across devices. ")}</p>
       </section>
-      <section className="panel account-panel"><LanguageSettings /></section>
+      <section className="panel account-panel"><LanguageSettings /><Link className="button" to="/archive">{tr("Battle Archive & Statistics")}</Link></section>
       {(error || authError) && (
         <p role="alert" className="alert alert--danger">
           {tr(error) || tr(authError)}
