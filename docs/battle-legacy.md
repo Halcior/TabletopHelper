@@ -133,6 +133,48 @@ revocation; two account contexts verify actual PostgreSQL RPC, member read-only
 view, no persistent shared cache, and access removal. PL mobile/desktop screenshots
 reviewed; real group/phone playtest remains necessary.
 
+## E — War Chronicle and PDF
+
+War Chronicle is available from each archived battle, outside active Battle Focus.
+Three offline styles (Tactical Report, War Chronicle and Campaign Chronicle) use
+canonical net engagement contributions, confirmed partial damage, final scores,
+recorded movements/reserve entries and objective control. Unknown sources and
+coordinates remain unknown; restorations do not become fictional eliminations.
+Faction and unit names replace player names in generated text. Incomplete legacy
+history is labelled unverified and does not produce inferred unit statistics.
+Campaign context uses the actual assigned result, control transition and points.
+
+Titles and narrative are editable, with private draft persistence and one-step
+restore after regeneration. A source signature warns about revised results;
+mutation checks retain text instead of overwriting concurrent archive edits.
+Editorial text is explicitly separated from recorded facts and unit statistics.
+The existing deterministic Battle Report remains available.
+
+Export opens a self-contained A4 print preview; the browser's Print / Save as PDF
+creates the PDF. Dark/gold and printer-friendly variants include the narrative,
+factual highlights, unit contributions and up to three selected replay snapshots.
+Only recorded unit coordinates are drawn, with grouped numbered markers and a
+separate legend. Output escapes user content, preserves Polish glyphs and uses no
+external artwork or assets. Generated example PDFs were inspected page by page.
+
+No external AI provider is configured. The optional panel previews and copies a
+minimal factual brief for manual use; the application sends nothing. It excludes
+account/player identities, private notes, raw rosters, hidden cards and the edited
+story. Provider integration, server-side keys and call limits remain future work.
+
+No database migration or shared-session schema change is required for E. Drafts
+use the archive's existing owner-private metadata and explicit synchronization.
+Validation includes 719 passing unit tests, PostgreSQL/RLS, TypeScript and a
+production build. Browser coverage exercises offline generation/edit/save/reload,
+source immutability, PL/EN, mobile overflow and both PDF variants with real recorded
+maps. The full browser suite passed 100 cases (two production-only cases skipped),
+then both production-offline cases passed. A final targeted regression verifies
+restoration/removal of campaign context across reload and archive Chronicle links
+opening the requested map event; TypeScript and all seven narrator tests passed
+again after these changes. CI for stages A–D is green.
+Physical checks: several phones during a real game, campaign administration with
+the group, dense tracked-unit maps, and PDF pagination in each target browser.
+
 ## Optional F — future league design
 
 A league should reference archive game IDs rather than clone session/results. Use
