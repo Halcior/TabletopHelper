@@ -26,7 +26,27 @@ test('two phones review their own asymmetric Primary, including opponent-turn Pu
     await bravo.page.goto(`/shared?room=${code}`)
     await bravo.page.locator('input[name="shared-seat"][value="player-b"]').check()
     await bravo.page.getByRole('button', { name: 'Join lobby' }).click()
-    for (const page of [alpha.page, bravo.page]) await page.getByRole('button', { name: 'I am ready' }).click()
+    await expect(bravo.page.getByRole('button', { name: 'I am ready' })).toBeEnabled()
+    // Reproduce the join/restore effect racing a Ready command that has
+    // captured its generation and is still awaiting the backend preflight.
+    await bravo.page.evaluate(async () => {
+      const { useSharedSessionStore } = await import('/src/multiplayer/sharedSessionStore.ts')
+      const originalCheck = useSharedSessionStore.getState().checkBackend
+      let release!: (ready: boolean) => void
+      const preflight = new Promise<boolean>(resolve => { release = resolve })
+      // The lobby effect also checks the backend when this function changes.
+      // Share one barrier so it cannot overwrite the Ready command's resolver.
+      useSharedSessionStore.setState({ connectionStatus: 'connecting', checkBackend: () => preflight })
+      try {
+        const ready = useSharedSessionStore.getState().setReady(true)
+        await useSharedSessionStore.getState().restoreForBattle(useSharedSessionStore.getState().membership!.battleId)
+        release(true)
+        await ready
+      } finally { useSharedSessionStore.setState({ checkBackend: originalCheck }) }
+    })
+    await expect(bravo.page.getByRole('button', { name: 'Cancel readiness', exact: true })).toBeVisible()
+    await alpha.page.getByRole('button', { name: 'I am ready', exact: true }).click()
+    await expect(alpha.page.locator('.shared-lobby-seat.is-ready')).toHaveCount(2)
     await alpha.page.getByRole('button', { name: 'Start battle' }).click()
     await Promise.all([alpha.page, bravo.page].map((page) => expect(page).toHaveURL(/\/battle\//)))
     await expect(alpha.page.getByRole('button', { name: 'Keep cards', exact: true })).toBeVisible()

@@ -79,6 +79,8 @@ export default function BattleDashboard() {
   const [visitedPanels, setVisitedPanels] = useState<Set<DashboardTab>>(() => new Set(['overview']))
   const [moreOpen, setMoreOpen] = useState(false)
   const moreTrigger = useRef<HTMLButtonElement>(null)
+  const [replayEventId, setReplayEventId] = useState<string | null>(null)
+  const showMapEvent = (eventId: string) => { setTab('objectives'); setReplayEventId(eventId); setReplayRequest(current => current + 1); setTerminalLogOpen(false); setTerminalBoardOpen(true) }
   const [replayRequest, setReplayRequest] = useState(0)
   const [boardEditing, setBoardEditing] = useState(false)
   const [sessionDetailsOpen, setSessionDetailsOpen] = useState(false)
@@ -348,8 +350,8 @@ export default function BattleDashboard() {
         <button className="terminal-report-toggle" onClick={() => setTerminalReportOpen((current) => !current)}>{terminalReportOpen ? tr('Hide Battle Report') : tr('View Battle Report')}</button>
         {terminalReportOpen && <BattleReport session={session} />}
         <button className="terminal-report-toggle" onClick={() => setTerminalBoardOpen((current) => !current)}>{terminalBoardOpen ? tr('Hide battlefield replay') : tr('View battlefield replay')}</button>
-        {terminalBoardOpen && <ObjectivesPanel session={session} dispatch={dispatch} />}
-        {terminalLogOpen && <div className="battle-terminal-log"><BattleLog session={session} /></div>}
+        {terminalBoardOpen && <ObjectivesPanel session={session} dispatch={dispatch} replayRequest={replayRequest} replayEventId={replayEventId} />}
+        {terminalLogOpen && <div className="battle-terminal-log"><BattleLog session={session} onShowMap={showMapEvent} /></div>}
       </main> : <>
         <Scoreboard
           session={session}
@@ -467,7 +469,7 @@ export default function BattleDashboard() {
               secondaryTargetFilter={armySecondaryFilter}
               onClearSecondaryTargetFilter={() => setArmySecondaryFilter(null)}
             /></section>}
-            {visitedPanels.has('objectives') && <section className="battle-panel" hidden={tab !== 'objectives'} aria-label={tr("Objectives")}><ObjectivesPanel session={session} dispatch={dispatch} liveObjectiveIds={liveFeedback.objectiveIds} replayRequest={replayRequest} onEditingChange={setBoardEditing} active={tab === 'objectives'} /></section>}
+            {visitedPanels.has('objectives') && <section className="battle-panel" hidden={tab !== 'objectives'} aria-label={tr("Objectives")}><ObjectivesPanel session={session} dispatch={dispatch} liveObjectiveIds={liveFeedback.objectiveIds} replayRequest={replayRequest} replayEventId={replayEventId} onEditingChange={setBoardEditing} active={tab === 'objectives'} /></section>}
             {visitedPanels.has('cards') && cauldron && <section className="battle-panel" hidden={tab !== 'cards'} aria-label={tr("Mission cards")}>
               {officialPrimary && <OfficialPrimaryPanel session={session} playerId={sharedBattle ? viewerPlayerId ?? active.id : active.id} />}
               {duelPrimary && <DuelPrimaryPanel session={session} playerId={primaryViewerId} window={duelReviewWindow} editable={!sharedBattle || Boolean(viewerPlayerId)} />}
@@ -475,7 +477,7 @@ export default function BattleDashboard() {
                 ? <OfficialSecondaryPanel session={session} playerId={primaryViewerId} editable={!sharedBattle || Boolean(viewerPlayerId)} />
                 : <SecondaryDetailPanel session={session} playerId={sharedBattle ? viewerPlayerId ?? active.id : active.id} />}
             </section>}
-            {visitedPanels.has('log') && <section className="battle-panel" hidden={tab !== 'log'} aria-label={tr("Battle Chronicle")}><BattleLog session={session} /></section>}
+            {visitedPanels.has('log') && <section className="battle-panel" hidden={tab !== 'log'} aria-label={tr("Battle Chronicle")}><BattleLog session={session} onShowMap={showMapEvent} /></section>}
             {visitedPanels.has('report') && <section className="battle-panel" hidden={tab !== 'report'} aria-label={tr("Battle Report")}><BattleReport session={session} /></section>}
           </main>
 

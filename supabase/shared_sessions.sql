@@ -261,8 +261,13 @@ create policy "shared events create" on public.shared_events
         and room.code = public.request_shared_room_code()
         and room.started_at is not null
         and (
-          shared_events.event_payload ->> 'type' not in ('STATE_CORRECTED', 'BATTLEFIELD_LAYOUT_CHANGED')
-          or participant.is_host = true
+          shared_events.event_payload ->> 'type' not in ('STATE_CORRECTED', 'BATTLEFIELD_LAYOUT_CHANGED', 'UNIT_TRACKING_CHANGED')
+          or (participant.is_host = true and room.host_client_id = participant.client_id)
+        )
+        and (
+          shared_events.event_payload ->> 'type' <> 'UNIT_MAP_CHANGED'
+          or shared_events.event_payload -> 'payload' ->> 'playerId' = participant.player_id
+          or (participant.is_host = true and room.host_client_id = participant.client_id)
         )
     )
   );

@@ -69,7 +69,7 @@ export class MockSupabase {
     const resource = url.pathname.replace(/^\/rest\/v1\//, '')
     const method = request.method()
 
-    if (resource === 'rpc/shared_schema_version') return void await json(route, 11)
+    if (resource === 'rpc/shared_schema_version') return void await json(route, 12)
 
     if (resource === 'rpc/battle_clock_action') return void await json(route, { config: { preset: 'off', limitMs: 0 }, clock: null, serverNow: Date.now(), applied: true })
 
@@ -149,12 +149,13 @@ export class MockSupabase {
       if (method === 'POST') {
         const inputs = request.postDataJSON() as Array<JsonObject & { room_id: string; event_id: string; event_payload: JsonObject }>
         for (const input of inputs) {
-          if (input.event_payload.type !== 'BATTLEFIELD_LAYOUT_CHANGED') continue
+          if (!['BATTLEFIELD_LAYOUT_CHANGED', 'UNIT_TRACKING_CHANGED', 'UNIT_MAP_CHANGED'].includes(String(input.event_payload.type))) continue
           const participant = this.participants.find((candidate) => candidate.room_id === input.room_id
             && candidate.client_id === request.headers()['x-client-id']
             && candidate.player_id === input.event_payload.actorPlayerId)
           const room = this.rooms.find((candidate) => candidate.id === input.room_id)
-          if (!participant?.is_host || !room?.started_at || room.code !== request.headers()['x-room-code']) {
+          if (!participant || !room?.started_at || room.code !== request.headers()['x-room-code']
+            || (input.event_payload.type === 'UNIT_MAP_CHANGED' ? !participant.is_host && (input.event_payload.payload as JsonObject)?.playerId !== participant.player_id : !participant.is_host)) {
             return void await json(route, { message: 'new row violates row-level security policy' }, 403)
           }
         }

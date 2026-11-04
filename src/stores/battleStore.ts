@@ -27,6 +27,7 @@ import {
 } from '../domain/stratagems/battleIntegration'
 import type { ReactionTriggerInput, UseStratagemInput } from '../domain/stratagems/battleIntegration'
 import { assertSharedMutationAllowed, getSharedRuntimeMembership } from '../multiplayer/sharedRuntime'
+import { attributeLocalSharedEvents } from '../multiplayer/sharedSync'
 import { getBattle, getLatestActiveBattle, saveBattle } from '../persistence/database'
 import {
   advanceCauldronPhase,
@@ -132,9 +133,13 @@ function applySessionUpdate(
   if (!current) return
   try {
     const next = update(current)
-    const shared = getSharedRuntimeMembership()?.battleId === current.setup.gameId
-    const session = { ...next, battleClock: shared ? current.battleClock : reconcileClock(current.battleClock, next, Date.now()) }
-    assertSharedMutationAllowed(current, session)
+    const membership = getSharedRuntimeMembership()
+    const shared = membership?.battleId === current.setup.gameId
+    const candidate = { ...next, battleClock: shared ? current.battleClock : reconcileClock(current.battleClock, next, Date.now()) }
+    assertSharedMutationAllowed(current, candidate)
+    // The engine may attribute an allied phase change to the force captain.
+    // Persist the actual submitting seat before either publication or reload.
+    const session = shared ? attributeLocalSharedEvents(current, candidate, membership.playerId) : candidate
     set({ session, error: null })
     queueSave(session)
   } catch (error: unknown) {
