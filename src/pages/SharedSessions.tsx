@@ -262,6 +262,7 @@ export default function SharedSessions() {
   </div>
 
   if (membership) return <div className="page-shell shared-session-page shared-lobby-page">
+    {new URLSearchParams(location.search).get('clockReview') === '1' && <p role="alert">{tr("The room was created. Review and save the recorded Battle Clock settings before marking Ready.")}</p>}
     <section className="panel shared-room-focus shared-lobby">
       <div className="shared-room-focus__code"><span>{roomStartedAt ? tr('Battle room') : tr('Waiting room')}</span><strong>{membership.roomCode}</strong></div>
       {lobbySession && <div className="shared-room-format"><RulesSourceBadge source={rulesForSession(lobbySession).source} /><span>{tr(rulesForSession(lobbySession).title)}</span></div>}

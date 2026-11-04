@@ -1,3 +1,4 @@
+import type { RematchPreset } from '../features/battleLegacy/rematch'
 import type { ArchiveRecord } from '../features/battleLegacy/archive'
 import Dexie, { type EntityTable } from 'dexie'
 import type { Army } from '../domain/army/types'
@@ -43,6 +44,7 @@ class TabletopDatabase extends Dexie {
   libraryPreferences!: EntityTable<LibraryPreference, 'ownerId'>
   battles!: EntityTable<StoredBattle, 'id'>
   battleArchive!: EntityTable<ArchiveRecord, 'id'>
+  battlePresets!: EntityTable<RematchPreset, 'id'>
   constructor() {
     super('tabletop-companion')
     this.version(1).stores({
@@ -54,6 +56,7 @@ class TabletopDatabase extends Dexie {
       battles: '&id, status, updatedAt',
       visualMedia: '&key, armyId, updatedAt',
     })
+    this.version(5).stores({ battlePresets: '[ownerId+id], ownerId' })
     this.version(4).stores({ battleArchive: '[ownerId+id], ownerId' })
     this.version(3).stores({
       accountArmies: '[ownerId+id], ownerId, savedAt',

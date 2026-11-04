@@ -347,6 +347,8 @@ export default function BattleDashboard() {
           onToggleLog={() => setTerminalLogOpen((current) => !current)}
           onRestoreSession={() => { setTerminalLogOpen(false); undo() }}
         />
+        <Link className="button" to={`/battle/setup?rematch=${encodeURIComponent(session.setup.gameId)}`}>{tr("Play Rematch")}</Link>
+        <Link className="button" to={`/archive/${encodeURIComponent(session.setup.gameId)}`}>{tr("Battle Archive")}</Link>
         <button className="terminal-report-toggle" onClick={() => setTerminalReportOpen((current) => !current)}>{terminalReportOpen ? tr('Hide Battle Report') : tr('View Battle Report')}</button>
         {terminalReportOpen && <BattleReport session={session} />}
         <button className="terminal-report-toggle" onClick={() => setTerminalBoardOpen((current) => !current)}>{terminalBoardOpen ? tr('Hide battlefield replay') : tr('View battlefield replay')}</button>
