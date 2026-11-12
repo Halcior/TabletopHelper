@@ -11,6 +11,10 @@ function unitName(setup: BattleSetup, playerId: string, unitId: string): string 
 
 export function describeBattleEvent(event: BattleEvent, setup: BattleSetup): string {
   switch (event.type) {
+    case 'COMPANION_RULES_SELECTED': return `${playerName(setup, event.payload.playerId)} selected Wahapedia ${event.payload.manifest.edition} · ${event.payload.manifest.upstreamUpdatedAt ?? 'unknown source date'} · ${event.payload.manifest.id.slice(-12)}`
+    case 'COMPANION_STRATAGEM_RECORDED': return `${playerName(setup, event.payload.playerId)} used "${event.payload.name}" (${event.payload.cost} CP; base ${event.payload.baseCost ?? '?'})${event.payload.targetUnitId ? ` on ${unitName(setup, event.payload.playerId, event.payload.targetUnitId)}` : ''} · Round ${event.payload.round} · ${event.payload.phase}`
+    case 'COMPANION_STRATAGEM_REVERTED': return `${playerName(setup, event.payload.playerId)} reverted stratagem use · ${event.payload.operationId}`
+
     case 'UNIT_TRACKING_CHANGED': return `Unit Tracking ${event.payload.enabled ? 'enabled' : 'disabled'}`
     case 'UNIT_MAP_CHANGED': return `${unitName(setup, event.payload.playerId, event.payload.unitId)} · ${event.payload.status === 'battlefield' ? 'position recorded' : event.payload.status === 'reserves' ? 'returned to Reserves' : 'set as Unplaced'}`
     case 'GAME_STARTED': return 'Battle started'

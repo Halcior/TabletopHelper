@@ -1,3 +1,4 @@
+import { applyCompanionEvent } from './companion'
 import { applyUnitMapEvent, reconcileUnitMapLifecycle, validateUnitMapChange } from '../battlefield/unitTracking'
 import { combatConsequenceInputs } from '../../rulesets/cauldronFFA3/secondary'
 import { z } from 'zod'
@@ -200,6 +201,7 @@ function applyEvent(state: GameState, event: BattleEvent, setup: BattleSetup): v
 }
 
 function applyCoreEvent(state: GameState, event: BattleEvent, setup: BattleSetup): void {
+  if (applyCompanionEvent(state, setup, event)) return
   switch (event.type) {
     case 'BATTLEFIELD_LAYOUT_CHANGED':
       validateBattlefieldGeometry(setup, event.payload.geometry)

@@ -243,7 +243,11 @@ export function buildBattleChronicle(session: BattleSession): ChronicleEntry[] {
         pending.category = 'actions'
         pending.highlight = event.type !== 'MISSION_ACTION_STARTED'
       }
-      if (event.type === 'STRATAGEM_USED') { pending.category = 'stratagems'; pending.highlight = true }
+      if (event.type === 'COMPANION_STRATAGEM_RECORDED') {
+        const use = state.companion?.uses[event.payload.operationId]
+        if (use?.status === 'rejected') pending.description = `Stratagem rejected · ${event.payload.name} · ${use.reason}`
+      }
+      if (event.type === 'STRATAGEM_USED' || event.type === 'COMPANION_STRATAGEM_RECORDED' || event.type === 'COMPANION_STRATAGEM_REVERTED') { pending.category = 'stratagems'; pending.highlight = true }
       if (/^(GAME_|ROUND_|TURN_|PHASE_)/.test(event.type)) {
         pending.category = 'flow'
         pending.highlight = event.type !== 'PHASE_CHANGED'

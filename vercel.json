@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/api/rules-export",
+      "destination": "/api/rules-export"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

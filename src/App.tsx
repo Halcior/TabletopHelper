@@ -8,6 +8,7 @@ import { Link, NavLink, Route, Routes, useLocation } from 'react-router-dom'
 import { AppIcon } from './components/AppIcon'
 import { AppBackground } from './components/AppBackground'
 
+const ArmyCompanion = lazy(() => import('./pages/ArmyCompanion'))
 const Campaigns = lazy(() => import('./pages/Campaigns'))
 const BattleArchive = lazy(() => import('./pages/BattleArchive'))
 const Friends = lazy(() => import('./pages/Friends'))
@@ -56,6 +57,7 @@ export default function App() {
           <Route path="/friends/:friendId" element={<Friends key={account?.id ?? 'guest'} />} />
           <Route path="/account" element={<Account key={account?.id ?? 'guest'} />} />
           <Route path="/armies" element={<ArmyLibrary />} />
+          <Route path="/army/:armyId/companion" element={<ArmyCompanion />} />
           <Route path="/army/:armyId" element={<ArmyEditor />} />
           <Route path="/army/:armyId/edit" element={<ArmyEditor />} />
           <Route path="/army/:armyId/appearance" element={<ArmyAppearance key={account?.id ?? 'guest'} />} />

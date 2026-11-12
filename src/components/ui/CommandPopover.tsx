@@ -16,6 +16,10 @@ export function useDismissableLayer(
     const controls = () => Array.from(element?.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), [tabindex="0"]') ?? []).filter((node) => node.getClientRects().length > 0)
     ;(controls()[0] ?? element)?.focus({ preventScroll: true })
     const outside = (event: PointerEvent) => {
+      // A nested portal dialog owns its outside-click lifecycle. Interacting
+      // with it must not dismiss the underlying battle tool.
+      if (element?.getAttribute('role') === 'dialog' && event.target instanceof Element
+        && event.target.closest('[role="dialog"]') && !element.contains(event.target)) return
       if (event.target instanceof Node && !element?.contains(event.target) && !trigger?.current?.contains(event.target)) close.current()
     }
     const keyboard = (event: KeyboardEvent) => {

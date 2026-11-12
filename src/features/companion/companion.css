@@ -1,0 +1,50 @@
+.companion { color: var(--text, #ece8e0); min-width: 0; padding: clamp(12px, 2vw, 24px); background: #101719; border: 1px solid #384344; border-radius: 14px; }
+.companion-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; border-bottom: 1px solid #384344; padding-bottom: 12px; }
+.companion-header small { letter-spacing: .15em; color: #d6b675; }
+.companion h2 { margin: 8px 0; } .companion p { line-height: 1.55; } .companion h3 { margin-top: 24px; }
+.companion button, .companion-confirm button { min-height: 44px; padding: 10px 14px; white-space: normal; }
+.companion label, .companion-confirm label { display: flex; flex-direction: column; gap: 6px; font-size: .9rem; min-width: 0; }
+.companion input, .companion select, .companion-confirm input, .companion-confirm select { width: 100%; min-height: 44px; max-width: 100%; color: #ece8e0; background: #182325; border: 1px solid #536263; border-radius: 6px; padding: 8px; }
+.companion-source { margin: 16px 0; padding: 12px; background: #182224; border-radius: 8px; }
+.companion summary { cursor: pointer; padding: 10px 0; min-height: 44px; }
+.companion-actions, .companion-tabs { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0; }
+.companion-actions input[type=file] { max-width: 260px; }
+.companion-tabs { border-bottom: 1px solid #384344; padding-bottom: 10px; }
+.companion button[aria-pressed=true], .companion button.selected { border-color: #d6b675; background: #384035; }
+.companion-layout { display: grid; grid-template-columns: minmax(200px, 30%) minmax(0, 1fr); gap: 22px; }
+.companion-units { display: flex; flex-direction: column; gap: 8px; align-self: start; }
+.companion-units button { text-align: left; display: flex; flex-direction: column; gap: 5px; }
+.companion-units small, .companion-muted { color: #b6c2c0; font-size: .85rem; overflow-wrap: anywhere; }
+.companion-detail { min-width: 0; } .companion-back { display: none; }
+.companion-table { max-width: 100%; overflow-x: auto; margin: 10px 0; border: 1px solid #354547; border-radius: 7px; }
+.companion-table table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.companion-table th, .companion-table td { padding: 9px 10px; text-align: center; border-bottom: 1px solid #354547; white-space: nowrap; }
+.companion-table th { background: #253234; color: #d6b675; font-size: .8rem; }
+.companion-table td:first-child { text-align: left; }
+.companion-rule { padding: 0 12px; border-bottom: 1px solid #354547; }
+.companion-prose { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.65; }
+.companion-weapon { background: #182224; padding: 12px; margin: 10px 0; border-radius: 8px; }
+.companion-weapon h4 { margin: 0; } .companion-weapon h4 small { display: block; margin-top: 6px; color: #cdb77d; }
+.companion-phase-focus { border-left: 3px solid #d6b675; padding-left: 10px; }
+.companion-matching { display: flex; flex-direction: column; gap: 7px; max-height: 320px; overflow: auto; padding: 12px; }
+.companion-filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.companion-stratagem { display: flex; gap: 8px; margin: 9px 0; }
+.companion-stratagem > button:first-child { flex: 1; text-align: left; display: flex; flex-direction: column; gap: 5px; }
+.companion-stratagem > button:last-child { align-self: start; }
+.companion-use { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid #354547; }
+.companion-confirm { padding: 18px; max-width: 720px; overflow-wrap: anywhere; }
+.companion-cp { display: block; font-size: 1.8rem; margin: 15px 0; color: #d6b675; }
+.companion footer { margin-top: 22px; padding-top: 16px; border-top: 1px solid #384344; font-size: .85rem; color: #b6c2c0; }
+.companion-dialog { width: min(1120px, 94vw); }
+.companion-dialog-heading { display: flex; justify-content: space-between; align-items: center; padding: 12px; gap: 12px; flex-wrap: wrap; }
+.companion-dialog-heading select { max-width: 60vw; }
+@media (max-width: 700px) {
+  .companion-layout { display: block; } .companion-detail { display: none; }
+  .companion-layout--detail .companion-units { display: none; } .companion-layout--detail .companion-detail { display: block; }
+  .companion-back { display: inline-block; } .companion-header { align-items: flex-start; }
+  .companion-filters { grid-template-columns: 1fr; } .companion-dialog { width: min(100%, 94vw); }
+}
+
+.command-dialog:has(> .companion-dialog) { width: min(1120px, 100%); }
+.companion-dialog { width: 100%; }
+.companion-launch { margin: 8px 16px; }

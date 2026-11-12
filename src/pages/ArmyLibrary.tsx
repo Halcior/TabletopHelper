@@ -184,6 +184,7 @@ export default function ArmyLibrary() {
               )}
               {row.error && <p className="alert alert--warning">{tr(row.error)}</p>}
               <div className="roster-actions">
+                <Link className="button button--small" to={`/army/${encodeURIComponent(row.id)}/companion`}>Battle Companion</Link>
                 <Link
                   className="button button--small"
                   to={`/army/${encodeURIComponent(row.id)}`}

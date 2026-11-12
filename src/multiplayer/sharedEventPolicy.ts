@@ -63,6 +63,7 @@ function deny(reason: string): SharedMutationDecision {
 
 function playerScopedTarget(event: BattleEvent, session: BattleSession): string | null | undefined {
   switch (event.type) {
+    case 'COMPANION_RULES_SELECTED':
     case 'CP_GAINED':
     case 'CP_SPENT':
     case 'SCORE_ADJUSTED':
@@ -226,6 +227,7 @@ export function authorizeSharedAction(
   const automaticBeneficiary = automaticCasualtyBeneficiary(events, viewerPlayerId)
 
   for (const event of events) {
+    if (event.type === 'COMPANION_STRATAGEM_RECORDED' || event.type === 'COMPANION_STRATAGEM_REVERTED') return deny('Companion CP recording is available only in local battles. Online Companion is read-only until atomic CP validation is supported.')
     const attributionError = combatAttributionError(sessionBefore.setup, event)
     if (attributionError) return deny(attributionError)
     if (event.type === 'UNIT_TRACKING_CHANGED') {

@@ -1,5 +1,6 @@
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
+import { GET as rulesExport } from './api/rules-export'
 import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 
@@ -9,6 +10,17 @@ const buildSha =
 export default defineConfig({
   plugins: [
     react(),
+    {
+      name: 'rules-export-development',
+      configureServer(server) {
+        server.middlewares.use('/api/rules-export', async (req, res) => {
+          const response = await rulesExport(new Request(`http://localhost/api/rules-export${req.url ?? ''}`))
+          res.statusCode = response.status
+          response.headers.forEach((value, key) => res.setHeader(key, value))
+          res.end(await response.text())
+        })
+      },
+    },
     {
       name: 'offline-app-shell',
       apply: 'build',
