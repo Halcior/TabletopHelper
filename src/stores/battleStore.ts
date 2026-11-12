@@ -1,3 +1,4 @@
+import { companionUseError, type CompanionUse } from '../domain/battle/companion'
 import { freshBattle, type RematchOptions } from '../features/battleLegacy/rematch'
 import { commandClock, reconcileClock, type ClockConfig, type ClockCommand } from '../features/battleClock/model'
 import { create } from 'zustand'
@@ -84,6 +85,8 @@ type BattleStore = {
   loadBattle: (id: string) => Promise<void>
   resumeLatest: () => Promise<string | null>
   dispatch: (event: BattleEventInput) => void
+  recordCompanionUse: (input: CompanionUse) => Promise<void>
+  revertCompanionUse: (playerId: string, operationId: string) => Promise<void>
   grantCommandPhaseCp: () => void
   useStratagem: (input: UseStratagemInput) => void
   processReactionTrigger: (input: ReactionTriggerInput) => void
@@ -224,6 +227,25 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
         ? dispatchCauldronBattleEvent(session, event)
         : dispatchBattleEvent(session, event)
     ), set)
+  },
+
+  async recordCompanionUse(input) {
+    applySessionUpdate(get().session, session => {
+      if (session.state.companion?.uses[input.operationId]) return session
+      const error = companionUseError(session, input)
+      if (error) throw new Error(error)
+      return dispatchBattleEvent(session, { type: 'COMPANION_STRATAGEM_RECORDED', payload: input }, { actorPlayerId: input.playerId })
+    }, set)
+    if (get().error) throw new Error(get().error!)
+    await persistenceQueue
+  },
+
+  async revertCompanionUse(playerId, operationId) {
+    applySessionUpdate(get().session, session => dispatchBattleEvent(session, {
+      type: 'COMPANION_STRATAGEM_REVERTED', payload: { playerId, operationId },
+    }, { actorPlayerId: playerId }), set)
+    if (get().error) throw new Error(get().error!)
+    await persistenceQueue
   },
 
   grantCommandPhaseCp() {

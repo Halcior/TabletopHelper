@@ -52,6 +52,19 @@ function battle() {
 }
 
 describe('GW Doubles team foundation', () => {
+  it('records Companion use for a partner against the shared pool and refunds only that cost', () => {
+    let session = dispatchBattleEvent(battle(), { type: 'CP_GAINED', payload: { playerId: 'b', amount: 3 } })
+    session = dispatchBattleEvent(session, { type: 'COMPANION_STRATAGEM_RECORDED', payload: {
+      operationId: 'doubles-companion', playerId: 'b', stratagemId: 'test', name: 'TEST ONLY', baseCost: 2, cost: 1,
+      datasetId: 'test', round: 1, phase: 'COMMAND', activePlayerId: 'a',
+    } })
+    expect(session.state.players.a.cp).toBe(2)
+    expect(session.state.players.b.cp).toBe(0)
+    session = dispatchBattleEvent(session, { type: 'CP_GAINED', payload: { playerId: 'a', amount: 1 } })
+    session = dispatchBattleEvent(session, { type: 'COMPANION_STRATAGEM_REVERTED', payload: { playerId: 'b', operationId: 'doubles-companion' } })
+    expect(session.state.players.a.cp).toBe(4)
+    expect(session.state.players.c.cp).toBe(0)
+  })
   it('keeps four independent armies but exactly two team turns and two tactical decks', () => {
     const session = battle()
     expect(session.setup.players).toHaveLength(4)

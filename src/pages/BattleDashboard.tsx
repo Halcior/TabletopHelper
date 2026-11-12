@@ -1,7 +1,7 @@
 import { t as tr } from '../features/i18n/locale'
 import { TableMode } from '../components/battle/TableMode'
 import { BattleClock } from '../features/battleClock/BattleClock'
-import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { AppIcon, type AppIconName } from '../components/AppIcon'
 import { CommandPopover } from '../components/ui/CommandPopover'
@@ -60,6 +60,8 @@ import type { SecondaryId } from '../rulesets/cauldronFFA3/secondaryTypes'
 import { isOfficialSecondary } from '../rulesets/cauldronFFA3/secondary'
 import { useBattleStore } from '../stores/battleStore'
 
+const BattleCompanion = lazy(() => import('../features/companion/BattleCompanion'))
+
 type DashboardTab = 'overview' | 'army' | 'objectives' | 'cards' | 'log' | 'report'
 
 const DASHBOARD_TAB_ICONS: Record<DashboardTab, AppIconName> = {
@@ -72,6 +74,7 @@ const DASHBOARD_TAB_ICONS: Record<DashboardTab, AppIconName> = {
 }
 
 export default function BattleDashboard() {
+  const [companionOpen, setCompanionOpen] = useState(false)
   const [tableMode, setTableMode] = useState(false)
   const [quickDamageOpen, setQuickDamageOpen] = useState(false)
   const { battleId } = useParams()
@@ -293,6 +296,7 @@ export default function BattleDashboard() {
 
   return (
     <div className="battle-page" style={{ '--battle-hud-height': `${headerHeight}px` } as CSSProperties}>
+      {companionOpen && <Suspense fallback={<p role="status">Loading Companion…</p>}><BattleCompanion session={session} viewerId={viewerPlayerId} shared={sharedBattle} onClose={() => setCompanionOpen(false)} /></Suspense>}
       {quickDamageOpen && <QuickDamagePanel key={session.setup.gameId} session={session} dispatch={dispatch} shared={sharedBattle} viewerId={viewerPlayerId} onClose={() => setQuickDamageOpen(false)} />}
       <header ref={headerRef} className={`battle-status battle-status--player-${activePlayerIndex}${liveFeedback.phaseChanged ? ' battle-transition-live' : ''}`}>
         <div className="battle-round"><span>{tr("Battle round")}</span><strong>{session.state.round}<small>/ {session.state.maxRounds}</small></strong></div>
@@ -390,6 +394,7 @@ export default function BattleDashboard() {
             else nextPhase()
           }}
         /> : <>
+          <button className="button companion-launch" onClick={() => setCompanionOpen(true)}>Battle Companion</button>
           <nav className="battle-tabs" aria-label={tr("Battle panels")}>
             {dashboardTabs.map((item) => (
               <button aria-pressed={tab === item} className={`${tab === item ? 'selected ' : ''}${['log', 'report'].includes(item) ? 'battle-tabs__desktop' : ''}`} key={item} onClick={() => selectDashboardTab(item)}><AppIcon name={DASHBOARD_TAB_ICONS[item]} /><span>{tr(item === 'overview' ? 'Battle' : item === 'log' ? 'Chronicle' : item.charAt(0).toUpperCase() + item.slice(1))}</span></button>

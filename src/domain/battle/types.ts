@@ -1,3 +1,4 @@
+import type { CompanionEvent, CompanionState } from './companion'
 import type { UnitMapChange, UnitTrackingState } from '../battlefield/unitTracking'
 import type { BattleClockState, ClockConfig } from '../../features/battleClock/model'
 import type { Army, UnitState, CombatProfileState } from '../army/types'
@@ -159,6 +160,7 @@ export type CombatResolution = CombatAttribution & {
 }
 
 export type BattleEvent = BattleEventMetadata & (
+  | CompanionEvent
   | { type: 'UNIT_TRACKING_CHANGED'; payload: { enabled: boolean } }
   | { type: 'UNIT_MAP_CHANGED'; payload: UnitMapChange }
   | { type: 'UNIT_COMBAT_RESOLVED'; payload: CombatResolution }
@@ -233,6 +235,7 @@ export type BattleEventInput = BattleEvent extends infer Event
   : never
 
 export type GameState = {
+  companion?: CompanionState
   gameId: string
   rulesetId: string
   status: BattleLifecycleStatus
