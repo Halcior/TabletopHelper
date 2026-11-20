@@ -131,15 +131,15 @@ describe('official source geometry', () => {
     ).toBe(true)
   })
 
-  it('preserves the four-objective Meatgrinder diagrams without fabricating expansion positions', () => {
+  it('initializes all six objectives in the corrected Meatgrinder diagrams', () => {
     for (const variant of [1, 3] as const) {
       const session = duel('purge-the-foe', 'purge-the-foe', variant)
       expect(
         battlefieldPresentation(session.setup, session.state.battlefield!)
           .unplacedIds,
       ).toEqual([])
-      expect(Object.keys(session.state.objectives)).toHaveLength(4)
-      expect('EXPANSION-1' in session.state.objectives).toBe(false)
+      expect(Object.keys(session.state.objectives)).toHaveLength(6)
+      expect(session.state.battlefield!.positions['EXPANSION-1']).not.toBeNull()
     }
   })
 

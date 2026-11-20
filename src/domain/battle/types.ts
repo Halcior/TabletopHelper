@@ -69,6 +69,7 @@ export type BattleSetup = {
   battlefieldAttackerHomeZone?: 'A' | 'B'
   /** Absent in historical sessions: retain the June 2026 catalogue. */
   battlefieldSourceId?: string
+  officialRulesVersion?: string
   createdAt: string
 }
 

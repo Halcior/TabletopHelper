@@ -74,6 +74,26 @@ describe('11th edition official duel', () => {
     expect(() => reviewDuelPrimary(session, 'p-a', 'turn', {})).toThrow(/already been reviewed/)
   })
 
+  it('applies only the 45 VP cap to the separately timed end of battle in new games', () => {
+    let session = game('purge-the-foe', 'take-and-hold')
+    session = dispatchBattleEvents(session, [
+      { type: 'SCORE_ADJUSTED', payload: { playerId: 'p-a', category: 'primary', delta: 27 } },
+      { type: 'ROUND_STARTED', payload: { round: 5 } },
+      { type: 'PHASE_CHANGED', payload: { phase: 'END_TURN' } },
+    ])
+    session = reviewDuelPrimary(session, 'p-a', 'turn', { kill: 1, held: 3 })
+    const selections = { 'central-battle': 1 }
+    expect(duelPrimaryPreview(session, 'p-a', 'battle', selections)).toMatchObject({ raw: 5, awarded: 3, scoredInRound: 15 })
+    const legacy = { ...session, setup: { ...session.setup, officialRulesVersion: undefined } }
+    expect(duelPrimaryPreview(legacy, 'p-a', 'battle', selections).awarded).toBe(0)
+  })
+
+  it('awards each Vital Link marker after confirming at least one controlled central objective', () => {
+    const session = game('priority-assets', 'purge-the-foe')
+    expect(duelPrimaryPreview(session, 'p-a', 'turn', { central: 1, markers: 3 }).awarded).toBe(5)
+    expect(() => duelPrimaryPreview(session, 'p-a', 'turn', { markers: 3 })).toThrow(/base condition/)
+  })
+
   it('draws Tactical cards for the second player at their first Command, independently of Fixed cards', () => {
     let session = game()
     expect(getSecondaryState(session)['p-a'].active).toHaveLength(2)

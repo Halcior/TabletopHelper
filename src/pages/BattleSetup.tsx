@@ -1,6 +1,5 @@
 import { configureRematchClock } from '../features/battleLegacy/onlineRematch'
-import { createCauldronGame } from '../rulesets/cauldronFFA3/session'
-import { rematchPreset, rosterDifference, type RematchPreset } from '../features/battleLegacy/rematch'
+import { freshBattle, rematchPreset, rosterDifference, type RematchPreset } from '../features/battleLegacy/rematch'
 import { database } from '../persistence/storage'
 import { legacyOwner, prepareArchive } from '../features/battleLegacy/repository'
 import { useRosterScope } from '../features/armyLibrary/scope'
@@ -35,8 +34,6 @@ import {
   type OfficialSecondaryId,
   type OfficialPrimaryId,
   type PrimaryDeck,
-  DISPOSITIONS,
-  DISPOSITION_NAMES,
   DUEL_MISSIONS,
   DUEL_PRIMARY_MATRIX,
 } from '../rulesets/cauldronFFA3'
@@ -47,6 +44,7 @@ import { RivalHelp } from '../components/battle/RivalClarity'
 import { RulesSourceBadge } from '../components/ui/RulesSourceBadge'
 import { FormatGlyph } from '../components/ui/FormatGlyph'
 import { describeRules, recommendedRules } from '../rulesets/rulesSource'
+import { ForceDispositionPicker } from '../components/ui/ForceDispositionPicker'
 
 type PlayerDraft = CauldronPlayerInput
 
@@ -187,6 +185,11 @@ export default function BattleSetup() {
     if (!activePlayers.some((player) => player.id === hostPlayerId)) setHostPlayerId(activePlayers[0]?.id ?? '')
   }, [activePlayers, hostPlayerId])
 
+  const canReuseBattlefield = presetCompatible && !(playMode === 'shared' && primaryDeck === 'chapter-approved-duel')
+  const recordedMap = reuseGeometry && canReuseBattlefield && preset
+    ? { geometry: preset.geometry, sourceId: preset.sourceId, objectives: preset.objectives }
+    : undefined
+
   function updatePlayer<K extends keyof PlayerDraft>(index: number, key: K, value: PlayerDraft[K]) {
     setPlayers((current) => current.map((player, playerIndex) => (
       playerIndex === index ? { ...player, [key]: value } : player
@@ -279,9 +282,7 @@ export default function BattleSetup() {
     const name = presetName
     if (!name?.trim()) return
     try {
-      const session = createCauldronGame({ players: activePlayers, armies: armies.filter(army => activePlayers.some(p => p.armyId === army.id)), guidanceLevel: guidance, mode, doubles: doubles ? getDoublesSetup() : undefined, objectiveLayout, primaryDeck, secondaryDeck, officialSecondaryStrategy: officialStrategy, officialSecondaryStrategies: duelStrategies, fixedSecondarySelections: fixedSelections, officialLayout, battlefieldAttackerHomeZone: attackerHomeZone, officialPrimaryBalance: preset && primaryDeck === preset.input.primaryDeck ? preset.input.officialPrimaryBalance : undefined, ffaCpPolicy: preset && mode === preset.input.mode ? preset.input.ffaCpPolicy : undefined })
-      session.setup.battleClock = clock
-      if (reuseGeometry && presetCompatible && preset) { session.state.battlefield = preset.geometry; session.setup.battlefieldSourceId = preset.sourceId }
+      const session = freshBattle({ players: activePlayers, armies: armies.filter(army => activePlayers.some(p => p.armyId === army.id)), guidanceLevel: guidance, mode, doubles: doubles ? getDoublesSetup() : undefined, objectiveLayout, primaryDeck, secondaryDeck, officialSecondaryStrategy: officialStrategy, officialSecondaryStrategies: duelStrategies, fixedSecondarySelections: fixedSelections, officialLayout, battlefieldAttackerHomeZone: attackerHomeZone, officialPrimaryBalance: preset && primaryDeck === preset.input.primaryDeck ? preset.input.officialPrimaryBalance : undefined, ffaCpPolicy: preset && mode === preset.input.mode ? preset.input.ffaCpPolicy : undefined }, clock, recordedMap ?? {})
       const saved = rematchPreset(session, legacyOwner())
       saved.sourceArmyIds = Object.fromEntries(Object.entries(saved.sourceArmyIds).map(([id, source]) => [id, preset?.sourceArmyIds[source] ?? source]))
       await database.battlePresets.put({ ...saved, name: name.trim().slice(0,100), online: playMode === 'shared' })
@@ -343,7 +344,7 @@ export default function BattleSetup() {
         doubles ? getDoublesSetup(sharedMode ? provisionalArmy : undefined) : undefined,
         !sharedMode,
         sharedMode ? undefined : clock,
-        preset ? { ffaCpPolicy: mode === preset.input.mode ? preset.input.ffaCpPolicy : undefined, officialPrimaryBalance: primaryDeck === preset.input.primaryDeck ? preset.input.officialPrimaryBalance : undefined, geometry: reuseGeometry && presetCompatible ? preset.geometry : undefined, sourceId: reuseGeometry && presetCompatible ? preset.sourceId : undefined } : undefined,
+        preset ? { ffaCpPolicy: mode === preset.input.mode ? preset.input.ffaCpPolicy : undefined, officialPrimaryBalance: primaryDeck === preset.input.primaryDeck ? preset.input.officialPrimaryBalance : undefined, ...recordedMap } : undefined,
       )
       if (sharedMode) {
         const membership = await hostCurrentBattle(hostPlayerId, true)
@@ -379,7 +380,7 @@ export default function BattleSetup() {
         <p>{playMode === 'shared' ? tr('Choose rules and player slots. Everyone will bring their own army in the lobby.') : tr('Choose a format, assign commanders and prepare the battlefield.')}</p>
 
       </section>
-      {preset && <section className="panel"><h2>{tr('Play Rematch')}</h2><p>{tr('Review the recorded setup. A new session starts with fresh game state.')}</p><label><input type="checkbox" checked={reuseGeometry && presetCompatible} disabled={!presetCompatible} onChange={e => setReuseGeometry(e.target.checked)} />{tr('Reuse recorded battlefield')}</label>{!presetCompatible && <p>{tr('Changed rules or format use the new setup battlefield.')}</p>}{preset.input.armies.map(army => <p key={army.id}><strong>{army.name}</strong> · {army.totalPoints} pts · <span>{tr(rosterDifference(army, rosterRows.find(row => row.id === preset.sourceArmyIds[army.id])?.army))}</span></p>)}<label>{tr('Preset name')}<input maxLength={100} value={presetName} onChange={e => setPresetName(e.target.value)} /></label><button type="button" onClick={() => void saveCurrentPreset()}>{tr('Save battle preset')}</button>{presetMessage && <p role="status">{tr(presetMessage)}</p>}</section>}
+      {preset && <section className="panel"><h2>{tr('Play Rematch')}</h2><p>{tr('Review the recorded setup. A new session starts with fresh game state.')}</p><label><input type="checkbox" checked={reuseGeometry && canReuseBattlefield} disabled={!canReuseBattlefield} onChange={e => setReuseGeometry(e.target.checked)} />{tr('Reuse recorded battlefield')}</label>{!canReuseBattlefield && <p>{tr(playMode === 'shared' && primaryDeck === 'chapter-approved-duel' ? 'This online rematch uses the current battlefield for the dispositions selected in the lobby.' : 'Changed rules or format use the new setup battlefield.')}</p>}{preset.input.armies.map(army => <p key={army.id}><strong>{army.name}</strong> · {army.totalPoints} pts · <span>{tr(rosterDifference(army, rosterRows.find(row => row.id === preset.sourceArmyIds[army.id])?.army))}</span></p>)}<label>{tr('Preset name')}<input maxLength={100} value={presetName} onChange={e => setPresetName(e.target.value)} /></label><button type="button" onClick={() => void saveCurrentPreset()}>{tr('Save battle preset')}</button>{presetMessage && <p role="status">{tr(presetMessage)}</p>}</section>}
       <div className="setup-mode-picker panel" role="group" aria-label={tr("Play mode")}>
         <button type="button" aria-pressed={playMode === 'local'} className={playMode === 'local' ? 'button--gold' : ''} onClick={() => { setPlayMode('local'); setStep(1); setLocalError(null) }}><FormatGlyph mode="duel" /><strong>{tr("On one device")}</strong><span>{tr("Choose all armies here.")}</span></button>
         <button type="button" aria-pressed={playMode === 'shared'} className={playMode === 'shared' ? 'button--gold' : ''} disabled={!sharedConfigured} onClick={() => { setPlayMode('shared'); setStep(1); setLocalError(null) }}><FormatGlyph mode="ffa3" /><strong>{tr("Online multiplayer")}</strong><span>{tr("Everyone brings an army to the lobby.")}</span></button>
@@ -464,9 +465,11 @@ export default function BattleSetup() {
             <h3>{tr("Team ")}{team === 0 ? tr('Alpha') : tr('Bravo')} {tr(" · Shared Force")}</h3>
             <label>{tr("Team name")}<input value={teamNames[team]} onChange={(event) => setTeamNames((current) => current.map((name, index) => index === team ? event.target.value : name))} /></label>
             <p className="context-note">{tr("Seats ")}{team * 2 + 1} & {team * 2 + 2} {tr(" · one turn, CP pool, VP score and Secondary deck.")}</p>
-            {playMode === 'shared' ? <p className="context-note">{tr("The team captain chooses Force Disposition in the online lobby.")}</p> : <label>{tr("Force Disposition")}<select value={captain.forceDisposition ?? 'take-and-hold'} onChange={(event) => updatePlayer(teamCaptainIndex(team), 'forceDisposition', event.target.value as typeof DISPOSITIONS[number])}>
-              {DISPOSITIONS.map((disposition) => <option key={disposition} value={disposition}>{DISPOSITION_NAMES[disposition]}</option>)}
-            </select></label>}
+            {playMode === 'shared' ? <p className="context-note">{tr("The team captain chooses Force Disposition in the online lobby.")}</p> : <ForceDispositionPicker
+              armies={activePlayers.slice(team * 2, team * 2 + 2).map(player => armies.find(army => army.id === player.armyId))}
+              value={captain.forceDisposition ?? 'take-and-hold'}
+              onChange={value => updatePlayer(teamCaptainIndex(team), 'forceDisposition', value)}
+            />}
             {playMode === 'local' && mission && <p className="plan-description">{tr("Team Primary: ")}<strong>{mission.name}</strong> · <a href={mission.url} target="_blank" rel="noreferrer">{tr("Full card")}</a></p>}
             <label>{tr("Force composition")}<select value={teamTypes[team]} onChange={(event) => setTeamTypes((current) => current.map((kind, i) => i === team ? event.target.value as 'unified' | 'convenience' : kind) as typeof current)}>
               <option value="convenience">{tr("Force of Convenience · different faction keywords")}</option>
@@ -496,9 +499,11 @@ export default function BattleSetup() {
               </select></label>
             </div>}
             {primaryDeck === 'chapter-approved-duel' && duel ? <>
-              {playMode === 'shared' ? <p className="context-note">{tr("Force Disposition is selected by this commander after claiming their online seat.")}</p> : <label>{tr("Force Disposition")}<select value={player.forceDisposition} onChange={(event) => updatePlayer(index, 'forceDisposition', event.target.value as typeof DISPOSITIONS[number])}>
-                {DISPOSITIONS.map((disposition) => <option key={disposition} value={disposition}>{DISPOSITION_NAMES[disposition]}</option>)}
-              </select></label>}
+              {playMode === 'shared' ? <p className="context-note">{tr("Force Disposition is selected by this commander after claiming their online seat.")}</p> : <ForceDispositionPicker
+                armies={[armies.find(army => army.id === player.armyId)]}
+                value={player.forceDisposition ?? ''}
+                onChange={value => updatePlayer(index, 'forceDisposition', value)}
+              />}
               {playMode === 'local' && player.forceDisposition && activePlayers[1 - index]?.forceDisposition && (() => {
                 const mission = DUEL_MISSIONS[DUEL_PRIMARY_MATRIX[player.forceDisposition!][activePlayers[1 - index].forceDisposition!]]
                 return <p className="plan-description">{tr("Your Primary: ")}<strong>{mission.name}</strong> · <a href={mission.url} target="_blank" rel="noreferrer">{tr("Full card")}</a></p>

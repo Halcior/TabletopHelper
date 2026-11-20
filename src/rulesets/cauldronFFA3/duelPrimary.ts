@@ -2,6 +2,7 @@ import { dispatchBattleEvents } from '../../domain/battle/engine'
 import type { BattleSession } from '../../domain/battle/types'
 import { cauldronEvent, getCauldronEventData } from './events'
 import { getCauldronConfig } from './sessionConfig'
+import { usesOfficialMissionFaq } from '../officialRuleVersions'
 
 export const DISPOSITIONS = ['take-and-hold', 'purge-the-foe', 'reconnaissance', 'priority-assets', 'disruption'] as const
 export type ForceDisposition = typeof DISPOSITIONS[number]
@@ -59,7 +60,7 @@ const definitions: Record<string, { checks: DuelCondition[]; rule?: string; acti
   'Secure Asset': { action: 'Secure Asset: once per turn in Shooting with a friendly unit in range of a non-HOME objective. It completes at turn end if the unit controls that objective.', checks: [C('action', 'A unit secured the asset this turn.', 4, T), C('kill', 'Enemy unit that started this turn in range of a central objective was destroyed.', 2, T), common4, C('three', 'Control at least three objectives.', 4, P, r2)] },
   'Vanguard Operation': { action: 'Vanguard Operation: once per turn in Shooting with a unit in a terrain area in opponent territory. Completes at turn end if no enemy unit is in that terrain area.', checks: [C('action', 'A unit performed a Vanguard Operation this turn.', 4, T), C('kill', 'At least one enemy unit destroyed this turn.', 2, T), common4, enemyHome(10)] },
   'Vital Link': { action: 'Maintain Control: once per turn in Shooting with a friendly unit in range of a central objective. At turn end, if that unit controls it, place your operation marker.', checks: [C('central', 'Control at least one central objective.', 2, T), C('markers', 'Each of your markers in range of one of those controlled central objectives; additive.', 1, T, { ...count, cumulativeWith: 'central' }), common4, C('central-command', 'One of those controlled non-HOME objectives is central; additive.', 4, P, { ...r2, cumulativeWith: 'hold' }), enemyHome(10)] },
-  'Death Trap': { action: 'Booby Trap: in Shooting, unlimited units in distinct untrapped terrain areas outside your deployment zone may immediately trap them. A unit can start in range of a non-HOME objective or inside that terrain area. Place an operation marker.', checks: [C('traps', 'Each terrain area trapped this turn.', 2, T, count), C('objective-traps', 'Each of those terrain areas that is an objective; additive.', 3, T, { ...count, cumulativeWith: 'traps' }), C('kill', 'Enemy unit that began this turn in a trapped terrain area was destroyed. Trap need not still be active at death.', 3, T), common4] },
+  'Death Trap': { action: 'Booby Trap: in Shooting, unlimited units in distinct untrapped terrain areas outside your deployment zone may immediately trap them. A unit can start in range of a non-HOME objective or inside that terrain area. Place an operation marker.', checks: [C('traps', 'Each terrain area trapped this turn.', 2, T, count), C('objective-traps', 'Each of those terrain areas that is an objective; additive.', 3, T, { ...count, cumulativeWith: 'traps' }), C('kill', 'An enemy unit that started the turn in a terrain area was destroyed and that area is trapped at scoring. The trap may be placed after the kill.', 3, T), common4] },
   'Delaying Action': { checks: [C('kills', 'Each enemy unit destroyed this turn.', 2, T, count), C('hold', 'Control at least one objective other than HOME objectives.', 4, P, r2), C('central-expansion', 'Control a central objective and an expansion objective.', 3, T, r2)] },
   'Locate and Deny': { rule: 'At battle start place five operation markers in terrain areas outside your deployment zone; if fewer exist, place one in each available area.', action: 'Sensor Sweep: once per turn in Shooting with a unit in range of a central objective. It completes at turn end if the unit controls it; remove one operation marker. Cannot start when only one remains.', checks: [C('kill', 'Enemy unit that began the turn in objective range was destroyed.', 4, T), C('last-marker', 'Exactly one of your markers remains in a terrain area with your unit and no enemy units.', 4, T), common4, C('last-marker-battle', 'Exactly one of your markers remains in a terrain area with your unit and no enemy units.', 5, B)] },
   Outmanoeuvre: { checks: [C('enemy-home', 'Control opponent HOME objective.', 10, T), C('held-first', 'Each controlled objective other than your HOME.', 4, T, { ...count, through: 1 }), C('held-middle', 'Each controlled objective other than your HOME.', 5, P, { ...count, from: 2, through: 3 }), C('held-late', 'Each controlled objective other than your HOME.', 6, T, { ...count, from: 4 })] },
@@ -122,14 +123,22 @@ export function duelPrimaryPreview(session: BattleSession, playerId: string, win
       groups.add(condition.group)
     }
   }
-  for (const condition of conditions) if (condition.cumulativeWith && (selections[condition.id] ?? 0) > (selections[condition.cumulativeWith] ?? 0)) {
-    throw new Error('An additive condition cannot exceed its base condition.')
+  const current = usesOfficialMissionFaq(session.setup)
+  for (const condition of conditions) {
+    if (!condition.cumulativeWith) continue
+    const baseCount = selections[condition.cumulativeWith] ?? 0
+    const base = conditions.find(item => item.id === condition.cumulativeWith)
+    // A checkbox is a prerequisite for Vital Link. Each marker in range of
+    // any controlled central objective can score once that prerequisite is met.
+    const maxAdditiveCount = current && base && !base.count && baseCount > 0 ? Infinity : baseCount
+    if ((selections[condition.id] ?? 0) > maxAdditiveCount) throw new Error('An additive condition cannot exceed its base condition.')
   }
   const raw = conditions.reduce((sum, condition) => sum + condition.vp * (selections[condition.id] ?? 0), 0)
   const scoredInRound = duelPrimaryCommits(session).filter((entry) => entry.playerId === playerId && entry.round === session.state.round)
     .reduce((sum, entry) => sum + entry.pointsAwarded, 0)
   const score = session.state.players[playerId]?.score.primary ?? 0
-  return { raw, awarded: Math.max(0, Math.min(raw, 15 - scoredInRound, 45 - score)), scoredInRound }
+  const windowLimit = window === 'battle' && current ? raw : 15 - scoredInRound
+  return { raw, awarded: Math.max(0, Math.min(raw, windowLimit, 45 - score)), scoredInRound }
 }
 
 export function reviewDuelPrimary(session: BattleSession, playerId: string, window: DuelReviewWindow, selections: Record<string, number>): BattleSession {

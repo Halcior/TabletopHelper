@@ -47,13 +47,16 @@ for idx in range(8,53):
  objectives={'homeAttacker':[],'homeDefender':[],'central':[],'expansion':[]}
  for d in paths:
   r=d['rect']
-  if not (24<r.width<30 and 24<r.height<30 and board.contains(r) and len(d['items'])==4):continue
+  if not (board.contains(r) and len(d['items'])==4):continue
   k=None
-  if all(it[0]=='c' for it in d['items']):
+  if 24<r.width<30 and 24<r.height<30 and all(it[0]=='c' for it in d['items']):
    if colour(d['fill'],red): k='homeAttacker'
    elif colour(d['fill'],blue): k='homeDefender'
    elif colour(d['fill'],green): k='central'
-  elif all(it[0]=='l' for it in d['items']) and colour(d['fill'],teal):k='expansion'
+  elif all(it[0]=='l' for it in d['items']) and colour(d['fill'],teal):
+   # The PDF also uses a compact diamond fill on pp. 24 and 26.
+   assert 20<r.width<30 and 20<r.height<30,(idx+1,r)
+   k='expansion'
   if k:
    x,y=point(fitz.Point((r.x0+r.x1)/2,(r.y0+r.y1)/2));objectives[k].append({'x':x,'y':y})
  for k,points in objectives.items():objectives[k]=sorted(points,key=lambda p:(p['y'],p['x']))

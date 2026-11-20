@@ -1,6 +1,6 @@
 import type { Army } from '../../domain/army/types'
 import type { DoublesSetup } from '../../domain/battle/types'
-import type { ObjectiveState } from '../../domain/battle/types'
+import type { ObjectiveDefinition, ObjectiveState } from '../../domain/battle/types'
 import type { OfficialSecondaryId, SecondaryId } from './secondaryTypes'
 
 export type DeploymentZone = 'A' | 'B' | 'C'
@@ -50,6 +50,7 @@ export type CauldronGameInput = {
   officialSecondaryStrategies?: Record<string, OfficialSecondaryStrategy>
   officialLayout?: 1 | 2 | 3
   battlefieldAttackerHomeZone?: 'A' | 'B'
+  recordedOfficialBattlefield?: { sourceId: string; objectives?: ObjectiveDefinition[] }
   fixedSecondarySelections?: Record<string, [OfficialSecondaryId, OfficialSecondaryId]>
   gameId?: string
   createdAt?: string

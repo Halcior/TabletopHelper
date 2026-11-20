@@ -2,6 +2,7 @@ import type { BattleSession } from '../domain/battle/types'
 import { CAULDRON_RULESET_ID, CAULDRON_RULESET_VERSION } from './cauldronFFA3/constants'
 import { getCauldronConfig } from './cauldronFFA3/sessionConfig'
 import type { CauldronMode, PrimaryDeck, SecondaryDeck } from './cauldronFFA3/types'
+import { OFFICIAL_RULES } from './officialRuleVersions'
 
 type RulesSelection = { mode: CauldronMode; primaryDeck?: PrimaryDeck; secondaryDeck?: SecondaryDeck }
 
@@ -31,7 +32,7 @@ export function describeRules({ mode, primaryDeck = 'cauldron', secondaryDeck = 
       : mode === 'ffa3' ? primaryDeck === 'chapter-approved-ffa' ? secondaryDeck === 'chapter-approved' ? 'Recommended House Format · FFA 3' : 'Custom FFA 3' : 'Cauldron FFA 3'
       : 'Cauldron Duel 1v1',
     description: official
-      ? mode === 'doubles2v2' ? 'GW Doubles v1.0. Two shared forces, with one CP pool, VP score and Secondary deck per team.'
+      ? mode === 'doubles2v2' ? 'GW Doubles. Two shared forces, with one CP pool, VP score and Secondary deck per team.'
         : 'GW / Chapter Approved Duel. Choose Force Dispositions, then a matching battlefield layout.'
       : mode === 'ffa3' ? `Custom / Community. Three-player FFA uses house rules${secondaryDeck === 'chapter-approved' ? '; Chapter Approved cards are adapted with Rival targeting' : ' with the Cauldron Secondary deck'}. This is not an official GW format.`
         : 'Custom / Community. Cauldron scoring and any mixed mission decks use house rules.',
@@ -53,6 +54,9 @@ export function rulesForSession(session: BattleSession): RulesPresentation {
   })
   if (config.primaryDeck === 'chapter-approved-ffa' && config.officialPrimaryBalance !== 'balanced-v1') {
     return { ...presentation, title: 'Community FFA 3 · original profile', primary: '11th edition FFA · original house profile' }
+  }
+  if (session.setup.officialRulesVersion === OFFICIAL_RULES.id) {
+    return { ...presentation, description: `${presentation.description} Event Companion v${OFFICIAL_RULES.sources.event.version}${session.setup.doubles ? ` · Doubles Companion v${OFFICIAL_RULES.sources.doubles.version}` : ''}.` }
   }
   return presentation
 }

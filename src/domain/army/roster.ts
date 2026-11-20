@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import type { Army, UnitDefinition } from './types'
 import { createPortableUuid } from '../../multiplayer/uuid'
+import { OFFICIAL_RULES } from '../../rulesets/officialRuleVersions'
 
 const text = z.string().max(100_000)
 const count = z.number().int().min(0).max(100_000)
@@ -71,9 +72,15 @@ export const armySchema = z.object({
   faction: text.min(1),
   totalPoints: count,
   pointsLimit: count.optional(),
-  detachments: z.array(z.object({ id: text.min(1), name: text.min(1) })),
+  detachments: z.array(z.object({ id: text.min(1), name: text.min(1), faction: text.optional() })),
   units: z.array(unit).max(2000),
   localMediaId: text.optional(),
+  importedRoster: z.object({
+    source: z.literal('new-recruit'),
+    importedAt: z.string().datetime(),
+    gameSystemRevision: text.optional(),
+    catalogues: z.array(z.object({ name: text, revision: text.optional() })),
+  }).optional(),
   library: z
     .object({
       source: z.enum(['new-recruit', 'local-edit', 'homebrew']),
@@ -111,6 +118,14 @@ export function validateArmy(raw: unknown): Army {
   if (army.units.filter((u) => u.isWarlord).length > 1)
     throw new Error('Choose only one Warlord.')
   return army
+}
+
+export const OUTDATED_ARMY_NOTICE = 'Army data may be outdated. Verify points and detachment rules.'
+
+export function armyDataMayBeOutdated(army: Army): boolean {
+  const importedAt = army.importedRoster?.importedAt
+    ?? (army.library?.source === 'new-recruit' ? army.library.createdAt : undefined)
+  return Boolean(importedAt && importedAt.slice(0, 10) < OFFICIAL_RULES.sources.mfm.publishedAt)
 }
 
 export function normalizeRoster(

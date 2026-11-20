@@ -1,0 +1,427 @@
+{
+  "sources": {
+    "imperial": {"date": "2026-06-11", "url": "https://www.warhammer-community.com/en-gb/articles/8nrrdlgr/new40k-download-new-imperial-faction-packs-today/"},
+    "chaos": {"date": "2026-06-10", "url": "https://www.warhammer-community.com/en-gb/articles/2wzoc1fz/new40k-download-new-chaos-faction-packs-today/"},
+    "xenos": {"date": "2026-06-09", "url": "https://www.warhammer-community.com/en-gb/articles/fchkklcq/new40k-download-new-xenos-faction-packs-today/"},
+    "marines": {"date": "2026-06-08", "url": "https://www.warhammer-community.com/en-gb/articles/2ekfivpk/new40k-download-new-space-marine-faction-packs-today/"},
+    "custodes-codex": {"date": "2026-10-01", "url": "https://www.warhammer-community.com/en-gb/articles/4a8o9tzw/adeptus-custodes-top-detachment-tips/"},
+    "custodes-preview": {"date": "2026-09-28", "url": "https://www.warhammer-community.com/en-gb/articles/joz5iubm/your-first-look-at-13-new-adeptus-custodes-detachments/"}
+  },
+  "factions": {
+    "Astra Militarum": {
+      "source": "imperial",
+      "detachments": {
+        "Abhuman Auxiliaries": {"dp": 1, "dispositions": ["take-and-hold"]},
+        "Bridgehead Strike": {"dp": 1, "dispositions": ["priority-assets"]},
+        "Designation Force": {"dp": 1, "dispositions": ["reconnaissance"]},
+        "Armoured Infantry": {"dp": 2, "dispositions": ["take-and-hold"]},
+        "Combined Arms": {"dp": 3, "dispositions": ["take-and-hold"]},
+        "Grizzled Company": {"dp": 3, "dispositions": ["priority-assets"]},
+        "Hammer of the Emperor": {"dp": 2, "dispositions": ["purge-the-foe"]},
+        "Mechanised Assault": {"dp": 2, "dispositions": ["purge-the-foe"]},
+        "Recon Element": {"dp": 3, "dispositions": ["reconnaissance"]},
+        "Siege Regiment": {"dp": 2, "dispositions": ["disruption"]},
+        "Steel Hammer": {"dp": 2, "dispositions": ["purge-the-foe"]}
+      }
+    },
+    "Adepta Sororitas": {
+      "source": "imperial",
+      "detachments": {
+        "Chorus of Condemnation": {"dp": 1, "dispositions": ["reconnaissance"]},
+        "Sacred Champions": {"dp": 1, "dispositions": ["take-and-hold"]},
+        "Sanctified Orators": {"dp": 1, "dispositions": ["purge-the-foe"]},
+        "Army of Faith": {"dp": 2, "dispositions": ["take-and-hold"]},
+        "Bringers of Flame": {"dp": 3, "dispositions": ["purge-the-foe"]},
+        "Champions of Faith": {"dp": 2, "dispositions": ["disruption"]},
+        "Hallowed Martyrs": {"dp": 3, "dispositions": ["priority-assets"]},
+        "Penitent Host": {"dp": 2, "dispositions": ["take-and-hold"]}
+      }
+    },
+    "Adeptus Mechanicus": {
+      "source": "imperial",
+      "detachments": {
+        "Cohort Acquisitus": {"dp": 1, "dispositions": ["reconnaissance"]},
+        "Lords of the Forge": {"dp": 1, "dispositions": ["priority-assets"]},
+        "Luminen Auto-Choir": {"dp": 1, "dispositions": ["disruption"]},
+        "Cohort Cybernetica": {"dp": 2, "dispositions": ["take-and-hold"]},
+        "Data-psalm Conclave": {"dp": 2, "dispositions": ["disruption"]},
+        "Eradication Cohort": {"dp": 3, "dispositions": ["purge-the-foe"]},
+        "Explorator Maniple": {"dp": 2, "dispositions": ["priority-assets"]},
+        "Haloscreed Battle Clade": {"dp": 3, "dispositions": ["purge-the-foe"]},
+        "Rad-zone Corps": {"dp": 2, "dispositions": ["take-and-hold"]},
+        "Skitarii Hunter Cohort": {"dp": 2, "dispositions": ["reconnaissance"]}
+      }
+    },
+    "Imperial Knights": {
+      "source": "imperial",
+      "detachments": {
+        "Dominus Foebreakers": {"dp": 1, "dispositions": ["purge-the-foe"]},
+        "Questor Forgepact": {"dp": 1, "dispositions": ["disruption"]},
+        "Throne-bonded Outriders": {"dp": 1, "dispositions": ["reconnaissance"]},
+        "Freeblade Company": {"dp": 3, "dispositions": ["purge-the-foe"]},
+        "Gate Warden Lance": {"dp": 2, "dispositions": ["priority-assets"]},
+        "Questoris Companions": {"dp": 3, "dispositions": ["take-and-hold"]},
+        "Spearhead-at-arms": {"dp": 2, "dispositions": ["reconnaissance"]},
+        "Valourstrike Lance": {"dp": 2, "dispositions": ["purge-the-foe"]}
+      }
+    },
+    "Adeptus Custodes": {
+      "source": "imperial",
+      "detachments": {
+        "Might of the Moritoi": {"dp": 1, "dispositions": ["purge-the-foe"]},
+        "Silent Hunters": {"dp": 1, "dispositions": ["reconnaissance"]},
+        "Tharanatoi Hammerblow": {"dp": 1, "dispositions": ["priority-assets"]},
+        "Auric Champions": {"dp": 2, "dispositions": ["priority-assets"]},
+        "Lions of the Emperor": {"dp": 2, "dispositions": ["disruption"]},
+        "Null Maiden Vigil": {"dp": 2, "dispositions": ["reconnaissance"]},
+        "Shield Host": {"dp": 2, "dispositions": ["purge-the-foe"]},
+        "Solar Spearhead": {"dp": 2, "dispositions": ["take-and-hold"]},
+        "Talons of the Emperor": {"dp": 3, "dispositions": ["take-and-hold"]}
+      },
+      "updates": {
+        "Shadowkeepers": {"source": "custodes-codex", "dp": 1},
+        "Honoured Companions": {"source": "custodes-codex", "dp": 1},
+        "Null Maiden Vigil": {"source": "custodes-codex", "dp": 1},
+        "Dread Host": {"source": "custodes-codex", "dp": 1},
+        "Lions of the Emperor": {"source": "custodes-codex", "dp": 1},
+        "Might of the Moritoi": {"source": "custodes-codex", "dp": 1},
+        "Guardians of the Throne": {"source": "custodes-preview", "dp": 3}
+      }
+    },
+    "Imperial Agents": {
+      "source": "imperial",
+      "detachments": {
+        "Imperialis Fleet": {"dp": 3, "dispositions": ["disruption"]},
+        "Ordo Hereticus, Purgation Force": {"dp": 3, "dispositions": ["priority-assets"]},
+        "Ordo Malleus, Daemon Hunters": {"dp": 3, "dispositions": ["reconnaissance"]},
+        "Ordo Xenos, Alien Hunters": {"dp": 3, "dispositions": ["purge-the-foe"]},
+        "Veiled Blade Elimination Force": {"dp": 3, "dispositions": ["purge-the-foe"]}
+      }
+    },
+    "Chaos Space Marines": {
+      "source": "chaos",
+      "detachments": {
+        "Cabal of Chaos": {"dp": 1, "dispositions": ["disruption"]},
+        "Devotees of Destruction": {"dp": 1, "dispositions": ["priority-assets"]},
+        "Murdertalon Raiders": {"dp": 1, "dispositions": ["purge-the-foe"]},
+        "Chaos Cult": {"dp": 2, "dispositions": ["priority-assets"]},
+        "Creations of Bile": {"dp": 3, "dispositions": ["purge-the-foe"]},
+        "Cult of the Arkifane": {"dp": 2, "dispositions": ["priority-assets"]},
+        "Deceptors": {"dp": 2, "dispositions": ["disruption"]},
+        "Dread Talons": {"dp": 2, "dispositions": ["disruption"]},
+        "Fellhammer Siege-host": {"dp": 2, "dispositions": ["take-and-hold"]},
+        "Huron's Marauders": {"dp": 3, "dispositions": ["disruption"]},
+        "Nightmare Hunt": {"dp": 2, "dispositions": ["disruption"]},
+        "Pactbound Zealots": {"dp": 3, "dispositions": ["priority-assets"]},
+        "Renegade Raiders": {"dp": 3, "dispositions": ["reconnaissance"]},
+        "Renegade Warband": {"dp": 2, "dispositions": ["priority-assets"]},
+        "Soulforged Warpack": {"dp": 2, "dispositions": ["purge-the-foe"]},
+        "Veterans of the Long War": {"dp": 2, "dispositions": ["take-and-hold"]},
+        "Warpstrike Champions": {"dp": 2, "dispositions": ["disruption"]}
+      }
+    },
+    "World Eaters": {
+      "source": "chaos",
+      "detachments": {
+        "Butchers of Khorne": {"dp": 1, "dispositions": ["disruption"]},
+        "Brazen Engines": {"dp": 1, "dispositions": ["purge-the-foe"]},
+        "Vessels of Wrath": {"dp": 1, "dispositions": ["priority-assets"]},
+        "Berzerker Warband": {"dp": 3, "dispositions": ["purge-the-foe"]},
+        "Cult of Blood": {"dp": 2, "dispositions": ["priority-assets"]},
+        "Goretrack Onslaught": {"dp": 2, "dispositions": ["take-and-hold"]},
+        "Khorne Daemonkin": {"dp": 2, "dispositions": ["reconnaissance"]},
+        "Possessed Slaughterband": {"dp": 2, "dispositions": ["purge-the-foe"]}
+      }
+    },
+    "Emperor’s Children": {
+      "source": "chaos",
+      "detachments": {
+        "Elegant Brutes": {"dp": 1, "dispositions": ["take-and-hold"]},
+        "Frenzied Host": {"dp": 1, "dispositions": ["disruption"]},
+        "Spectacle of Slaughter": {"dp": 1, "dispositions": ["purge-the-foe"]},
+        "Carnival of Excess": {"dp": 2, "dispositions": ["priority-assets"]},
+        "Coterie of the Conceited": {"dp": 3, "dispositions": ["purge-the-foe"]},
+        "Court of the Phoenician": {"dp": 2, "dispositions": ["purge-the-foe"]},
+        "Mercurial Host": {"dp": 2, "dispositions": ["reconnaissance"]},
+        "Peerless Bladesmen": {"dp": 2, "dispositions": ["priority-assets"]},
+        "Rapid Evisceration": {"dp": 2, "dispositions": ["disruption"]},
+        "Slaanesh's Chosen": {"dp": 2, "dispositions": ["purge-the-foe"]}
+      }
+    },
+    "Death Guard": {
+      "source": "chaos",
+      "detachments": {
+        "Paragons of Putrescence": {"dp": 1, "dispositions": ["priority-assets"]},
+        "Contagion Engines": {"dp": 1, "dispositions": ["purge-the-foe"]},
+        "Flyblown Host": {"dp": 1, "dispositions": ["reconnaissance"]},
+        "Champions of Contagion": {"dp": 2, "dispositions": ["take-and-hold"]},
+        "Death Lord's Chosen": {"dp": 2, "dispositions": ["priority-assets"]},
+        "Mortarion's Hammer": {"dp": 2, "dispositions": ["purge-the-foe"]},
+        "Shamblerot Vectorium": {"dp": 2, "dispositions": ["disruption"]},
+        "Tallyband Summoners": {"dp": 2, "dispositions": ["disruption"]},
+        "Virulent Vectorium": {"dp": 3, "dispositions": ["take-and-hold"]}
+      }
+    },
+    "Thousand Sons": {
+      "source": "chaos",
+      "detachments": {
+        "Ritual of Regeneration": {"dp": 1, "dispositions": ["purge-the-foe"]},
+        "Sekhetar Cohort": {"dp": 1, "dispositions": ["priority-assets"]},
+        "Servants of Change": {"dp": 1, "dispositions": ["reconnaissance"]},
+        "Changehost of Deceit": {"dp": 2, "dispositions": ["reconnaissance"]},
+        "Grand Coven": {"dp": 3, "dispositions": ["priority-assets"]},
+        "Hexwarp Thrallband": {"dp": 2, "dispositions": ["take-and-hold"]},
+        "Rubricae Phalanx": {"dp": 3, "dispositions": ["take-and-hold"]},
+        "Warpforged Cabal": {"dp": 2, "dispositions": ["disruption"]},
+        "Warpmeld Pact": {"dp": 2, "dispositions": ["purge-the-foe"]}
+      }
+    },
+    "Chaos Knights": {
+      "source": "chaos",
+      "detachments": {
+        "Bastions of Tyranny": {"dp": 1, "dispositions": ["disruption"]},
+        "Hunting Warpack": {"dp": 1, "dispositions": ["reconnaissance"]},
+        "Iconoclast Fiefdom": {"dp": 1, "dispositions": ["take-and-hold"]},
+        "Helhunt Lance": {"dp": 2, "dispositions": ["disruption"]},
+        "Houndpack Lance": {"dp": 2, "dispositions": ["reconnaissance"]},
+        "Infernal Lance": {"dp": 3, "dispositions": ["purge-the-foe"]},
+        "Lords of Dread": {"dp": 2, "dispositions": ["priority-assets"]},
+        "Traitoris Lance": {"dp": 2, "dispositions": ["purge-the-foe"]}
+      }
+    },
+    "Chaos Daemons": {
+      "source": "chaos",
+      "detachments": {
+        "Cavalcade of Chaos": {"dp": 1, "dispositions": ["disruption"]},
+        "Lords of the Warp": {"dp": 1, "dispositions": ["purge-the-foe"]},
+        "Warptide": {"dp": 1, "dispositions": ["reconnaissance"]},
+        "Blood Legion": {"dp": 2, "dispositions": ["purge-the-foe"]},
+        "Daemonic Incursion": {"dp": 3, "dispositions": ["disruption"]},
+        "Legion of Excess": {"dp": 2, "dispositions": ["priority-assets"]},
+        "Plague Legion": {"dp": 2, "dispositions": ["take-and-hold"]},
+        "Scintillating Legion": {"dp": 2, "dispositions": ["priority-assets"]},
+        "Shadow Legion": {"dp": 2, "dispositions": ["purge-the-foe"]}
+      }
+    },
+    "Orks": {
+      "source": "xenos",
+      "detachments": {
+        "More Dakka!": {"dp": 1, "dispositions": ["purge-the-foe"]},
+        "Rollin' Deff": {"dp": 1, "dispositions": ["priority-assets"]},
+        "Taktikal Brigade": {"dp": 1, "dispositions": ["disruption"]},
+        "Blitz Brigade": {"dp": 2, "dispositions": ["reconnaissance"]},
+        "Bully Boyz": {"dp": 2, "dispositions": ["purge-the-foe"]},
+        "Da Big Hunt": {"dp": 2, "dispositions": ["purge-the-foe"]},
+        "Dread Mob": {"dp": 2, "dispositions": ["purge-the-foe"]},
+        "Freebooter Krew": {"dp": 2, "dispositions": ["take-and-hold"]},
+        "Green Tide": {"dp": 2, "dispositions": ["take-and-hold"]},
+        "Kult of Speed": {"dp": 2, "dispositions": ["disruption"]},
+        "Speedwaaagh!": {"dp": 2, "dispositions": ["reconnaissance"]},
+        "War Horde": {"dp": 3, "dispositions": ["take-and-hold"]}
+      }
+    },
+    "Aeldari": {
+      "source": "xenos",
+      "detachments": {
+        "Armoured Warhost": {"dp": 1, "dispositions": ["reconnaissance"]},
+        "Fateful Performance": {"dp": 1, "dispositions": ["disruption"]},
+        "Path of the Outcast": {"dp": 1, "dispositions": ["reconnaissance"]},
+        "Twilight Flickers": {"dp": 1, "dispositions": ["take-and-hold"]},
+        "Aspect Host": {"dp": 3, "dispositions": ["disruption"]},
+        "Corsair Coterie": {"dp": 2, "dispositions": ["priority-assets"]},
+        "Devoted of Ynnead": {"dp": 2, "dispositions": ["priority-assets"]},
+        "Eldritch Raiders": {"dp": 2, "dispositions": ["disruption"]},
+        "Ghosts of the Webway": {"dp": 2, "dispositions": ["disruption"]},
+        "Guardian Battlehost": {"dp": 2, "dispositions": ["take-and-hold"]},
+        "Seer Council": {"dp": 2, "dispositions": ["priority-assets"]},
+        "Serpent's Brood": {"dp": 2, "dispositions": ["purge-the-foe"]},
+        "Spirit Conclave": {"dp": 2, "dispositions": ["take-and-hold"]},
+        "Warhost": {"dp": 3, "dispositions": ["purge-the-foe"]},
+        "Windrider Host": {"dp": 2, "dispositions": ["disruption"]}
+      }
+    },
+    "Drukhari": {
+      "source": "xenos",
+      "detachments": {
+        "Exhibition of Slaughter": {"dp": 1, "dispositions": ["disruption"]},
+        "Kabalite Agonysts": {"dp": 1, "dispositions": ["purge-the-foe"]},
+        "Tools of Torment": {"dp": 1, "dispositions": ["take-and-hold"]},
+        "Covenite Coterie": {"dp": 2, "dispositions": ["purge-the-foe"]},
+        "Kabalite Cartel": {"dp": 2, "dispositions": ["disruption"]},
+        "Realspace Raiders": {"dp": 2, "dispositions": ["priority-assets"]},
+        "Reaper's Wager": {"dp": 3, "dispositions": ["purge-the-foe"]},
+        "Skysplinter Assault": {"dp": 2, "dispositions": ["reconnaissance"]},
+        "Spectacle of Spite": {"dp": 2, "dispositions": ["purge-the-foe"]}
+      }
+    },
+    "Tyranids": {
+      "source": "xenos",
+      "detachments": {
+        "Ambush Predators": {"dp": 1, "dispositions": ["disruption"]},
+        "Talons of the Norn Queen": {"dp": 1, "dispositions": ["take-and-hold"]},
+        "Warrior Bioform Onslaught": {"dp": 1, "dispositions": ["take-and-hold"]},
+        "Assimilation Swarm": {"dp": 2, "dispositions": ["priority-assets"]},
+        "Crusher Stampede": {"dp": 2, "dispositions": ["purge-the-foe"]},
+        "Invasion Fleet": {"dp": 3, "dispositions": ["take-and-hold"]},
+        "Subterranean Assault": {"dp": 3, "dispositions": ["disruption"]},
+        "Synaptic Nexus": {"dp": 2, "dispositions": ["disruption"]},
+        "Unending Swarm": {"dp": 2, "dispositions": ["take-and-hold"]},
+        "Vanguard Onslaught": {"dp": 2, "dispositions": ["reconnaissance"]}
+      }
+    },
+    "Genestealer Cults": {
+      "source": "xenos",
+      "detachments": {
+        "Heroes of the Uprising": {"dp": 1, "dispositions": ["purge-the-foe"]},
+        "Purestrain Broodswarm": {"dp": 1, "dispositions": ["priority-assets"]},
+        "Xenocult Masses": {"dp": 1, "dispositions": ["disruption"]},
+        "Biosanctic Broodsurge": {"dp": 2, "dispositions": ["take-and-hold"]},
+        "Brood Brothers Auxillia": {"dp": 2, "dispositions": ["take-and-hold"]},
+        "Final Day": {"dp": 2, "dispositions": ["purge-the-foe"]},
+        "Host of Ascension": {"dp": 3, "dispositions": ["take-and-hold"]},
+        "Outlander Claw": {"dp": 2, "dispositions": ["reconnaissance"]},
+        "Xenocreed Congregation": {"dp": 2, "dispositions": ["priority-assets"]}
+      }
+    },
+    "Necrons": {
+      "source": "xenos",
+      "detachments": {
+        "Hand of the Dynasty": {"dp": 1, "dispositions": ["take-and-hold"]},
+        "Skyshroud Spearhead": {"dp": 1, "dispositions": ["reconnaissance"]},
+        "The Phaeron's Armoury": {"dp": 1, "dispositions": ["priority-assets"]},
+        "Annihilation Legion": {"dp": 2, "dispositions": ["purge-the-foe"]},
+        "Awakened Dynasty": {"dp": 3, "dispositions": ["take-and-hold"]},
+        "Canoptek Court": {"dp": 3, "dispositions": ["take-and-hold"]},
+        "Cryptek Conclave": {"dp": 2, "dispositions": ["priority-assets"]},
+        "Cursed Legion": {"dp": 2, "dispositions": ["purge-the-foe"]},
+        "Hypercrypt Legion": {"dp": 2, "dispositions": ["reconnaissance"]},
+        "Obeisance Phalanx": {"dp": 2, "dispositions": ["disruption"]},
+        "Pantheon of Woe": {"dp": 2, "dispositions": ["purge-the-foe"]},
+        "Starshatter Arsenal": {"dp": 3, "dispositions": ["priority-assets"]}
+      }
+    },
+    "Leagues of Votann": {
+      "source": "xenos",
+      "detachments": {
+        "Armoured Trailblazers": {"dp": 1, "dispositions": ["disruption"]},
+        "Farseekers": {"dp": 1, "dispositions": ["reconnaissance"]},
+        "Hearthguard Covenant": {"dp": 1, "dispositions": ["priority-assets"]},
+        "Brandfast Oathband": {"dp": 2, "dispositions": ["take-and-hold"]},
+        "Dêlve Assault Shift": {"dp": 2, "dispositions": ["purge-the-foe"]},
+        "Hearthband": {"dp": 3, "dispositions": ["priority-assets"]},
+        "Hearthfyre Arsenal": {"dp": 2, "dispositions": ["priority-assets"]},
+        "Mercenary Oathband": {"dp": 2, "dispositions": ["take-and-hold"]},
+        "Needgaârd Oathband": {"dp": 2, "dispositions": ["purge-the-foe"]},
+        "Persecution Prospect": {"dp": 2, "dispositions": ["disruption"]}
+      }
+    },
+    "T’au Empire": {
+      "source": "xenos",
+      "detachments": {
+        "Advanced Acquisition Cadre": {"dp": 1, "dispositions": ["reconnaissance"]},
+        "Auxillary Cadre": {"dp": 1, "dispositions": ["disruption"]},
+        "Experimental Prototype Cadre": {"dp": 1, "dispositions": ["priority-assets"]},
+        "Kauyon": {"dp": 2, "dispositions": ["priority-assets"]},
+        "Kroot Hunting Pack": {"dp": 2, "dispositions": ["take-and-hold"]},
+        "Mont'ka": {"dp": 3, "dispositions": ["purge-the-foe"]},
+        "Retaliation Cadre": {"dp": 2, "dispositions": ["purge-the-foe"]}
+      }
+    },
+    "Space Marines": {
+      "source": "marines",
+      "detachments": {
+        "Fulguris Task Force": {"dp": 1, "dispositions": ["disruption"]},
+        "Librarius Conclave": {"dp": 1, "dispositions": ["reconnaissance"]},
+        "Subversion Assets": {"dp": 1, "dispositions": ["reconnaissance"]},
+        "1st Company Task Force": {"dp": 2, "dispositions": ["priority-assets"]},
+        "Anvil Siege Force": {"dp": 2, "dispositions": ["take-and-hold"]},
+        "Armoured Speartip": {"dp": 3, "dispositions": ["take-and-hold"]},
+        "Bastion Task Force": {"dp": 2, "dispositions": ["take-and-hold"]},
+        "Blade of Ultramar": {"dp": 3, "dispositions": ["priority-assets"]},
+        "Ceramite Sentinels": {"dp": 3, "dispositions": ["take-and-hold"]},
+        "Emperor's Shield": {"dp": 2, "dispositions": ["priority-assets"]},
+        "Firestorm Assault Force": {"dp": 2, "dispositions": ["purge-the-foe"]},
+        "Forgefather's Seekers": {"dp": 2, "dispositions": ["purge-the-foe"]},
+        "Gladius Task Force": {"dp": 3, "dispositions": ["priority-assets"]},
+        "Hammer of Avernii": {"dp": 2, "dispositions": ["priority-assets"]},
+        "Headhunter Task Force": {"dp": 2, "dispositions": ["priority-assets"]},
+        "Ironstorm Spearhead": {"dp": 2, "dispositions": ["purge-the-foe"]},
+        "Orbital Assault Force": {"dp": 2, "dispositions": ["take-and-hold"]},
+        "Reclamation Force": {"dp": 2, "dispositions": ["take-and-hold"]},
+        "Shadowmark Talon": {"dp": 2, "dispositions": ["disruption"]},
+        "Spearpoint Task Force": {"dp": 2, "dispositions": ["disruption"]},
+        "Stormlance Task Force": {"dp": 3, "dispositions": ["disruption"]},
+        "Vanguard Spearhead": {"dp": 2, "dispositions": ["reconnaissance"]}
+      }
+    },
+    "Dark Angels": {
+      "source": "marines",
+      "detachments": {
+        "Dark Age Arsenal": {"dp": 1, "dispositions": ["priority-assets"]},
+        "Darkflight Pursuit": {"dp": 1, "dispositions": ["reconnaissance"]},
+        "Interrogation Conclave": {"dp": 1, "dispositions": ["purge-the-foe"]},
+        "Company of Hunters": {"dp": 2, "dispositions": ["disruption"]},
+        "Inner Circle Task Force": {"dp": 2, "dispositions": ["priority-assets"]},
+        "Lion's Blade Task Force": {"dp": 2, "dispositions": ["purge-the-foe"]},
+        "Unforgiven Task Force": {"dp": 2, "dispositions": ["take-and-hold"]},
+        "Wrath of the Rock": {"dp": 3, "dispositions": ["priority-assets"]}
+      }
+    },
+    "Blood Angels": {
+      "source": "marines",
+      "detachments": {
+        "Encarmine Speartip": {"dp": 1, "dispositions": ["disruption"]},
+        "Legacy of Grace": {"dp": 1, "dispositions": ["priority-assets"]},
+        "Wrath of the Doomed": {"dp": 1, "dispositions": ["purge-the-foe"]},
+        "Angelic Inheritors": {"dp": 3, "dispositions": ["priority-assets"]},
+        "Liberator Assault Group": {"dp": 3, "dispositions": ["take-and-hold"]},
+        "Rage-cursed Onslaught": {"dp": 3, "dispositions": ["purge-the-foe"]},
+        "The Angelic Host": {"dp": 2, "dispositions": ["disruption"]},
+        "The Lost Brethren": {"dp": 2, "dispositions": ["purge-the-foe"]}
+      }
+    },
+    "Space Wolves": {
+      "source": "marines",
+      "detachments": {
+        "Champions of Fenris": {"dp": 1, "dispositions": ["purge-the-foe"]},
+        "Legends of Saga and Song": {"dp": 1, "dispositions": ["take-and-hold"]},
+        "Veterans of the Fang": {"dp": 1, "dispositions": ["disruption"]},
+        "Saga of the Beastslayer": {"dp": 2, "dispositions": ["purge-the-foe"]},
+        "Saga of the Bold": {"dp": 2, "dispositions": ["priority-assets"]},
+        "Saga of the Great Wolf": {"dp": 2, "dispositions": ["take-and-hold"]},
+        "Saga of the Hunter": {"dp": 2, "dispositions": ["disruption"]}
+      }
+    },
+    "Black Templars": {
+      "source": "marines",
+      "detachments": {
+        "Marshal's Household": {"dp": 1, "dispositions": ["priority-assets"]},
+        "The Living Miracle": {"dp": 1, "dispositions": ["purge-the-foe"]},
+        "Wrathful Procession": {"dp": 1, "dispositions": ["take-and-hold"]},
+        "Companions of Vehemence": {"dp": 2, "dispositions": ["purge-the-foe"]},
+        "Godhammer Assault Force": {"dp": 2, "dispositions": ["disruption"]},
+        "Vindication Task Force": {"dp": 2, "dispositions": ["priority-assets"]}
+      }
+    },
+    "Deathwatch": {
+      "source": "marines",
+      "detachments": {
+        "Black Spear Task Force": {"dp": 3, "dispositions": ["priority-assets"]}
+      }
+    },
+    "Grey Knights": {
+      "source": "marines",
+      "detachments": {
+        "Argent Assault": {"dp": 1, "dispositions": ["purge-the-foe"]},
+        "Fires of Purgation": {"dp": 1, "dispositions": ["disruption"]},
+        "Immaterial Interdiction": {"dp": 1, "dispositions": ["priority-assets"]},
+        "Augurium Task Force": {"dp": 2, "dispositions": ["reconnaissance"]},
+        "Banishers": {"dp": 2, "dispositions": ["disruption"]},
+        "Brotherhood Strike": {"dp": 2, "dispositions": ["purge-the-foe"]},
+        "Hallowed Conclave": {"dp": 2, "dispositions": ["take-and-hold"]},
+        "Sanctic Spearhead": {"dp": 2, "dispositions": ["priority-assets"]},
+        "Warpbane Task Force": {"dp": 3, "dispositions": ["purge-the-foe"]}
+      }
+    }
+  }
+}

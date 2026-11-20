@@ -2,6 +2,8 @@ import { afterEach, expect, it, vi } from 'vitest'
 import { SupabaseRestSharedSessionTransport } from './supabaseRestTransport'
 import { createBattleSession } from '../domain/battle/engine'
 import { NewRecruitImporter } from '../importers/newRecruit'
+import { OFFICIAL_BOARD_SOURCE, PREVIOUS_OFFICIAL_BOARD_SOURCE_ID } from '../domain/battlefield/layouts'
+import { createCauldronGame } from '../rulesets/cauldronFFA3/session'
 import fixture from '../../test-data/1700.json'
 function setup() {
   vi.stubEnv('VITE_SUPABASE_URL', 'https://rooms.test')
@@ -87,6 +89,32 @@ it('rehydrates the final server roster snapshot rather than stale provisional un
     Object.keys(result!.room.sessionSnapshot.state.players.a.units),
   ).toHaveLength(army.units.length)
 })
+
+it.each([[PREVIOUS_OFFICIAL_BOARD_SOURCE_ID, 4], [OFFICIAL_BOARD_SOURCE.id, 6]] as const)(
+  'rehydrates a BYA room with catalogue %s after the dispositions are frozen',
+  async (sourceId, objectiveCount) => {
+    const { army, transport } = setup()
+    const session = createCauldronGame({
+      armies: [army], guidanceLevel: 'fast', primaryDeck: 'chapter-approved-duel', secondaryDeck: 'chapter-approved',
+      players: [
+        { id: 'a', name: 'A', armyId: army.id, deploymentZone: 'A', turnPosition: 1, operationalPlanId: 'WYNISZCZENIE', forceDisposition: 'purge-the-foe' },
+        { id: 'b', name: 'B', armyId: army.id, deploymentZone: 'B', turnPosition: 2, operationalPlanId: 'WYNISZCZENIE', forceDisposition: 'purge-the-foe' },
+      ],
+    })
+    session.setup.battlefieldSourceId = sourceId
+    session.setup.objectives = [] // the room mapper must use the frozen pairing
+    const room = {
+      id: 'room', code: 'ABC234', battle_id: session.setup.gameId, status: 'active', bring_your_army: true,
+      started_at: '2026-11-20T10:00:00Z', session_snapshot: session,
+    }
+    vi.stubGlobal('fetch', vi.fn(async (url: string) =>
+      new Response(JSON.stringify(url.includes('shared_rooms?') ? [room] : []))))
+    const current = (await transport.inspectRoom('ABC234'))!.room.sessionSnapshot
+    expect(current.setup.objectives).toHaveLength(objectiveCount)
+    expect(Object.keys(current.state.objectives)).toHaveLength(objectiveCount)
+    expect(current.setup.armies[army.id].importedRoster).toEqual(army.importedRoster)
+  },
+)
 
 it('only closes rooms that are still waiting when the database handles Leave', async () => {
   const { session, transport } = setup()

@@ -1,0 +1,114 @@
+{
+  "purge-the-foe|purge-the-foe|A": {
+    "objectives": {
+      "homeAttacker": [
+        {
+          "x": 0.194896,
+          "y": 0.161939
+        }
+      ],
+      "homeDefender": [
+        {
+          "x": 0.819977,
+          "y": 0.849633
+        }
+      ],
+      "central": [
+        {
+          "x": 0.602394,
+          "y": 0.375859
+        },
+        {
+          "x": 0.405055,
+          "y": 0.628176
+        }
+      ],
+      "expansion": [
+        {
+          "x": 0.730586,
+          "y": 0.122821
+        },
+        {
+          "x": 0.280897,
+          "y": 0.860889
+        }
+      ]
+    },
+    "objectiveAssignments": {
+      "attacker-home": [
+        "D1"
+      ],
+      "defender-home": [
+        "D4"
+      ],
+      "CENTER-1": [
+        "D2"
+      ],
+      "CENTER-2": [
+        "D3"
+      ],
+      "EXPANSION-1": [
+        "A1"
+      ],
+      "EXPANSION-2": [
+        "A4"
+      ]
+    }
+  },
+  "purge-the-foe|purge-the-foe|C": {
+    "objectives": {
+      "homeAttacker": [
+        {
+          "x": 0.206361,
+          "y": 0.14742
+        }
+      ],
+      "homeDefender": [
+        {
+          "x": 0.791219,
+          "y": 0.84964
+        }
+      ],
+      "central": [
+        {
+          "x": 0.527394,
+          "y": 0.401384
+        },
+        {
+          "x": 0.462499,
+          "y": 0.60558
+        }
+      ],
+      "expansion": [
+        {
+          "x": 0.665486,
+          "y": 0.145331
+        },
+        {
+          "x": 0.346461,
+          "y": 0.850038
+        }
+      ]
+    },
+    "objectiveAssignments": {
+      "attacker-home": [
+        "D1"
+      ],
+      "defender-home": [
+        "D4"
+      ],
+      "CENTER-1": [
+        "D2"
+      ],
+      "CENTER-2": [
+        "D3"
+      ],
+      "EXPANSION-1": [
+        "A1"
+      ],
+      "EXPANSION-2": [
+        "A4"
+      ]
+    }
+  }
+}

@@ -1,6 +1,6 @@
 import type { ClockSnapshot, ClockCommand, ClockConfig } from '../features/battleClock/model'
 import { rehydrateBattleSession } from '../domain/battle/engine'
-import { officialObjectivesForPair } from '../domain/battlefield/layouts'
+import { hasOfficialCatalogue, officialObjectivesForPair, PREVIOUS_OFFICIAL_BOARD_SOURCE_ID } from '../domain/battlefield/layouts'
 import { getCauldronConfig } from '../rulesets/cauldronFFA3'
 import { validateArmy } from '../domain/army/roster'
 import type { Army } from '../domain/army/types'
@@ -67,7 +67,12 @@ function mapRoom(row: SupabaseRoomRow): SharedRoom {
         ? snapshot.setup.doubles.forces.map((force) => force.forceDisposition)
         : snapshot.setup.turnOrder.map((id) => config.playerConfigs[id]?.forceDisposition)
       if (pair.length !== 2 || !pair[0] || !pair[1]) throw new Error('Both forces must select their Force Dispositions before battle start.')
-      snapshot.setup.objectives = officialObjectivesForPair(pair[0], pair[1], config.officialLayout ?? 1)
+      // Unpinned BYA rooms previously reconstructed objectives from the original
+      // v1.3 catalogue on this client. Keep those IDs for their existing events.
+      const sourceId = snapshot.setup.battlefieldSourceId ?? PREVIOUS_OFFICIAL_BOARD_SOURCE_ID
+      if (hasOfficialCatalogue(sourceId)) {
+        snapshot.setup.objectives = officialObjectivesForPair(pair[0], pair[1], config.officialLayout ?? 1, sourceId)
+      }
     }
   }
   return {

@@ -1,5 +1,6 @@
 import officialData from './officialLayouts.json'
 import legacyData from './officialLayouts.legacy.json'
+import objectiveCorrections from './officialLayoutObjectiveCorrections.json'
 import { DEFAULT_OBJECTIVE_FOOTPRINT } from './types'
 import type { BattleSetup, ObjectiveDefinition } from '../battle/types'
 import type {
@@ -11,9 +12,19 @@ import type {
   ObjectiveFootprint,
 } from './types'
 
-export const OFFICIAL_BOARD_SOURCE = officialData.source
-const OFFICIAL = officialData.layouts as Record<string, OfficialBoardDefinition>
-export const OFFICIAL_LAYOUTS = OFFICIAL
+const ORIGINAL = officialData.layouts as Record<string, OfficialBoardDefinition>
+const LEGACY = legacyData.layouts as Record<string, OfficialBoardDefinition>
+const CORRECTIONS: Record<string, Pick<OfficialBoardDefinition, 'objectives' | 'objectiveAssignments'>> = objectiveCorrections
+export const PREVIOUS_OFFICIAL_BOARD_SOURCE_ID = officialData.source.id
+export const OFFICIAL_BOARD_SOURCE = { ...officialData.source, id: `${officialData.source.id}-geometry-2`, checkedAt: '2026-11-20' }
+export const OFFICIAL_LAYOUTS: Record<string, OfficialBoardDefinition> = Object.fromEntries(
+  Object.entries(ORIGINAL).map(([key, layout]) => [key, {
+    ...layout,
+    ...CORRECTIONS[key],
+    rulesVersion: OFFICIAL_BOARD_SOURCE.id,
+    verification: { status: 'vector-extracted', checkedAt: OFFICIAL_BOARD_SOURCE.checkedAt, physicalTableChecked: false },
+  }]),
+)
 export const FOOTPRINT_LIBRARY = officialData.footprintLibrary
 export const OFFICIAL_SOURCES = officialData.sources
 export const DISPOSITION_ORDER = [
@@ -44,12 +55,13 @@ export function isOfficialBoard(setup: BattleSetup): boolean {
 /**
  * Build the actual objective set for a NEW official battle from the pinned
  * Event Companion glyphs. Older saved sessions retain their existing IDs.
- * Layouts contain 4, 5 or 6 physical objectives; phantom IDs must never score.
+ * Each selected catalogue supplies its own physical objective IDs.
  */
 export function officialObjectivesForPair(
   dispositionA: string,
   dispositionB: string,
   layout: number = 1,
+  sourceId: string = OFFICIAL_BOARD_SOURCE.id,
 ): ObjectiveDefinition[] {
   if (!DISPOSITION_ORDER.includes(dispositionA) || !DISPOSITION_ORDER.includes(dispositionB)
     || !Number.isInteger(layout) || layout < 1 || layout > 3) {
@@ -58,7 +70,7 @@ export function officialObjectivesForPair(
   const pair = [dispositionA, dispositionB].sort(
     (a, b) => DISPOSITION_ORDER.indexOf(a) - DISPOSITION_ORDER.indexOf(b),
   )
-  const definition = OFFICIAL[[...pair, 'ABC'[layout - 1]].join('|')]
+  const definition = officialCatalogue(sourceId)?.[[...pair, 'ABC'[layout - 1]].join('|')]
   if (!definition) throw new Error('Official objective geometry was not found for the selected mission pairing.')
   const home = [
     { id: 'A-HOME', name: 'A-HOME', type: 'home' as const },
@@ -71,6 +83,18 @@ export function officialObjectivesForPair(
     id: `EXPANSION-${index + 1}`, name: `EXPANSION-${index + 1}`, type: 'neutral' as const,
   }))
   return [...home, ...central, ...expansion]
+}
+
+function officialCatalogue(sourceId: string | undefined) {
+  if (sourceId === OFFICIAL_BOARD_SOURCE.id) return OFFICIAL_LAYOUTS
+  if (sourceId === PREVIOUS_OFFICIAL_BOARD_SOURCE_ID) return ORIGINAL
+  if (sourceId === undefined || sourceId === LEGACY_BOARD_SOURCE_ID) return LEGACY
+}
+
+export const LEGACY_BOARD_SOURCE_ID = 'event-1.0-2026-06-12'
+
+export function hasOfficialCatalogue(sourceId: string | undefined): boolean {
+  return Boolean(officialCatalogue(sourceId))
 }
 
 export function officialBoardDefinition(
@@ -88,10 +112,7 @@ export function officialBoardDefinition(
     (a, b) => DISPOSITION_ORDER.indexOf(a) - DISPOSITION_ORDER.indexOf(b),
   )
   const variant = 'ABC'[(config.officialLayout ?? 1) - 1]
-  const catalog = setup.battlefieldSourceId === OFFICIAL_BOARD_SOURCE.id
-    ? OFFICIAL : setup.battlefieldSourceId === undefined
-      ? legacyData.layouts as Record<string, OfficialBoardDefinition> : {}
-  return catalog[[...pair, variant].join('|')]
+  return officialCatalogue(setup.battlefieldSourceId)?.[[...pair, variant].join('|')]
 }
 
 export function defaultBattlefieldGeometry(
@@ -177,7 +198,8 @@ export function battlefieldPresentation(
   geometry: BattlefieldGeometry,
 ): BoardPresentation {
   const official = officialBoardDefinition(setup)
-  const source = setup.battlefieldSourceId === OFFICIAL_BOARD_SOURCE.id ? OFFICIAL_BOARD_SOURCE : legacyData.source
+  const source = setup.battlefieldSourceId === undefined || setup.battlefieldSourceId === LEGACY_BOARD_SOURCE_ID
+    ? legacyData.source : OFFICIAL_BOARD_SOURCE
   if (official)
     return {
       title: `${setup.doubles ? 'Official Doubles' : 'Official Duel'} · Layout ${official.variant}`,

@@ -9,7 +9,7 @@ import {
   duplicateRoster,
   useRosterLibrary,
 } from '../features/armyLibrary/repository'
-import { exportRosters } from '../domain/army/roster'
+import { armyDataMayBeOutdated, exportRosters, OUTDATED_ARMY_NOTICE } from '../domain/army/roster'
 import { downloadJson } from '../features/armyLibrary/download'
 import { useRosterScope } from '../features/armyLibrary/scope'
 import { syncArmies, useSyncState } from '../features/armyLibrary/sync'
@@ -179,6 +179,16 @@ export default function ArmyLibrary() {
                 · {row.army.library?.variantOf ? tr('Variant · ') : ''}{tr("Edited")}{' '}
                 {new Date(row.savedAt).toLocaleDateString()}
               </small>
+              {armyDataMayBeOutdated(row.army) && <p className="context-note">{tr(OUTDATED_ARMY_NOTICE)}</p>}
+              {row.army.importedRoster && <details>
+                <summary>{tr('New Recruit import details')}</summary>
+                <p className="context-note">{tr('Imported')} · {new Date(row.army.importedRoster.importedAt).toLocaleDateString()}
+                  {row.army.importedRoster.gameSystemRevision && <> · {tr('Game system revision')} {row.army.importedRoster.gameSystemRevision}</>}
+                </p>
+                {row.army.importedRoster.catalogues.map(({ name, revision }, index) => <small key={`${index}:${name}`}>
+                  {name}{revision && <> · {tr('Revision')} {revision}</>}
+                </small>)}
+              </details>}
               {row.conflictNote && (
                 <p className="alert alert--warning">{row.conflictNote}</p>
               )}

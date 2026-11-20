@@ -1,6 +1,7 @@
 export type Detachment = {
   id: string
   name: string
+  faction?: string
 }
 
 export type Army = {
@@ -13,6 +14,12 @@ export type Army = {
   units: UnitDefinition[]
   /** Device-only photo namespace; excluded from cloud and JSON exports. */
   localMediaId?: string
+  importedRoster?: {
+    source: 'new-recruit'
+    importedAt: string
+    gameSystemRevision?: string
+    catalogues: { name: string; revision?: string }[]
+  }
   library?: {
     source: 'new-recruit' | 'local-edit' | 'homebrew'
     createdAt: string
