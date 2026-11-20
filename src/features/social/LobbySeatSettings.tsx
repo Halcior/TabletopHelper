@@ -1,7 +1,8 @@
 import { t as tr } from '../i18n/locale'
 import { useEffect, useRef, useState } from 'react'
 import { useRosterScope } from '../armyLibrary/scope'
-import { getCauldronConfig, DISPOSITIONS, DISPOSITION_NAMES, DUEL_MISSIONS, DUEL_PRIMARY_MATRIX } from '../../rulesets/cauldronFFA3'
+import { getCauldronConfig, DISPOSITIONS, DISPOSITION_NAMES, DUEL_MISSIONS, DUEL_PRIMARY_MATRIX, type ForceDisposition } from '../../rulesets/cauldronFFA3'
+import { ForceDispositionPicker } from '../../components/ui/ForceDispositionPicker'
 import { useSharedSessionStore } from '../../multiplayer/sharedSessionStore'
 import { sharedSessionTransport } from '../../multiplayer/supabaseRestTransport'
 import { errorText } from './api'
@@ -67,7 +68,16 @@ export function LobbySeatSettings() {
 
   if (!membership || !room?.bringYourArmy || room.startedAt) return null
 
-  const opposingForce = room.sessionSnapshot.setup.doubles?.forces.find(f => f.captainPlayerId !== playerId)
+  const teamAlpha = inspection?.hostSettings?.teamAlpha
+  const forces = room.sessionSnapshot.setup.doubles?.forces
+  const validationSeats = force && teamAlpha?.length === 2
+    ? room.sessionSnapshot.setup.players.filter(p => teamAlpha.includes(p.id) === teamAlpha.includes(membership.playerId)).map(p => p.id)
+    : force?.memberPlayerIds ?? [membership.playerId]
+  const stagedArmies = validationSeats.map(id => {
+    const occupant = participants.find(p => p.playerId === id)
+    return inspection?.rosters?.find(r => r.playerId === id && r.clientId === occupant?.clientId)?.army
+  })
+  const opposingForce = forces?.find(f => f.captainPlayerId !== playerId)
   const opposingChoice = opposingForce
     ? participants.find(p => p.playerId === opposingForce.captainPlayerId)?.forceDisposition
     : participants.find(p => p.playerId !== playerId)?.forceDisposition
@@ -79,11 +89,7 @@ export function LobbySeatSettings() {
     <h2>{tr("Your player profile and mission")}</h2>
     <p>{tr("Playing as: ")}<strong>{participant?.displayName ?? tr('Loading profile…')}</strong>{owner ? tr(' · account profile') : tr(' · guest')}</p>
     {captainRequired && <>
-      <label>{tr("Force Disposition ")}<select value={choice} disabled={busy} onChange={event => setChoice(event.target.value)}>
-          <option value="">{tr("Choose your Force Disposition…")}</option>
-          {DISPOSITIONS.map(id => <option key={id} value={id}>{DISPOSITION_NAMES[id]}</option>)}
-        </select>
-      </label>
+      <ForceDispositionPicker armies={stagedArmies} value={choice as ForceDisposition | ''} disabled={busy} onChange={setChoice} lobby />
       <button type="button" disabled={busy || !choice || choice === remoteChoice} onClick={() => void confirm()}>
         {busy ? tr('Saving…') : remoteChoice ? tr('Change Force Disposition') : tr('Confirm Force Disposition')}
       </button>

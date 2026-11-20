@@ -13,6 +13,7 @@ import {
 import { createSecondaryRefillEvents, getRoundSecondaryVp, getSecondaryState } from './secondary'
 import { createCauldronGame } from './session'
 import type { OfficialSecondaryId } from './secondaryTypes'
+import { OFFICIAL_RULES } from '../officialRuleVersions'
 
 function ordered(...first: OfficialSecondaryId[]): OfficialSecondaryId[] {
   return [...first, ...OFFICIAL_SECONDARY_IDS.filter((id) => !first.includes(id))]
@@ -57,6 +58,31 @@ describe('Chapter Approved Secondary deck', () => {
     const chosen = noteOfficialTarget(game(['OFFICIAL_BEACON', 'OFFICIAL_NO_PRISONERS']), 'p-a', 'OFFICIAL_BEACON', 'infantry')
     expect(getSecondaryState(chosen)['p-a'].active[0].cardSpecificState).toMatchObject({ officialTargetUnitId: 'infantry', lastConfirmation: 'Four-model unit' })
     expect(() => noteOfficialTarget(chosen, 'p-a', 'OFFICIAL_BEACON', 'tank')).toThrow(/locked/)
+  })
+  it('only scores a present, living locked Beacon unit under the current FAQ', () => {
+    const initial = game(['OFFICIAL_BEACON', 'OFFICIAL_NO_PRISONERS'])
+    initial.setup.officialRulesVersion = OFFICIAL_RULES.id
+    const opponentTurn = (session: BattleSession) => dispatchBattleEvents(session, [
+      { type: 'TURN_STARTED', payload: { playerId: 'p-b' } },
+      { type: 'PHASE_CHANGED', payload: { phase: 'END_TURN' } },
+    ])
+    expect(canScoreOfficialSecondary(opponentTurn(initial), 'p-a', 'OFFICIAL_BEACON')).toBe(false)
+    const chosen = noteOfficialTarget(initial, 'p-a', 'OFFICIAL_BEACON', 'infantry')
+    expect(canScoreOfficialSecondary(opponentTurn(chosen), 'p-a', 'OFFICIAL_BEACON')).toBe(true)
+    const destroyed = dispatchBattleEvent(opponentTurn(chosen), { type: 'UNIT_DESTROYED', payload: { playerId: 'p-a', unitId: 'infantry' } })
+    expect(canScoreOfficialSecondary(destroyed, 'p-a', 'OFFICIAL_BEACON')).toBe(false)
+    expect(() => noteOfficialTarget(destroyed, 'p-a', 'OFFICIAL_BEACON', 'tank')).toThrow(/locked/)
+  })
+
+  it('records the opponent’s Tempting Target as an eligible objective ID', () => {
+    const session = game(['OFFICIAL_A_TEMPTING_TARGET', 'OFFICIAL_NO_PRISONERS'])
+    session.setup.officialRulesVersion = OFFICIAL_RULES.id
+    const card = 'OFFICIAL_A_TEMPTING_TARGET'
+    expect(() => noteOfficialTarget(session, 'p-a', card, 'phantom')).toThrow(/eligible objective/)
+    const target = session.setup.objectives.find(objective => objective.type === 'neutral')!.id
+    const chosen = noteOfficialTarget(session, 'p-a', card, target)
+    expect(canScoreOfficialSecondary(phase(session, 'END_TURN'), 'p-a', card)).toBe(false)
+    expect(canScoreOfficialSecondary(phase(chosen, 'END_TURN'), 'p-a', card)).toBe(true)
   })
   it('contains 18 unique cards and exactly four Fixed options', () => {
     expect(OFFICIAL_SECONDARY_DEFINITIONS).toHaveLength(18)

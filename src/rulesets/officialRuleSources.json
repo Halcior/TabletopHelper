@@ -1,0 +1,21 @@
+{
+  "id": "gw-11th-2026-11-20",
+  "edition": 11,
+  "publisher": "Games Workshop",
+  "reviewedAt": "2026-11-20",
+  "downloads": "https://www.warhammer-community.com/en-gb/downloads/warhammer-40000/",
+  "sources": {
+    "event": {"title": "Warhammer Event Companion", "version": "1.3", "publishedAt": "2026-10-14", "url": "https://assets.warhammer-community.com/eng_14-10_wh40k_event_companion-rdwnqprl4c-nj8oqogadv.pdf", "sha256": "187253a9b6ea377f5e44d1148454bd042b165b03bb5c45c51a5880762bf56dc2"},
+    "doubles": {"title": "Warhammer Doubles - Event Companion", "version": "1.1", "publishedAt": "2026-08-26", "url": "https://assets.warhammer-community.com/eng_wh40k_doubles_event_companion-x8bakj0hba-chdctfbcoc.pdf", "sha256": "752d8887a8821e55199cdf80cdf954daeeda450b4b1836bfe989f321293c9f44"},
+    "core": {"title": "Core Rules", "version": null, "publishedAt": "2026-06-01", "url": "https://assets.warhammer-community.com/eng_01-06_warhammer40k_new40k_core_rules-was6fbu1ix-hfewhmxyiy.pdf", "sha256": "f6a2443a44627ac5f0ef08407d29aa5ec7e97339998f05bc35f3ae37bf276833"},
+    "universal": {"title": "Universal Rules Updates", "version": "1.1", "publishedAt": "2026-08-26", "url": "https://assets.warhammer-community.com/eng_wh40k_core&key_universal_rules_updates-lu3grocned-rphh78bl6k.pdf", "sha256": "e9368c75bf4c9040fa978e7f792080e71d140997def77182dd41e71959185a72"},
+    "mfm": {"title": "Munitorum Field Manual", "version": null, "publishedAt": "2026-10-14", "url": "https://mfm.warhammer-community.com/"},
+    "terrain": {"title": "Armageddon", "version": null, "publishedAt": "2026-06-12", "url": "https://assets.warhammer-community.com/eng_12-06_warhammer40000_terrainareafootprints-biavo5zf9f-gxdahkydbj.pdf", "sha256": "abda484efe1e3031a92079053594a8b933a6ac429b899151f39ce8d51cbb9189"}
+  },
+  "verification": {
+    "battlefield": "vector-extracted",
+    "primary": {"dataVersion": "2026-27-event-faq-1.3", "status": "pairings-and-faq-verified"},
+    "secondary": {"dataVersion": "2026-27-event-faq-1.3", "status": "companion-and-faq-verified"},
+    "forceDisposition": {"dataVersion": "2026-11-20", "status": "partial"}
+  }
+}

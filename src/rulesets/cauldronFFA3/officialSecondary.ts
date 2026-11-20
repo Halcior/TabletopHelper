@@ -6,6 +6,7 @@ import { OFFICIAL_SECONDARY_BY_ID, type OfficialSecondaryDefinition } from './of
 import { secondaryStrategyFor } from './sessionConfig'
 import { getGameSecondaryVp, getRoundSecondaryVp, getSecondaryState, isOfficialSecondary, officialDrawEvents } from './secondary'
 import type { OfficialSecondaryConfirmation, OfficialSecondaryId } from './secondaryTypes'
+import { usesOfficialMissionFaq } from '../officialRuleVersions'
 import {
   getOfficialSecondaryRival, isOfficialFfa, officialFfaAwards, officialPlayerUnits, officialTemptingTargets,
 } from './officialSecondaryFFA'
@@ -47,6 +48,19 @@ export function canScoreOfficialSecondary(session: BattleSession, playerId: stri
   if (definition.scoreAt === 'opponent' && !(lastTurn || (!ownTurn && rivalId === session.state.activePlayerId))) return false
   if (definition.scoreAt === 'either' && !ownTurn && rivalId !== session.state.activePlayerId) return false
   if (cardId === 'OFFICIAL_DEFEND_STRONGHOLD' && session.state.round === 1) return false
+  if (usesOfficialMissionFaq(session.setup)) {
+    if (cardId === 'OFFICIAL_A_TEMPTING_TARGET' && !card.cardSpecificState?.officialTargetObjectiveId) return false
+    if (cardId === 'OFFICIAL_BEACON') {
+      const target = card.cardSpecificState?.officialTargetUnitId
+      if (!target) return false
+      if (session.setup.doubles) {
+        if (!doublesSecondaryUnitChoices(session, playerId, false).some(choice => choice.value === target)) return false
+      } else {
+        const unit = session.state.players[playerId]?.units[target]
+        if (!unit || unit.destroyed || unit.inReserve) return false
+      }
+    }
+  }
   if ((cardId === 'OFFICIAL_CLEANSE' || cardId === 'OFFICIAL_PLUNDER') && officialActionCount(session, playerId, cardId) === 0) return false
   if (secondaryStrategyFor(session, playerId) === 'fixed') {
     if (getSecondaryState(session)[playerId].scoreHistory.filter((entry) => entry.cardId === cardId).reduce((sum, entry) => sum + entry.pointsAwarded, 0) >= 20) return false
@@ -157,6 +171,15 @@ export function startOfficialSecondaryAction(session: BattleSession, playerId: s
       throw new Error('The entire terrain footprint must be wholly outside your Territory; the boundary counts as inside.')
     }
   }
+  const currentRules = usesOfficialMissionFaq(session.setup)
+  if (currentRules && cardId === 'OFFICIAL_PLUNDER' && !confirmation.terrainWhollyOutsideOwnTerritory) {
+    throw new Error('Confirm that the terrain area itself is outside your Territory.')
+  }
+  if (currentRules && !session.setup.doubles) {
+    const state = session.state.players[playerId].units[unit]
+    if (!state || state.destroyed || state.inReserve || state.battleShocked) throw new Error('Choose a living, eligible own unit on the battlefield.')
+    if (cardId === 'OFFICIAL_CLEANSE' && session.state.objectives[target]?.type !== 'neutral') throw new Error('Choose a non-HOME objective for Cleanse.')
+  }
   const starts = getCauldronEventData<OfficialActionStart>(session, 'SECONDARY_OFFICIAL_ACTION_STARTED')
     .filter((action) => action.playerId === playerId && action.cardId === cardId && action.turnKey === officialTurnKey(session))
   if (starts.some((action) => action.unit.toLocaleLowerCase() === unit.trim().toLocaleLowerCase())) throw new Error('This unit already started this action this turn.')
@@ -166,7 +189,7 @@ export function startOfficialSecondaryAction(session: BattleSession, playerId: s
   }
   return dispatchBattleEvents(session, [cauldronEvent('SECONDARY_OFFICIAL_ACTION_STARTED', {
     playerId, cardId, turnKey: officialTurnKey(session), unit: unit.trim().slice(0, 100), target: target.trim().slice(0, 100),
-    ...(isOfficialFfa(session) && cardId === 'OFFICIAL_PLUNDER' ? { terrainWhollyOutsideOwnTerritory: true } : {}),
+    ...((isOfficialFfa(session) || currentRules) && cardId === 'OFFICIAL_PLUNDER' ? { terrainWhollyOutsideOwnTerritory: true } : {}),
   } satisfies OfficialActionStart)], { actorPlayerId: playerId })
 }
 
@@ -255,9 +278,22 @@ export function discardOfficialAtEndTurn(session: BattleSession, playerId: strin
 
 export function noteOfficialTarget(session: BattleSession, playerId: string, cardId: OfficialSecondaryId, note: string): BattleSession {
   assertOfficial(session)
-  if (!getSecondaryState(session)[playerId]?.active.some((card) => card.cardId === cardId)) throw new Error('This card is not active.')
+  const activeCard = getSecondaryState(session)[playerId]?.active.find(card => card.cardId === cardId)
+  if (!activeCard) throw new Error('This card is not active.')
   if (!['OFFICIAL_A_TEMPTING_TARGET', 'OFFICIAL_BEACON', 'OFFICIAL_BURDEN_OF_TRUST'].includes(cardId)) throw new Error('This card does not choose a target.')
   if (!note.trim()) throw new Error('Enter the selected objective or unit.')
+  if (usesOfficialMissionFaq(session.setup) && (cardId === 'OFFICIAL_A_TEMPTING_TARGET' || cardId === 'OFFICIAL_BEACON')) {
+    if (activeCard.cardSpecificState?.lastConfirmation) throw new Error('The when-drawn choice is locked for this card.')
+    if (session.state.activePlayerId !== playerId || session.state.phase !== 'COMMAND' || !isNewDraw(session, playerId, cardId)) {
+      throw new Error('Record the choice when the card is drawn.')
+    }
+    if (cardId === 'OFFICIAL_A_TEMPTING_TARGET') {
+      if (!officialTemptingTargets(session, playerId).includes(note)) throw new Error('Choose the eligible objective selected by your opponent.')
+      return dispatchBattleEvents(session, [cauldronEvent('SECONDARY_CARD_STATE_UPDATED', {
+        playerId, cardId, patch: { officialTargetObjectiveId: note, lastConfirmation: note },
+      })], { actorPlayerId: playerId })
+    }
+  }
   if (isOfficialFfa(session)) {
     const card = getSecondaryState(session)[playerId].active.find((entry) => entry.cardId === cardId)!
     if (session.state.activePlayerId !== playerId || session.state.phase !== 'COMMAND') throw new Error('Record the when-drawn choice in your Command phase.')
@@ -301,7 +337,7 @@ export function assignOfficialGuards(session: BattleSession, playerId: string, a
   assertOfficial(session)
   const cardId = 'OFFICIAL_BURDEN_OF_TRUST'
   const card = getSecondaryState(session)[playerId]?.active.find((entry) => entry.cardId === cardId)
-  if ((!isOfficialFfa(session) && !session.setup.doubles) || !card || session.state.activePlayerId !== playerId || session.state.phase !== 'COMMAND') throw new Error('Assign guards when drawn or at the start of your own turn.')
+  if ((!isOfficialFfa(session) && !session.setup.doubles && !usesOfficialMissionFaq(session.setup)) || !card || session.state.activePlayerId !== playerId || session.state.phase !== 'COMMAND') throw new Error('Assign guards when drawn or at the start of your own turn.')
   if (card.cardSpecificState?.officialGuardAssignmentTurnKey === officialTurnKey(session)) throw new Error('Guard assignments are already saved for this turn.')
   const controlled = Object.values(session.state.objectives).filter((objective) => objective.controllerPlayerId === playerId)
   if (Object.keys(assignments).length !== controlled.length || !controlled.every((objective) => {

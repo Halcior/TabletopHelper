@@ -49,12 +49,14 @@ export type NewRecruitForce = {
   id?: string
   name?: string
   catalogueName?: string
+  catalogueRevision?: string | number | null
   selections?: NewRecruitSelection[]
 }
 
 export type NewRecruitRoster = {
   id?: string
   name?: string | number
+  gameSystemRevision?: string | number | null
   costs?: NewRecruitCost[]
   forces?: NewRecruitForce[]
 }
@@ -108,12 +110,14 @@ const ForceSchema: z.ZodType<NewRecruitForce> = z.object({
   id: z.string().optional(),
   name: z.string().optional(),
   catalogueName: z.string().optional(),
+  catalogueRevision: z.union([z.string(), z.number().finite()]).nullable().optional(),
   selections: z.array(SelectionSchema).optional(),
 }).passthrough()
 
 const RosterSchema: z.ZodType<NewRecruitRoster> = z.object({
   id: z.string().optional(),
   name: z.union([z.string(), z.number()]).optional(),
+  gameSystemRevision: z.union([z.string(), z.number().finite()]).nullable().optional(),
   costs: z.array(CostSchema).optional(),
   forces: z.array(ForceSchema).optional(),
 }).passthrough()

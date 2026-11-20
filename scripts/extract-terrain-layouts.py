@@ -13,6 +13,7 @@ parser.add_argument('--pdf', required=True)
 parser.add_argument('--doubles', required=True)
 parser.add_argument('--footprints', required=True)
 parser.add_argument('--downloads', required=True, help='Official /api/search/downloads/ response')
+parser.add_argument('--objective-corrections', type=Path, help='Write only changed objectives and their terrain assignments against the preserved original v1.3 catalogue')
 args = parser.parse_args()
 FILES = {'event': Path(args.pdf), 'doubles': Path(args.doubles), 'footprints': Path(args.footprints)}
 EXPECTED = {'event':'187253a9b6ea377f5e44d1148454bd042b165b03bb5c45c51a5880762bf56dc2', 'doubles':'752d8887a8821e55199cdf80cdf954daeeda450b4b1836bfe989f321293c9f44', 'footprints':'abda484efe1e3031a92079053594a8b933a6ac429b899151f39ce8d51cbb9189'}
@@ -141,6 +142,19 @@ for key, layout in data['layouts'].items():
     old=legacy['layouts'][key]
     changed=[f for f in ['objectives','deploymentPaths','territoryPaths'] if old[f]!=layout[f]]
     audit.append({'layoutId':key,'page':layout['page'],'areas':len(areas),'changedLegacyFields':changed,'legacyObjectiveCounts':{k:len(v) for k,v in old['objectives'].items()},'currentObjectiveCounts':{k:len(v) for k,v in layout['objectives'].items()},'frameAspectErrorPercent':layout['frameAspectErrorPercent']})
+if args.objective_corrections:
+    original = json.loads((ROOT/'src/domain/battlefield/officialLayouts.json').read_text())
+    assert original['source']['sha256'] == data['source']['sha256']
+    fields = ('objectives', 'objectiveAssignments')
+    corrections = {}
+    for key, layout in data['layouts'].items():
+        previous = original['layouts'][key]
+        assert all(previous[field] == layout[field] for field in ('deploymentPaths', 'territoryPaths', 'terrainAreas', 'terrainFeatures')), key
+        if any(previous[field] != layout[field] for field in fields):
+            corrections[key] = {field: layout[field] for field in fields}
+    args.objective_corrections.write_text(json.dumps(corrections, indent=2)+'\n')
+    print('Objective corrections:', ', '.join(corrections))
+    sys.exit(0)
 (ROOT/'src/domain/battlefield/officialLayouts.json').write_text(json.dumps(data,ensure_ascii=False,separators=(',',':'))+'\n')
 (ROOT/'docs/terrain-source-audit.json').write_text(json.dumps({'sources':sources,'layouts':audit,'maxFrameAspectErrorPercent':max(a['frameAspectErrorPercent'] for a in audit)},indent=2)+'\n')
 print('45 maps; 720 independent source outlines; changed legacy fields:',collections.Counter(f for row in audit for f in row['changedLegacyFields']))

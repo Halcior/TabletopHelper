@@ -19,6 +19,8 @@ import { OfficialSecondaryConfirmationFields } from './OfficialSecondaryConfirma
 import { InfoDisclosure } from '../ui/InfoDisclosure'
 import { RivalHelp, SecondaryScope } from './RivalClarity'
 import { FFA_SCORING_BRIEF } from './rivalPresentation'
+import { officialBoardDefinition } from '../../domain/battlefield/layouts'
+import { usesOfficialMissionFaq } from '../../rulesets/officialRuleVersions'
 
 type OfficialSecondaryPanelProps = { session: BattleSession; playerId: string; editable: boolean }
 
@@ -40,6 +42,10 @@ function OfficialSecondaryForm({ session, playerId, editable }: OfficialSecondar
   const { scoreOfficialSecondary, replaceOfficialSecondary, discardOfficialAtEndTurn, noteOfficialTarget, startOfficialSecondaryAction, acknowledgeOfficialWindow, assignOfficialGuards } = useBattleStore()
   const state = getSecondaryState(session)[playerId]
   const ffa = isOfficialFfa(session)
+  const currentOfficialRules = usesOfficialMissionFaq(session.setup)
+  const useGuardSelectors = ffa || Boolean(session.setup.doubles) || currentOfficialRules
+  const confirmPlunderTerrain = ffa || currentOfficialRules
+  const plunderAreas = currentOfficialRules ? officialBoardDefinition(session.setup)?.terrainAreas : undefined
   const doublesUnitChoices = session.setup.doubles ? doublesSecondaryUnitChoices(session, playerId) : null
   const fixed = secondaryStrategyFor(session, playerId) === 'fixed'
   const ownTurn = session.state.activePlayerId === playerId
@@ -100,7 +106,7 @@ function OfficialSecondaryForm({ session, playerId, editable }: OfficialSecondar
         const targetCard = ['OFFICIAL_A_TEMPTING_TARGET', 'OFFICIAL_BEACON', 'OFFICIAL_BURDEN_OF_TRUST'].includes(cardId)
         const missionAction = cardId === 'OFFICIAL_CLEANSE' || cardId === 'OFFICIAL_PLUNDER'
         const actionDraft = actionDrafts[cardId] ?? { unit: '', target: '' }
-        const choiceRequired = editable && command && targetCard && (cardId === 'OFFICIAL_BURDEN_OF_TRUST' && ffa ? card.cardSpecificState?.officialGuardAssignmentTurnKey !== officialTurnKey(session) : !note)
+        const choiceRequired = editable && command && targetCard && (cardId === 'OFFICIAL_BURDEN_OF_TRUST' && useGuardSelectors ? card.cardSpecificState?.officialGuardAssignmentTurnKey !== officialTurnKey(session) : !note)
         const actionAvailable = editable && ownTurn && session.state.phase === 'SHOOTING' && missionAction
         const required = choiceRequired || canScore || Boolean(redraw) || canDiscard
         const status = canScore && !ffa ? 'Needs Confirmation' : canScore && actualAward > 0 ? 'Ready to Score' : required ? 'Action Required' : definition.scoreAt === 'opponent' && ownTurn ? 'Awaiting Rival' : 'Active'
@@ -120,9 +126,9 @@ function OfficialSecondaryForm({ session, playerId, editable }: OfficialSecondar
           <summary>{required ? tr('Required choices & scoring') : actionAvailable ? tr('Mission Action available') : tr('Full rules & actions')}</summary>
           {ffa ? <InfoDisclosure label={tr("Full card rules")}><p className="secondary-card__full-rules">{tr(description)}</p></InfoDisclosure>
             : <p className="secondary-card__full-rules">{tr(description)}</p>}
-          {targetCard && !ffa && cardId !== 'OFFICIAL_BEACON' && !(session.setup.doubles && cardId === 'OFFICIAL_BURDEN_OF_TRUST') && <div className="official-secondary-input"><label>{cardId === 'OFFICIAL_A_TEMPTING_TARGET' ? tr('Objective selected by the Rival') : tr('Units guarding objectives')}<input value={notes[cardId] ?? note ?? ''} onChange={(event) => setNotes((current) => ({ ...current, [cardId]: event.target.value }))} disabled={!editable} placeholder={tr("Record the choice at the table")} /></label>{editable && <button type="button" disabled={!(notes[cardId] ?? '').trim()} onClick={() => noteOfficialTarget(playerId, cardId, notes[cardId])}>{tr("Save choice")}</button>}</div>}
-          {targetCard && (ffa || cardId === 'OFFICIAL_BEACON') && cardId !== 'OFFICIAL_BURDEN_OF_TRUST' && <div className="official-secondary-input">
-            {note ? <strong>{tr("Locked choice: ")}{note}</strong> : <><label>{cardId === 'OFFICIAL_A_TEMPTING_TARGET' ? tr('Objective selected by the assigned Rival') : tr('Chosen own unit')}<select value={notes[cardId] ?? ''} disabled={!editable || !command} onChange={(event) => setNotes((current) => ({ ...current, [cardId]: event.target.value }))}>
+          {targetCard && !ffa && cardId !== 'OFFICIAL_BEACON' && !(useGuardSelectors && cardId === 'OFFICIAL_BURDEN_OF_TRUST') && !(currentOfficialRules && cardId === 'OFFICIAL_A_TEMPTING_TARGET') && <div className="official-secondary-input"><label>{cardId === 'OFFICIAL_A_TEMPTING_TARGET' ? tr('Objective selected by the Rival') : tr('Units guarding objectives')}<input value={notes[cardId] ?? note ?? ''} onChange={(event) => setNotes((current) => ({ ...current, [cardId]: event.target.value }))} disabled={!editable} placeholder={tr("Record the choice at the table")} /></label>{editable && <button type="button" disabled={!(notes[cardId] ?? '').trim()} onClick={() => noteOfficialTarget(playerId, cardId, notes[cardId])}>{tr("Save choice")}</button>}</div>}
+          {targetCard && (ffa || currentOfficialRules || cardId === 'OFFICIAL_BEACON') && cardId !== 'OFFICIAL_BURDEN_OF_TRUST' && <div className="official-secondary-input">
+            {note ? <strong>{tr("Locked choice: ")}{note}</strong> : <><label>{cardId === 'OFFICIAL_A_TEMPTING_TARGET' ? tr(ffa ? 'Objective selected by the assigned Rival' : 'Objective selected by your opponent in No Man’s Land') : tr('Chosen own unit')}<select value={notes[cardId] ?? ''} disabled={!editable || !command} onChange={(event) => setNotes((current) => ({ ...current, [cardId]: event.target.value }))}>
               <option value="">{tr("Choose when drawn")}</option>
               {cardId === 'OFFICIAL_A_TEMPTING_TARGET' ? officialTemptingTargets(session, playerId).map((id) => <option key={id} value={id}>{id}</option>)
                 : doublesUnitChoices
@@ -130,7 +136,7 @@ function OfficialSecondaryForm({ session, playerId, editable }: OfficialSecondar
                   : officialPlayerUnits(session, playerId).filter((unit) => !player.units[unit.id]?.destroyed && !player.units[unit.id]?.inReserve).map((unit) => <option key={unit.id} value={unit.id}>{unit.name}</option>)}
             </select></label>{editable && command && <button type="button" disabled={!notes[cardId]} onClick={() => noteOfficialTarget(playerId, cardId, notes[cardId])}>{tr("Save and lock choice")}</button>}</>}
           </div>}
-          {(ffa || Boolean(session.setup.doubles)) && cardId === 'OFFICIAL_BURDEN_OF_TRUST' && <div className="official-secondary-input">
+          {useGuardSelectors && cardId === 'OFFICIAL_BURDEN_OF_TRUST' && <div className="official-secondary-input">
             {Object.entries(card.cardSpecificState?.officialGuardAssignments ?? {}).map(([objectiveId, unitId]) => <small key={objectiveId}>{tr("Guard: ")}{objectiveId} · {session.setup.doubles ? doublesSecondaryUnitChoices(session, playerId, false).find((choice) => choice.value === unitId)?.label : officialPlayerUnits(session, playerId).find((unit) => unit.id === unitId)?.name}</small>)}
             {editable && command && card.cardSpecificState?.officialGuardAssignmentTurnKey !== officialTurnKey(session) && <>
               {Object.values(session.state.objectives).filter((objective) => objective.controllerPlayerId === playerId).map((objective) => <label key={objective.id}>{objective.id} {tr(" · guarding unit")}<select value={guardDraft[objective.id] ?? ''} onChange={(event) => setGuardDraft((current) => ({ ...current, [objective.id]: event.target.value }))}>
@@ -143,9 +149,11 @@ function OfficialSecondaryForm({ session, playerId, editable }: OfficialSecondar
             <label>{tr("Acting unit")}<select value={actionDraft.unit} onChange={(event) => updateAction(cardId, 'unit', event.target.value)}><option value="">{tr("Choose a qualifying own unit")}</option>{doublesUnitChoices
               ? doublesUnitChoices.map((choice) => <option key={choice.value} value={choice.value}>{choice.label}</option>)
               : officialPlayerUnits(session, playerId).filter((unit) => !player.units[unit.id]?.destroyed && !player.units[unit.id]?.inReserve && !player.units[unit.id]?.battleShocked).map((unit) => <option key={unit.id} value={unit.id}>{unit.name}</option>)}</select></label>
-            <label>{cardId === 'OFFICIAL_CLEANSE' ? tr('Non-home objective') : ffa ? tr('Terrain area wholly outside your Territory') : tr('Terrain area outside your territory')}{cardId === 'OFFICIAL_CLEANSE' ? <select value={actionDraft.target} onChange={(event) => updateAction(cardId, 'target', event.target.value)}><option value="">{tr("Choose an objective")}</option>{officialNmlObjectives(session).map((id) => <option key={id} value={id}>{id}</option>)}</select> : <input value={actionDraft.target} onChange={(event) => updateAction(cardId, 'target', event.target.value)} placeholder={tr("Location on the table")} />}</label>
-            {ffa && cardId === 'OFFICIAL_PLUNDER' && <label className="review-check-row"><input type="checkbox" checked={actionDraft.terrainWhollyOutsideOwnTerritory ?? false} onChange={(event) => setActionDrafts((current) => ({ ...current, [cardId]: { ...actionDraft, terrainWhollyOutsideOwnTerritory: event.target.checked } }))} /><span>{tr("The entire terrain footprint is wholly outside own Territory, without touching its boundary")}</span></label>}
-            <button type="button" disabled={!actionDraft.unit.trim() || !actionDraft.target.trim() || (ffa && cardId === 'OFFICIAL_PLUNDER' && !actionDraft.terrainWhollyOutsideOwnTerritory)} onClick={() => { startOfficialSecondaryAction(playerId, cardId, actionDraft.unit, actionDraft.target, actionDraft); setActionDrafts((current) => ({ ...current, [cardId]: { unit: '', target: '' } })) }}>{tr("Start action in Shooting phase")}</button>
+            <label>{cardId === 'OFFICIAL_CLEANSE' ? tr('Non-home objective') : ffa ? tr('Terrain area wholly outside your Territory') : tr('Terrain area outside your territory')}{cardId === 'OFFICIAL_CLEANSE' ? <select value={actionDraft.target} onChange={(event) => updateAction(cardId, 'target', event.target.value)}><option value="">{tr("Choose an objective")}</option>{officialNmlObjectives(session).map((id) => <option key={id} value={id}>{id}</option>)}</select> : plunderAreas?.length ? <select value={actionDraft.target} onChange={event => updateAction(cardId, 'target', event.target.value)}>
+              <option value="">{tr('Choose a terrain area')}</option>{plunderAreas.map(area => <option key={area.id} value={area.id}>{area.id}</option>)}
+            </select> : <input value={actionDraft.target} onChange={(event) => updateAction(cardId, 'target', event.target.value)} placeholder={tr("Location on the table")} />}</label>
+            {confirmPlunderTerrain && cardId === 'OFFICIAL_PLUNDER' && <label className="review-check-row"><input type="checkbox" checked={actionDraft.terrainWhollyOutsideOwnTerritory ?? false} onChange={(event) => setActionDrafts((current) => ({ ...current, [cardId]: { ...actionDraft, terrainWhollyOutsideOwnTerritory: event.target.checked } }))} /><span>{tr(ffa ? 'The entire terrain footprint is wholly outside own Territory, without touching its boundary' : 'I checked that the terrain area itself is outside my Territory')}</span></label>}
+            <button type="button" disabled={!actionDraft.unit.trim() || !actionDraft.target.trim() || (confirmPlunderTerrain && cardId === 'OFFICIAL_PLUNDER' && !actionDraft.terrainWhollyOutsideOwnTerritory)} onClick={() => { startOfficialSecondaryAction(playerId, cardId, actionDraft.unit, actionDraft.target, actionDraft); setActionDrafts((current) => ({ ...current, [cardId]: { unit: '', target: '' } })) }}>{tr("Start action in Shooting phase")}</button>
           </>}</div>}
           {redraw && <div className="official-secondary-input"><small>{tr(redraw)}{tr(". Check the condition before replacing.")}</small><button type="button" onClick={() => replaceOfficialSecondary(playerId, cardId)}>{tr("Replace this card")}</button></div>}
           {editable && command && !fixed && !newOrdersUsed && state.deck.length > 0 && player.cp > 0 && <button type="button" onClick={() => replaceOfficialSecondary(playerId, cardId, true)}>{tr("New Orders · replace for 1 CP (once per battle)")}</button>}

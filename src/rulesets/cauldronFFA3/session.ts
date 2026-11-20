@@ -6,6 +6,7 @@ import {
 import type { BattleSession } from '../../domain/battle/types'
 import { validateDoublesSetup } from '../../domain/battle/doubles'
 import { OFFICIAL_BOARD_SOURCE, officialObjectivesForPair } from '../../domain/battlefield/layouts'
+import { OFFICIAL_RULES } from '../officialRuleVersions'
 import {
   CAULDRON_BATTLE_ROUNDS,
   CAULDRON_DUEL_PLAYER_COUNT,
@@ -157,10 +158,11 @@ export function createCauldronGame(input: CauldronGameInput): BattleSession {
     armies: [...new Map(input.armies.map((army) => [army.id, army])).values()],
     turnOrder,
     objectives: input.primaryDeck === 'chapter-approved-duel'
-      ? officialObjectivesForPair(
+      ? input.recordedOfficialBattlefield?.objectives ?? officialObjectivesForPair(
         input.doubles?.forces[0].forceDisposition ?? input.players[0].forceDisposition ?? '',
         input.doubles?.forces[1].forceDisposition ?? input.players[1].forceDisposition ?? '',
         input.officialLayout ?? 1,
+        input.recordedOfficialBattlefield?.sourceId,
       )
       : playerCount === 3 && input.secondaryDeck === 'chapter-approved' ? OFFICIAL_FFA_OBJECTIVES
       : cauldronObjectivesForPlayerCount(playerCount, objectiveLayout),
@@ -169,7 +171,9 @@ export function createCauldronGame(input: CauldronGameInput): BattleSession {
     rulesetConfig: config,
     doubles: input.doubles,
     battlefieldAttackerHomeZone: input.battlefieldAttackerHomeZone,
-    battlefieldSourceId: input.primaryDeck === 'chapter-approved-duel' ? OFFICIAL_BOARD_SOURCE.id : undefined,
+    battlefieldSourceId: input.primaryDeck === 'chapter-approved-duel'
+      ? input.recordedOfficialBattlefield?.sourceId ?? OFFICIAL_BOARD_SOURCE.id : undefined,
+    officialRulesVersion: input.primaryDeck === 'chapter-approved-duel' ? OFFICIAL_RULES.id : undefined,
   })
   session = dispatchBattleEvents(session, [
     cauldronEvent('ROUND_SNAPSHOT_CAPTURED', captureRoundSnapshot(session, 1)),

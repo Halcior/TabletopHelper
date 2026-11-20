@@ -7,6 +7,8 @@ import {
 } from '../../rulesets/cauldronFFA3'
 import { useBattleStore } from '../../stores/battleStore'
 import { InfoDisclosure } from '../ui/InfoDisclosure'
+import { battlefieldPresentation, defaultBattlefieldGeometry } from '../../domain/battlefield/layouts'
+import { usesOfficialMissionFaq } from '../../rulesets/officialRuleVersions'
 
 const WINDOW_LABEL: Record<DuelReviewWindow, string> = {
   command: 'End of Command phase', turn: 'End of turn', battle: 'End of battle',
@@ -34,8 +36,8 @@ function DuelPrimaryForm({ session, playerId, window, editable }: DuelPrimaryPan
   const mission = getDuelMission(session, playerId)
   const config = getCauldronConfig(session)
   const disposition = config.playerConfigs[playerId].forceDisposition
-  const opponentId = session.state.turnOrder.find((id) => id !== playerId)
-  const opponentDisposition = opponentId && config.playerConfigs[opponentId].forceDisposition
+  const map = battlefieldPresentation(session.setup, session.state.battlefield ?? defaultBattlefieldGeometry(session.setup))
+  const roundCapExempt = window === 'battle' && usesOfficialMissionFaq(session.setup)
   const conditions = window ? getDuelConditions(session, playerId, window) : []
   const reviewed = window ? getDuelPrimaryCommit(session, playerId, window) : undefined
   let preview = { raw: 0, awarded: 0, scoredInRound: 0 }
@@ -46,8 +48,15 @@ function DuelPrimaryForm({ session, playerId, window, editable }: DuelPrimaryPan
     setSelections((current) => {
       const next = { ...current, [condition.id]: value }
       if (condition.group && value) for (const other of conditions) if (other.group === condition.group && other.id !== condition.id) next[other.id] = 0
-      if (condition.cumulativeWith && value > (next[condition.cumulativeWith] ?? 0)) next[condition.cumulativeWith] = value
-      if (!value) for (const other of conditions) if (other.cumulativeWith === condition.id) next[other.id] = 0
+      if (condition.cumulativeWith && value > (next[condition.cumulativeWith] ?? 0)) {
+        const base = conditions.find(item => item.id === condition.cumulativeWith)
+        next[condition.cumulativeWith] = base?.count ? value : 1
+      }
+      for (const other of conditions) {
+        if (other.cumulativeWith === condition.id && (condition.count || value === 0)) {
+          next[other.id] = Math.min(next[other.id] ?? 0, value)
+        }
+      }
       return next
     })
   }
@@ -62,7 +71,9 @@ function DuelPrimaryForm({ session, playerId, window, editable }: DuelPrimaryPan
   return <section className="panel turn-review-section duel-primary-panel">
     <div className="section-heading"><div><span className="eyebrow">{tr("11th edition Primary · ")}{disposition ? DISPOSITION_NAMES[disposition] : ''}</span><h2>{session.state.players[playerId]?.name}: {mission.name}</h2></div><strong>{session.state.players[playerId]?.score.primary ?? 0} {tr(" / 45 VP")}</strong></div>
     <InfoDisclosure label={tr("Primary card & pairing layout")}>
-    <p className="context-note">{tr("Your card from the Force Disposition matrix. Read the ")}<a href={mission.url} target="_blank" rel="noreferrer">{tr("full Primary card")}</a> {tr(" for exact wording. ")}{disposition && opponentDisposition && <>{tr("Open ")}<a href={`https://gdmissions.app/11th/layouts/${disposition}/${opponentDisposition}`} target="_blank" rel="noreferrer">{tr("the pairing layouts")}</a> {tr(" and select ")}{['A (1)', 'B (2)', 'C (3)'][(config.officialLayout ?? 1) - 1]} {tr(" to match your setup. ")}</>}{tr("The physical layout sets objectives and terrain. Each scoring window is locked after confirmation.")}</p>
+    <p className="context-note"><a href={mission.url} target="_blank" rel="noreferrer">{tr('Primary card reference (community)')}</a>
+      {map.sourceUrl && map.sourcePage && <> · <a href={`${map.sourceUrl}#page=${map.sourcePage}`} target="_blank" rel="noreferrer">{tr('Official layout diagram')}</a></>}
+    </p>
     </InfoDisclosure>
     {mission.rule && <p><strong>{tr("Special rule:")}</strong> {tr(mission.rule)}</p>}
     {mission.action && <p><strong>{tr("Objective Action:")}</strong> {tr(mission.action)}</p>}
@@ -76,7 +87,9 @@ function DuelPrimaryForm({ session, playerId, window, editable }: DuelPrimaryPan
         </label> : <label className="review-check-row"><input type="checkbox" checked={!!selections[condition.id]} disabled={!editable} onChange={(event) => change(condition, event.target.checked ? 1 : 0)} /><span>{tr("Met")}</span></label>}
       </div>)}
       {reviewed ? <p className="secondary-feedback" role="status">{tr("✓ Reviewed · +")}{reviewed.pointsAwarded} {tr(" VP.")}</p> : <>
-        <p className="context-note">{tr("Confirmed ")}{preview.raw} {tr(" VP → award ")}{preview.awarded} {tr(" VP after the 15 VP round and 45 VP battle limits. Current round: ")}{preview.scoredInRound} {tr(" VP.")}</p>
+        <p className="context-note">{tr("Confirmed ")}{preview.raw} {tr(" VP → award ")}{preview.awarded} {roundCapExempt
+          ? tr(' VP after the 45 VP battle limit.')
+          : <>{tr(" VP after the 15 VP round and 45 VP battle limits. Current round: ")}{preview.scoredInRound} {tr(" VP.")}</>}</p>
         {error && <p className="alert alert--danger">{tr(error)}</p>}
         {editable && <button className="button--gold" type="button" onClick={submit}>{tr("Confirm ")}{tr(WINDOW_LABEL[window].toLowerCase())} · +{preview.awarded} {tr(" VP")}</button>}
       </>}

@@ -1,5 +1,7 @@
 # Official terrain atlas — source audit and coverage
 
+The [November audit](rules-compliance-2026-11.md) corrects the objective counts on pages 24 and 26. The coverage table below describes the original October catalogue, which is still used by battles pinned to it.
+
 Checked 21 October 2026. Scope: official Duel 1v1 and Doubles 2v2, using the existing Battlefield engine. **Do not merge without the user's visual/table review.**
 
 ## Authoritative sources

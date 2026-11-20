@@ -174,7 +174,8 @@ describe('GW Doubles team foundation', () => {
     }))
     session = dispatchBattleEvent(session, { type: 'PHASE_CHANGED', payload: { phase: 'SHOOTING' } })
     const partnerUnit = doublesSecondaryUnitChoices(session, 'a').find((choice) => choice.playerId === 'b' && choice.unitId === 'tank')!
-    session = startOfficialSecondaryAction(session, 'a', 'OFFICIAL_PLUNDER', partnerUnit.value, 'RUIN-2')
+    expect(() => startOfficialSecondaryAction(session, 'a', 'OFFICIAL_PLUNDER', partnerUnit.value, 'RUIN-2')).toThrow(/terrain area itself/)
+    session = startOfficialSecondaryAction(session, 'a', 'OFFICIAL_PLUNDER', partnerUnit.value, 'RUIN-2', { terrainWhollyOutsideOwnTerritory: true })
     const result = buildUnitPerformance(session)
     expect(result.units.find((unit) => unit.playerId === 'b' && unit.unitId === 'tank')?.completedMissionActions).toBe(1)
     expect(result.units.find((unit) => unit.playerId === 'a' && unit.unitId === 'tank')?.completedMissionActions).toBe(0)

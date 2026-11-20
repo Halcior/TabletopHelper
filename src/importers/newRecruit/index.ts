@@ -395,17 +395,46 @@ function findSelection(roster: NewRecruitRoster, name: string): NewRecruitSelect
 }
 
 function detachments(roster: NewRecruitRoster): Detachment[] {
-  const container = findSelection(roster, 'Detachments')
-  return (container?.selections ?? []).map((selection) => ({
-    id: selection.id ? `nr-detachment-${selection.id}` : createId('nr-detachment'),
-    name: selectionName(selection),
-  }))
+  return (roster.forces ?? []).flatMap(force => {
+    const selected: Detachment[] = []
+    function visit(selection: NewRecruitSelection) {
+      if (isLogicalUnit(selection)) return
+      const name = selectionName(selection).trim()
+      const type = selection.type?.toLowerCase()
+      if (type === 'detachment' && !/^detachments?$/i.test(name) && selection.name !== undefined) {
+        selected.push({
+          id: selection.id ? `nr-detachment-${selection.id}` : createId('nr-detachment'),
+          name,
+          faction: force.catalogueName ? catalogueFaction(force.catalogueName) : undefined,
+        })
+      } else if (/^detachments?(?:\s+[1-9])?$/i.test(name)) {
+        for (const child of selection.selections ?? []) {
+          const childName = selectionName(child).trim()
+          if (child.type === 'group' || /^detachments?(?:\s+[1-9])?$/i.test(childName)) visit(child)
+          else if (child.name !== undefined && childName && (child.number ?? 1) > 0) {
+            selected.push({
+              id: child.id ? `nr-detachment-${child.id}` : createId('nr-detachment'),
+              name: childName,
+              faction: force.catalogueName ? catalogueFaction(force.catalogueName) : undefined,
+            })
+          }
+        }
+      } else {
+        for (const child of selection.selections ?? []) visit(child)
+      }
+    }
+    for (const selection of force.selections ?? []) visit(selection)
+    return selected
+  })
+}
+
+function catalogueFaction(catalogue: string): string {
+  return catalogue.split(' - ').at(-1)?.trim() || catalogue
 }
 
 function factionName(roster: NewRecruitRoster): string {
   const catalogue = roster.forces?.[0]?.catalogueName
-  if (!catalogue) return 'Unknown faction'
-  return catalogue.split(' - ').at(-1)?.trim() || catalogue
+  return catalogue ? catalogueFaction(catalogue) : 'Unknown faction'
 }
 
 export const NewRecruitImporter = {
@@ -432,6 +461,14 @@ export const NewRecruitImporter = {
       pointsLimit: pointsLimitSelection?.number,
       detachments: detachments(roster),
       units,
+      importedRoster: {
+        source: 'new-recruit',
+        importedAt: new Date().toISOString(),
+        gameSystemRevision: roster.gameSystemRevision?.toString(),
+        catalogues: (roster.forces ?? []).flatMap(force => force.catalogueName
+          ? [{ name: force.catalogueName, revision: force.catalogueRevision?.toString() }]
+          : []),
+      },
     }
 
     return { army, warnings }

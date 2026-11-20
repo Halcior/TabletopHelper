@@ -155,11 +155,24 @@ export async function importArmy(input: Army): Promise<Army> {
     const plain = (a: Army) =>
       JSON.stringify({
         ...a,
+        detachments: a.detachments.map(({ id, name }) => ({ id, name })),
         id: undefined,
+        importedRoster: undefined,
         library: undefined,
         localMediaId: undefined,
       })
-    if (plain(existing.army) === plain(input)) return existing.army
+    if (plain(existing.army) === plain(input)) {
+      const previous = existing.army.importedRoster
+      const incoming = input.importedRoster
+      if (incoming && (!previous || incoming.importedAt > previous.importedAt
+        && (incoming.gameSystemRevision !== previous.gameSystemRevision
+          || JSON.stringify(incoming.catalogues) !== JSON.stringify(previous.catalogues)))) {
+        return saveRoster({ ...existing.army, importedRoster: incoming, detachments: input.detachments }, {
+          owner, expectExisting: true, expectedChangeId: existing.changeId,
+        })
+      }
+      return existing.army
+    }
     return saveRoster(copyRoster(input, `${input.name} — imported variant`), {
       owner,
       photoSource: existing.army,
