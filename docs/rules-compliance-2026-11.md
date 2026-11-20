@@ -34,6 +34,7 @@ Dates are the dates listed by Games Workshop. PDF hashes and source metadata are
 | **Death Trap** guidance could be read as requiring a trap active before a kill. | Companion v1.3 p. 4 Death Trap ruling. | Clarified the timing in the Primary condition shown to players. The physical condition is confirmed at the table. |
 | **Beacon** could be scored with no locked target, or while its selected unit was recorded as destroyed or in Reserve. | Companion v1.3 p. 4 Beacon ruling and the target's scoring requirement. | `officialSecondary.ts` keeps the single locked roster unit and checks its recorded status in new games. Unit position still requires tabletop confirmation. |
 | **Plunder** accepted an action with no confirmation of the terrain area's relationship to Territory. | Companion v1.3 p. 4 Plunder ruling. The terrain area is the subject of the restriction. | Record the area using atlas IDs where available and record the player's explicit tabletop confirmation. Tests check both rejection and Doubles attribution to the acting teammate. |
+| **Rules Source** labelled the October Duel PDF v1.0 and linked the June Doubles PDF. | The live GW index and checked PDF covers show Event v1.3 and Doubles v1.1. | Battle Setup uses the versioned links from the source registry and E2E checks the Doubles link. |
 
 Duel and Doubles now record the opponent's A Tempting Target choice using a known objective ID. The opponent still makes the choice at the table. Burden of Trust reuses the team/roster guard selectors. Eligibility and phase checks use recorded data. Position, occupancy, ability conditions, control by a particular acting unit, and target legality that depends on physical positions still require tabletop confirmation. No Prisoners and Overwhelming Force in Duel and Doubles use player-confirmed awards. FFA retains its existing recorded-kill attribution for its assigned Secondary Rival.
 
@@ -66,9 +67,9 @@ Run `node scripts/check-official-rule-sources.mjs` to compare indexed document d
 | `npm test -- --run` | 746 passed across 91 files |
 | `npm run build` | Passed |
 | `npm run test:sql` | Passed locally using PostgreSQL test transactions |
-| `npm run test:e2e:offline` | 2 passed using the production build |
+| Production offline E2E | 3 passed: two roster scenarios and the separate Battle Companion cache scenario |
 | `node scripts/check-official-rule-sources.mjs` | Passed. No indexed source differences. MFM result is limited to the public listing date. |
-| `npm run test:e2e` | See the PR checks for the full run. The workspace required a temporary Fontconfig override because the bundled Chromium reported zero-size text with the default system fonts. |
+| `npm run test:e2e` | Full development run: 98 passed, 3 failed, 4 skipped. The three failed scenarios passed on the follow-up run after fixing the source-version display. Two of those failures were timeouts in the clock reconnect and War Chronicle scenarios. The four skips cover three production-offline cases run separately and one optional external CSV fixture. The workspace used a temporary Fontconfig override because the bundled Chromium reported zero-size text with the default system fonts. |
 
 Coverage includes Duel, community FFA, Doubles, imports, source pins, reconnect, rematches, reports and archive replay.
 

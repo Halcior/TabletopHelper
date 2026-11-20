@@ -44,6 +44,7 @@ import { RivalHelp } from '../components/battle/RivalClarity'
 import { RulesSourceBadge } from '../components/ui/RulesSourceBadge'
 import { FormatGlyph } from '../components/ui/FormatGlyph'
 import { describeRules, recommendedRules } from '../rulesets/rulesSource'
+import { OFFICIAL_RULES } from '../rulesets/officialRuleVersions'
 import { ForceDispositionPicker } from '../components/ui/ForceDispositionPicker'
 
 type PlayerDraft = CauldronPlayerInput
@@ -412,7 +413,11 @@ export default function BattleSetup() {
           </button>
           <InfoDisclosure label={tr("Rules references & format notes")}>
             <p className="context-note">{officialPair ? tr('Official identifies the selected mission format. Players confirm roster eligibility and physical conditions at the table.') : tr('FFA uses community Primary scoring, Rival targeting and Balanced CP. Selecting Chapter Approved cards does not make FFA an official format.')}</p>
-            <div className="rules-source__links"><a href={doubles ? 'https://assets.warhammer-community.com/eng_12-06_warhammer40000_doubles_event_companion-xyapytrwkz-9a6fljmnob.pdf' : 'https://assets.warhammer-community.com/eng_14-10_wh40k_event_companion-rdwnqprl4c-nj8oqogadv.pdf'} target="_blank" rel="noreferrer">{doubles ? tr('GW Doubles Event Companion v1.0') : tr('GW Event Companion v1.0')}</a><a href="https://www.warhammer-community.com/en-gb/downloads/warhammer-40000/" target="_blank" rel="noreferrer">{tr("GW downloads & updates")}</a></div>
+            <div className="rules-source__links">
+              <a href={OFFICIAL_RULES.sources.event.url} target="_blank" rel="noreferrer">{tr('GW Event Companion')} v{OFFICIAL_RULES.sources.event.version}</a>
+              {doubles && <a href={OFFICIAL_RULES.sources.doubles.url} target="_blank" rel="noreferrer">{tr('GW Doubles Event Companion')} v{OFFICIAL_RULES.sources.doubles.version}</a>}
+              <a href={OFFICIAL_RULES.downloads} target="_blank" rel="noreferrer">{tr("GW downloads & updates")}</a>
+            </div>
           </InfoDisclosure>
         </section>
         {!doubles && <details className="panel setup-custom-settings">
