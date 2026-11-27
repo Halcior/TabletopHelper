@@ -66,6 +66,58 @@ test('rematch uses deleted roster snapshots, allows review and starts a fresh in
  expect(current.id).not.toBe(original.id); expect(current.vp).toBe(0); expect(current.alive).toBe(true); expect(current.original).toBe(original.serialized)
 })
 
+test('pinned battle preset opens commanders with current rosters and a snapshot fallback', async ({ page }) => {
+ await page.goto('/')
+ await page.evaluate(async () => {
+  const { database } = await import('/src/persistence/storage.ts')
+  const { testArmy } = await import('/src/rulesets/cauldronFFA3/cauldronTestUtils.ts')
+  await database.armies.bulkPut(['preset-a', 'preset-b', 'preset-c'].map(id => ({ id, army: testArmy(id), savedAt: new Date().toISOString() })))
+ })
+ await page.goto('/battle/setup?mode=ffa3')
+ await page.getByRole('button', { name: 'Next: Commanders', exact: true }).click()
+ await page.locator('#commander-0-army').selectOption('preset-a')
+ await page.locator('#commander-1-army').selectOption('preset-b')
+ await page.locator('#commander-2-army').selectOption('preset-c')
+ await page.getByRole('button', { name: 'Next: Battlefield', exact: true }).click()
+ await page.locator('summary').filter({ hasText: 'Save setup as a preset' }).click()
+ await page.getByLabel('Preset name', { exact: true }).fill('Our FFA table')
+ await page.getByRole('checkbox', { name: 'Pin to Command Hub', exact: true }).check()
+ await page.getByRole('button', { name: 'Save battle preset', exact: true }).click()
+ await expect(page.getByText('Preset saved and pinned to Command Hub.', { exact: true })).toBeVisible()
+
+ await page.evaluate(async () => {
+  const { database } = await import('/src/persistence/storage.ts')
+  await database.armies.update('preset-a', { 'army.name': 'Updated roster A' })
+  await database.armies.delete('preset-b')
+ })
+ await page.goto('/')
+ const shortcut = page.getByRole('link', { name: 'Use preset Our FFA table', exact: true })
+ await shortcut.click()
+ await expect(page.locator('#commander-0-army')).toHaveValue('preset-a')
+ await expect(page.locator('#commander-0-army option:checked')).toContainText('Updated roster A')
+ await expect(page.locator('#commander-1-army optgroup option:checked')).toContainText('preset-b roster')
+ await expect(page.locator('#commander-2-army')).toHaveValue('preset-c')
+
+ await page.goto('/')
+ await expect(shortcut).toBeVisible()
+ await page.evaluate(async () => {
+  const { useRosterScope } = await import('/src/features/armyLibrary/scope.ts')
+  useRosterScope.setState({ userId: 'other-account' })
+ })
+ await expect(shortcut).toHaveCount(0)
+ await page.evaluate(async () => {
+  const { useRosterScope } = await import('/src/features/armyLibrary/scope.ts')
+  useRosterScope.setState({ userId: null })
+ })
+ await page.getByRole('button', { name: 'Unpin Our FFA table', exact: true }).click()
+ await expect(shortcut).toHaveCount(0)
+ await page.goto('/archive')
+ await page.getByRole('button', { name: 'Pin to Command Hub', exact: true }).click()
+ await expect(page.getByRole('button', { name: 'Unpin from Command Hub', exact: true })).toBeVisible()
+ await page.goto('/')
+ await expect(shortcut).toBeVisible()
+})
+
 test('campaign assigns factual results once, retains fiction separately and rolls back a conquest', async ({ page }) => {
  await page.setViewportSize({ width:390,height:844 }); await page.goto('/')
  await page.evaluate(async () => {

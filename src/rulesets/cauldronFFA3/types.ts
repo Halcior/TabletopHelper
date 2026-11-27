@@ -112,6 +112,8 @@ export type PlanConfirmation = {
 export type OfficialPrimaryAction = {
   objectiveId: string
   unitName: string
+  /** Older confirmations may contain only a name recorded at the table. */
+  unitId?: string
   /** Physical confirmation of current Rival territory on a non-HOME objective. */
   enemyTerritory?: boolean
 }

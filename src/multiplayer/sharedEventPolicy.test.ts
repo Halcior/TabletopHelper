@@ -9,7 +9,7 @@ import { CAULDRON_SECONDARY_IDS } from '../rulesets/cauldronFFA3/secondaryDefini
 import type { SecondaryId } from '../rulesets/cauldronFFA3/secondaryTypes'
 import { authorizeSharedMutation } from './sharedEventPolicy'
 import type { SharedMembership } from './types'
-import { canQuickDamage } from '../components/battle/QuickDamagePanel'
+import { canQuickDamage } from '../components/battle/unitShortcuts'
 
 function membership(playerId: string, isHost = false): SharedMembership {
   return {

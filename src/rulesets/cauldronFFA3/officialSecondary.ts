@@ -127,9 +127,13 @@ export function doublesSecondaryUnitChoices(
 
 export type OfficialActionConfirmation = { terrainWhollyOutsideOwnTerritory?: boolean }
 type OfficialActionStart = { playerId: string; cardId: OfficialSecondaryId; turnKey: string; unit: string; target: string } & OfficialActionConfirmation
-export function officialActionCount(session: BattleSession, playerId: string, cardId: OfficialSecondaryId): number {
+export function officialActionStarts(session: BattleSession, playerId: string, cardId: OfficialSecondaryId): OfficialActionStart[] {
   return getCauldronEventData<OfficialActionStart>(session, 'SECONDARY_OFFICIAL_ACTION_STARTED')
-    .filter((action) => action.playerId === playerId && action.cardId === cardId && action.turnKey === officialTurnKey(session)).length
+    .filter((action) => action.playerId === playerId && action.cardId === cardId && action.turnKey === officialTurnKey(session))
+}
+
+export function officialActionCount(session: BattleSession, playerId: string, cardId: OfficialSecondaryId): number {
+  return officialActionStarts(session, playerId, cardId).length
 }
 
 export function startOfficialSecondaryAction(session: BattleSession, playerId: string, cardId: OfficialSecondaryId, unit: string, target: string, confirmation: OfficialActionConfirmation = {}): BattleSession {
@@ -157,8 +161,7 @@ export function startOfficialSecondaryAction(session: BattleSession, playerId: s
       throw new Error('The entire terrain footprint must be wholly outside your Territory; the boundary counts as inside.')
     }
   }
-  const starts = getCauldronEventData<OfficialActionStart>(session, 'SECONDARY_OFFICIAL_ACTION_STARTED')
-    .filter((action) => action.playerId === playerId && action.cardId === cardId && action.turnKey === officialTurnKey(session))
+  const starts = officialActionStarts(session, playerId, cardId)
   if (starts.some((action) => action.unit.toLocaleLowerCase() === unit.trim().toLocaleLowerCase())) throw new Error('This unit already started this action this turn.')
   if (cardId === 'OFFICIAL_PLUNDER' && starts.length > 0) throw new Error('Only one unit can start Plunder per turn.')
   if (cardId === 'OFFICIAL_CLEANSE' && starts.some((action) => action.target.toLocaleLowerCase() === target.trim().toLocaleLowerCase())) {
@@ -301,7 +304,7 @@ export function assignOfficialGuards(session: BattleSession, playerId: string, a
   assertOfficial(session)
   const cardId = 'OFFICIAL_BURDEN_OF_TRUST'
   const card = getSecondaryState(session)[playerId]?.active.find((entry) => entry.cardId === cardId)
-  if ((!isOfficialFfa(session) && !session.setup.doubles) || !card || session.state.activePlayerId !== playerId || session.state.phase !== 'COMMAND') throw new Error('Assign guards when drawn or at the start of your own turn.')
+  if (!card || session.state.activePlayerId !== playerId || session.state.phase !== 'COMMAND') throw new Error('Assign guards when drawn or at the start of your own turn.')
   if (card.cardSpecificState?.officialGuardAssignmentTurnKey === officialTurnKey(session)) throw new Error('Guard assignments are already saved for this turn.')
   const controlled = Object.values(session.state.objectives).filter((objective) => objective.controllerPlayerId === playerId)
   if (Object.keys(assignments).length !== controlled.length || !controlled.every((objective) => {

@@ -97,6 +97,16 @@ function mapParticipant(row: SupabaseParticipantRow): SharedParticipant {
   }
 }
 
+export class SharedRequestError extends Error {
+  constructor(readonly status: number, detail: string) {
+    super(`Shared session request failed (${status})${detail ? `: ${detail}` : ''}`)
+  }
+
+  get permanent(): boolean {
+    return this.status >= 400 && this.status < 500 && ![408, 409, 425, 429].includes(this.status)
+  }
+}
+
 export class SupabaseRestSharedSessionTransport implements SharedSessionTransport {
   private readonly url: string | undefined
   private readonly apiKey: string | undefined
@@ -159,7 +169,7 @@ export class SupabaseRestSharedSessionTransport implements SharedSessionTranspor
     })
     if (!response.ok) {
       const detail = await response.text().catch(() => '')
-      throw new Error(`Shared session request failed (${response.status})${detail ? `: ${detail}` : ''}`)
+      throw new SharedRequestError(response.status, detail)
     }
     if (response.status === 204) return undefined as T
     const text = await response.text()

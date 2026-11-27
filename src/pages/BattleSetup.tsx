@@ -1,7 +1,7 @@
 import { configureRematchClock } from '../features/battleLegacy/onlineRematch'
 import { createCauldronGame } from '../rulesets/cauldronFFA3/session'
 import { rematchPreset, rosterDifference, type RematchPreset } from '../features/battleLegacy/rematch'
-import { database } from '../persistence/storage'
+import { database, type StoredArmy } from '../persistence/storage'
 import { legacyOwner, prepareArchive } from '../features/battleLegacy/repository'
 import { useRosterScope } from '../features/armyLibrary/scope'
 import { t as tr } from '../features/i18n/locale'
@@ -12,7 +12,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import type { Army } from '../domain/army/types'
 import type { DoublesSetup, GuidanceLevel } from '../domain/battle/types'
-import { useRosterLibrary } from '../features/armyLibrary/repository'
+import { listArmies, useRosterLibrary } from '../features/armyLibrary/repository'
 import {
   CAULDRON_RULESET_VERSION,
   OPERATIONAL_PLAN_DEFINITIONS,
@@ -50,6 +50,11 @@ import { describeRules, recommendedRules } from '../rulesets/rulesSource'
 
 type PlayerDraft = CauldronPlayerInput
 
+function currentPresetRoster(rosters: StoredArmy[], sourceId?: string) {
+  if (!sourceId) return undefined
+  return rosters.find((row) => row.id === sourceId) ?? rosters.find((row) => row.sourceLocalId === sourceId)
+}
+
 const LOBBY_PLACEHOLDER: Army = { id: 'temporary-online-lobby', name: 'Temporary lobby initialization', faction: 'Unassigned', totalPoints: 0, detachments: [], units: [{ id:'temporary-character', name:'Temporary Character', points:0, startingModels:1, modelGroups:[{name:'Temporary Character',startingCount:1,equipment:[]}],categories:['CHARACTER'],keywords:['CHARACTER'],rangedWeapons:[],meleeWeapons:[],abilities:[],enhancements:[],wargear:[],isWarlord:true,leaderOfUnitId:null,ledByUnitIds:[] }] }
 
 const DEFAULT_PLAYERS: PlayerDraft[] = [
@@ -82,10 +87,14 @@ export default function BattleSetup() {
   const preferredArmyId = params.get('armyId')
   const accountOwner = useRosterScope(s => s.userId)
   const rematchId = params.get('rematch'), presetId = params.get('preset')
-  const [preset, setPreset] = useState<RematchPreset | null>(null)
+  const quickPreset = Boolean(presetId && params.get('quick') === '1')
+  const [loadedPreset, setPreset] = useState<RematchPreset | null>(null)
+  const preset = loadedPreset?.ownerId === (accountOwner ?? 'guest') ? loadedPreset : null
   const [reuseGeometry, setReuseGeometry] = useState(true)
   const [presetMessage, setPresetMessage] = useState('')
   const [presetName, setPresetName] = useState('')
+  const [pinPreset, setPinPreset] = useState(false)
+  const [savingPreset, setSavingPreset] = useState(false)
   const [mode, setMode] = useState<CauldronMode>(() => setupMode(params.get('mode')))
   const [objectiveLayout, setObjectiveLayout] = useState<CauldronObjectiveLayout>('expanded-7')
   const { rows: rosterRows, loading: loadingArmies, error: libraryError } = useRosterLibrary()
@@ -148,21 +157,31 @@ export default function BattleSetup() {
     let live = true
     setPreset(null)
     if (!rematchId && !presetId) return
-    const owner = legacyOwner()
+    setReuseGeometry(true)
+    setPinPreset(false)
+    setPresetMessage('')
+    setLocalError(null)
+    const owner = accountOwner ?? 'guest'
     void (async () => {
       if (rematchId) await prepareArchive(owner)
       const record = rematchId ? await database.battleArchive.get([owner, rematchId]) : undefined
       const saved = presetId ? await database.battlePresets.get([owner, presetId]) : undefined
       const next = saved ?? (record && !record.withdrawn ? rematchPreset(record.session, owner) : null)
+      const currentRosters = next && quickPreset && !next.online ? await listArmies(accountOwner) : []
       if (!live || legacyOwner() !== owner) return
       if (!next) { setLocalError('Battle preset is unavailable in this account.'); return }
       if (record) next.online = record.online
       setPreset(next); setPresetName(next.name); setMode(next.input.mode ?? 'duel'); setClock(next.clock); setGuidance(next.input.guidanceLevel)
-      setPlayers([...next.input.players, ...DEFAULT_PLAYERS.slice(next.input.players.length).map((player, i) => ({ ...player, id: `rematch-extra-${i}` }))])
+      const commanders = next.input.players.map((player) => {
+        const current = currentPresetRoster(currentRosters, next.sourceArmyIds[player.armyId])
+        return current ? { ...player, armyId: current.id } : player
+      })
+      setPlayers([...commanders, ...DEFAULT_PLAYERS.slice(commanders.length).map((player, i) => ({ ...player, id: `rematch-extra-${i}` }))])
       setObjectiveLayout(next.input.objectiveLayout ?? 'classic-6'); setPrimaryDeck(next.input.primaryDeck ?? 'cauldron'); setSecondaryDeck(next.input.secondaryDeck ?? 'cauldron')
       setOfficialStrategy(next.input.officialSecondaryStrategy ?? 'tactical'); setDuelStrategies(Object.fromEntries([...next.input.players.map(p => [p.id, next.input.officialSecondaryStrategies?.[p.id] ?? next.input.officialSecondaryStrategy ?? 'tactical']), ...DEFAULT_PLAYERS.slice(next.input.players.length).map((_, i) => [`rematch-extra-${i}`, 'tactical'])])); setFixedSelections(Object.fromEntries([...next.input.players.map(p => [p.id, next.input.fixedSecondarySelections?.[p.id] ?? ['OFFICIAL_A_GRIEVOUS_BLOW', 'OFFICIAL_ENGAGE_ON_ALL_FRONTS']]), ...DEFAULT_PLAYERS.slice(next.input.players.length).map((_, i) => [`rematch-extra-${i}`, ['OFFICIAL_A_GRIEVOUS_BLOW', 'OFFICIAL_ENGAGE_ON_ALL_FRONTS']])]))
       setOfficialLayout(next.input.officialLayout ?? 1); setAttackerHomeZone(next.input.battlefieldAttackerHomeZone ?? 'A')
       setPlayMode(next.online ? 'shared' : 'local')
+      setStep(quickPreset && !next.online ? 2 : 1)
       if (next.input.doubles) {
         setTeamNames(next.input.doubles.forces.map(f => f.name))
         setTeamTypes(next.input.doubles.forces.map(f => f.forceType) as ['unified','convenience'])
@@ -170,7 +189,7 @@ export default function BattleSetup() {
       }
     })().catch(e => { if (live) setLocalError(String(e)) })
     return () => { live = false }
-  }, [rematchId, presetId, accountOwner])
+  }, [rematchId, presetId, accountOwner, quickPreset])
   const presetCompatible = Boolean(preset && mode === preset.input.mode && primaryDeck === (preset.input.primaryDeck ?? 'cauldron') && secondaryDeck === (preset.input.secondaryDeck ?? 'cauldron') && officialLayout === (preset.input.officialLayout ?? 1) && objectiveLayout === (preset.input.objectiveLayout ?? 'classic-6') && attackerHomeZone === (preset.input.battlefieldAttackerHomeZone ?? 'A') && activePlayers.every(p => {
     const previous = preset.input.players.find(old => old.id === p.id)
     return previous?.forceDisposition === p.forceDisposition && previous?.officialPrimaryId === p.officialPrimaryId
@@ -276,17 +295,25 @@ export default function BattleSetup() {
 
   async function saveCurrentPreset() {
     if (!validateCommanders(false)) return
-    const name = presetName
-    if (!name?.trim()) return
+    const name = presetName.trim()
+    if (!name || savingPreset) return
+    setSavingPreset(true)
+    setLocalError(null)
+    setPresetMessage('')
     try {
+      const owner = legacyOwner()
       const session = createCauldronGame({ players: activePlayers, armies: armies.filter(army => activePlayers.some(p => p.armyId === army.id)), guidanceLevel: guidance, mode, doubles: doubles ? getDoublesSetup() : undefined, objectiveLayout, primaryDeck, secondaryDeck, officialSecondaryStrategy: officialStrategy, officialSecondaryStrategies: duelStrategies, fixedSecondarySelections: fixedSelections, officialLayout, battlefieldAttackerHomeZone: attackerHomeZone, officialPrimaryBalance: preset && primaryDeck === preset.input.primaryDeck ? preset.input.officialPrimaryBalance : undefined, ffaCpPolicy: preset && mode === preset.input.mode ? preset.input.ffaCpPolicy : undefined })
       session.setup.battleClock = clock
       if (reuseGeometry && presetCompatible && preset) { session.state.battlefield = preset.geometry; session.setup.battlefieldSourceId = preset.sourceId }
-      const saved = rematchPreset(session, legacyOwner())
+      const saved = rematchPreset(session, owner)
       saved.sourceArmyIds = Object.fromEntries(Object.entries(saved.sourceArmyIds).map(([id, source]) => [id, preset?.sourceArmyIds[source] ?? source]))
-      await database.battlePresets.put({ ...saved, name: name.trim().slice(0,100), online: playMode === 'shared' })
-      setPresetMessage('Preset saved on this device.')
-    } catch (e) { setLocalError(String(e)) }
+      await database.battlePresets.put({ ...saved, name: name.slice(0, 100), online: playMode === 'shared', pinned: pinPreset })
+      if (legacyOwner() === owner) setPresetMessage(pinPreset ? 'Preset saved and pinned to Command Hub.' : 'Preset saved on this device.')
+    } catch (e) {
+      setLocalError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setSavingPreset(false)
+    }
   }
 
   async function submit(event: FormEvent) {
@@ -370,6 +397,12 @@ export default function BattleSetup() {
   </div></div>
 
   const duel = mode === 'duel'
+  const presetSaveControls = <>
+    <label>{tr('Preset name')}<input maxLength={100} value={presetName} onChange={e => setPresetName(e.target.value)} /></label>
+    <label><input type="checkbox" checked={pinPreset} onChange={e => setPinPreset(e.target.checked)} />{tr('Pin to Command Hub')}</label>
+    <button type="button" disabled={!presetName.trim() || savingPreset} onClick={() => void saveCurrentPreset()}>{tr('Save battle preset')}</button>
+    {presetMessage && <p role="status">{tr(presetMessage)}</p>}
+  </>
 
   return (
     <div className="page-shell setup-page">
@@ -379,7 +412,15 @@ export default function BattleSetup() {
         <p>{playMode === 'shared' ? tr('Choose rules and player slots. Everyone will bring their own army in the lobby.') : tr('Choose a format, assign commanders and prepare the battlefield.')}</p>
 
       </section>
-      {preset && <section className="panel"><h2>{tr('Play Rematch')}</h2><p>{tr('Review the recorded setup. A new session starts with fresh game state.')}</p><label><input type="checkbox" checked={reuseGeometry && presetCompatible} disabled={!presetCompatible} onChange={e => setReuseGeometry(e.target.checked)} />{tr('Reuse recorded battlefield')}</label>{!presetCompatible && <p>{tr('Changed rules or format use the new setup battlefield.')}</p>}{preset.input.armies.map(army => <p key={army.id}><strong>{army.name}</strong> · {army.totalPoints} pts · <span>{tr(rosterDifference(army, rosterRows.find(row => row.id === preset.sourceArmyIds[army.id])?.army))}</span></p>)}<label>{tr('Preset name')}<input maxLength={100} value={presetName} onChange={e => setPresetName(e.target.value)} /></label><button type="button" onClick={() => void saveCurrentPreset()}>{tr('Save battle preset')}</button>{presetMessage && <p role="status">{tr(presetMessage)}</p>}</section>}
+      {preset && <section className="panel">
+        <h2>{presetId ? preset.name : tr('Play Rematch')}</h2>
+        {quickPreset && playMode === 'local' && <p>{tr('Current library rosters are preselected when available. You can still choose the saved snapshots.')}</p>}
+        {!presetId && <p>{tr('Review the recorded setup. A new session starts with fresh game state.')}</p>}
+        <label><input type="checkbox" checked={reuseGeometry && presetCompatible} disabled={!presetCompatible} onChange={e => setReuseGeometry(e.target.checked)} />{tr('Reuse recorded battlefield')}</label>
+        {!presetCompatible && <p>{tr('Changed rules or format use the new setup battlefield.')}</p>}
+        {!quickPreset && preset.input.armies.map(army => <p key={army.id}><strong>{army.name}</strong> · {army.totalPoints} pts · <span>{tr(rosterDifference(army, currentPresetRoster(rosterRows, preset.sourceArmyIds[army.id])?.army))}</span></p>)}
+        {quickPreset ? <details><summary>{tr('Save setup as a preset')}</summary>{presetSaveControls}</details> : presetSaveControls}
+      </section>}
       <div className="setup-mode-picker panel" role="group" aria-label={tr("Play mode")}>
         <button type="button" aria-pressed={playMode === 'local'} className={playMode === 'local' ? 'button--gold' : ''} onClick={() => { setPlayMode('local'); setStep(1); setLocalError(null) }}><FormatGlyph mode="duel" /><strong>{tr("On one device")}</strong><span>{tr("Choose all armies here.")}</span></button>
         <button type="button" aria-pressed={playMode === 'shared'} className={playMode === 'shared' ? 'button--gold' : ''} disabled={!sharedConfigured} onClick={() => { setPlayMode('shared'); setStep(1); setLocalError(null) }}><FormatGlyph mode="ffa3" /><strong>{tr("Online multiplayer")}</strong><span>{tr("Everyone brings an army to the lobby.")}</span></button>
@@ -484,7 +525,8 @@ export default function BattleSetup() {
             <div className="player-setup-card__title"><span>{tr("Player ")}{index + 1}</span><strong>{tr("Zone ")}{player.deploymentZone} {tr(" · Turn ")}{player.turnPosition}</strong></div>
             {playMode === 'shared' ? <p className="context-note">{tr("Player ")}{index + 1}{tr(": name is loaded from their online profile when joining the lobby (guests keep a seat label).")}</p> : <label>{tr("Player name")}<input id={`commander-${index}-name`} aria-describedby={invalidFieldId === `commander-${index}-name` ? 'setup-error' : undefined} aria-invalid={invalidFieldId === `commander-${index}-name`} value={player.name} required onChange={(event) => updatePlayer(index, 'name', event.target.value)} /></label>}
             {playMode === 'shared' ? <p className="context-note">{tr("This commander will select their own army after joining the lobby.")}</p> : <label>{tr("Saved army")}<select id={`commander-${index}-army`} aria-describedby={invalidFieldId === `commander-${index}-army` ? 'setup-error' : undefined} aria-invalid={invalidFieldId === `commander-${index}-army`} value={player.armyId} onChange={(event) => updatePlayer(index, 'armyId', event.target.value)}>
-              {armies.map((army) => <option key={army.id} value={army.id}>{army.faction} · {army.totalPoints} {tr(" pts · ")}{army.name} · {rosterRows.find(r => r.id === army.id)?.status ?? tr('local')}{army.library?.variantOf ? tr(' · Variant') : ''}</option>)}
+              {rosterRows.map(({ army, status }) => <option key={army.id} value={army.id}>{army.faction} · {army.totalPoints} {tr(" pts · ")}{army.name} · {tr(status ?? 'local')}{army.library?.variantOf ? tr(' · Variant') : ''}</option>)}
+              {preset && preset.input.armies.length > 0 && <optgroup label={tr('Recorded roster snapshots')}>{preset.input.armies.map((army) => <option key={army.id} value={army.id}>{army.faction} · {army.totalPoints} {tr(" pts · ")}{army.name}</option>)}</optgroup>}
             </select></label>}
             {playMode === 'local' && player.armyId && rosterRows.some(row => row.id === player.armyId) && <Link className="button button--small" target="_blank" rel="noopener noreferrer" to={`/army/${encodeURIComponent(player.armyId)}/edit`}>{tr("Edit roster ↗")}</Link>}
             {!doubles && <div className="setup-pair">
@@ -556,6 +598,7 @@ export default function BattleSetup() {
             </button> : <button className="button button--gold" type="submit" disabled={loading || sharedWorking}>{loading ? tr('Preparing…') : tr('Start locally')}</button>}
           </div>
         </section>
+        {!preset && <InfoDisclosure label="Save setup as a preset">{presetSaveControls}</InfoDisclosure>}
       </section>
       {(localError || error) && <div id="setup-error" className="alert alert--danger" role="alert">{localError ?? tr(error)}</div>}
       {playMode === 'local' && <div className="setup-step-actions">

@@ -79,14 +79,41 @@ test('three phones start, synchronize and recover one idempotent offline action'
     await alpha.page.getByRole('button', { name: 'Gain 1 CP for Player I' }).click()
     await expect(scoreCard(bravo.page, 'Player I').locator('.score-card__numbers strong').nth(1)).toHaveText('3')
 
-    await bravo.context.setOffline(true)
+    const savedBeforeOfflineClick = await bravo.page.evaluate(async () => {
+      const { getBattle } = await import('/src/persistence/database.ts')
+      return getBattle(location.pathname.split('/').at(-1)!)
+    })
+    // Serve the app shell while its room transport sees the same offline state
+    // as a phone re-opening the installed PWA. This test runs on the dev server.
+    await bravo.page.evaluate(() => sessionStorage.setItem('test-room-offline', 'true'))
+    await bravo.page.addInitScript(() => {
+      Object.defineProperty(navigator, 'onLine', { get: () => !sessionStorage.getItem('test-room-offline') })
+    })
+    await bravo.page.reload()
     await expect(bravo.page.getByText('This phone is offline')).toBeVisible()
 
     await bravo.page.getByRole('button', { name: 'Gain 1 CP for Player II' }).click()
     await expect(scoreCard(bravo.page, 'Player II').locator('.score-card__numbers strong').nth(1)).toHaveText('3')
+    // The outbox is the recovery source even when the battle save contains
+    // an earlier snapshot, such as a reload racing the queued disk update.
+    await expect.poll(() => bravo.page.evaluate(async () => {
+      const { getBattle } = await import('/src/persistence/database.ts')
+      return (await getBattle(location.pathname.split('/').at(-1)!))?.state.players['player-b'].cp
+    })).toBe(3)
+    await bravo.page.evaluate(async saved => {
+      const { saveBattle } = await import('/src/persistence/database.ts')
+      await saveBattle(saved!)
+    }, savedBeforeOfflineClick)
+    await bravo.page.reload()
+    await expect(bravo.page.getByText('This phone is offline')).toBeVisible()
+    await expect(bravo.page.getByText('Changes awaiting confirmation: 1.')).toBeVisible()
+    await expect(scoreCard(bravo.page, 'Player II').locator('.score-card__numbers strong').nth(1)).toHaveText('3')
 
     backend.failNextEventInsertAfterCommitForPlayerId = 'player-b'
-    await bravo.context.setOffline(false)
+    await bravo.page.evaluate(() => {
+      sessionStorage.removeItem('test-room-offline')
+      window.dispatchEvent(new Event('online'))
+    })
     await expect(scoreCard(alpha.page, 'Player II').locator('.score-card__numbers strong').nth(1)).toHaveText('3')
 
     const stored = backend.storedEvents('CP_GAINED', 'player-b')

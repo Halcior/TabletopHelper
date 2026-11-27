@@ -1,63 +1,52 @@
 import { t as tr } from '../../features/i18n/locale'
-import { useEffect, useMemo, useState } from 'react'
-import { participantIsOnline } from '../../multiplayer/presence'
 import { useSharedSessionStore } from '../../multiplayer/sharedSessionStore'
-import { useBattleStore } from '../../stores/battleStore'
+import { useSharedPresence } from './useSharedPresence'
 
 export function SharedSyncWarning({ battleId }: { battleId: string }) {
-  const [clock, setClock] = useState(() => Date.now())
-  const expectedPlayerCount = useBattleStore((state) => (
-    state.session?.setup.gameId === battleId ? state.session.state.turnOrder.length : 3
-  ))
   const {
     membership,
-    participants,
     connectionStatus,
     pendingEventCount,
+    pendingEventError,
+    outboxError,
     lastSyncedAt,
     error,
     forceSync,
   } = useSharedSessionStore()
 
-  useEffect(() => {
-    if (!membership || membership.battleId !== battleId) return
-    const timer = window.setInterval(() => setClock(Date.now()), 2000)
-    return () => window.clearInterval(timer)
-  }, [battleId, membership])
-
-  const onlineCount = useMemo(
-    () => participants.filter((participant) => participantIsOnline(participant, clock)).length,
-    [clock, participants],
-  )
+  const { onlineCount, seatCount, now } = useSharedPresence(battleId)
   if (!membership || membership.battleId !== battleId) return null
 
-  const requiredPlayers = Math.max(2, expectedPlayerCount)
-  const lastSyncMs = lastSyncedAt ? clock - Date.parse(lastSyncedAt) : 0
+  const lastSyncMs = lastSyncedAt ? now - Date.parse(lastSyncedAt) : 0
   const stale = connectionStatus === 'connected' && lastSyncedAt !== null && lastSyncMs > 8_000
   const ownConnectionLost = connectionStatus === 'offline' || connectionStatus === 'reconnecting' || connectionStatus === 'error' || stale
-  const commanderMissing = connectionStatus === 'connected' && onlineCount < requiredPlayers
+  const commanderMissing = connectionStatus === 'connected' && onlineCount < seatCount
   const hasQueue = pendingEventCount > 0
   if (!ownConnectionLost && !commanderMissing && !hasQueue && connectionStatus !== 'connecting') return null
 
-  const title = connectionStatus === 'offline'
-    ? 'This phone is offline'
-    : connectionStatus === 'reconnecting' || connectionStatus === 'error'
-      ? 'Shared synchronization interrupted'
-      : stale
-        ? 'No recent confirmation from Supabase'
-        : commanderMissing
-          ? `Only ${onlineCount}/${requiredPlayers} phones are online`
-          : 'Connecting to the shared room'
-  const detail = ownConnectionLost
-    ? `Your changes stay on this phone${pendingEventCount > 0 ? ` (${pendingEventCount} queued)` : ''} and will retry automatically.`
-    : commanderMissing
-      ? 'Another commander may have lost network access or put the browser to sleep.'
-      : hasQueue
-        ? `${pendingEventCount} change${pendingEventCount === 1 ? '' : 's'} waiting to upload.`
-        : 'Wait before making the first shared change.'
+  let title = tr('Connecting to the shared room')
+  let detail = tr('Wait before making the first shared change.')
+  if (commanderMissing) {
+    title = tr(`Only ${onlineCount}/${seatCount} phones are online`, 'Only {0}/{1} phones are online')
+    detail = tr('Another commander may have lost network access or put the browser to sleep.')
+  }
+  if (hasQueue) {
+    if (!commanderMissing) title = tr('Waiting for sync confirmation')
+    detail = tr(`Changes awaiting confirmation: ${pendingEventCount}.`, 'Changes awaiting confirmation: {0}.')
+  }
+  if (ownConnectionLost) {
+    title = tr(connectionStatus === 'offline' ? 'This phone is offline'
+      : stale ? 'No recent confirmation from Supabase' : 'Shared synchronization interrupted')
+    if (!hasQueue) detail = tr('Showing the last saved battle on this phone.')
+  }
+  if (pendingEventError) {
+    title = tr('Some changes were rejected by the room')
+    detail = tr(`Changes waiting for a retry: ${pendingEventCount}.`, 'Changes waiting for a retry: {0}.')
+  }
+  if (outboxError && hasQueue) detail = tr('Pending changes could not be saved on this phone. Keep this battle open until they sync.')
 
-  return <div className={`shared-sync-warning ${ownConnectionLost ? 'shared-sync-warning--danger' : 'shared-sync-warning--warning'}`} role="alert" aria-live="assertive">
-    <div><strong>{tr(title)}</strong><span>{detail}</span>{error && ownConnectionLost && <small>{tr(error)}</small>}</div>
+  return <div className={`shared-sync-warning ${ownConnectionLost || pendingEventError || outboxError ? 'shared-sync-warning--danger' : 'shared-sync-warning--warning'}`} role="alert" aria-live="assertive">
+    <div><strong>{title}</strong><span>{detail}</span>{(pendingEventError || (ownConnectionLost && error)) && <small>{tr(pendingEventError ?? error)}</small>}</div>
     <button onClick={() => void forceSync()}>{tr("Retry now")}</button>
   </div>
 }

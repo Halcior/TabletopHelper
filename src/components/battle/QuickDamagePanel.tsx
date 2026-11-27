@@ -1,7 +1,6 @@
 import { t as tr } from '../../features/i18n/locale'
 import { useEffect, useState } from 'react'
 import type { BattleEventInput, BattleSession, CombatAttribution } from '../../domain/battle/types'
-import { doublesScorekeeperId, onSameDoublesForce } from '../../domain/battle/doubles'
 import { selectRecentUnits } from '../../domain/battle/recentUnits'
 import { buildBattleChronicle } from '../../domain/battle/chronicle'
 import { useBattleStore } from '../../stores/battleStore'
@@ -9,9 +8,10 @@ import { CommandDialog } from '../ui/CommandDialog'
 import { CombatControls } from './CombatControls'
 import { CombatSourcePicker } from './CombatSourcePicker'
 import { QuickUndoAction } from './QuickUndoAction'
+import { canQuickDamage, type BattleUnitSelection } from './unitShortcuts'
 import './battleExperience.css'
 
-type Selection = { playerId: string; unitId: string; source: CombatAttribution }
+type Selection = BattleUnitSelection & { source: CombatAttribution }
 function remembered(key: string): Partial<Selection> {
   try { return JSON.parse(sessionStorage.getItem(key) ?? '{}') } catch { return {} }
 }
@@ -25,20 +25,20 @@ function resolveSelection(session: BattleSession, shared: boolean, viewerId: str
   return { playerId, unitId, source: saved.source ?? {} }
 }
 
-export function canQuickDamage(session: BattleSession, targetId: string, shared: boolean, viewerId?: string | null) {
-  if (session.state.status !== 'active') return false
-  if (!shared) return true
-  if (!viewerId || !session.state.players[viewerId]) return false
-  return targetId === viewerId || (doublesScorekeeperId(session.setup, viewerId) === session.state.activePlayerId
-    && !onSameDoublesForce(session.setup, targetId, viewerId))
-}
-
 /** A single selected unit, using the same CombatControls and canonical events as Army. */
-export function QuickDamagePanel({ session, dispatch, shared = false, viewerId, onClose }: {
-  session: BattleSession; dispatch: (event: BattleEventInput) => void; shared?: boolean; viewerId?: string | null; onClose: () => void
+export function QuickDamagePanel({ session, dispatch, shared = false, viewerId, onClose, initialSelection }: {
+  session: BattleSession; dispatch: (event: BattleEventInput) => void; shared?: boolean; viewerId?: string | null;
+  onClose: () => void; initialSelection?: BattleUnitSelection
 }) {
   const key = `battle-quick-damage:v1:${session.setup.gameId}:${viewerId ?? 'local'}`
-  const [selection, setSelection] = useState<Selection>(() => resolveSelection(session, shared, viewerId, remembered(key)))
+  const [selection, setSelection] = useState<Selection>(() => {
+    const saved = remembered(key)
+    if (!initialSelection) return resolveSelection(session, shared, viewerId, saved)
+    return resolveSelection(session, shared, viewerId, {
+      ...initialSelection,
+      source: saved.playerId === initialSelection.playerId ? saved.source : {},
+    })
+  })
   useEffect(() => {
     try { sessionStorage.setItem(key, JSON.stringify(selection)) } catch { /* optional UI preference */ }
   }, [key, selection])

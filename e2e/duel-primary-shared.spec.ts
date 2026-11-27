@@ -1,6 +1,6 @@
 import { setupBattlefield, setupRules, setupCommanders } from './helpers'
 import { expect, test } from '@playwright/test'
-import { dismissSecondaryReveal, importTestArmy, phone, scoreCard } from './helpers'
+import { dismissSecondaryReveal, importTestArmy, phone, scoreCard, selectPanel } from './helpers'
 import { MockSupabase } from './mockSupabase'
 
 test('two phones review their own asymmetric Primary, including opponent-turn Punishment', async ({ browser }) => {
@@ -53,8 +53,17 @@ test('two phones review their own asymmetric Primary, including opponent-turn Pu
     await dismissSecondaryReveal(alpha.page)
     await expect(alpha.page.locator('.duel-primary-panel').first()).toContainText('Punishment')
     await expect(bravo.page.locator('.duel-primary-panel').first()).toContainText('Delaying Action')
-    for (let i = 0; i < 6; i += 1) await alpha.page.locator('.next-phase').click()
+    await selectPanel(bravo.page, 'army')
+    const opponentArmy = bravo.page.getByRole('navigation', { name: 'Choose player army' })
+      .getByRole('button', { name: /Player I Active player/ })
+    await opponentArmy.click()
+    await alpha.page.locator('.next-phase').click()
+    await expect(bravo.page.getByRole('heading', { name: 'Movement phase' })).toBeVisible()
+    await expect(bravo.page.getByRole('button', { name: 'Army', exact: true })).toHaveAttribute('aria-pressed', 'true')
+    await expect(opponentArmy).toHaveAttribute('aria-pressed', 'true')
+    for (let i = 0; i < 5; i += 1) await alpha.page.locator('.next-phase').click()
     await alpha.page.getByRole('button', { name: /Confirm end of turn/ }).click()
+    await bravo.page.getByRole('button', { name: 'Review your scoring', exact: true }).click()
     for (const page of [alpha.page, bravo.page]) {
       const acknowledge = page.getByRole('button', { name: /Finished reviewing Player I’s turn/ })
       await expect(acknowledge).toBeVisible()

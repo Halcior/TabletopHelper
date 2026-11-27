@@ -49,6 +49,7 @@ test('four phones play one GW Doubles turn with exactly two shared CP and VP poo
     await Promise.all(phones.map(async (entry) => {
       await expect(entry.page).toHaveURL(/\/battle\//)
       await expect(entry.page.locator('.score-card')).toHaveCount(2)
+      await expect(entry.page.locator('.shared-status')).toContainText('4/4 online')
     }))
     // The draw reveal is mounted by an effect after navigation, so do not
     // race its first render. A skipped early dismissal can intercept CP taps.

@@ -9,13 +9,15 @@ import { unitMapChangeInput, unitMapKey, type UnitMapChange } from '../../domain
 import type { SharedMembership } from '../../multiplayer/types'
 import { groupUnitMarkers, placeUnitMarkers } from './unitMarkerLayout'
 import { AppIcon } from '../AppIcon'
+import { UnitShortcutActions } from './UnitShortcutActions'
+import { canQuickDamage, type BattleUnitShortcutProps } from './unitShortcuts'
 
 type Token = { key: string; playerId: string; unitId: string; name: string; short: string; owner: string; color: string; status: string; position: BoardPoint | null; models: number; shocked: boolean; destroyed: boolean }
 type Drag = { token: Token; startX: number; startY: number; revision: string | null; moved: boolean; pointerId: number }
 const clamp = (value: number) => Math.max(0, Math.min(1, value))
 const statusName = (status: string) => ({ unplaced: 'Unplaced', battlefield: 'On Battlefield', reserves: 'In Reserves', destroyed: 'Destroyed' })[status] ?? status
 
-export function TacticalUnits({ session, dispatch, canvas, geometry, rotated, canvasSize, frame, replay, membership, active }: {
+export function TacticalUnits({ session, dispatch, canvas, geometry, rotated, canvasSize, frame, replay, membership, active, onOpenDatasheet, onOpenDamage }: BattleUnitShortcutProps & {
   session: BattleSession; dispatch: (event: BattleEventInput) => void
   canvas: HTMLDivElement | null; geometry: BattlefieldGeometry; rotated: boolean
   canvasSize: { width: number; height: number }; frame?: BattlefieldReplayFrame; replay: boolean
@@ -57,6 +59,8 @@ export function TacticalUnits({ session, dispatch, canvas, geometry, rotated, ca
   const selected = tokens.find(token => token.key === selectedKey)
   const selectedArmyId = selected ? session.state.players[selected.playerId]?.armyId : undefined
   const selectedDefinition = selectedArmyId ? session.setup.armies[selectedArmyId]?.units.find(unit => unit.id === selected?.unitId) : undefined
+  const canRecordSelectedLosses = selected && live && !selected.destroyed
+    && canQuickDamage(session, selected.playerId, shared, membership?.playerId)
   const canMove = (token: Token) => live && Boolean(tracking?.enabled) && !token.destroyed && (!shared || membership?.isHost === true || membership?.playerId === token.playerId)
   const visible = tokens.filter(token => !hiddenPlayers.includes(token.playerId) && (onlyPlayer === 'all' || onlyPlayer === token.playerId))
   const onBoard = visible.filter(token => token.status === 'battlefield' && token.position)
@@ -220,6 +224,11 @@ export function TacticalUnits({ session, dispatch, canvas, geometry, rotated, ca
       </details>
       {selected && <section className="tactical-unit-details panel" aria-label={tr("Selected unit details")}>
         <div className="tactical-toolbar"><div><strong>{selected.name}</strong><small>{selected.owner}{tr(" · ")}{tr(statusName(selected.status))}{tr(" · ")}{selected.models}{tr(" models")}{selected.shocked ? ' · Battle-shocked' : ''}</small></div><button aria-label={tr("Close unit details")} onClick={() => { setSelectedKey(null); setPlacing(false) }}>{tr("×")}</button></div>
+        {selectedDefinition && <UnitShortcutActions
+          selection={{ playerId: selected.playerId, unitId: selected.unitId, referenceOnly: replay }}
+          onOpenDatasheet={onOpenDatasheet}
+          onOpenDamage={canRecordSelectedLosses ? onOpenDamage : undefined}
+        />}
         {selectedDefinition && <details><summary>{tr("View unit details")}</summary><p>{selectedDefinition.points}{tr(" pts · ")}{selectedDefinition.startingModels}{tr(" starting models")}{selectedDefinition.stats?.movement ? ` · M ${selectedDefinition.stats.movement}` : ''}{selectedDefinition.stats?.toughness ? ` · T ${selectedDefinition.stats.toughness}` : ''}{selectedDefinition.stats?.save ? ` · Sv ${selectedDefinition.stats.save}` : ''}</p>{selectedDefinition.abilities.map((ability, index) => <p key={`${ability.name}-${index}`}><strong>{ability.name}</strong>{ability.description ? ` · ${ability.description}` : ''}</p>)}</details>}
         {canMove(selected) ? <>
           <div className="tactical-unit-actions"><button aria-pressed={placing} onPointerUp={event => { if (event.pointerType === 'touch') armPlacement() }} onClick={armPlacement}>{tr("Move unit")}</button>{placing && <button onClick={() => setPlacing(false)}>{tr("Cancel move")}</button>}<button onClick={() => commit(selected, 'reserves', null)}>{tr("Return to Reserves")}</button><button onClick={() => commit(selected, 'unplaced', null)}>{tr("Set as Unplaced")}</button></div>

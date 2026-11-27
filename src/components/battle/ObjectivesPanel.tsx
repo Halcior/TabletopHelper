@@ -3,8 +3,9 @@ import type { BattleEventInput, BattleSession } from '../../domain/battle/types'
 import { useEffect, useState } from 'react'
 import { BattlefieldBoard } from './BattlefieldBoard'
 import { doublesForceForPlayer } from '../../domain/battle/doubles'
+import type { BattleUnitShortcutProps } from './unitShortcuts'
 
-type ObjectivesPanelProps = {
+type ObjectivesPanelProps = BattleUnitShortcutProps & {
   session: BattleSession
   dispatch: (event: BattleEventInput) => void
   liveObjectiveIds?: string[]

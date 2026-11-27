@@ -1,0 +1,3 @@
+.unit-shortcuts { display: flex; flex-wrap: wrap; gap: 8px; }
+.unit-shortcuts button { min-height: 44px; }
+.unit-card > .unit-shortcuts { padding: 0 16px 10px; }

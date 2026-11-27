@@ -2,6 +2,7 @@ import { test, expect, type Page } from '@playwright/test'
 import { selectPanel, dismissSecondaryReveal, phone, PHONE } from './helpers'
 import { MockSupabase } from './mockSupabase'
 import { PostgresBackend } from './postgresBackend'
+import { companionCsv } from '../test-data/companion'
 
 async function seed(page: Page, id = 'tracking-e2e') {
   await page.goto('/')
@@ -39,6 +40,55 @@ async function coordinatePlace(page: Page, player = 'p-a', unit = 'infantry', x 
 async function countMoves(page: Page) {
   return page.evaluate(async () => (await import('/src/stores/battleStore.ts')).useBattleStore.getState().session!.state.events.filter(event => event.type === 'UNIT_MAP_CHANGED').length)
 }
+
+test('phone opens the selected roster or map unit in the datasheet and damage dialogs', async ({ browser }) => {
+  const { context, page } = await phone(browser)
+  try {
+    await seed(page, 'unit-shortcuts')
+    await selectPanel(page, 'army')
+    await page.getByRole('navigation', { name: 'Choose player army' }).getByRole('button', { name: /Charlie/ }).click()
+    const tank = page.locator('#unit-card-p-c-tank')
+    await tank.getByRole('button', { name: 'Datasheet', exact: true }).click()
+    const companion = page.getByRole('dialog', { name: 'Battle Companion' })
+    await expect(companion.getByLabel('Companion player')).toHaveValue('p-c')
+    await expect(companion.getByRole('heading', { name: 'Single-model tank', exact: true })).toBeVisible()
+    await companion.getByRole('button', { name: 'Back to battle' }).click()
+    await expect(tank).toBeVisible()
+    await tank.getByRole('button', { name: 'Record losses', exact: true }).click()
+    const damage = page.getByRole('dialog', { name: 'Quick damage' })
+    await expect(damage.getByLabel('Receiving army')).toHaveValue('p-c')
+    await expect(damage.getByLabel('Receiving unit')).toHaveValue('tank')
+    await damage.getByRole('button', { name: 'Close Quick damage' }).click()
+    await expect(tank).toBeVisible()
+
+    await tactical(page)
+    await page.getByRole('button', { name: 'Enable Unit Tracking', exact: true }).click()
+    await coordinatePlace(page, 'p-b')
+    await token(page, 'p-b').click()
+    const selected = page.getByRole('region', { name: 'Selected unit details' })
+    await selected.getByRole('button', { name: 'Datasheet', exact: true }).click()
+    await expect(companion.getByLabel('Companion player')).toHaveValue('p-b')
+    await expect(companion.getByRole('heading', { name: 'Four-model unit', exact: true })).toBeVisible()
+    await companion.getByRole('button', { name: 'Back to battle' }).click()
+    await selected.getByRole('button', { name: 'Record losses', exact: true }).click()
+    await expect(damage.getByLabel('Receiving army')).toHaveValue('p-b')
+    await expect(damage.getByLabel('Receiving unit')).toHaveValue('infantry')
+    await damage.getByRole('button', { name: 'Close Quick damage' }).click()
+    await expect(selected.getByRole('button', { name: 'Datasheet', exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Tactical Map', exact: true })).toHaveAttribute('aria-pressed', 'true')
+
+    await page.getByRole('button', { name: 'Replay', exact: true }).click()
+    await token(page, 'p-b').click()
+    await expect(selected.getByRole('button', { name: 'Record losses', exact: true })).toHaveCount(0)
+    await selected.getByRole('button', { name: 'Datasheet', exact: true }).click()
+    await expect(companion.getByRole('heading', { name: 'Four-model unit', exact: true })).toBeVisible()
+    await companion.locator('input[type=file]').setInputFiles(Object.entries(companionCsv).map(([name, content]) => ({
+      name, mimeType: 'text/csv', buffer: Buffer.from(content!),
+    })))
+    await expect(companion.getByText('Imported. Select this snapshot to use it.', { exact: true })).toBeVisible()
+    await expect(companion.getByRole('button', { name: 'Use selected snapshot', exact: true })).toBeDisabled()
+  } finally { await context.close() }
+})
 
 test('desktop tracks deployment, drag once, reserves, refresh, historical combat and replay controls', async ({ page }) => {
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message))

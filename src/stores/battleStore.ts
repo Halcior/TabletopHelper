@@ -122,9 +122,14 @@ type BattleStore = {
 
 let persistenceQueue = Promise.resolve()
 
-function queueSave(session: BattleSession): void {
+/** Shared sync and local UI snapshots must reach IndexedDB in projection order. */
+export function persistBattleSnapshot(session: BattleSession): Promise<void> {
   persistenceQueue = persistenceQueue.catch(() => undefined).then(() => saveBattle(session))
-  void persistenceQueue.catch((error: unknown) => {
+  return persistenceQueue
+}
+
+function queueSave(session: BattleSession): void {
+  void persistBattleSnapshot(session).catch((error: unknown) => {
     useBattleStore.setState({ error: error instanceof Error ? error.message : String(error) })
   })
 }

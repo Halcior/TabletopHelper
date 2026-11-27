@@ -208,10 +208,6 @@
   line-height: 1.45;
 }
 
-.review-actions--final {
-  grid-template-columns: minmax(220px, 1fr) !important;
-}
-
 .review-actions--final .button--gold {
   width: 100%;
 }

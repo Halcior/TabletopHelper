@@ -44,7 +44,7 @@ type Props = {
   onResolveEliminationChoice: (playerId: string, cardId: SecondaryId) => void
   onSelectPriorityCandidates: (playerId: string, unitIds: string[]) => void
   onChoosePriorityTarget: (playerId: string, unitId: string) => void
-  onOpenArmyDetails: (playerId: string, unitId: string) => void
+  onOpenArmyDetails: (playerId: string, unitId: string, secondaryId?: SecondaryId) => void
 }
 
 function statusLabel(item: ContextItem): string {
@@ -266,7 +266,7 @@ export function ContextCommandCentre({
       sharedMode={sharedMode}
       viewerPlayerId={viewerPlayerId}
       onClose={() => setPanel(null)}
-      onDetails={(ownerId, unitId) => { setPanel(null); onOpenArmyDetails(ownerId, unitId) }}
+      onDetails={(ownerId, unitId) => { setPanel(null); onOpenArmyDetails(ownerId, unitId, panel.secondaryId) }}
     />}
     {panel?.type === 'objectives' && <ObjectiveQuickPanel session={session} dispatch={dispatch} onClose={() => setPanel(null)} />}
     {panel?.type === 'mission' && <div className="quick-panel-layer" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) setPanel(null) }}><aside className="quick-panel" role="dialog" aria-modal="true"><MissionActionLauncher

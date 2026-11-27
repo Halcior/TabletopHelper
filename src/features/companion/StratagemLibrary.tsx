@@ -10,9 +10,9 @@ import { t } from '../i18n/locale'
 import { type Row, type RulesBundle, ruleText, normalizeName, related } from './data'
 import { armyStratagems, phaseVisible } from './matching'
 
-export function StratagemLibrary({ army, bundle, session, playerId, shared, favorites, onFavorites, sheetId }: {
+export function StratagemLibrary({ army, bundle, session, playerId, shared, favorites, onFavorites, sheetId, referenceOnly = false }: {
   army: Army; bundle: RulesBundle; session?: BattleSession; playerId?: string; shared: boolean
-  favorites: string[]; onFavorites: (ids: string[]) => void; sheetId?: string
+  favorites: string[]; onFavorites: (ids: string[]) => void; sheetId?: string; referenceOnly?: boolean
 }) {
   const [query, setQuery] = useState(''), [phase, setPhase] = useState(''), [turn, setTurn] = useState(''), [kind, setKind] = useState('')
   const [onlyFavorites, setOnlyFavorites] = useState(false), [onlyRelated, setOnlyRelated] = useState(Boolean(sheetId))
@@ -30,7 +30,7 @@ export function StratagemLibrary({ army, bundle, session, playerId, shared, favo
   const actual = cost.trim() === '' ? NaN : Number(cost)
   const valid = Number.isSafeInteger(actual) && actual >= 0 && cp !== undefined && actual <= cp
   const uses = session ? Object.values(session.state.companion?.uses ?? {}).filter(use => use.playerId === playerId).reverse() : []
-  const canUse = Boolean(session?.state.status === 'active' && playerId && !shared)
+  const canUse = Boolean(session?.state.status === 'active' && playerId && !shared && !referenceOnly)
   async function submit() {
     if (!selected || !session || !playerId || !valid || !canUse || busy) return
     setBusy(true); setError('')

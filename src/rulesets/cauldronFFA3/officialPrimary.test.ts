@@ -197,4 +197,14 @@ describe('11th edition Primary FFA adaptation', () => {
     expect(evaluateOfficialPrimary(session, 'p-a', 1, { actions }).roundPrimary).toBe(8)
     expect(() => createPrimaryTurnCommitEvents(session, 'p-a', { officialPrimary: { actions: [actions[0], { ...actions[1], unitName: 'Guard' }] } })).toThrow(/different acting unit/)
   })
+
+  it('distinguishes roster units by ID while respecting legacy unit names', () => {
+    const session = control(control(game('sabotage'), 'N1'), 'N2')
+    const first = { objectiveId: 'N1', unitId: 'infantry', unitName: 'Squad' }
+    const second = { objectiveId: 'N2', unitId: 'tank', unitName: 'Squad' }
+    expect(evaluateOfficialPrimary(session, 'p-a', 1, { actions: [first, second] }, true).roundPrimary).toBe(6)
+    expect(() => evaluateOfficialPrimary(session, 'p-a', 1, { actions: [
+      first, { objectiveId: 'N2', unitName: 'Four-model unit' },
+    ] }, true)).toThrow(/different acting unit/)
+  })
 })
