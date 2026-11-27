@@ -6,7 +6,7 @@ import type { SharedMembership } from '../../multiplayer/types'
 import { testArmy } from './cauldronTestUtils'
 import { OFFICIAL_SECONDARY_DEFINITIONS, OFFICIAL_SECONDARY_IDS } from './officialSecondaryDefinitions'
 import {
-  acknowledgeOfficialWindow, canScoreOfficialSecondary, discardOfficialAtEndTurn, officialActionCount,
+  acknowledgeOfficialWindow, assignOfficialGuards, canScoreOfficialSecondary, discardOfficialAtEndTurn, officialActionCount,
   officialPendingReviewPlayers, replaceOfficialSecondary, scoreOfficialSecondary, startOfficialSecondaryAction,
   noteOfficialTarget,
 } from './officialSecondary'
@@ -53,6 +53,19 @@ function membership(playerId: string): SharedMembership {
 }
 
 describe('Chapter Approved Secondary deck', () => {
+  it('preserves a legacy Duel guard note after saving roster and objective IDs', () => {
+    const session = dispatchBattleEvent(game(['OFFICIAL_BURDEN_OF_TRUST', 'OFFICIAL_BEACON']), {
+      type: 'OBJECTIVE_CONTROL_CHANGED', payload: { objectiveId: 'N1', controllerPlayerId: 'p-a' },
+    })
+    const legacy = noteOfficialTarget(session, 'p-a', 'OFFICIAL_BURDEN_OF_TRUST', 'Guards on the western flank')
+    const selected = assignOfficialGuards(legacy, 'p-a', { N1: 'infantry' })
+    const reopened = deserializeBattleSession(serializeBattleSession(selected))
+    expect(getSecondaryState(reopened)['p-a'].active[0].cardSpecificState).toMatchObject({
+      lastConfirmation: 'Guards on the western flank',
+      officialGuardAssignments: { N1: 'infantry' },
+    })
+  })
+
   it('stores a Duel Beacon choice by roster ID with a readable name and locks it', () => {
     const chosen = noteOfficialTarget(game(['OFFICIAL_BEACON', 'OFFICIAL_NO_PRISONERS']), 'p-a', 'OFFICIAL_BEACON', 'infantry')
     expect(getSecondaryState(chosen)['p-a'].active[0].cardSpecificState).toMatchObject({ officialTargetUnitId: 'infantry', lastConfirmation: 'Four-model unit' })

@@ -24,6 +24,7 @@ import {
 import { buildBattlefieldReplay } from '../../domain/battlefield/replay'
 import type { BattlefieldGeometry, ObjectiveFootprint } from '../../domain/battlefield/types'
 import { useSharedSessionStore } from '../../multiplayer/sharedSessionStore'
+import type { BattleUnitShortcutProps } from './unitShortcuts'
 
 export function BattlefieldBoard({
   session,
@@ -36,7 +37,9 @@ export function BattlefieldBoard({
   onEditingChange,
   active = true,
   readOnly = false,
-}: {
+  onOpenDatasheet,
+  onOpenDamage,
+}: BattleUnitShortcutProps & {
   session: BattleSession
   dispatch: (event: BattleEventInput) => void
   liveObjectiveIds?: string[]
@@ -642,7 +645,7 @@ export function BattlefieldBoard({
           {labelLayout.labels.map((label) => <span key={label.id} className={`objective-label objective-label--player-${playerIndex(controllers[label.id])}`} title={tr(`${label.id} · ${controllerName(label.id)}`, "{0} · {1}")} style={{ left: label.x, top: label.y, width: label.width, height: label.height }}><strong>{label.id.replaceAll('-', ' ')}</strong>{controllers[label.id] && <small>{controllerName(label.id)}</small>}</span>)}
         </div>
       </div>
-      {!readOnly && (tactical || replay && Boolean(frame?.unitTracking)) && !draft && <TacticalUnits session={session} dispatch={dispatch} canvas={canvas.current} geometry={geometry} rotated={rotated} canvasSize={canvasSize} frame={frame} replay={replay} membership={membership} active={active} />}
+      {!readOnly && (tactical || replay && Boolean(frame?.unitTracking)) && !draft && <TacticalUnits session={session} dispatch={dispatch} canvas={canvas.current} geometry={geometry} rotated={rotated} canvasSize={canvasSize} frame={frame} replay={replay} membership={membership} active={active} onOpenDatasheet={onOpenDatasheet} onOpenDamage={onOpenDamage} />}
       {legendIds.length > 0 && <div className="battlefield-label-overflow" aria-label={tr("Objectives with labels below the board")}>{legendIds.map((id) => <button key={id} disabled={readOnly || Boolean(draft)} onClick={() => { if (!readOnly) setSelectedId(id) }}>{id}{controllers[id] ? tr(` · ${controllerName(id)}`, " · {0}") : ''}</button>)}</div>}
       {presentation.unplacedIds.length > 0 && (
         <section className="panel battlefield-unplaced">

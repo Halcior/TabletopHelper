@@ -2,7 +2,7 @@ import { WarChronicle } from '../features/warChronicle/WarChronicle'
 import { activeCampaignBattles, type Campaign } from '../features/campaigns/model'
 import { cloudCampaigns } from '../features/campaigns/repository'
 import { useRemote } from '../features/social/hooks'
-import type { RematchPreset } from '../features/battleLegacy/rematch'
+import { setBattlePresetPinned, useBattlePresets } from '../features/battleLegacy/presets'
 import { database } from '../persistence/storage'
 import { useEffect, useMemo, useState } from 'react'
 import { liveQuery } from 'dexie'
@@ -25,7 +25,7 @@ export default function BattleArchive() {
   const [records, setRecords] = useState<ArchiveRecord[]>([])
   const [localCampaigns, setLocalCampaigns] = useState<Campaign[]>([])
   const remoteCampaigns = useRemote(async () => ({ forOwner:owner, items:await cloudCampaigns(owner) }), [owner], true)
-  const [presets, setPresets] = useState<RematchPreset[]>([])
+  const { presets, error: presetError } = useBattlePresets(owner)
   const [friends, setFriends] = useState<Friend[]>([])
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -39,9 +39,8 @@ export default function BattleArchive() {
     setRecords([]); setError(''); setIdentity(self)
     void prepareArchive(owner).catch(e => setError(errorText(e)))
     const campaignSub = liveQuery(() => database.campaigns.where('ownerId').equals(owner).toArray()).subscribe(setLocalCampaigns)
-    const presetSub = liveQuery(() => database.battlePresets.where('ownerId').equals(owner).toArray()).subscribe(setPresets)
     const sub = liveQuery(() => listArchive(owner)).subscribe({ next: setRecords, error: e => setError(errorText(e)) })
-    return () => { sub.unsubscribe(); presetSub.unsubscribe(); campaignSub.unsubscribe() }
+    return () => { sub.unsubscribe(); campaignSub.unsubscribe() }
   }, [owner])
   useEffect(() => {
     setFriends([])
@@ -80,7 +79,11 @@ export default function BattleArchive() {
       {view === 'replay' && <BattlefieldBoard key={selected.id} session={archiveFacts(selected).session} dispatch={() => {}} tactical replayRequest={mapRequest.request} replayEventId={mapRequest.eventId} />}
     </> : archiveId ? <p role="status">{tr('Battle not found in this account archive.')}</p> : <>
       <nav className="legacy-actions" aria-label={tr('Archive navigation')}>{(['archive', 'statistics', 'rivalries'] as const).map(value => <button key={value} aria-pressed={section === value} onClick={() => setSection(value)}>{tr(value === 'archive' ? 'Battles' : value === 'statistics' ? 'Player Statistics' : 'Rivalries — Head to Head')}</button>)}</nav>
-      {section === 'archive' && presets.length > 0 && <section className="panel"><h2>{tr('Battle presets')}</h2>{presets.map(preset => <p key={preset.id}><Link className="button" to={`/battle/setup?preset=${preset.id}`}>{preset.name}</Link></p>)}</section>}
+      {section === 'archive' && presetError && <p role="alert">{tr('Could not load battle presets.')}</p>}
+      {section === 'archive' && presets.length > 0 && <section className="panel"><h2>{tr('Battle presets')}</h2>{presets.map(preset => <div className="legacy-actions" key={preset.id}>
+        <Link className="button" to={`/battle/setup?preset=${encodeURIComponent(preset.id)}`}>{preset.name}</Link>
+        <button type="button" disabled={busy} onClick={() => void act(() => setBattlePresetPinned(owner, preset.id, !preset.pinned))}>{tr(preset.pinned ? 'Unpin from Command Hub' : 'Pin to Command Hub')}</button>
+      </div>)}</section>}
       {section === 'archive' ? <div className="legacy-grid">{records.length === 0 && <p>{tr('No completed battles in this archive yet.')}</p>}{records.map(record => {
         const facts = archiveFacts(record)
         return <article key={record.id} className="panel legacy-card"><span className="eyebrow">{facts.format} · {new Date(facts.endedAt).toLocaleDateString()}</span><h2>{record.session.setup.players.map(p => p.name).join(' · ')}</h2><p>{facts.report.ranking.map(row => `${row.faction}: ${row.vp} VP`).join(' / ')}</p><strong>{tr(facts.report.winnerPlayerIds.length > 1 ? 'Draw' : 'Winner')}: {facts.report.ranking.filter(r => facts.report.winnerPlayerIds.includes(r.playerId)).map(r => r.name).join(' / ') || '—'}</strong><small>{tr('Rounds')}: {facts.report.roundsPlayed} · {facts.durationMs === null ? tr('Duration unknown') : `${Math.round(facts.durationMs / 60000)} min`}</small><div className="legacy-actions">{campaignLinks(record.id)}</div>{!facts.reliable && <small>{tr('Incomplete historical data')}</small>}<Link className="button" to={`/archive/${encodeURIComponent(record.id)}`}>{tr('Open battle')}</Link></article>

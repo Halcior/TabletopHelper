@@ -12,14 +12,15 @@ import { UnitSheet, RuleDescription } from './UnitSheet'
 import { StratagemLibrary } from './StratagemLibrary'
 import './companion.css'
 
-export default function Companion({ army, session, playerId, shared = false, canSelect = true }: {
-  army: Army; session?: BattleSession; playerId?: string; shared?: boolean; canSelect?: boolean
+export default function Companion({ army, session, playerId, shared = false, canSelect = true, initialUnitId, referenceOnly = false }: {
+  army: Army; session?: BattleSession; playerId?: string; shared?: boolean; canSelect?: boolean; initialUnitId?: string; referenceOnly?: boolean
 }) {
   const owner = useRosterScope(s => s.userId)
   const scope = `${owner ?? 'guest'}:${session ? `${session.setup.gameId}:${playerId}` : `army:${army.id}`}`
   const [bundles, setBundles] = useState<RulesBundle[]>([]), [selectedId, setSelectedId] = useState<string>()
   const [matches, setMatches] = useState<Record<string, string>>({}), [favorites, setFavorites] = useState<string[]>([])
-  const [unitId, setUnitId] = useState(army.units[0]?.id ?? ''), [mobileDetail, setMobileDetail] = useState(false)
+  const shortcutUnit = army.units.find(row => row.id === initialUnitId)
+  const [unitId, setUnitId] = useState(shortcutUnit?.id ?? army.units[0]?.id ?? ''), [mobileDetail, setMobileDetail] = useState(Boolean(shortcutUnit))
   const [query, setQuery] = useState(''), [tab, setTab] = useState('units'), [sheetId, setSheetId] = useState<string>()
   const [error, setError] = useState(''), [ready, setReady] = useState(false)
   const pinned = playerId ? session?.state.companion?.rules[playerId] : undefined
@@ -32,11 +33,13 @@ export default function Companion({ army, session, playerId, shared = false, can
     Promise.all([rulesCache.bundles.toArray(), rulesCache.preferences.get(scope)]).then(([data, preference]) => {
       if (!active) return
       setBundles(data.sort((a, b) => b.importedAt.localeCompare(a.importedAt))); setSelectedId(preference?.datasetId)
-      setUnitId(army.units.some(row => row.id === preference?.unitId) ? preference!.unitId! : army.units[0]?.id ?? '')
+      if (!shortcutUnit) {
+        setUnitId(army.units.find(row => row.id === preference?.unitId)?.id ?? army.units[0]?.id ?? '')
+      }
       setReady(true)
     }).catch(fail)
     return () => { active = false }
-  }, [scope, army])
+  }, [scope, army, shortcutUnit])
   useEffect(() => {
     let active = true; setMatches({}); setFavorites([])
     rulesCache.preferences.get(mappingKey).then(preference => { if (active) { setMatches(preference?.matches ?? {}); setFavorites(preference?.favorites ?? []) } }).catch(fail)
@@ -59,7 +62,7 @@ export default function Companion({ army, session, playerId, shared = false, can
       {session && <span>{t('Round')} {session.state.round} · {session.state.phase} · {session.state.players[session.state.activePlayerId]?.name}</span>}
     </header>
     {error && <p role="alert" className="alert">{error}</p>}
-    <RulesManager bundles={bundles} selectedId={datasetId} onImported={value => setBundles(current => [value, ...current.filter(row => row.id !== value.id)])} onSelect={choose} canSelect={canSelect && (!session || session.state.status === 'active')} />
+    <RulesManager bundles={bundles} selectedId={datasetId} onImported={value => setBundles(current => [value, ...current.filter(row => row.id !== value.id)])} onSelect={choose} canSelect={!referenceOnly && canSelect && (!session || session.state.status === 'active')} />
     {datasetId && <p className="companion-muted">{t('Selected snapshot')}: 11 · {(bundle ?? pinned)?.upstreamUpdatedAt ?? t('Unknown source date')} · {datasetId.slice(-12)}<br />{t('Imported')}: {(bundle ?? pinned)?.importedAt}</p>}
     {datasetId && !bundle && ready && <p className="alert">{t('The selected snapshot is not cached on this device. Import the matching CSV files or explicitly choose a different snapshot. Roster data remains available.')}</p>}
     {!!bundle?.warnings.length && <details><summary>{t('Incomplete rules data')} ({bundle.warnings.length})</summary><ul>{bundle.warnings.map(warning => <li key={warning}>{warning}</li>)}</ul></details>}
@@ -80,7 +83,7 @@ export default function Companion({ army, session, playerId, shared = false, can
           onStratagems={id => { setSheetId(id); setTab('stratagems') }} />}
       </div>
     </div>}
-    {tab === 'stratagems' && (bundle ? <StratagemLibrary key={`${mappingKey}:${sheetId}`} army={army} bundle={bundle} session={session} playerId={playerId} shared={shared} favorites={favorites} sheetId={sheetId} onFavorites={ids => { setFavorites(ids); void updatePreference(mappingKey, { favorites: ids }).catch(fail) }} /> : <p>{t('Choose rules data to browse stratagems.')}</p>)}
+    {tab === 'stratagems' && (bundle ? <StratagemLibrary key={`${mappingKey}:${sheetId}`} army={army} bundle={bundle} session={session} playerId={playerId} shared={shared} favorites={favorites} sheetId={sheetId} referenceOnly={referenceOnly} onFavorites={ids => { setFavorites(ids); void updatePreference(mappingKey, { favorites: ids }).catch(fail) }} /> : <p>{t('Choose rules data to browse stratagems.')}</p>)}
     {tab === 'army' && <section><h2>{t('Army rules')}</h2><p>{t('Faction abilities are shown on their linked datasheets. Detachment rules below require an exact faction and detachment name match; Force Disposition alone is not a match.')}</p>
       {!detachmentRules.length && <p>{t('No matched detachment rules. Check your roster configuration and imported files.')}</p>}
       {detachmentRules.map(row => <RuleDescription key={row.id} row={{ ...row, name: `${row.detachment} · ${row.name}` }} />)}

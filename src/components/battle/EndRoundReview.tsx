@@ -1,4 +1,5 @@
 import { t as tr } from '../../features/i18n/locale'
+import { doublesForceForPlayer } from '../../domain/battle/doubles'
 import type { BattleSession } from '../../domain/battle/types'
 import {
   evaluateOperationalPlan,
@@ -80,14 +81,20 @@ function DuelEndRoundReview({ session, onCancel, onConfirm, sharedBattle }: {
 }) {
   const confirmDuelBattleReady = useBattleStore((state) => state.confirmDuelBattleReady)
   const last = session.state.round === session.state.maxRounds
-  const battleReviewsDone = !last || session.state.turnOrder.every((id) => getDuelPrimaryCommit(session, id, 'battle'))
-  const readyDone = !last || session.state.turnOrder.every((id) => hasDuelBattleReady(session, id))
+  const battleReviewPending = last ? session.state.turnOrder.filter((id) => !getDuelPrimaryCommit(session, id, 'battle')) : []
+  const battleReadyPending = last ? session.state.turnOrder.filter((id) => !hasDuelBattleReady(session, id)) : []
+  const battleReviewsDone = battleReviewPending.length === 0
+  const readyDone = battleReadyPending.length === 0
+  const waitingFor = battleReviewPending
+    .filter((id) => id !== session.state.activePlayerId)
+    .map((id) => doublesForceForPlayer(session.setup, id)?.name ?? session.state.players[id].name)
   const previous = duelPrimaryCommits(session).filter((entry) => entry.round === session.state.round)
   return <main className="battle-content round-review">
     <div className="round-review__intro"><span className="eyebrow">{tr("Battle Round ")}{session.state.round}</span><h1>{last ? tr('End of battle') : tr('Primary round summary')}</h1><p>{tr("Each Primary was confirmed at its own Command or turn-end window. Both players may earn at most 15 Primary VP this round and 45 over the battle.")}</p></div>
     <div className="round-review-grid">{session.state.turnOrder.map((id) => <section className="panel primary-review-card" key={id}><h2>{session.state.players[id].name}</h2><strong>{previous.filter((entry) => entry.playerId === id).reduce((total, entry) => total + entry.pointsAwarded, 0)} {tr(" / 15 VP this round")}</strong><p>{session.state.players[id].score.primary} {tr(" / 45 VP Primary")}</p></section>)}</div>
     {last && <>
-      {session.state.turnOrder.map((id) => <DuelPrimaryPanel key={id} session={session} playerId={id} window="battle" editable={!sharedBattle || id === session.state.activePlayerId} />)}
+      {sharedBattle && waitingFor.length > 0 && <section className="panel turn-review-section" role="status"><strong>{tr('End-of-battle Primary pending')}</strong><p>{waitingFor.join(', ')}</p></section>}
+      {session.state.turnOrder.map((id) => <DuelPrimaryPanel key={id} session={session} playerId={id} window="battle" editable={!sharedBattle || id === session.state.activePlayerId} compact />)}
       {battleReviewsDone && <section className="panel turn-review-section"><h2>{tr("Battle Ready · +10 VP")}</h2><p>{tr("Confirm the painting standard for each army, including a “no” when it does not qualify.")}</p>{session.state.turnOrder.map((id) => <div className="centre-oc-row" key={id}><strong>{session.state.players[id].name}</strong>{hasDuelBattleReady(session, id) ? <span>{tr("✓ Confirmed")}</span> : <div className="review-actions"><button type="button" onClick={() => confirmDuelBattleReady(id, false)}>{tr("Not Battle Ready · 0")}</button><button type="button" onClick={() => confirmDuelBattleReady(id, true)}>{tr("Battle Ready · +10 VP")}</button></div>}</div>)}</section>}
     </>}
     <div className="review-actions"><button type="button" onClick={onCancel}>{tr("Back to battle")}</button><button className="button--gold" type="button" disabled={!battleReviewsDone || !readyDone} onClick={() => onConfirm({})}>{last ? tr('Confirm & end battle') : tr('Confirm end round')}</button></div>

@@ -120,9 +120,17 @@ function checkedActions(
   if (missionId === 'gather-intel' && round < 2) throw new Error('Extract Intelligence starts in round 2.')
   const targets = new Set(officialPrimaryActionTargets(session, playerId).map((objective) => objective.id))
   const targetIds = actions.map((action) => action.objectiveId)
-  const unitNames = actions.map((action) => action.unitName.trim().toLocaleLowerCase())
+  const player = session.state.players[playerId]
+  const roster = player.armyId ? session.setup.armies[player.armyId]?.units ?? [] : []
+  const actingUnits = actions.map((action) => {
+    if (action.unitId) return `id:${action.unitId}`
+    const name = action.unitName.trim().toLocaleLowerCase()
+    const matches = roster.filter((unit) => unit.name.trim().toLocaleLowerCase() === name)
+    return matches.length === 1 ? `id:${matches[0].id}` : `name:${name}`
+  })
   const validTargets = targetIds.every((id) => targets.has(id)) && new Set(targetIds).size === actions.length
-  const validUnits = unitNames.every(Boolean) && new Set(unitNames).size === actions.length
+  const validUnits = actions.every((action) => action.unitName.trim() && (!action.unitId || player.units[action.unitId]))
+    && new Set(actingUnits).size === actions.length
   if (strict && !validTargets) throw new Error('Each completed Primary action needs a different controlled non-home objective without an existing marker.')
   if (strict && !validUnits) throw new Error('Enter a different acting unit for each completed Primary action.')
   if (!validTargets || !validUnits) return []

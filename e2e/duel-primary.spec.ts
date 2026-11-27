@@ -30,7 +30,7 @@ test('official duel selects asymmetric matrix cards and scores the first turn', 
     await expect(page.getByRole('heading', { name: 'End Turn · Chapter Approved' })).toBeVisible()
     await page.locator('.duel-primary-condition').filter({ hasText: 'Control at least one central objective.' }).getByRole('checkbox').check()
     await page.getByRole('button', { name: /Confirm end of turn · \+3 VP/ }).click()
-    await expect(page.locator('.duel-primary-panel')).toContainText('Reviewed · +3 VP')
+    await expect(page.locator('.secondary-turn-review .duel-primary-panel')).toContainText('Reviewed · +3 VP')
     for (const button of await page.getByRole('button', { name: /Finished reviewing .* turn/ }).all()) await button.click()
     await page.getByRole('button', { name: /End turn →/ }).click()
     await expect(page.locator('.duel-primary-panel').first()).toContainText('Unstoppable Force')

@@ -16,6 +16,11 @@ export function participantIsOnline(participant: SharedParticipant, now = Date.n
   return participantIsActive(participant, now, SHARED_VISIBLE_ONLINE_MS)
 }
 
+export function countOnlineSeats(playerIds: readonly string[], participants: SharedParticipant[], now = Date.now()): number {
+  const connectedIds = new Set(participants.filter(participant => participantIsOnline(participant, now)).map(participant => participant.playerId))
+  return playerIds.filter(id => connectedIds.has(id)).length
+}
+
 export function secondsUntilSeatReclaim(participant: SharedParticipant, now = Date.now()): number {
   const seenAt = Date.parse(participant.lastSeenAt)
   if (!Number.isFinite(seenAt)) return 0

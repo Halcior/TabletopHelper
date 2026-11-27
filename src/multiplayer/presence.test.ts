@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { participantIsActive, participantIsOnline, secondsUntilSeatReclaim } from './presence'
+import { countOnlineSeats, participantIsActive, participantIsOnline, secondsUntilSeatReclaim } from './presence'
 import type { SharedParticipant } from './types'
 
 function participant(lastSeenAt: string): SharedParticipant {
@@ -33,5 +33,16 @@ describe('shared presence', () => {
     const stale = participant('2026-09-01T15:00:00.000Z')
     expect(participantIsActive(stale, now)).toBe(false)
     expect(secondsUntilSeatReclaim(stale, now)).toBe(0)
+  })
+
+  it('counts unique online seats, excluding expired heartbeats and rows outside the format', () => {
+    const recent = participant('2026-09-01T15:00:25.000Z')
+    const rows = [
+      { ...recent, playerId: 'a' }, { ...recent, playerId: 'a', clientId: 'previous' }, { ...recent, playerId: 'c' },
+      { ...recent, playerId: 'd', lastSeenAt: '2026-09-01T15:00:10.000Z' }, { ...recent, playerId: 'unknown' },
+    ]
+    expect(countOnlineSeats(['a', 'b', 'c', 'd'], rows, now)).toBe(2)
+    expect(countOnlineSeats(['a', 'b'], rows, now)).toBe(1)
+    expect(countOnlineSeats(['a', 'b', 'c', 'd'], rows, now + 30_000)).toBe(0)
   })
 })

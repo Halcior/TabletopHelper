@@ -17,6 +17,7 @@ type DuelPrimaryPanelProps = {
   playerId: string
   window?: DuelReviewWindow
   editable: boolean
+  compact?: boolean
 }
 
 export function DuelPrimaryPanel(props: DuelPrimaryPanelProps) {
@@ -27,7 +28,7 @@ export function DuelPrimaryPanel(props: DuelPrimaryPanelProps) {
   return <DuelPrimaryForm key={context} {...props} />
 }
 
-function DuelPrimaryForm({ session, playerId, window, editable }: DuelPrimaryPanelProps) {
+function DuelPrimaryForm({ session, playerId, window, editable, compact = false }: DuelPrimaryPanelProps) {
   const [selections, setSelections] = useState<Record<string, number>>({})
   const [error, setError] = useState('')
   const reviewDuelPrimary = useBattleStore((state) => state.reviewDuelPrimary)
@@ -53,9 +54,11 @@ function DuelPrimaryForm({ session, playerId, window, editable }: DuelPrimaryPan
   }
 
   function submit() {
+    if (!window) return
     try {
-      duelPrimaryPreview(session, playerId, window!, selections)
-      reviewDuelPrimary(playerId, window!, selections)
+      duelPrimaryPreview(session, playerId, window, selections)
+      reviewDuelPrimary(playerId, window, selections)
+      setError(useBattleStore.getState().error ?? '')
     } catch (reason) { setError(reason instanceof Error ? reason.message : String(reason)) }
   }
 
@@ -63,9 +66,11 @@ function DuelPrimaryForm({ session, playerId, window, editable }: DuelPrimaryPan
     <div className="section-heading"><div><span className="eyebrow">{tr("11th edition Primary · ")}{disposition ? DISPOSITION_NAMES[disposition] : ''}</span><h2>{session.state.players[playerId]?.name}: {mission.name}</h2></div><strong>{session.state.players[playerId]?.score.primary ?? 0} {tr(" / 45 VP")}</strong></div>
     <InfoDisclosure label={tr("Primary card & pairing layout")}>
     <p className="context-note">{tr("Your card from the Force Disposition matrix. Read the ")}<a href={mission.url} target="_blank" rel="noreferrer">{tr("full Primary card")}</a> {tr(" for exact wording. ")}{disposition && opponentDisposition && <>{tr("Open ")}<a href={`https://gdmissions.app/11th/layouts/${disposition}/${opponentDisposition}`} target="_blank" rel="noreferrer">{tr("the pairing layouts")}</a> {tr(" and select ")}{['A (1)', 'B (2)', 'C (3)'][(config.officialLayout ?? 1) - 1]} {tr(" to match your setup. ")}</>}{tr("The physical layout sets objectives and terrain. Each scoring window is locked after confirmation.")}</p>
+    {compact && mission.rule && <p><strong>{tr('Special rule:')}</strong> {tr(mission.rule)}</p>}
+    {compact && mission.action && <p><strong>{tr('Objective Action:')}</strong> {tr(mission.action)}</p>}
     </InfoDisclosure>
-    {mission.rule && <p><strong>{tr("Special rule:")}</strong> {tr(mission.rule)}</p>}
-    {mission.action && <p><strong>{tr("Objective Action:")}</strong> {tr(mission.action)}</p>}
+    {!compact && mission.rule && <p><strong>{tr("Special rule:")}</strong> {tr(mission.rule)}</p>}
+    {!compact && mission.action && <p><strong>{tr("Objective Action:")}</strong> {tr(mission.action)}</p>}
     {window ? <>
       <h3>{tr(WINDOW_LABEL[window])} {tr(" · Battle Round ")}{session.state.round}</h3>
       {session.state.round === 5 && window === 'turn' && <p className="context-note">{tr("In round 5, conditions normally scored at the end of Command score at the end of your turn instead.")}</p>}
@@ -75,10 +80,10 @@ function DuelPrimaryForm({ session, playerId, window, editable }: DuelPrimaryPan
         {reviewed ? <strong>{(reviewed.selections[condition.id] ?? 0) * condition.vp} {tr(" VP")}</strong> : condition.count ? <label>{tr("Count ")}<input type="number" min={0} max={20} step={1} value={selections[condition.id] ?? 0} disabled={!editable} onChange={(event) => change(condition, Number(event.target.value))} />
         </label> : <label className="review-check-row"><input type="checkbox" checked={!!selections[condition.id]} disabled={!editable} onChange={(event) => change(condition, event.target.checked ? 1 : 0)} /><span>{tr("Met")}</span></label>}
       </div>)}
-      {reviewed ? <p className="secondary-feedback" role="status">{tr("✓ Reviewed · +")}{reviewed.pointsAwarded} {tr(" VP.")}</p> : <>
-        <p className="context-note">{tr("Confirmed ")}{preview.raw} {tr(" VP → award ")}{preview.awarded} {tr(" VP after the 15 VP round and 45 VP battle limits. Current round: ")}{preview.scoredInRound} {tr(" VP.")}</p>
+      {reviewed ? <p className="secondary-feedback" role="status">{tr("✓ Reviewed · +")}{reviewed.pointsAwarded} {tr(" VP.")}</p> : editable && <>
+        <p className="context-note">{tr('Primary preview')}: <strong>+{preview.awarded} {tr('VP')}</strong>{preview.raw > preview.awarded && <> ({tr('Scoring cap applied')})</>}</p>
         {error && <p className="alert alert--danger">{tr(error)}</p>}
-        {editable && <button className="button--gold" type="button" onClick={submit}>{tr("Confirm ")}{tr(WINDOW_LABEL[window].toLowerCase())} · +{preview.awarded} {tr(" VP")}</button>}
+        <button className="button--gold" type="button" onClick={submit}>{tr("Confirm ")}{tr(WINDOW_LABEL[window].toLowerCase())} · +{preview.awarded} {tr(" VP")}</button>
       </>}
     </> : <details className="duel-primary-conditions"><summary>{tr("Conditions by scoring window")}</summary>
       {(['command', 'turn', 'either', 'battle'] as const).map((timing) => {

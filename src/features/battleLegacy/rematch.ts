@@ -16,6 +16,7 @@ export type RematchPreset = {
  sourceArmyIds: Record<string, string>
  sourceId?: string
  online?: boolean
+ pinned?: boolean
 }
 /** Whitelist setup fields. Runtime state/events/hands/clock budgets never enter a preset. */
 export function rematchPreset(session: BattleSession, ownerId: string): RematchPreset {

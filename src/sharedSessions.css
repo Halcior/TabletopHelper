@@ -397,6 +397,16 @@ button.shared-status {
   color: var(--paper);
 }
 
+.shared-flow-notice:has(button) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  text-align: left;
+  white-space: normal;
+}
+
 .shared-perspective {
   display: grid;
   gap: 10px;

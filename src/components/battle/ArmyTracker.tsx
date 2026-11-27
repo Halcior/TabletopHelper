@@ -16,11 +16,14 @@ import { CombatSourcePicker } from './CombatSourcePicker'
 import { CAULDRON_RULESET_ID, getCurrentRivalPlayerId } from '../../rulesets/cauldronFFA3'
 import { CAULDRON_SECONDARY_BY_ID } from '../../rulesets/cauldronFFA3/secondaryDefinitions'
 import type { SecondaryId } from '../../rulesets/cauldronFFA3/secondaryTypes'
+import { UnitShortcutActions } from './UnitShortcutActions'
+import { canQuickDamage, type BattleUnitShortcutProps } from './unitShortcuts'
 
-type ArmyTrackerProps = {
+type ArmyTrackerProps = BattleUnitShortcutProps & {
   session: BattleSession
   dispatch: (event: BattleEventInput) => void
   preferredPlayerId?: string | null
+  preferredPlayerRequest?: number
   sharedMode?: boolean
   viewerPlayerId?: string | null
   secondaryTargetFilter?: SecondaryId | null
@@ -139,7 +142,9 @@ function UnitCard({
   missionActionName,
   dispatch,
   canEdit,
-}: {
+  onOpenDatasheet,
+  onOpenDamage,
+}: BattleUnitShortcutProps & {
   unit: UnitDefinition
   state: UnitState
   army: Army
@@ -165,8 +170,9 @@ function UnitCard({
         <span className={`unit-state${state.destroyed ? ' unit-state--destroyed' : ''}`}>{state.destroyed ? tr('Destroyed') : tr('Alive')}</span>
         {state.battleShocked && <span className="status-badge status-badge--danger">{tr("Battle-shocked")}</span>}
       </div>
+      <UnitShortcutActions selection={{ playerId: ownerId, unitId: unit.id }} onOpenDatasheet={onOpenDatasheet} onOpenDamage={state.destroyed ? undefined : onOpenDamage} />
       {missionActionName && <div className="unit-mission-action"><span>{tr("Mission Action")}</span><strong>{missionActionName}</strong><small>{tr("Cannot Shoot or declare a charge this turn.")}</small></div>}
-      {!canEdit && <p className="shared-readonly-note">{tr("Read only on this device · ")}{ownerName} {tr(" records this unit's state.")}</p>}
+      {!canEdit && (!onOpenDamage || state.destroyed) && <p className="shared-readonly-note">{tr("Read only on this device · ")}{ownerName} {tr(" records this unit's state.")}</p>}
       <CombatControls unit={unit} state={state} playerId={ownerId} source={combatSource} dispatch={dispatch} canEdit={canEdit} />
       <div className="unit-battleshock-actions">
         <span>{tr("Battle-shock test")}</span>
@@ -229,10 +235,13 @@ export function ArmyTracker({
   session,
   dispatch,
   preferredPlayerId,
+  preferredPlayerRequest,
   sharedMode = false,
   viewerPlayerId = null,
   secondaryTargetFilter,
   onClearSecondaryTargetFilter,
+  onOpenDatasheet,
+  onOpenDamage,
 }: ArmyTrackerProps) {
   const armyPlayers = session.setup.players.flatMap((player) => {
     const army = player.armyId ? session.setup.armies[player.armyId] : undefined
@@ -260,10 +269,12 @@ export function ArmyTracker({
     : rivalHasArmy
       ? rivalPlayerId ?? ''
       : activeHasArmy ? session.state.activePlayerId : armyPlayers[0]?.player.id ?? ''
-  const [selectedPlayerId, setSelectedPlayerId] = useState(defaultPlayerId)
-  useEffect(() => setSelectedPlayerId(defaultPlayerId), [defaultPlayerId])
+  const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null)
+  useEffect(() => setSelectedPlayerId(null), [session.setup.gameId, preferredPlayerId, preferredPlayerRequest])
   if (armyPlayers.length === 0) return <section className="empty-state"><h2>{tr("No army roster attached")}</h2></section>
-  const selected = armyPlayers.find(({ player }) => player.id === selectedPlayerId) ?? armyPlayers[0]
+  const selected = armyPlayers.find(({ player }) => player.id === selectedPlayerId)
+    ?? armyPlayers.find(({ player }) => player.id === defaultPlayerId)
+    ?? armyPlayers[0]
   const sourceKey = `${session.setup.gameId}:${session.state.activePlayerId}:${selected.player.id}`
   const source = sources[sourceKey] ?? { destroyedByPlayerId: session.state.activePlayerId === selected.player.id ? null : session.state.activePlayerId }
   const attackerId = source.destroyedByPlayerId
@@ -273,7 +284,8 @@ export function ArmyTracker({
   const combatSource: CombatAttribution = { ...source, attackerUnitId: chosenUnit && !session.state.players[attackerId ?? '']?.units[chosenUnit]?.destroyed ? chosenUnit : null }
   const playerState = session.state.players[selected.player.id]
   const canEditSelectedArmy = !sharedMode || selected.player.id === viewerPlayerId
-  const filterRivalTargets = Boolean(secondaryTargetFilter && selected.player.id === rivalPlayerId)
+  const canRecordSelectedArmyLosses = Boolean(onOpenDamage) && canQuickDamage(session, selected.player.id, sharedMode, viewerPlayerId)
+  const filterRivalTargets = Boolean(secondaryTargetFilter && selected.player.id === (preferredPlayerId ?? rivalPlayerId))
   const filteredUnits = filterRivalTargets && secondaryTargetFilter
     ? selected.army.units.filter((unit) => (
       !playerState.units[unit.id].destroyed && matchesSecondaryTarget(unit, secondaryTargetFilter)
@@ -311,7 +323,12 @@ export function ArmyTracker({
         <div><span className="eyebrow">{selected.player.name} {tr(" · Zone ")}{selected.player.deploymentZone ?? '—'}</span><h2>{selected.army.faction}</h2></div>
         <strong>{selected.army.totalPoints} {tr(" pts")}</strong>
       </div>
-      {sharedMode && !canEditSelectedArmy && <div className="shared-army-readonly"><strong>{tr("Opponent army · read only")}</strong><span>{selected.player.name} {tr(" records casualties, wounds, battle-shock and abilities on their device.")}</span></div>}
+      {sharedMode && !canEditSelectedArmy && <div className="shared-army-readonly">
+        <strong>{tr(canRecordSelectedArmyLosses ? 'Opponent army' : 'Opponent army · read only')}</strong>
+        {canRecordSelectedArmyLosses
+          ? <span>{tr('Use Record losses for damage caused by your force. The owner manages other unit changes.')}</span>
+          : <span>{selected.player.name} {tr(" records casualties, wounds, battle-shock and abilities on their device.")}</span>}
+      </div>}
       <CombatSourcePicker session={session} targetPlayerId={selected.player.id} value={combatSource} disabled={!canEditSelectedArmy} onChange={(value) => {
         setSources((current) => ({ ...current, [sourceKey]: value }))
         if (value.destroyedByPlayerId && value.attackerUnitId !== undefined) setLastUnits((current) => ({ ...current, [value.destroyedByPlayerId!]: value.attackerUnitId ?? null }))
@@ -351,6 +368,8 @@ export function ArmyTracker({
         missionActionName={getActiveMissionActionForUnit(session, selected.player.id, unit.id)?.name}
         dispatch={dispatch}
         canEdit={canEditSelectedArmy}
+        onOpenDatasheet={onOpenDatasheet}
+        onOpenDamage={canRecordSelectedArmyLosses ? onOpenDamage : undefined}
       />)}</div>
       {filterRivalTargets && visibleUnits.length === 0 && <p className="context-note">{tr("No eligible Rival targets remain.")}</p>}
     </section>

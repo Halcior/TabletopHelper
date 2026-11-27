@@ -17,6 +17,7 @@ import {
 import { CAULDRON_RULESET_ID } from '../rulesets/cauldronFFA3'
 import { rulesForSession } from '../rulesets/rulesSource'
 import { RulesSourceBadge } from '../components/ui/RulesSourceBadge'
+import { setBattlePresetPinned, useBattlePresets } from '../features/battleLegacy/presets'
 
 function statusLabel(status: StoredBattle['status']): string {
   if (status === 'completed') return 'Completed'
@@ -35,9 +36,13 @@ function HomeActionContent({ icon, label, title, detail }: { icon: AppIconName; 
 export default function Home() {
   const { rows: armies } = useRosterLibrary()
   const owner = useRosterScope((s) => s.userId)
+  const presetOwner = owner ?? 'guest'
+  const { presets, error: presetError } = useBattlePresets(presetOwner)
+  const pinnedPresets = presets.filter((preset) => preset.pinned)
   const [activeBattle, setActiveBattle] = useState<BattleSession | null>(null)
   const [recentBattles, setRecentBattles] = useState<StoredBattle[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [pinErrorOwner, setPinErrorOwner] = useState<string | null>(null)
   const [hosted, setHosted] = useState(false)
   const [shareStatus, setShareStatus] = useState<'idle' | 'copied'>('idle')
   const [loading, setLoading] = useState(true)
@@ -68,6 +73,15 @@ export default function Home() {
       window.setTimeout(() => setShareStatus('idle'), 1800)
     } catch {
       // Native share cancellation should not interrupt the app.
+    }
+  }
+
+  async function unpinPreset(id: string) {
+    setPinErrorOwner(null)
+    try {
+      await setBattlePresetPinned(presetOwner, id, false)
+    } catch {
+      setPinErrorOwner(presetOwner)
     }
   }
 
@@ -109,6 +123,8 @@ export default function Home() {
       </section>
 
       {error && <div className="alert alert--danger" role="alert">{tr("Could not load saved data: ")}{tr(error)}</div>}
+      {presetError && <p role="alert">{tr('Could not load battle presets.')}</p>}
+      {pinErrorOwner === presetOwner && <p role="alert">{tr('Could not unpin the battle preset.')}</p>}
 
       {activeBattle && <section className="home-current-score" aria-label={tr("Active battle score")}>
         <div className="home-current-score__heading"><span>{tr("Active battle")}</span><RulesSourceBadge source={rulesForSession(activeBattle).source} /><strong>{tr("Round ")}{activeBattle.state.round} · {activeBattle.state.phase.replaceAll('_', ' ')}</strong></div>
@@ -116,6 +132,19 @@ export default function Home() {
           const player = activeBattle.state.players[id]
           return <span className={`home-current-score__player home-current-score__player--${index}`} key={id}>{player.name}<strong>{totalScore(player)} {tr(" VP")}</strong></span>
         })}</div>
+      </section>}
+
+      {pinnedPresets.length > 0 && <section className="section-block" aria-labelledby="pinned-presets-heading">
+        <div className="section-heading"><h2 id="pinned-presets-heading">{tr('Pinned battle presets')}</h2><Link to="/archive">{tr('Battle Archive')}</Link></div>
+        <div className="recent-battle-list">
+          {pinnedPresets.map((preset) => <article className="panel recent-battle-card" key={preset.id}>
+            <div className="recent-battle-card__heading"><h3>{preset.name}</h3><small>{preset.online ? tr('Online multiplayer') : tr('On one device')}</small></div>
+            <div className="roster-actions">
+              <Link className="button button--small" aria-label={tr(`Use preset ${preset.name}`, 'Use preset {0}')} to={`/battle/setup?preset=${encodeURIComponent(preset.id)}&quick=1`}>{tr('Use preset')}</Link>
+              <button className="button button--small" type="button" aria-label={tr(`Unpin ${preset.name}`, 'Unpin {0}')} onClick={() => void unpinPreset(preset.id)}>{tr('Unpin')}</button>
+            </div>
+          </article>)}
+        </div>
       </section>}
 
       {recentBattles.length > 0 && <section className="section-block recent-battles">

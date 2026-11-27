@@ -11,7 +11,7 @@
     "test": "vitest",
     "test:three-phones": "vitest --run src/multiplayer/sharedLobby.test.ts src/multiplayer/threeClientFlow.test.ts",
     "test:e2e": "playwright test",
-    "test:e2e:offline": "E2E_PRODUCTION=1 playwright test e2e/army-offline-production.spec.ts",
+    "test:e2e:offline": "E2E_PRODUCTION=1 playwright test e2e/army-offline-production.spec.ts e2e/shared-offline-production.spec.ts",
     "test:e2e:install": "playwright install chromium",
     "test:sql": "node scripts/test-social-sql.mjs"
   },

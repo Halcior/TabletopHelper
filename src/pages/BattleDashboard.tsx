@@ -28,6 +28,8 @@ import { OfficialSecondaryPanel } from '../components/battle/OfficialSecondaryPa
 import { RivalRotationNotice } from '../components/battle/RivalRotationNotice'
 import { BattleFocus } from '../components/battle/BattleFocus'
 import { QuickDamagePanel } from '../components/battle/QuickDamagePanel'
+import { getDuelPrimaryReviewWindow, getPendingEndTurnScoring } from '../components/battle/turnReviewProgress'
+import type { BattleUnitSelection } from '../components/battle/unitShortcuts'
 import { OfficialPrimaryPanel } from '../components/battle/OfficialPrimaryPanel'
 import { DuelPrimaryPanel } from '../components/battle/DuelPrimaryPanel'
 import { SharedPlayerPerspective } from '../components/battle/SharedPlayerPerspective'
@@ -52,8 +54,7 @@ import {
   OFFICIAL_PRIMARY_MISSIONS,
   isDuelPrimary,
   getDuelMission,
-  getDuelConditions,
-  hasDuelOwnTurnCommit,
+  getDuelPrimaryCommit,
   secondaryStrategyFor,
 } from '../rulesets/cauldronFFA3'
 import type { SecondaryId } from '../rulesets/cauldronFFA3/secondaryTypes'
@@ -74,10 +75,14 @@ const DASHBOARD_TAB_ICONS: Record<DashboardTab, AppIconName> = {
 }
 
 export default function BattleDashboard() {
-  const [companionOpen, setCompanionOpen] = useState(false)
-  const [tableMode, setTableMode] = useState(false)
-  const [quickDamageOpen, setQuickDamageOpen] = useState(false)
   const { battleId } = useParams()
+  return <BattleDashboardView key={battleId} battleId={battleId} />
+}
+
+function BattleDashboardView({ battleId }: { battleId?: string }) {
+  const [companionSelection, setCompanionSelection] = useState<BattleUnitSelection | 'default' | null>(null)
+  const [tableMode, setTableMode] = useState(false)
+  const [damageSelection, setDamageSelection] = useState<BattleUnitSelection | 'default' | null>(null)
   const [tab, setSelectedTab] = useState<DashboardTab>('overview')
   const [visitedPanels, setVisitedPanels] = useState<Set<DashboardTab>>(() => new Set(['overview']))
   const [moreOpen, setMoreOpen] = useState(false)
@@ -107,6 +112,7 @@ export default function BattleDashboard() {
   const [contextFocusItemId, setContextFocusItemId] = useState<string | null>(null)
   const [armySecondaryFilter, setArmySecondaryFilter] = useState<SecondaryId | null>(null)
   const [armyPreferredPlayerId, setArmyPreferredPlayerId] = useState<string | null>(null)
+  const [armyPreferredRequest, setArmyPreferredRequest] = useState(0)
   const sharedMembership = useSharedSessionStore((state) => state.membership)
   const sharedRoomStartedAt = useSharedSessionStore((state) => state.roomStartedAt)
   const sharedRestore = useSharedSessionStore((state) => state.restoreForBattle)
@@ -152,11 +158,9 @@ export default function BattleDashboard() {
   }, [battleId, sharedRestore])
 
   useEffect(() => {
-    if (!session || session.state.status !== 'active') return
-    setTab('overview')
     setContextFocusItemId(null)
-    setArmySecondaryFilter(null)
-    setArmyPreferredPlayerId(null)
+    setTurnReviewOpen(false)
+    setReviewOpen(false)
   }, [session?.state.activePlayerId, session?.state.phase, session?.state.round, session?.state.status])
 
   const liveFeedback = useLiveBattleFeedback(session)
@@ -201,15 +205,7 @@ export default function BattleDashboard() {
   const rivalId = cauldron ? getCurrentRivalPlayerId(session, active.id) : null
   const rival = rivalId ? session.state.players[rivalId] : null
   const primaryViewerId = sharedBattle && viewerPlayerId ? doublesScorekeeperId(session.setup, viewerPlayerId) : active.id
-  const duelReviewWindow = duelPrimary ? (() => {
-    if (session.state.phase === 'COMMAND' && session.state.round >= 2 && session.state.round < 5 && primaryViewerId === active.id) return 'command' as const
-    if (session.state.phase === 'END_TURN') {
-      if (session.state.round === 5 && active.id === session.state.turnOrder.at(-1)
-        && session.state.turnOrder.every((id) => hasDuelOwnTurnCommit(session, id))) return 'battle' as const
-      if (primaryViewerId === active.id || getDuelConditions(session, primaryViewerId, 'turn').some((condition) => condition.window === 'either')) return 'turn' as const
-    }
-    return undefined
-  })() : undefined
+  const duelReviewWindow = duelPrimary ? getDuelPrimaryReviewWindow(session, primaryViewerId) : undefined
   const activeSideName = doublesForceForPlayer(session.setup, active.id)?.name ?? active.name
   const rivalSideName = rivalId ? doublesForceForPlayer(session.setup, rivalId)?.name ?? rival?.name : null
   const battleContext = battleActive ? buildBattleContext({ session }) : null
@@ -231,6 +227,16 @@ export default function BattleDashboard() {
         : undefined
   const canEndBattle = battleActive && !endBlocker && canManageLifecycle
   const cauldronTurnReview = battleActive && cauldron && session.state.phase === 'END_TURN'
+  const pendingEndTurn = cauldronTurnReview && sharedBattle ? getPendingEndTurnScoring(session) : undefined
+  const canReviewSharedTurn = !canControlTurn && Boolean(viewerPlayerId
+    && (pendingEndTurn?.primary.includes(primaryViewerId) || pendingEndTurn?.secondary.includes(primaryViewerId)))
+  const canReviewSharedBattle = sharedBattle && !canControlTurn && Boolean(viewerPlayerId)
+    && duelReviewWindow === 'battle' && !getDuelPrimaryCommit(session, primaryViewerId, 'battle')
+  const sharedTurnStatus = canReviewSharedTurn || canReviewSharedBattle
+    ? tr("Your scoring needs confirmation")
+    : canControlTurn
+      ? tr(`Your turn · ${viewer?.name ?? active.name}`, "Your turn · {0}")
+      : tr(`Waiting for ${sharedPermissions.waitingForPlayerName ?? active.name} · playing as ${viewer?.name ?? 'player'}`, "Waiting for {0} · playing as {1}")
   const phaseLabel = humanizePhase(session.state.phase)
   const phaseIndex = BATTLE_PHASES.indexOf(session.state.phase)
   const activePlayerIndex = Math.max(0, session.state.turnOrder.indexOf(active.id))
@@ -287,17 +293,23 @@ export default function BattleDashboard() {
     nextPhase()
   }
 
-  function selectDashboardTab(item: DashboardTab) {
-    if (item === 'army') setArmyPreferredPlayerId(null)
-    setTab(item)
+  function openArmyForPlayer(playerId: string, secondaryId?: SecondaryId) {
+    setArmySecondaryFilter(secondaryId ?? null)
+    setArmyPreferredPlayerId(playerId)
+    setArmyPreferredRequest((request) => request + 1)
+    setTab('army')
   }
 
   if (tableMode) return <TableMode session={session} onClose={() => setTableMode(false)} />
 
   return (
     <div className="battle-page" style={{ '--battle-hud-height': `${headerHeight}px` } as CSSProperties}>
-      {companionOpen && <Suspense fallback={<p role="status">Loading Companion…</p>}><BattleCompanion session={session} viewerId={viewerPlayerId} shared={sharedBattle} onClose={() => setCompanionOpen(false)} /></Suspense>}
-      {quickDamageOpen && <QuickDamagePanel key={session.setup.gameId} session={session} dispatch={dispatch} shared={sharedBattle} viewerId={viewerPlayerId} onClose={() => setQuickDamageOpen(false)} />}
+      {companionSelection && <Suspense fallback={<p role="status">{tr('Loading Companion…')}</p>}>
+        <BattleCompanion session={session} viewerId={viewerPlayerId} shared={sharedBattle}
+          initialSelection={companionSelection === 'default' ? undefined : companionSelection} onClose={() => setCompanionSelection(null)} />
+      </Suspense>}
+      {damageSelection && <QuickDamagePanel session={session} dispatch={dispatch} shared={sharedBattle} viewerId={viewerPlayerId}
+        initialSelection={damageSelection === 'default' ? undefined : damageSelection} onClose={() => setDamageSelection(null)} />}
       <header ref={headerRef} className={`battle-status battle-status--player-${activePlayerIndex}${liveFeedback.phaseChanged ? ' battle-transition-live' : ''}`}>
         <div className="battle-round"><span>{tr("Battle round")}</span><strong>{session.state.round}<small>/ {session.state.maxRounds}</small></strong></div>
         <div className="battle-turn">
@@ -356,7 +368,7 @@ export default function BattleDashboard() {
         <button className="terminal-report-toggle" onClick={() => setTerminalReportOpen((current) => !current)}>{terminalReportOpen ? tr('Hide Battle Report') : tr('View Battle Report')}</button>
         {terminalReportOpen && <BattleReport session={session} />}
         <button className="terminal-report-toggle" onClick={() => setTerminalBoardOpen((current) => !current)}>{terminalBoardOpen ? tr('Hide battlefield replay') : tr('View battlefield replay')}</button>
-        {terminalBoardOpen && <ObjectivesPanel session={session} dispatch={dispatch} replayRequest={replayRequest} replayEventId={replayEventId} />}
+        {terminalBoardOpen && <ObjectivesPanel session={session} dispatch={dispatch} replayRequest={replayRequest} replayEventId={replayEventId} onOpenDatasheet={setCompanionSelection} />}
         {terminalLogOpen && <div className="battle-terminal-log"><BattleLog session={session} onShowMap={showMapEvent} /></div>}
       </main> : <>
         <Scoreboard
@@ -371,7 +383,14 @@ export default function BattleDashboard() {
         <PhaseStepper phase={session.state.phase} />
         {officialSecondary && session.setup.players.length === 3 && <RivalRotationNotice session={session} playerId={primaryViewerId} />}
         {sharedBattle && <SharedSyncWarning battleId={session.setup.gameId} />}
-        {sharedBattle && <div className={`shared-flow-notice${canControlTurn ? ' shared-flow-notice--active' : ''}`}>{canControlTurn ? tr(`Your turn · ${viewer?.name ?? active.name}`, "Your turn · {0}") : tr(`Waiting for ${sharedPermissions.waitingForPlayerName ?? active.name} · playing as ${viewer?.name ?? 'player'}`, "Waiting for {0} · playing as {1}")}</div>}
+        {sharedBattle && <div className={`shared-flow-notice${canControlTurn ? ' shared-flow-notice--active' : ''}`}>
+          <span aria-live="polite">{sharedTurnStatus}</span>
+          {canReviewSharedTurn && !turnReviewOpen && <button className="button button--small" type="button" onClick={() => setTurnReviewOpen(true)}>{tr("Review your scoring")}</button>}
+          {canReviewSharedBattle && !canReviewSharedTurn && <button className="button button--small" type="button" onClick={() => {
+            setTurnReviewOpen(false)
+            setTab('cards')
+          }}>{tr("Review end-of-battle Primary")}</button>}
+        </div>}
         {currentWindow && <section className="panel legacy-reaction-recovery"><p>{tr("This saved battle has an unfinished legacy reaction pause.")}</p><button disabled={!canCloseLegacyPause} onClick={() => cancelReactionWindow(currentWindow.id)}>{tr("Close legacy pause")}</button></section>}
         {error && <div className="alert alert--danger battle-alert">{tr(error)}</div>}
 
@@ -379,25 +398,35 @@ export default function BattleDashboard() {
           session={session}
           sharedBattle={sharedBattle}
           onCancel={() => setReviewOpen(false)}
-          onConfirm={(confirmations) => { if (canControlTurn) confirmRound(confirmations); setReviewOpen(false) }}
-        /> : turnReviewOpen && cauldron ? <SecondaryEndTurnReview
+          onConfirm={(confirmations) => {
+            if (!canControlTurn) return
+            confirmRound(confirmations)
+            if (!useBattleStore.getState().error) setReviewOpen(false)
+          }}
+        /> : turnReviewOpen && cauldronTurnReview && <SecondaryEndTurnReview
           session={session}
           sharedBattle={sharedBattle}
+          reviewPlayerId={sharedBattle ? primaryViewerId : undefined}
           onCompleteMissionAction={completeMissionAction}
           onEvaluate={evaluateEndTurnSecondaries}
           onDiscard={discardSecondaryCards}
           onCancel={() => setTurnReviewOpen(false)}
           onFinish={() => {
-            setTurnReviewOpen(false)
             if (!canControlTurn) return
-            if (endOfRound) setReviewOpen(true)
-            else nextPhase()
+            if (endOfRound) {
+              setTurnReviewOpen(false)
+              setReviewOpen(true)
+              return
+            }
+            nextPhase()
+            if (!useBattleStore.getState().error) setTurnReviewOpen(false)
           }}
-        /> : <>
-          <button className="button companion-launch" onClick={() => setCompanionOpen(true)}>Battle Companion</button>
+        />}
+        <div className="battle-workspace" hidden={reviewOpen || (turnReviewOpen && cauldronTurnReview)}>
+          <button className="button companion-launch" onClick={() => setCompanionSelection('default')}>Battle Companion</button>
           <nav className="battle-tabs" aria-label={tr("Battle panels")}>
             {dashboardTabs.map((item) => (
-              <button aria-pressed={tab === item} className={`${tab === item ? 'selected ' : ''}${['log', 'report'].includes(item) ? 'battle-tabs__desktop' : ''}`} key={item} onClick={() => selectDashboardTab(item)}><AppIcon name={DASHBOARD_TAB_ICONS[item]} /><span>{tr(item === 'overview' ? 'Battle' : item === 'log' ? 'Chronicle' : item.charAt(0).toUpperCase() + item.slice(1))}</span></button>
+              <button aria-pressed={tab === item} className={`${tab === item ? 'selected ' : ''}${['log', 'report'].includes(item) ? 'battle-tabs__desktop' : ''}`} key={item} onClick={() => setTab(item)}><AppIcon name={DASHBOARD_TAB_ICONS[item]} /><span>{tr(item === 'overview' ? 'Battle' : item === 'log' ? 'Chronicle' : item.charAt(0).toUpperCase() + item.slice(1))}</span></button>
             ))}
             <button ref={moreTrigger} aria-haspopup="menu" aria-expanded={moreOpen} className={`battle-tabs__more${['log', 'report'].includes(tab) ? ' selected' : ''}`} onClick={() => setMoreOpen((current) => !current)}><AppIcon name="more" /><span>{tr("More")}</span></button>
           </nav>
@@ -414,18 +443,18 @@ export default function BattleDashboard() {
           <main className="battle-content">
             <section className="battle-panel" hidden={tab !== 'overview'} aria-label={tr("Battle overview")}>
             {(officialPrimary || duelPrimary) && <section className="battle-mission-strip" aria-label={tr("Mission score summary")}>
-              <button type="button" className="battle-mission-strip__metric" onClick={() => selectDashboardTab('cards')} aria-label={tr("Open mission cards: Primary")}>
+              <button type="button" className="battle-mission-strip__metric" onClick={() => setTab('cards')} aria-label={tr("Open mission cards: Primary")}>
                 <span className="battle-mission-strip__label">{tr("Primary · ")}{duelPrimary ? getDuelMission(session, primaryViewerId).name : OFFICIAL_PRIMARY_MISSIONS[getOfficialPrimaryId(session, primaryViewerId)].name}</span>
                 <strong>{session.state.players[primaryViewerId]?.score.primary ?? 0}<small> {tr(" VP")}</small></strong>
               </button>
-              {officialSecondary && <button type="button" className="battle-mission-strip__metric" onClick={() => selectDashboardTab('cards')} aria-label={tr("Open mission cards: Secondary")}>
+              {officialSecondary && <button type="button" className="battle-mission-strip__metric" onClick={() => setTab('cards')} aria-label={tr("Open mission cards: Secondary")}>
                 <span className="battle-mission-strip__label">{tr("Secondary · ")}{secondaryStrategyFor(session, primaryViewerId) === 'fixed' ? tr('Fixed') : tr('Tactical')}</span>
                 <strong>{session.state.players[primaryViewerId]?.score.secondary ?? 0}<small> {tr(" VP")}</small></strong>
               </button>}
             </section>}
             {battleContext && <div className="tactical-dashboard tactical-dashboard--context">
               <div className="tactical-column tactical-column--primary">
-                <BattleFocus session={session} playerId={primaryViewerId} onDamage={() => setQuickDamageOpen(true)} onObjectives={() => setTab('objectives')} onCards={() => setTab('cards')} onReview={canControlTurn ? () => setTurnReviewOpen(true) : undefined} />
+                <BattleFocus session={session} playerId={primaryViewerId} onDamage={() => setDamageSelection('default')} onObjectives={() => setTab('objectives')} onCards={() => setTab('cards')} onReview={canControlTurn ? () => setTurnReviewOpen(true) : undefined} />
                 <ContextCommandCentre
                   context={battleContext}
                   session={session}
@@ -440,11 +469,7 @@ export default function BattleDashboard() {
                   onResolveEliminationChoice={resolveEliminationChoice}
                   onSelectPriorityCandidates={selectPriorityTargetCandidates}
                   onChoosePriorityTarget={choosePriorityTarget}
-                  onOpenArmyDetails={(ownerId) => {
-                    setArmySecondaryFilter(null)
-                    setArmyPreferredPlayerId(ownerId)
-                    setTab('army')
-                  }}
+                  onOpenArmyDetails={(playerId, _unitId, secondaryId) => openArmyForPlayer(playerId, secondaryId)}
                 />
                 {officialPrimary && <OfficialPrimaryPanel session={session} playerId={sharedBattle ? viewerPlayerId ?? active.id : active.id} />}
                 {duelPrimary && <DuelPrimaryPanel session={session} playerId={primaryViewerId} window={duelReviewWindow} editable={!sharedBattle || Boolean(viewerPlayerId)} />}
@@ -456,11 +481,7 @@ export default function BattleDashboard() {
                   viewerPlayerId={viewerPlayerId}
                   currentRivalPlayerId={rivalId}
                   showCards={cauldron && !officialSecondary}
-                  onOpenArmy={() => {
-                    setArmyPreferredPlayerId(viewerPlayerId)
-                    setArmySecondaryFilter(null)
-                    setTab('army')
-                  }}
+                  onOpenArmy={() => openArmyForPlayer(viewerPlayerId)}
                   onOpenCards={() => setTab('cards')}
                 />}
                 <BattleQuickStatus session={session} onOpenObjectives={() => setTab('objectives')} />
@@ -471,12 +492,18 @@ export default function BattleDashboard() {
               session={session}
               dispatch={dispatch}
               preferredPlayerId={armyPreferredPlayerId ?? (sharedBattle ? viewerPlayerId : undefined)}
+              preferredPlayerRequest={armyPreferredRequest}
               sharedMode={sharedBattle}
               viewerPlayerId={viewerPlayerId}
               secondaryTargetFilter={armySecondaryFilter}
               onClearSecondaryTargetFilter={() => setArmySecondaryFilter(null)}
+              onOpenDatasheet={setCompanionSelection}
+              onOpenDamage={setDamageSelection}
             /></section>}
-            {visitedPanels.has('objectives') && <section className="battle-panel" hidden={tab !== 'objectives'} aria-label={tr("Objectives")}><ObjectivesPanel session={session} dispatch={dispatch} liveObjectiveIds={liveFeedback.objectiveIds} replayRequest={replayRequest} replayEventId={replayEventId} onEditingChange={setBoardEditing} active={tab === 'objectives'} /></section>}
+            {visitedPanels.has('objectives') && <section className="battle-panel" hidden={tab !== 'objectives'} aria-label={tr("Objectives")}><ObjectivesPanel
+              session={session} dispatch={dispatch} liveObjectiveIds={liveFeedback.objectiveIds} replayRequest={replayRequest} replayEventId={replayEventId}
+              onEditingChange={setBoardEditing} active={tab === 'objectives' && !turnReviewOpen && !reviewOpen}
+              onOpenDatasheet={setCompanionSelection} onOpenDamage={setDamageSelection} /></section>}
             {visitedPanels.has('cards') && cauldron && <section className="battle-panel" hidden={tab !== 'cards'} aria-label={tr("Mission cards")}>
               {officialPrimary && <OfficialPrimaryPanel session={session} playerId={sharedBattle ? viewerPlayerId ?? active.id : active.id} />}
               {duelPrimary && <DuelPrimaryPanel session={session} playerId={primaryViewerId} window={duelReviewWindow} editable={!sharedBattle || Boolean(viewerPlayerId)} />}
@@ -489,14 +516,14 @@ export default function BattleDashboard() {
           </main>
 
           <footer className="battle-actions battle-actions--primary">
-            <button type="button" className="battle-damage-trigger" onClick={() => setQuickDamageOpen(true)}>{tr("Damage")}</button>
+            <button type="button" className="battle-damage-trigger" onClick={() => setDamageSelection('default')}>{tr("Damage")}</button>
             <button
               className="button--gold next-phase"
               disabled={!canControlTurn}
               onClick={handleNextAction}
             ><span className="next-phase__copy"><strong>{!canControlTurn ? tr(`Waiting for ${active.name}`, "Waiting for {0}") : flowPaused && progressionBlockers.length === 0 ? tr('Legacy pause') : tr(nextLabel)}</strong><small>{!canControlTurn ? tr(`Room ${sharedMembership?.roomCode ?? ''}`, "Room {0}") : flowPaused && progressionBlockers.length === 0 ? tr('Close legacy pause to continue') : tr(nextDestination)}</small></span><AppIcon name="next" className="next-phase__icon" /></button>
           </footer>
-        </>}
+        </div>
       </>}
     </div>
   )

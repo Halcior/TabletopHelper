@@ -4,6 +4,8 @@ import {
   getOfficialPrimaryId, getOfficialPrimaryMarkers, getOfficialPrimaryRival, officialPrimaryActionTargets,
 } from '../../rulesets/cauldronFFA3/officialPrimary'
 import type { OfficialPrimaryConfirmation } from '../../rulesets/cauldronFFA3/types'
+import { officialPlayerUnits } from '../../rulesets/cauldronFFA3/officialSecondaryFFA'
+import { missionUnitChoices } from './missionChoices'
 
 export function OfficialPrimaryInputs({ session, playerId, value, onChange }: {
   session: BattleSession
@@ -28,6 +30,8 @@ export function OfficialPrimaryInputs({ session, playerId, value, onChange }: {
   const targets = officialPrimaryActionTargets(session, playerId)
   const markers = getOfficialPrimaryMarkers(session, playerId)
   const actions = value.actions ?? []
+  const hasRoster = officialPlayerUnits(session, playerId).length > 0
+  const unitChoices = missionUnitChoices(session, playerId, true)
   return <div className="official-primary-inputs">
     <p>{tr("Confirm actions started in your Shooting phase and completed while the acting unit controlled its objective at turn end. Use a different unit and objective for each action.")}</p>
     {markers.length > 0 && missionId === 'gather-intel' && <small>{tr("Already marked: ")}{markers.join(', ')}</small>}
@@ -35,11 +39,24 @@ export function OfficialPrimaryInputs({ session, playerId, value, onChange }: {
     {targets.map((objective) => {
       const action = actions.find((entry) => entry.objectiveId === objective.id)
       const replace = (patch: Partial<NonNullable<typeof action>>) => confirm({ actions: actions.map((entry) => entry.objectiveId === objective.id ? { ...entry, ...patch } : entry) })
+      const selectedUnitId = action?.unitId ?? unitChoices.find((unit) => unit.label === action?.unitName)?.value
+      const available = unitChoices.filter((unit) => unit.value === selectedUnitId ||
+        !actions.some((entry) => entry !== action && (entry.unitId ? entry.unitId === unit.value : entry.unitName === unit.label)))
       return <div className="official-primary-action" key={objective.id}>
         <label className="review-check-row"><input type="checkbox" checked={Boolean(action)} onChange={(event) => confirm({ actions: event.target.checked
           ? [...actions, { objectiveId: objective.id, unitName: '', enemyTerritory: false }]
           : actions.filter((entry) => entry.objectiveId !== objective.id) })} /><span>{tr("Completed at ")}{objective.name}</span></label>
-        {action && <label>{tr("Acting unit")}<input value={action.unitName} onChange={(event) => replace({ unitName: event.target.value })} placeholder={tr("Unit name")} /></label>}
+        {action && <label>{tr("Acting unit")}{hasRoster
+          ? <select value={selectedUnitId ?? ''} onChange={(event) => {
+            const selected = available.find((unit) => unit.value === event.target.value)
+            replace({ unitId: selected?.value, unitName: selected?.label ?? '' })
+          }}>
+            <option value="">{tr("Choose a qualifying own unit")}</option>
+            {selectedUnitId && !available.some((unit) => unit.value === selectedUnitId) && <option value={selectedUnitId} disabled>{action.unitName}</option>}
+            {available.map((unit) => <option key={unit.value} value={unit.value}>{unit.label}</option>)}
+          </select>
+          : <input value={action.unitName} onChange={(event) => replace({ unitName: event.target.value })} placeholder={tr("Unit name")} />}
+        </label>}
         {action && missionId === 'sabotage' && (objective.type !== 'home'
           ? <label className="review-check-row"><input type="checkbox" checked={Boolean(action.enemyTerritory)} onChange={(event) => replace({ enemyTerritory: event.target.checked })} /><span>{tr("This objective is in current Rival territory (")}{rival.name}{tr(") (+2 VP)")}</span></label>
           : <small>{objective.id === rival.homeObjectiveId ? tr('Current Rival HOME · +2 VP territory bonus.') : tr('No Rival territory bonus at this HOME.')}</small>)}

@@ -5,6 +5,7 @@ import { officialTurnKey } from '../../rulesets/cauldronFFA3/officialSecondary'
 import { getOfficialSecondaryRival, officialPlayerUnits, officialRivalKills } from '../../rulesets/cauldronFFA3/officialSecondaryFFA'
 import { getSecondaryState } from '../../rulesets/cauldronFFA3/secondary'
 import type { OfficialSecondaryConfirmation, OfficialSecondaryId } from '../../rulesets/cauldronFFA3/secondaryTypes'
+import { missionObjectiveLabel, missionUnitLabel } from './missionChoices'
 
 export function OfficialSecondaryConfirmationFields({ session, playerId, cardId, value, onChange }: {
   session: BattleSession
@@ -14,7 +15,6 @@ export function OfficialSecondaryConfirmationFields({ session, playerId, cardId,
   onChange: (value: OfficialSecondaryConfirmation) => void
 }) {
   const enemies = session.setup.players.filter((player) => player.id !== playerId)
-  const units = officialPlayerUnits(session, playerId)
   const card = getSecondaryState(session)[playerId]?.active.find((entry) => entry.cardId === cardId)
   const update = (patch: Partial<OfficialSecondaryConfirmation>) => onChange({ ...value, ...patch })
   const check = (key: 'ownUnitWithin3OfCenter' | 'beaconOutsideOwnDeployment' | 'unitWhollyOutsideOwnTerritory' | 'outflankUnitNearEdge' | 'outflankOppositeEdges', label: string) => (
@@ -48,7 +48,7 @@ export function OfficialSecondaryConfirmationFields({ session, playerId, cardId,
     </>
     case 'OFFICIAL_BURDEN_OF_TRUST': return <>{Object.entries(card?.cardSpecificState?.officialGuardAssignments ?? {}).map(([objectiveId, unitId]) => <label className="review-check-row" key={objectiveId}>
       <input type="checkbox" checked={value.guardingObjectiveIdsInRange?.includes(objectiveId) ?? false} onChange={(event) => toggleId('guardingObjectiveIdsInRange', objectiveId, event.target.checked)} />
-      <span>{objectiveId} · {units.find((unit) => unit.id === unitId)?.name} {tr(" still in objective range")}</span>
+      <span>{missionObjectiveLabel(session, objectiveId)} · {missionUnitLabel(session, playerId, unitId)} {tr(" still in objective range")}</span>
     </label>)}</>
     case 'OFFICIAL_OVERWHELMING_FORCE': return <>{[...new Set(officialRivalKills(session, playerId, cardId).filter((kill) => kill.unitDestroyed).map((kill) => kill.unitId))].map((unitId) => <label className="review-check-row" key={unitId}>
       <input type="checkbox" checked={value.overwhelmingForceUnitIds?.includes(unitId) ?? false} onChange={(event) => toggleId('overwhelmingForceUnitIds', unitId, event.target.checked)} />
@@ -57,7 +57,7 @@ export function OfficialSecondaryConfirmationFields({ session, playerId, cardId,
     case 'OFFICIAL_CLEANSE': return <>{getCauldronEventData<{ playerId: string; cardId: string; turnKey: string; target: string; unit: string }>(session, 'SECONDARY_OFFICIAL_ACTION_STARTED')
       .filter((action) => action.playerId === playerId && action.cardId === cardId && action.turnKey === officialTurnKey(session)).map((action) => <label className="review-check-row" key={action.target}>
         <input type="checkbox" checked={value.completedCleanseObjectiveIds?.includes(action.target) ?? false} onChange={(event) => toggleId('completedCleanseObjectiveIds', action.target, event.target.checked)} />
-        <span>{units.find((unit) => unit.id === action.unit)?.name} {tr(" still controls ")}{action.target} {tr(" · Cleanse completed")}</span>
+        <span>{missionUnitLabel(session, playerId, action.unit)} {tr(" still controls ")}{missionObjectiveLabel(session, action.target)} {tr(" · Cleanse completed")}</span>
       </label>)}</>
     default: return null
   }
